@@ -8,8 +8,6 @@ import java.security.PrivateKey;
 import java.security.cert.Certificate;
 
 import openbusidl.acs.IAccessControlService;
-import openbusidl.acs.IAccessControlServiceComponent;
-import openbusidl.acs.IAccessControlServiceComponentHelper;
 import openbusidl.acs.IAccessControlServiceHelper;
 import openbusidl.rs.IRegistryService;
 import openbusidl.rs.IRegistryServiceComponent;
@@ -54,10 +52,6 @@ public final class Utils {
     catch (COMM_FAILURE e) {
       return null;
     }
-    IAccessControlServiceComponent accessControlServiceComponent = IAccessControlServiceComponentHelper
-      .narrow(obj);
-    obj = accessControlServiceComponent
-      .getFacet(ACCESS_CONTROL_SERVICE_INTERFACE);
     return IAccessControlServiceHelper.narrow(obj);
   }
 
@@ -90,6 +84,9 @@ public final class Utils {
     IAccessControlService accessControlService) {
     IRegistryServiceComponent registryServiceComponent = accessControlService
       .getRegistryService();
+    if (registryServiceComponent == null) {
+      return null;
+    }
     org.omg.CORBA.Object obj = registryServiceComponent
       .getFacet(Utils.REGISTRY_SERVICE_INTERFACE);
     return IRegistryServiceHelper.narrow(obj);
