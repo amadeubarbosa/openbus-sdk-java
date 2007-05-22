@@ -1,5 +1,5 @@
 /*
- * Última alteração: $Id$
+ * $Id$
  */
 package openbus.common;
 
@@ -25,6 +25,8 @@ import org.apache.commons.codec.binary.Base64;
 
 /**
  * Métodos utilitários para uso de criptografia.
+ * 
+ * @author Tecgraf/PUC-Rio
  */
 public final class CryptoUtils {
   /**

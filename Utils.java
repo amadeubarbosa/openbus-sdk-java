@@ -1,5 +1,5 @@
 /*
- * Última alteração: $Id$
+ * $Id$
  */
 package openbus.common;
 
@@ -18,6 +18,8 @@ import org.omg.CORBA.ORB;
 
 /**
  * Métodos utilitários para uso do OpenBus.
+ * 
+ * @author Tecgraf/PUC-Rio
  */
 public final class Utils {
   /**

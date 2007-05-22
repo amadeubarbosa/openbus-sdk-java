@@ -1,5 +1,5 @@
 /*
- * Última alteração: $Id$
+ * $Id$
  */
 package openbus.common;
 
