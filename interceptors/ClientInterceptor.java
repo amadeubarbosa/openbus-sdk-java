@@ -1,7 +1,9 @@
 /*
- * Última alteração: $Id$
+ * $Id$
  */
 package openbus.common.interceptors;
+
+import openbus.common.CredentialManager;
 
 import org.omg.IOP.Codec;
 import org.omg.IOP.ServiceContext;
@@ -11,6 +13,8 @@ import org.omg.PortableInterceptor.ClientRequestInterceptor;
 /**
  * Implementa um interceptador "cliente", para inserção de informações no
  * contexto de uma requisição.
+ * 
+ * @author Tecgraf/PUC-Rio
  */
 public class ClientInterceptor extends org.omg.CORBA.LocalObject implements
   ClientRequestInterceptor {
@@ -50,9 +54,8 @@ public class ClientInterceptor extends org.omg.CORBA.LocalObject implements
     System.out.println("ATINGI PONTO DE INTERCEPTAÇÂO CLIENTE!");
 
     /* Verifica se existe uma credencial para envio */
-    CredentialValueHolder credentialHolder = CredentialValueHolder
-      .getInstance();
-    if (!credentialHolder.hasValue()) {
+    CredentialManager credentialManager = CredentialManager.getInstance();
+    if (!credentialManager.hasMemberCredential()) {
       System.out.println("SEM CREDENCIAL!");
       return;
     }
@@ -61,7 +64,7 @@ public class ClientInterceptor extends org.omg.CORBA.LocalObject implements
     /* Insere a credencial no contexto do serviço */
     byte[] value = null;
     try {
-      value = codec.encode_value(credentialHolder.getValueAny());
+      value = codec.encode_value(credentialManager.getMemberCredentialValue());
     }
     catch (Exception e) {
       System.out.println("ERRO NA CODIFICAÇÂO DA CREDENCIAL!");

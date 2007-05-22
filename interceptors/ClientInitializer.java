@@ -1,5 +1,5 @@
 /*
- * Última alteração: $Id$
+ * $Id$
  */
 package openbus.common.interceptors;
 
@@ -14,6 +14,8 @@ import org.omg.PortableInterceptor.ORBInitializer;
 /**
  * Essa classe é responsável pelo procedimento de inicialização do cliente
  * associada à inicialização do ORB.
+ * 
+ * @author Tecgraf/PUC-Rio
  */
 public class ClientInitializer extends org.omg.CORBA.LocalObject implements
   ORBInitializer {
