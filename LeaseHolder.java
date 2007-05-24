@@ -3,9 +3,6 @@
  */
 package openbus.common;
 
-import java.util.Timer;
-import java.util.TimerTask;
-
 import openbusidl.acs.Credential;
 import openbusidl.acs.ILeaseProvider;
 
@@ -26,9 +23,9 @@ public final class LeaseHolder {
    */
   private ILeaseProvider leaseProvider;
   /**
-   * Responsável por executar o método de renovação a cada intervalo.
+   * A tarefa responsável por renovar um <i>lease</i>.
    */
-  private Timer timer;
+  private RenewerTask renewer;
 
   /**
    * Cria um renovador de <i>lease</i> junto a um provedor.
@@ -39,7 +36,7 @@ public final class LeaseHolder {
   public LeaseHolder(Credential credential, ILeaseProvider leaseProvider) {
     this.credential = credential;
     this.leaseProvider = leaseProvider;
-    this.timer = new Timer();
+    this.renewer = new RenewerTask(this.credential, this.leaseProvider);
   }
 
   /**
@@ -53,27 +50,16 @@ public final class LeaseHolder {
 
   /**
    * Inicia uma renovação de <i>lease</i>.
-   * 
-   * @param lease O tempo do lease (em segundos).
-   * 
-   * @return {@code true} caso o <i>lease</i> possa ser renovado, ou
-   *         {@code false}, caso o tempo recebido seja inválido (menor ou igual
-   *         a 0).
    */
-  public boolean startRenew(int lease) {
-    if (lease <= 0) {
-      return false;
-    }
-    TimerTask task = new RenewerTask(this, this.credential, this.leaseProvider);
-    this.timer.schedule(task, lease * 1000);
-    return true;
+  public void start() {
+    this.renewer.start();
   }
 
   /**
    * Solicita o fim da renovação do <i>lease</i>.
    */
-  public void stopRenew() {
-    this.timer.cancel();
+  public void finish() {
+    this.renewer.finish();
   }
 
   /**
@@ -81,11 +67,7 @@ public final class LeaseHolder {
    * 
    * @author Tecgraf/PUC-Rio
    */
-  private static class RenewerTask extends TimerTask {
-    /**
-     * O responsável pela renovação do <i>lease</i>.
-     */
-    private LeaseHolder leaseHolder;
+  private static class RenewerTask extends Thread {
     /**
      * O provedor do <i>lease</i>.
      */
@@ -94,26 +76,44 @@ public final class LeaseHolder {
      * A credencial correspondente ao <i>lease</i>.
      */
     private Credential credential;
+    /**
+     * Indica se a <i>thread</i> deve continuar executando.
+     */
+    private boolean mustContinue;
 
     /**
      * Cria uma tarefa para renovar um <i>lease</i>.
      * 
-     * @param leaseHolder O responsável pela renovação do <i>lease</i>.
      * @param credential A credencial correspondente ao <i>lease</i>.
      * @param provider O provedor do <i>lease</i>.
      */
-    RenewerTask(LeaseHolder leaseHolder, Credential credential,
-      ILeaseProvider provider) {
-      this.leaseHolder = leaseHolder;
+    RenewerTask(Credential credential, ILeaseProvider provider) {
       this.credential = credential;
       this.provider = provider;
+      this.mustContinue = true;
     }
 
     @Override
     public void run() {
-      IntHolder newLease = new IntHolder();
-      this.provider.renewLease(this.credential, newLease);
-      leaseHolder.startRenew(newLease.value);
+      while (this.mustContinue) {
+        IntHolder newLease = new IntHolder();
+        if (!this.provider.renewLease(this.credential, newLease)) {
+          return;
+        }
+        try {
+          Thread.sleep(newLease.value * 1000);
+        }
+        catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+    }
+
+    /**
+     * Finaliza o renovador de <i>lease</i>.
+     */
+    public void finish() {
+      this.mustContinue = false;
     }
   }
 }
