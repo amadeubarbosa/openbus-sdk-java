@@ -3,6 +3,8 @@
  */
 package openbus.common;
 
+import java.util.Date;
+
 import openbusidl.acs.Credential;
 import openbusidl.acs.ILeaseProvider;
 
@@ -98,8 +100,15 @@ public final class LeaseHolder {
       while (this.mustContinue) {
         IntHolder newLease = new IntHolder();
         if (!this.provider.renewLease(this.credential, newLease)) {
+          Log.LEASE.warning("Falha na renovação da credencial.");
           return;
         }
+        StringBuilder msg = new StringBuilder();
+        msg.append(new Date());
+        msg.append(" - Lease renovado. Próxima renovação em ");
+        msg.append(newLease.value);
+        msg.append(" segundos.");
+        Log.LEASE.fine(msg.toString());
         try {
           Thread.sleep(newLease.value * 1000);
         }

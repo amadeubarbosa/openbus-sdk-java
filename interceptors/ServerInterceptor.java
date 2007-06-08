@@ -4,6 +4,7 @@
 package openbus.common.interceptors;
 
 import openbus.common.CredentialManager;
+import openbus.common.Log;
 import openbusidl.acs.Credential;
 import openbusidl.acs.CredentialHelper;
 
@@ -56,23 +57,23 @@ public class ServerInterceptor extends org.omg.CORBA.LocalObject implements
    * Intercepta o request para obtenção de informação de contexto.
    */
   public void receive_request_service_contexts(ServerRequestInfo ri) {
-    System.out.println("ATINGI PONTO DE INTERCEPTAÇÂO SERVIDOR!");
+    Log.INTERCEPTORS.fine("ATINGI PONTO DE INTERCEPTAÇÂO SERVIDOR!");
 
     ServiceContext serviceContext;
     try {
       /* Verifica se há informação de contexto (credencial) */
       serviceContext = ri.get_request_service_context(contextId);
-      System.out.println("TEM CREDENCIAL!");
+      Log.INTERCEPTORS.fine("TEM CREDENCIAL!");
       byte[] value = serviceContext.context_data;
       Credential credential = CredentialHelper.extract(codec.decode_value(
         value, CredentialHelper.type()));
-      System.out.println("CREDENCIAL: " + credential.identifier + ","
+      Log.INTERCEPTORS.fine("CREDENCIAL: " + credential.identifier + ","
         + credential.entityName);
 
       /* Verifica se a credencial é válida */
       CredentialManager credentialManager = CredentialManager.getInstance();
       if (credentialManager.getACS().isValid(credential)) {
-        System.out.println("CREDENCIAL VALIDADA!");
+        Log.INTERCEPTORS.fine("CREDENCIAL VALIDADA!");
 
         /*
          * Insere o valor da credencial no slot alocado para seu transporte ao
@@ -82,25 +83,22 @@ public class ServerInterceptor extends org.omg.CORBA.LocalObject implements
           .getCredentialValue(credential));
       }
       else {
-        System.out.println("CREDENCIAL INVALIDA!");
+        Log.INTERCEPTORS.info("CREDENCIAL INVALIDA!");
         throw new org.omg.CORBA.NO_PERMISSION(0,
           org.omg.CORBA.CompletionStatus.COMPLETED_NO);
       }
     }
     catch (org.omg.CORBA.BAD_PARAM bp) {
-      System.out.println("NÃO HÁ CREDENCIAL!");
+      Log.INTERCEPTORS.severe("NÃO HÁ CREDENCIAL!", bp);
     }
     catch (org.omg.IOP.CodecPackage.FormatMismatch fm) {
-      System.out.println("ERRO NO FORMATO DA CREDENCIAL!");
-      fm.printStackTrace();
+      Log.INTERCEPTORS.severe("ERRO NO FORMATO DA CREDENCIAL!", fm);
     }
     catch (org.omg.IOP.CodecPackage.TypeMismatch tm) {
-      System.out.println("ERRO NO TIPO DA CREDENCIAL!");
-      tm.printStackTrace();
+      Log.INTERCEPTORS.severe("ERRO NO TIPO DA CREDENCIAL!", tm);
     }
     catch (InvalidSlot is) {
-      System.out.println("SLOT INVALIDO !!!!");
-      is.printStackTrace();
+      Log.INTERCEPTORS.severe("SLOT INVALIDO !!!!", is);
     }
   }
 

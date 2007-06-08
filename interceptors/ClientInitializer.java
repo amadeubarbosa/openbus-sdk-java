@@ -3,6 +3,8 @@
  */
 package openbus.common.interceptors;
 
+import openbus.common.Log;
+
 import org.omg.CORBA.UserException;
 import org.omg.IOP.Codec;
 import org.omg.IOP.CodecFactory;
@@ -39,11 +41,10 @@ public class ClientInitializer extends org.omg.CORBA.LocalObject implements
       Codec codec = codecFactory.create_codec(encoding);
 
       info.add_client_request_interceptor(new ClientInterceptor(codec));
-      System.out.println("REGISTREI INTERCEPTADOR CLIENTE!");
+      Log.INTERCEPTORS.info("REGISTREI INTERCEPTADOR CLIENTE!");
     }
     catch (UserException e) {
-      System.out.println("ERRO NO REGISTRO DO INTERCEPTADOR CLIENTE!");
-      e.printStackTrace();
+      Log.INTERCEPTORS.severe("ERRO NO REGISTRO DO INTERCEPTADOR CLIENTE!", e);
     }
   }
 

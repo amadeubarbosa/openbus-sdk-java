@@ -4,6 +4,7 @@
 package openbus.common.interceptors;
 
 import openbus.common.CredentialManager;
+import openbus.common.Log;
 
 import org.omg.IOP.Codec;
 import org.omg.IOP.ServiceContext;
@@ -51,15 +52,15 @@ public class ClientInterceptor extends org.omg.CORBA.LocalObject implements
    * Intercepta o request para inserção de informação de contexto.
    */
   public void send_request(ClientRequestInfo ri) {
-    System.out.println("ATINGI PONTO DE INTERCEPTAÇÂO CLIENTE!");
+    Log.INTERCEPTORS.info("ATINGI PONTO DE INTERCEPTAÇÂO CLIENTE!");
 
     /* Verifica se existe uma credencial para envio */
     CredentialManager credentialManager = CredentialManager.getInstance();
     if (!credentialManager.hasMemberCredential()) {
-      System.out.println("SEM CREDENCIAL!");
+      Log.INTERCEPTORS.info("SEM CREDENCIAL!");
       return;
     }
-    System.out.println("TEM CREDENCIAL!");
+    Log.INTERCEPTORS.fine("TEM CREDENCIAL!");
 
     /* Insere a credencial no contexto do serviço */
     byte[] value = null;
@@ -67,12 +68,11 @@ public class ClientInterceptor extends org.omg.CORBA.LocalObject implements
       value = codec.encode_value(credentialManager.getMemberCredentialValue());
     }
     catch (Exception e) {
-      System.out.println("ERRO NA CODIFICAÇÂO DA CREDENCIAL!");
-      e.printStackTrace();
+      Log.INTERCEPTORS.severe("ERRO NA CODIFICAÇÂO DA CREDENCIAL!", e);
       return;
     }
     ri.add_request_service_context(new ServiceContext(contextId, value), false);
-    System.out.println("INSERI CREDENCIAL!");
+    Log.INTERCEPTORS.fine("INSERI CREDENCIAL!");
   }
 
   /**

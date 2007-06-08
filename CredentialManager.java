@@ -201,11 +201,12 @@ public class CredentialManager {
     }
     catch (org.omg.CORBA.ORBPackage.InvalidName in) {
       /* Como repassar esse erro ao servant? */
-      System.out.println("CredentialManager: NÂO OBTEVE REF PARA PICURRENT!!!");
+      Log.COMMON.severe("CredentialManager: NÂO OBTEVE REF PARA PICURRENT!!!",
+        in);
     }
     catch (org.omg.PortableInterceptor.InvalidSlot is) {
       /* Como repassar esse erro ao servant? */
-      System.out.println("CredentialManager: SLOT INVALIDO !!!");
+      Log.COMMON.severe("CredentialManager: SLOT INVALIDO !!!", is);
     }
     return null;
   }
