@@ -9,9 +9,6 @@ import java.security.cert.Certificate;
 
 import openbusidl.acs.IAccessControlService;
 import openbusidl.acs.IAccessControlServiceHelper;
-import openbusidl.rs.IRegistryService;
-import openbusidl.rs.IRegistryServiceComponent;
-import openbusidl.rs.IRegistryServiceHelper;
 
 import org.omg.CORBA.COMM_FAILURE;
 import org.omg.CORBA.ORB;
@@ -74,23 +71,5 @@ public final class Utils {
     byte[] plainChallenge = CryptoUtils.decrypt(privateKey, challenge);
     return CryptoUtils.encrypt(acsCertificate, plainChallenge);
   }
-
-  /**
-   * Obtém o serviço de registro a partir do serviço de controle de acesso.
-   * 
-   * @param accessControlService O serviço de controle de acesso.
-   * 
-   * @return O serviço de registro.
-   */
-  public static IRegistryService fetchRegistryService(
-    IAccessControlService accessControlService) {
-    IRegistryServiceComponent registryServiceComponent = accessControlService
-      .getRegistryService();
-    if (registryServiceComponent == null) {
-      return null;
-    }
-    org.omg.CORBA.Object obj = registryServiceComponent
-      .getFacet(Utils.REGISTRY_SERVICE_INTERFACE);
-    return IRegistryServiceHelper.narrow(obj);
-  }
 }
+
