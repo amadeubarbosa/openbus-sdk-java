@@ -15,7 +15,7 @@ import org.omg.CORBA.IntHolder;
  * 
  * @author Tecgraf/PUC-Rio
  */
-public final class LeaseHolder {
+public final class LeaseRenewer {
   /**
    * A credencial que deve ser renovada.
    */
@@ -35,7 +35,7 @@ public final class LeaseHolder {
    * @param credential A credencial que deve ser renovada.
    * @param leaseProvider O provedor onde o <i>lease</i> deve ser renovado.
    */
-  public LeaseHolder(Credential credential, ILeaseProvider leaseProvider) {
+  public LeaseRenewer(Credential credential, ILeaseProvider leaseProvider) {
     this.credential = credential;
     this.leaseProvider = leaseProvider;
     this.renewer = new RenewerTask(this.credential, this.leaseProvider);
