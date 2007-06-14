@@ -33,10 +33,12 @@ public final class ClientConnectionManager extends ConnectionManager {
    * @param port A porta onde se encontra o Serviço de Controle de Acesso.
    * @param user O usuário.
    * @param password A senha.
+   * @param expiredCallback <i>Callback</i> usada para informar que a renovação
+   *        de um <i>lease</i> falhou.
    */
   public ClientConnectionManager(ORB orb, String host, int port, String user,
-    String password) {
-    super(orb, host, port);
+    String password, LeaseExpiredCallback expiredCallback) {
+    super(orb, host, port, expiredCallback);
     this.user = user;
     this.password = password;
   }

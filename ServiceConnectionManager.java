@@ -44,6 +44,8 @@ public final class ServiceConnectionManager extends ConnectionManager {
    * @param entityName O nome da entidade que está criando o gerenciador.
    * @param privateKeyFile A chave privada da entidade.
    * @param acsCertificateFile O certificado do Serviço de Controle de Acesso.
+   * @param expiredCallback <i>Callback</i> usada para informar que a renovação
+   *        de um <i>lease</i> falhou.
    * 
    * @throws IOException Caso ocorra algum erro ao ler o arquivo de chave
    *         privada.
@@ -51,9 +53,10 @@ public final class ServiceConnectionManager extends ConnectionManager {
    *         de chave privada ou de certificado.
    */
   public ServiceConnectionManager(ORB orb, String host, int port,
-    String entityName, String privateKeyFile, String acsCertificateFile)
-    throws IOException, GeneralSecurityException {
-    super(orb, host, port);
+    String entityName, String privateKeyFile, String acsCertificateFile,
+    LeaseExpiredCallback expiredCallback) throws IOException,
+    GeneralSecurityException {
+    super(orb, host, port, expiredCallback);
     this.entityName = entityName;
     try {
       this.privateKey = CryptoUtils.readPrivateKey(privateKeyFile);

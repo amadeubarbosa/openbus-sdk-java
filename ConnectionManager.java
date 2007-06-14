@@ -38,6 +38,11 @@ public abstract class ConnectionManager {
    * O renovador do <i>lease</i>.
    */
   private LeaseRenewer leaseRenewer;
+  /**
+   * <i>Callback</i> usada para informar que a renovação de um <i>lease</i>
+   * falhou.
+   */
+  private LeaseExpiredCallback expiredCallback;
 
   /**
    * Cria um gerenciador de conexões.
@@ -50,6 +55,21 @@ public abstract class ConnectionManager {
     this.orb = orb;
     this.host = host;
     this.port = port;
+  }
+
+  /**
+   * Cria um gerenciador de conexões.
+   * 
+   * @param orb O ORB utilizado para obter o Serviço de Controle de Acesso.
+   * @param host A máquina onde se encontra o Serviço de Controle de Acesso.
+   * @param port A porta onde se encontra o Serviço de Controle de Acesso.
+   * @param expiredCallback <i>Callback</i> usada para informar que a renovação
+   *        de um <i>lease</i> falhou.
+   */
+  protected ConnectionManager(ORB orb, String host, int port,
+    LeaseExpiredCallback expiredCallback) {
+    this(orb, host, port);
+    this.expiredCallback = expiredCallback;
   }
 
   /**
@@ -67,7 +87,7 @@ public abstract class ConnectionManager {
     credentialManager.setACS(this.accessControlService);
     credentialManager.setMemberCredential(credential);
     this.leaseRenewer = new LeaseRenewer(this.credential,
-      this.accessControlService);
+      this.accessControlService, this.expiredCallback);
     this.leaseRenewer.start();
     return true;
   }

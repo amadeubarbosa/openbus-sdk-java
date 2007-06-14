@@ -17,10 +17,6 @@ import org.omg.CORBA.IntHolder;
  */
 public final class LeaseRenewer {
   /**
-   * A credencial que deve ser renovada.
-   */
-  private Credential credential;
-  /**
    * O provedor onde o <i>lease</i> deve ser renovado.
    */
   private ILeaseProvider leaseProvider;
@@ -34,11 +30,14 @@ public final class LeaseRenewer {
    * 
    * @param credential A credencial que deve ser renovada.
    * @param leaseProvider O provedor onde o <i>lease</i> deve ser renovado.
+   * @param expiredCallback <i>Callback</i> usada para informar que a renovação
+   *        de um <i>lease</i> falhou.
    */
-  public LeaseRenewer(Credential credential, ILeaseProvider leaseProvider) {
-    this.credential = credential;
+  public LeaseRenewer(Credential credential, ILeaseProvider leaseProvider,
+    LeaseExpiredCallback expiredCallback) {
     this.leaseProvider = leaseProvider;
-    this.renewer = new RenewerTask(this.credential, this.leaseProvider);
+    this.renewer = new RenewerTask(credential, this.leaseProvider,
+      expiredCallback);
   }
 
   /**
@@ -48,6 +47,7 @@ public final class LeaseRenewer {
    */
   public void setProvider(ILeaseProvider leaseProvider) {
     this.leaseProvider = leaseProvider;
+    this.renewer.setProvider(this.leaseProvider);
   }
 
   /**
@@ -71,13 +71,18 @@ public final class LeaseRenewer {
    */
   private static class RenewerTask extends Thread {
     /**
+     * A credencial correspondente ao <i>lease</i>.
+     */
+    private Credential credential;
+    /**
      * O provedor do <i>lease</i>.
      */
     private ILeaseProvider provider;
     /**
-     * A credencial correspondente ao <i>lease</i>.
+     * <i>Callback</i> usada para informar que a renovação de um <i>lease</i>
+     * falhou.
      */
-    private Credential credential;
+    private LeaseExpiredCallback expiredCallback;
     /**
      * Indica se a <i>thread</i> deve continuar executando.
      */
@@ -95,12 +100,29 @@ public final class LeaseRenewer {
       this.mustContinue = true;
     }
 
+    /**
+     * Cria uma tarefa para renovar um <i>lease</i>.
+     * 
+     * @param credential A credencial correspondente ao <i>lease</i>.
+     * @param provider O provedor do <i>lease</i>.
+     * @param expiredCallback <i>Callback</i> usada para informar que a
+     *        renovação de um <i>lease</i> falhou.
+     */
+    RenewerTask(Credential credential, ILeaseProvider provider,
+      LeaseExpiredCallback expiredCallback) {
+      this(credential, provider);
+      this.expiredCallback = expiredCallback;
+    }
+
     @Override
     public void run() {
       while (this.mustContinue) {
         IntHolder newLease = new IntHolder();
         if (!this.provider.renewLease(this.credential, newLease)) {
           Log.LEASE.warning("Falha na renovação da credencial.");
+          if (this.expiredCallback != null) {
+            this.expiredCallback.expired();
+          }
           return;
         }
         StringBuilder msg = new StringBuilder();
@@ -123,6 +145,15 @@ public final class LeaseRenewer {
      */
     public void finish() {
       this.mustContinue = false;
+    }
+
+    /**
+     * Define o provedor do <i>lease</i>.
+     * 
+     * @param provider O provedor do <i>lease</i>.
+     */
+    public void setProvider(ILeaseProvider provider) {
+      this.provider = provider;
     }
   }
 }

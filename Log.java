@@ -44,9 +44,11 @@ public final class Log extends Logger {
    */
   private Log(String name) {
     super(name, null);
+    this.setLevel(Level.FINE);
     this.setUseParentHandlers(false);
     ConsoleHandler consoleHandler = new ConsoleHandler();
     consoleHandler.setFormatter(LogFormatter.getInstance());
+    consoleHandler.setLevel(Level.FINE);
     this.addHandler(consoleHandler);
   }
 
