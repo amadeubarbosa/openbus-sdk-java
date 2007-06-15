@@ -88,17 +88,10 @@ public class ServerInterceptor extends org.omg.CORBA.LocalObject implements
           org.omg.CORBA.CompletionStatus.COMPLETED_NO);
       }
     }
-    catch (org.omg.CORBA.BAD_PARAM bp) {
-      Log.INTERCEPTORS.severe("NÃO HÁ CREDENCIAL!", bp);
-    }
-    catch (org.omg.IOP.CodecPackage.FormatMismatch fm) {
-      Log.INTERCEPTORS.severe("ERRO NO FORMATO DA CREDENCIAL!", fm);
-    }
-    catch (org.omg.IOP.CodecPackage.TypeMismatch tm) {
-      Log.INTERCEPTORS.severe("ERRO NO TIPO DA CREDENCIAL!", tm);
-    }
-    catch (InvalidSlot is) {
-      Log.INTERCEPTORS.severe("SLOT INVALIDO !!!!", is);
+    catch (Exception e) {
+      Log.INTERCEPTORS.severe("Falha na validação da credencial", e);
+      throw new org.omg.CORBA.NO_PERMISSION(0,
+          org.omg.CORBA.CompletionStatus.COMPLETED_NO);
     }
   }
 
