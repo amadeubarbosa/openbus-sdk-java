@@ -10,7 +10,6 @@ import openbusidl.acs.CredentialHelper;
 
 import org.omg.IOP.Codec;
 import org.omg.IOP.ServiceContext;
-import org.omg.PortableInterceptor.InvalidSlot;
 import org.omg.PortableInterceptor.ServerRequestInfo;
 import org.omg.PortableInterceptor.ServerRequestInterceptor;
 
