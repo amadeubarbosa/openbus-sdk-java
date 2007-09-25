@@ -17,34 +17,15 @@ import org.omg.PortableInterceptor.ClientRequestInterceptor;
  * 
  * @author Tecgraf/PUC-Rio
  */
-public class ClientInterceptor extends org.omg.CORBA.LocalObject implements
+public class ClientInterceptor extends Interceptor implements
   ClientRequestInterceptor {
-  /**
-   * Representa a identificação do "service context" (contexto) utilizado para
-   * transporte de credenciais em requisições de serviço.
-   */
-  private int contextId;
-  /**
-   * Representa o objeto responsável pelo marshall/unmarshall de credenciais
-   * para transporte/obtenção de contextos de requisições de servico.
-   */
-  private Codec codec;
-
   /**
    * Constrói o interceptador.
    * 
-   * @param codec
+   * @param codec codificador/decodificador
    */
   public ClientInterceptor(Codec codec) {
-    this.contextId = 1234;
-    this.codec = codec;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  public String name() {
-    return "ClientInterceptor";
+    super("ClientInterceptor", codec);
   }
 
   /**
@@ -65,13 +46,15 @@ public class ClientInterceptor extends org.omg.CORBA.LocalObject implements
     /* Insere a credencial no contexto do serviço */
     byte[] value = null;
     try {
-      value = codec.encode_value(credentialManager.getMemberCredentialValue());
+      value = this.getCodec().encode_value(
+        credentialManager.getMemberCredentialValue());
     }
     catch (Exception e) {
       Log.INTERCEPTORS.severe("ERRO NA CODIFICAÇÂO DA CREDENCIAL!", e);
       return;
     }
-    ri.add_request_service_context(new ServiceContext(contextId, value), false);
+    ri
+      .add_request_service_context(new ServiceContext(CONTEXT_ID, value), false);
     Log.INTERCEPTORS.fine("INSERI CREDENCIAL!");
   }
 
@@ -97,11 +80,5 @@ public class ClientInterceptor extends org.omg.CORBA.LocalObject implements
    * {@inheritDoc}
    */
   public void receive_other(ClientRequestInfo ri) {
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  public void destroy() {
   }
 }

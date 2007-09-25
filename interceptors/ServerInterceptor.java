@@ -19,36 +19,15 @@ import org.omg.PortableInterceptor.ServerRequestInterceptor;
  * 
  * @author Tecgraf/PUC-Rio
  */
-public class ServerInterceptor extends org.omg.CORBA.LocalObject implements
+public class ServerInterceptor extends Interceptor implements
   ServerRequestInterceptor {
-
-  /**
-   * Representa a identificação do "service context" (contexto) utilizado para
-   * transporte de credenciais em requisições de serviço.
-   */
-  private int contextId;
-
-  /**
-   * Representa o objeto responsável pelo marshall/unmarshall de credenciais
-   * para transporte/obtenção de contextos de requisições de servico.
-   */
-  private Codec codec;
-
   /**
    * Constrói o interceptador.
    * 
    * @param codec codificador/decodificador
    */
   public ServerInterceptor(Codec codec) {
-    this.contextId = 1234;
-    this.codec = codec;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  public String name() {
-    return "ServerInterceptor";
+    super("ServerInterceptor", codec);
   }
 
   /**
@@ -61,11 +40,11 @@ public class ServerInterceptor extends org.omg.CORBA.LocalObject implements
     ServiceContext serviceContext;
     try {
       /* Verifica se há informação de contexto (credencial) */
-      serviceContext = ri.get_request_service_context(contextId);
+      serviceContext = ri.get_request_service_context(CONTEXT_ID);
       Log.INTERCEPTORS.fine("TEM CREDENCIAL!");
       byte[] value = serviceContext.context_data;
-      Credential credential = CredentialHelper.extract(codec.decode_value(
-        value, CredentialHelper.type()));
+      Credential credential = CredentialHelper.extract(this.getCodec()
+        .decode_value(value, CredentialHelper.type()));
       Log.INTERCEPTORS.fine("CREDENCIAL: " + credential.identifier + ","
         + credential.entityName);
 
@@ -90,7 +69,7 @@ public class ServerInterceptor extends org.omg.CORBA.LocalObject implements
     catch (Exception e) {
       Log.INTERCEPTORS.severe("Falha na validação da credencial", e);
       throw new org.omg.CORBA.NO_PERMISSION(0,
-          org.omg.CORBA.CompletionStatus.COMPLETED_NO);
+        org.omg.CORBA.CompletionStatus.COMPLETED_NO);
     }
   }
 
@@ -116,11 +95,5 @@ public class ServerInterceptor extends org.omg.CORBA.LocalObject implements
    * {@inheritDoc}
    */
   public void send_other(ServerRequestInfo ri) {
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  public void destroy() {
   }
 }
