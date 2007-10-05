@@ -42,6 +42,6 @@ abstract class Initializer extends LocalObject implements ORBInitializer {
   /**
    * {@inheritDoc}
    */
-  public void pre_init(ORBInitInfo arg0) {
+  public void pre_init(ORBInitInfo info) {
   }
 }
