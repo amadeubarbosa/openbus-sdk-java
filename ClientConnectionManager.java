@@ -41,10 +41,16 @@ public final class ClientConnectionManager extends ConnectionManager {
     this.password = password;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected boolean doLogin() {
     IAccessControlService acs = Utils.fetchAccessControlService(this.getORB(),
       this.getHost(), this.getPort());
+    if (acs == null) {
+      return false;
+    }
     CredentialHolder credentialHolder = new CredentialHolder();
     IntHolder leaseHolder = new IntHolder();
     if (!acs.loginByPassword(this.user, this.password, credentialHolder,

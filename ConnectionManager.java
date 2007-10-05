@@ -38,6 +38,10 @@ public abstract class ConnectionManager {
    * O renovador do <i>lease</i>.
    */
   private LeaseRenewer leaseRenewer;
+  /**
+   * Indica se a entidade está conectada ao barramento.
+   */
+  private boolean connected;
 
   /**
    * Cria um gerenciador de conexões.
@@ -75,10 +79,11 @@ public abstract class ConnectionManager {
     if (!this.doLogin()) {
       return false;
     }
+    this.connected = true;
     CredentialManager credentialManager = CredentialManager.getInstance();
     credentialManager.setORB(this.orb);
     credentialManager.setACS(this.accessControlService);
-    credentialManager.setMemberCredential(credential);
+    credentialManager.setMemberCredential(this.credential);
     this.leaseRenewer = new LeaseRenewer(this.credential,
       this.accessControlService, expiredCallback);
     this.leaseRenewer.start();
@@ -106,14 +111,28 @@ public abstract class ConnectionManager {
    *         caso contrário.
    */
   public final boolean disconnect() {
+    if (!this.connected) {
+      return false;
+    }
     if (this.leaseRenewer != null) {
       this.leaseRenewer.finish();
       this.leaseRenewer = null;
     }
-    accessControlService.logout(CredentialManager.getInstance()
+    this.accessControlService.logout(CredentialManager.getInstance()
       .getMemberCredential());
     CredentialManager.getInstance().invalidateMemberCredential();
+    this.connected = false;
     return true;
+  }
+
+  /**
+   * Verifica se a entidade está conectada ao barramento.
+   * 
+   * @return {@code true}, caso a entidade esteja conectada ao barramento, ou
+   *         {@code false}, caso contrário.
+   */
+  public boolean isConnected() {
+    return this.connected;
   }
 
   /**

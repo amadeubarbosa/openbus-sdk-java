@@ -62,11 +62,7 @@ public class CredentialManager {
    * Constrói a instância única do gerente de credenciais.
    */
   private CredentialManager() {
-    memberCredential = null;
-    memberCredentialValue = null;
-    accessControlService = null;
-    orb = null;
-    credentialSlot = -1;
+    this.credentialSlot = -1;
   }
 
   /**
@@ -93,10 +89,10 @@ public class CredentialManager {
    * @return slot alocado para transporte da credencial
    */
   public int getCredentialSlot() {
-    if (credentialSlot == -1) {
+    if (this.credentialSlot == -1) {
       throw new IllegalStateException();
     }
-    return credentialSlot;
+    return this.credentialSlot;
   }
 
   /**
@@ -114,7 +110,7 @@ public class CredentialManager {
    * @return referência para o serviço de controle de acesso
    */
   public IAccessControlService getACS() {
-    return accessControlService;
+    return this.accessControlService;
   }
 
   /**
@@ -123,11 +119,11 @@ public class CredentialManager {
    * @param memberCredential a credencial a armazenar
    */
   public void setMemberCredential(Credential memberCredential) {
-    if (orb == null) {
+    if (this.orb == null) {
       throw new IllegalStateException();
     }
     this.memberCredential = memberCredential;
-    this.memberCredentialValue = orb.create_any();
+    this.memberCredentialValue = this.orb.create_any();
     CredentialHelper.insert(this.memberCredentialValue, memberCredential);
   }
 
@@ -137,7 +133,7 @@ public class CredentialManager {
    * @return a credencial do membro
    */
   public Credential getMemberCredential() {
-    return memberCredential;
+    return this.memberCredential;
   }
 
   /**
@@ -146,7 +142,7 @@ public class CredentialManager {
    * @return o valor Any da credencial do membro
    */
   public Any getMemberCredentialValue() {
-    return memberCredentialValue;
+    return this.memberCredentialValue;
   }
 
   /**
@@ -155,15 +151,15 @@ public class CredentialManager {
    * @return true se existe credencial, false caso contrário
    */
   public boolean hasMemberCredential() {
-    return (memberCredential != null);
+    return (this.memberCredential != null);
   }
 
   /**
    * Invalida a credencial de membro armazenada.
    */
   public void invalidateMemberCredential() {
-    memberCredential = null;
-    memberCredentialValue = null;
+    this.memberCredential = null;
+    this.memberCredentialValue = null;
   }
 
   /**
@@ -174,10 +170,10 @@ public class CredentialManager {
    * @return o valor (Any) a ser atribuído ao slot
    */
   public Any getCredentialValue(Credential credential) {
-    if (orb == null) {
+    if (this.orb == null) {
       throw new IllegalStateException();
     }
-    Any credentialValue = orb.create_any();
+    Any credentialValue = this.orb.create_any();
     CredentialHelper.insert(credentialValue, credential);
     return credentialValue;
   }
@@ -188,13 +184,13 @@ public class CredentialManager {
    * @return a credencial associada à requisição de serviço
    */
   public Credential getRequestCredential() {
-    if (orb == null || credentialSlot == -1) {
+    if (this.orb == null || this.credentialSlot == -1) {
       throw new IllegalStateException();
     }
     try {
-      Current pic = CurrentHelper.narrow(orb
+      Current pic = CurrentHelper.narrow(this.orb
         .resolve_initial_references("PICurrent"));
-      Any requestCredentialValue = pic.get_slot(credentialSlot);
+      Any requestCredentialValue = pic.get_slot(this.credentialSlot);
       Credential requestCredential = CredentialHelper
         .extract(requestCredentialValue);
       return requestCredential;
