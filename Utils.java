@@ -9,9 +9,20 @@ import java.security.cert.Certificate;
 
 import openbusidl.acs.IAccessControlService;
 import openbusidl.acs.IAccessControlServiceHelper;
+import openbusidl.rs.IRegistryService;
+import openbusidl.rs.ServiceOffer;
+import openbusidl.ss.ISessionService;
+import openbusidl.ss.ISessionServiceHelper;
 
-import org.omg.CORBA.COMM_FAILURE;
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.Object;
+import org.omg.CORBA.TRANSIENT;
+import org.omg.CORBA.ORBPackage.InvalidName;
+import org.omg.PortableServer.POA;
+import org.omg.PortableServer.POAHelper;
+import org.omg.PortableServer.POAManagerPackage.AdapterInactive;
+
+import scs.core.IComponent;
 
 /**
  * Métodos utilitários para uso do OpenBus.
@@ -25,9 +36,14 @@ public final class Utils {
   public static final String ACCESS_CONTROL_SERVICE_INTERFACE = "IDL:openbusidl/acs/IAccessControlService:1.0";
 
   /**
-   * Representa a interface do serviço de registro.
+   * Representa a interface do serviço de sessão.
    */
-  public static final String REGISTRY_SERVICE_INTERFACE = "IDL:openbusidl/rs/IRegistryService:1.0";
+  private static final String SESSION_SERVICE_INTERFACE = "IDL:openbusidl/ss/ISessionService:1.0";
+
+  /**
+   * O tipo do serviço de sessão.
+   */
+  private static final String SESSION_SERVICE_TYPE = "SessionService";
 
   /**
    * Obtém o serviço de controle de acesso.
@@ -48,7 +64,8 @@ public final class Utils {
         return null;
       }
     }
-    catch (COMM_FAILURE e) {
+    catch (TRANSIENT e) {
+      Log.COMMON.severe("Falha no acesso ao serviço de controle de acesso.", e);
       return null;
     }
     return IAccessControlServiceHelper.narrow(obj);
@@ -71,5 +88,47 @@ public final class Utils {
     byte[] plainChallenge = CryptoUtils.decrypt(privateKey, challenge);
     return CryptoUtils.encrypt(acsCertificate, plainChallenge);
   }
-}
 
+  /**
+   * Obtém o RootPOA.
+   * 
+   * <p>
+   * OBS: O POAManager é ativado neste método.
+   * 
+   * @param orb O ORB para obtenção do RootPOA.
+   * 
+   * @return O RootPOA.
+   * 
+   * @throws InvalidName
+   * @throws AdapterInactive
+   */
+  public static POA getRootPoa(ORB orb) throws InvalidName, AdapterInactive {
+    Object rootPoaObject = orb.resolve_initial_references("RootPOA");
+    POA rootPoa = POAHelper.narrow(rootPoaObject);
+    rootPoa.the_POAManager().activate();
+    return rootPoa;
+  }
+
+  /**
+   * Obtém o serviço de sessão.
+   * 
+   * @param registryService O serviço de registro.
+   * 
+   * @return O serviço de sessão, ou {@code null}, caso não seja encontrado.
+   */
+  public static ISessionService getSessionService(
+    IRegistryService registryService) {
+    if (registryService == null) {
+      throw new IllegalArgumentException(
+        "O serviço de registro não pode ser nulo.");
+    }
+    ServiceOffer[] offers = registryService.find(SESSION_SERVICE_TYPE,
+      new openbusidl.rs.Property[0]);
+    if (offers.length <= 0) {
+      return null;
+    }
+    IComponent component = offers[0].member;
+    Object facet = component.getFacet(SESSION_SERVICE_INTERFACE);
+    return ISessionServiceHelper.narrow(facet);
+  }
+}
