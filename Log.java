@@ -96,6 +96,9 @@ public final class Log extends Logger {
       return instance;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String format(LogRecord record) {
       StringBuilder message = new StringBuilder();
@@ -111,6 +114,12 @@ public final class Log extends Logger {
       message.append(SEPARATOR);
       message.append(this.formatMessage(record));
       message.append("\n");
+      message.append("Classe: ");
+      message.append(record.getSourceClassName());
+      message.append(SEPARATOR);
+      message.append("Método: ");
+      message.append(record.getSourceMethodName());
+      message.append("\n\n");
       return message.toString();
     }
   }
