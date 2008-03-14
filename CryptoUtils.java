@@ -121,22 +121,20 @@ public final class CryptoUtils {
     catch (FileNotFoundException e) {
       return null;
     }
-    String data = "";
+    StringBuilder data = new StringBuilder();
     try {
       String line = reader.readLine();
-      if (!line.equals("-----BEGIN PRIVATE KEY-----")) {
+      if (line == null || !line.equals("-----BEGIN PRIVATE KEY-----")) {
         throw new IOException(
           "Formato do arquivo inválido: cabeçalho não encontrado.");
       }
-      line = reader.readLine();
-      while (!line.equals("-----END PRIVATE KEY-----")) {
-        data += line;
-        line = reader.readLine();
-        if (line == null) {
-          throw new IOException(
-            "Formato do arquivo inválido: rodapé não encontrado.");
+      for (line = reader.readLine(); line != null; line = reader.readLine()) {
+        if (line.equals("-----END PRIVATE KEY-----")) {
+          return data.toString().getBytes();
         }
       }
+      throw new IOException(
+        "Formato do arquivo inválido: rodapé não encontrado.");
     }
     finally {
       try {
@@ -145,7 +143,6 @@ public final class CryptoUtils {
       catch (IOException e) {
       }
     }
-    return data.getBytes();
   }
 
   /**
