@@ -132,6 +132,7 @@ public final class CryptoUtils {
         if (line.equals("-----END PRIVATE KEY-----")) {
           return data.toString().getBytes();
         }
+        data.append(line);
       }
       throw new IOException(
         "Formato do arquivo inválido: rodapé não encontrado.");
