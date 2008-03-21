@@ -19,7 +19,7 @@ import org.omg.PortableInterceptor.ServerRequestInterceptor;
  * 
  * @author Tecgraf/PUC-Rio
  */
-public class ServerInterceptor extends Interceptor implements
+public class ServerInterceptor extends InterceptorImpl implements
   ServerRequestInterceptor {
   /**
    * Constrói o interceptador.
@@ -43,8 +43,9 @@ public class ServerInterceptor extends Interceptor implements
       serviceContext = ri.get_request_service_context(CONTEXT_ID);
       Log.INTERCEPTORS.fine("TEM CREDENCIAL!");
       byte[] value = serviceContext.context_data;
-      Credential credential = CredentialHelper.extract(this.getCodec()
-        .decode_value(value, CredentialHelper.type()));
+      Credential credential =
+        CredentialHelper.extract(this.getCodec().decode_value(value,
+          CredentialHelper.type()));
       Log.INTERCEPTORS.fine("CREDENCIAL: " + credential.identifier + ","
         + credential.entityName);
 

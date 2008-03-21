@@ -17,7 +17,7 @@ import org.omg.PortableInterceptor.ClientRequestInterceptor;
  * 
  * @author Tecgraf/PUC-Rio
  */
-public class ClientInterceptor extends Interceptor implements
+public class ClientInterceptor extends InterceptorImpl implements
   ClientRequestInterceptor {
   /**
    * Constrói o interceptador.
@@ -46,8 +46,9 @@ public class ClientInterceptor extends Interceptor implements
     /* Insere a credencial no contexto do serviço */
     byte[] value = null;
     try {
-      value = this.getCodec().encode_value(
-        credentialManager.getMemberCredentialValue());
+      value =
+        this.getCodec().encode_value(
+          credentialManager.getMemberCredentialValue());
     }
     catch (Exception e) {
       Log.INTERCEPTORS.severe("ERRO NA CODIFICAÇÂO DA CREDENCIAL!", e);

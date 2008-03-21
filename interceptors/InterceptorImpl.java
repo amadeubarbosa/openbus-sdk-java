@@ -12,7 +12,7 @@ import org.omg.IOP.Codec;
  * 
  * @author Tecgraf/PUC-Rio
  */
-abstract class Interceptor extends LocalObject implements
+abstract class InterceptorImpl extends LocalObject implements
   org.omg.PortableInterceptor.Interceptor {
   /**
    * Representa a identificação do "service context" (contexto) utilizado para
@@ -37,7 +37,7 @@ abstract class Interceptor extends LocalObject implements
    * @param name O nome do interceptador.
    * @param codec O objeto responsável pelo marshall/unmarshall de credenciais.
    */
-  protected Interceptor(String name, Codec codec) {
+  protected InterceptorImpl(String name, Codec codec) {
     this.name = name;
     this.codec = codec;
   }
