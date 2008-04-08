@@ -84,8 +84,9 @@ public abstract class ConnectionManager {
     credentialManager.setORB(this.orb);
     credentialManager.setACS(this.accessControlService);
     credentialManager.setMemberCredential(this.credential);
-    this.leaseRenewer = new LeaseRenewer(this.credential,
-      this.accessControlService, expiredCallback);
+    this.leaseRenewer =
+      new LeaseRenewer(this.credential, this.accessControlService,
+        expiredCallback);
     this.leaseRenewer.start();
     return true;
   }

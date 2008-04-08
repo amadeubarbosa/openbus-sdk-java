@@ -77,13 +77,14 @@ public final class ServiceConnectionManager extends ConnectionManager {
 
   @Override
   protected boolean doLogin() {
-    IAccessControlService acs = Utils.fetchAccessControlService(this.getORB(),
-      this.getHost(), this.getPort());
+    IAccessControlService acs =
+      Utils.fetchAccessControlService(this.getORB(), this.getHost(), this
+        .getPort());
     byte[] challenge = acs.getChallenge(this.entityName);
     byte[] answer;
     try {
-      answer = Utils.generateAnswer(challenge, this.privateKey,
-        this.acsCertificate);
+      answer =
+        Utils.generateAnswer(challenge, this.privateKey, this.acsCertificate);
     }
     catch (GeneralSecurityException e) {
       Log.COMMON

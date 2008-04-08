@@ -46,8 +46,9 @@ public final class ClientConnectionManager extends ConnectionManager {
    */
   @Override
   protected boolean doLogin() {
-    IAccessControlService acs = Utils.fetchAccessControlService(this.getORB(),
-      this.getHost(), this.getPort());
+    IAccessControlService acs =
+      Utils.fetchAccessControlService(this.getORB(), this.getHost(), this
+        .getPort());
     if (acs == null) {
       return false;
     }
