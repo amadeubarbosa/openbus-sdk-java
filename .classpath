@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry excluding=".svn|classes/|run_ant" kind="src" path="src/java"/>
-	<classpathentry kind="src" output="test/classes" path="test/src/java"/>
+	<classpathentry excluding=".classpath|.project|.svn/|build.xml|classes/|lib/|lib/.svn/|openbus/.svn/|openbus/common/.svn/|openbus/common/interceptors/.svn/" kind="src" path=""/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="lib" path="lib/java/commons-codec-1.3/commons-codec-1.3.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
-	<classpathentry kind="lib" path="lib/java/scs/core.jar"/>
+	<classpathentry kind="lib" path="lib/scs/core.jar"/>
+	<classpathentry kind="lib" path="lib/commons-codec-1.3/commons-codec-1.3.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

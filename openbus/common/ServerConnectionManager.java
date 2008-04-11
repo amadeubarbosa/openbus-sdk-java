@@ -21,7 +21,7 @@ import org.omg.CORBA.ORB;
  * 
  * @author Tecgraf/PUC-Rio
  */
-public final class ServiceConnectionManager extends ConnectionManager {
+public final class ServerConnectionManager extends ConnectionManager {
   /**
    * O nome da entidade que está criando o gerenciador.
    */
@@ -50,7 +50,7 @@ public final class ServiceConnectionManager extends ConnectionManager {
    * @throws GeneralSecurityException Caso ocorra algum erro ao abrir o arquivo
    *         de chave privada ou de certificado.
    */
-  public ServiceConnectionManager(ORB orb, String host, int port,
+  public ServerConnectionManager(ORB orb, String host, int port,
     String entityName, String privateKeyFile, String acsCertificateFile)
     throws IOException, GeneralSecurityException {
     super(orb, host, port);
