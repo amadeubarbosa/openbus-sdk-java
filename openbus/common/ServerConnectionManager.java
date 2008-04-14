@@ -75,6 +75,9 @@ public final class ServerConnectionManager extends ConnectionManager {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected boolean doLogin() {
     IAccessControlService acs =

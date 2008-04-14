@@ -36,8 +36,8 @@ public final class LeaseRenewer {
   public LeaseRenewer(Credential credential, ILeaseProvider leaseProvider,
     LeaseExpiredCallback expiredCallback) {
     this.leaseProvider = leaseProvider;
-    this.renewer = new RenewerTask(credential, this.leaseProvider,
-      expiredCallback);
+    this.renewer =
+      new RenewerTask(credential, this.leaseProvider, expiredCallback);
   }
 
   /**
@@ -114,6 +114,9 @@ public final class LeaseRenewer {
       this.expiredCallback = expiredCallback;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void run() {
       while (this.mustContinue) {
