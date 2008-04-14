@@ -53,6 +53,20 @@ public final class Log extends Logger {
   }
 
   /**
+   * Define o nível dos logs do OpenBus.
+   * 
+   * @param newLevel O nível.
+   * 
+   * @see #setLevel(Level)
+   */
+  public static void setLogsLevel(Level newLevel) {
+    Log.SERVICES.setLevel(newLevel);
+    Log.COMMON.setLevel(newLevel);
+    Log.LEASE.setLevel(newLevel);
+    Log.INTERCEPTORS.setLevel(newLevel);
+  }
+
+  /**
    * Registra uma mensagem severa.
    * 
    * @param msg A mensagem.
