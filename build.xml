@@ -3,8 +3,9 @@
 <project name="openbus" default="jar">
   <property environment="env"/>
 
+  <property name="core.dir" value="${env.OPENBUS_HOME}/core"/>
   <property name="java.source.dir" value="."/>
-  <property name="idl.source.dir" value="${env.OPENBUS_HOME}/idl"/>
+  <property name="idl.source.dir" value="${core.dir}/idl"/>
   <property name="classes.dir" value="classes"/>
   <property name="lib.dir" value="lib"/>
 
@@ -35,7 +36,7 @@
   </target>
 
   <target name="idl">
-    <jacidl srcdir="${idl.source.dir}" destdir="${java.source.dir}" includepath="${env.SCS_HOME}/idl"/>
+    <jacidl srcdir="${idl.source.dir}" destdir="${java.source.dir}"/>
   </target>
 
   <target name="compile" depends="idl">
