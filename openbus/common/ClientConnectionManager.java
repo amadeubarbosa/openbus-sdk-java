@@ -3,6 +3,7 @@
  */
 package openbus.common;
 
+import openbus.common.exception.ACSUnavailableException;
 import openbusidl.acs.CredentialHolder;
 import openbusidl.acs.IAccessControlService;
 
@@ -45,12 +46,13 @@ public final class ClientConnectionManager extends ConnectionManager {
    * {@inheritDoc}
    */
   @Override
-  protected boolean doLogin() {
+  protected boolean doLogin() throws ACSUnavailableException {
     IAccessControlService acs =
       Utils.fetchAccessControlService(this.getORB(), this.getHost(), this
         .getPort());
     if (acs == null) {
-      return false;
+      throw new ACSUnavailableException(
+        "Serviço de Controle de Acesso não disponível.");
     }
     CredentialHolder credentialHolder = new CredentialHolder();
     IntHolder leaseHolder = new IntHolder();

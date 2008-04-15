@@ -9,6 +9,7 @@ import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 
+import openbus.common.exception.ACSUnavailableException;
 import openbusidl.acs.CredentialHolder;
 import openbusidl.acs.IAccessControlService;
 
@@ -79,10 +80,14 @@ public final class ServerConnectionManager extends ConnectionManager {
    * {@inheritDoc}
    */
   @Override
-  protected boolean doLogin() {
+  protected boolean doLogin() throws ACSUnavailableException {
     IAccessControlService acs =
       Utils.fetchAccessControlService(this.getORB(), this.getHost(), this
         .getPort());
+    if (acs == null) {
+      throw new ACSUnavailableException(
+        "Serviço de Controle de Acesso não disponível.");
+    }
     byte[] challenge = acs.getChallenge(this.entityName);
     byte[] answer;
     try {

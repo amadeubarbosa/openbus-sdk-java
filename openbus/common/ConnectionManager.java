@@ -3,6 +3,7 @@
  */
 package openbus.common;
 
+import openbus.common.exception.ACSUnavailableException;
 import openbusidl.acs.Credential;
 import openbusidl.acs.IAccessControlService;
 
@@ -61,8 +62,11 @@ public abstract class ConnectionManager {
    * 
    * @return {@code true}, caso a conexão seja realizada, ou {@code false},
    *         caso contrário.
+   * 
+   * @throws ACSUnavailableException Caso o serviço de controle de acesso esteja
+   *         indisponível.
    */
-  public final boolean connect() {
+  public final boolean connect() throws ACSUnavailableException {
     return this.connect(null);
   }
 
@@ -74,8 +78,12 @@ public abstract class ConnectionManager {
    * 
    * @return {@code true}, caso a conexão seja realizada, ou {@code false},
    *         caso contrário.
+   * 
+   * @throws ACSUnavailableException Caso o serviço de controle de acesso esteja
+   *         indisponível.
    */
-  public final boolean connect(LeaseExpiredCallback expiredCallback) {
+  public final boolean connect(LeaseExpiredCallback expiredCallback)
+    throws ACSUnavailableException {
     if (!this.doLogin()) {
       return false;
     }
@@ -100,10 +108,13 @@ public abstract class ConnectionManager {
    * @return {@code true}, caso o <i>login</i> seja realizado, ou
    *         {@code false}, caso contrário.
    * 
+   * @throws ACSUnavailableException Caso o serviço de controle de acesso esteja
+   *         indisponível.
+   * 
    * @see #setAccessControlService(IAccessControlService)
    * @see #setCredential(Credential)
    */
-  protected abstract boolean doLogin();
+  protected abstract boolean doLogin() throws ACSUnavailableException;
 
   /**
    * Desconecta a entidade do Serviço de Controle de Acesso.

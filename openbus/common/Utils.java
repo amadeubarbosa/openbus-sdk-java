@@ -7,6 +7,8 @@ import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 
+import openbus.common.exception.ACSUnavailableException;
+import openbus.common.exception.RSUnavailableException;
 import openbusidl.acs.IAccessControlService;
 import openbusidl.acs.IAccessControlServiceHelper;
 import openbusidl.rs.IRegistryService;
@@ -17,10 +19,6 @@ import openbusidl.ss.ISessionServiceHelper;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
 import org.omg.CORBA.TRANSIENT;
-import org.omg.CORBA.ORBPackage.InvalidName;
-import org.omg.PortableServer.POA;
-import org.omg.PortableServer.POAHelper;
-import org.omg.PortableServer.POAManagerPackage.AdapterInactive;
 
 import scs.core.IComponent;
 
@@ -54,16 +52,18 @@ public final class Utils {
    * @param host A máquina onde o serviço está localizado.
    * @param port A porta onde o serviço está disponível.
    * 
-   * @return O serviço de controle de acesso, ou {@code null}, caso não seja
-   *         encontrado.
+   * @return O serviço de controle de acesso, ou {@code null}.
+   * 
+   * @throws ACSUnavailableException Caso o serviço não seja encontrado.
    */
   public static IAccessControlService fetchAccessControlService(ORB orb,
-    String host, int port) {
+    String host, int port) throws ACSUnavailableException {
     String url = "corbaloc::1.0@" + host + ":" + port + "/ACS";
     org.omg.CORBA.Object obj = orb.string_to_object(url);
     try {
       if (obj._non_existent()) {
-        return null;
+        throw new ACSUnavailableException(
+          "Serviço de Controle de Acesso não disponível.");
       }
     }
     catch (TRANSIENT e) {
@@ -92,34 +92,16 @@ public final class Utils {
   }
 
   /**
-   * Obtém o RootPOA.
-   * 
-   * <p>
-   * OBS: O POAManager é ativado neste método.
-   * 
-   * @param orb O ORB para obtenção do RootPOA.
-   * 
-   * @return O RootPOA.
-   * 
-   * @throws InvalidName
-   * @throws AdapterInactive
-   */
-  public static POA getRootPoa(ORB orb) throws InvalidName, AdapterInactive {
-    Object rootPoaObject = orb.resolve_initial_references("RootPOA");
-    POA rootPoa = POAHelper.narrow(rootPoaObject);
-    rootPoa.the_POAManager().activate();
-    return rootPoa;
-  }
-
-  /**
    * Obtém o serviço de sessão.
    * 
    * @param registryService O serviço de registro.
    * 
-   * @return O serviço de sessão, ou {@code null}, caso não seja encontrado.
+   * @return O serviço de sessão.
+   * 
+   * @throws RSUnavailableException Caso o serviço não seja encontrado.
    */
   public static ISessionService getSessionService(
-    IRegistryService registryService) {
+    IRegistryService registryService) throws RSUnavailableException {
     if (registryService == null) {
       throw new IllegalArgumentException(
         "O serviço de registro não pode ser nulo.");
@@ -127,7 +109,7 @@ public final class Utils {
     ServiceOffer[] offers =
       registryService.find(SESSION_SERVICE_TYPE, new openbusidl.rs.Property[0]);
     if (offers.length <= 0) {
-      return null;
+      throw new RSUnavailableException("Serviço de Sessão não disponível..");
     }
     IComponent component = offers[0].member;
     Object facet = component.getFacet(SESSION_SERVICE_INTERFACE);
