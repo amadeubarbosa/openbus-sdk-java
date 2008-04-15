@@ -33,12 +33,14 @@ public final class Utils {
   /**
    * Representa a interface do serviço de controle de acesso.
    */
-  public static final String ACCESS_CONTROL_SERVICE_INTERFACE = "IDL:openbusidl/acs/IAccessControlService:1.0";
+  public static final String ACCESS_CONTROL_SERVICE_INTERFACE =
+    "IDL:openbusidl/acs/IAccessControlService:1.0";
 
   /**
    * Representa a interface do serviço de sessão.
    */
-  private static final String SESSION_SERVICE_INTERFACE = "IDL:openbusidl/ss/ISessionService:1.0";
+  private static final String SESSION_SERVICE_INTERFACE =
+    "IDL:openbusidl/ss/ISessionService:1.0";
 
   /**
    * O tipo do serviço de sessão.
@@ -122,8 +124,8 @@ public final class Utils {
       throw new IllegalArgumentException(
         "O serviço de registro não pode ser nulo.");
     }
-    ServiceOffer[] offers = registryService.find(SESSION_SERVICE_TYPE,
-      new openbusidl.rs.Property[0]);
+    ServiceOffer[] offers =
+      registryService.find(SESSION_SERVICE_TYPE, new openbusidl.rs.Property[0]);
     if (offers.length <= 0) {
       return null;
     }
