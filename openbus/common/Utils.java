@@ -8,10 +8,12 @@ import java.security.PrivateKey;
 import java.security.cert.Certificate;
 
 import openbus.common.exception.ACSUnavailableException;
-import openbus.common.exception.RSUnavailableException;
 import openbusidl.acs.IAccessControlService;
 import openbusidl.acs.IAccessControlServiceHelper;
+import openbusidl.ds.IDataService;
+import openbusidl.ds.IDataServiceHelper;
 import openbusidl.rs.IRegistryService;
+import openbusidl.rs.Property;
 import openbusidl.rs.ServiceOffer;
 import openbusidl.ss.ISessionService;
 import openbusidl.ss.ISessionServiceHelper;
@@ -20,6 +22,7 @@ import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
 import org.omg.CORBA.TRANSIENT;
 
+import scs.core.ComponentId;
 import scs.core.IComponent;
 
 /**
@@ -31,19 +34,23 @@ public final class Utils {
   /**
    * Representa a interface do serviço de controle de acesso.
    */
-  public static final String ACCESS_CONTROL_SERVICE_INTERFACE =
-    "IDL:openbusidl/acs/IAccessControlService:1.0";
-
+  public static final String ACCESS_CONTROL_SERVICE_INTERFACE = "IDL:openbusidl/acs/IAccessControlService:1.0";
   /**
    * Representa a interface do serviço de sessão.
    */
-  private static final String SESSION_SERVICE_INTERFACE =
-    "IDL:openbusidl/ss/ISessionService:1.0";
-
+  public static final String SESSION_SERVICE_INTERFACE = "IDL:openbusidl/ss/ISessionService:1.0";
   /**
    * O tipo do serviço de sessão.
    */
   private static final String SESSION_SERVICE_TYPE = "SessionService";
+  /**
+   * Representa a interface do serviço de Dddos.
+   */
+  public static final String DATA_SERVICE_INTERFACE = "IDL:openbusidl/ds/IDataService:1.0";
+  /**
+   * Nome da propriedade que indica o identificador de um componente.
+   */
+  public static final String COMPONENT_ID_PROPERTY_NAME = "component_id";
 
   /**
    * Obtém o serviço de controle de acesso.
@@ -96,23 +103,47 @@ public final class Utils {
    * 
    * @param registryService O serviço de registro.
    * 
-   * @return O serviço de sessão.
-   * 
-   * @throws RSUnavailableException Caso o serviço não seja encontrado.
+   * @return O serviço de sessão, ou {@code null}, caso não seja encontrado.
    */
   public static ISessionService getSessionService(
-    IRegistryService registryService) throws RSUnavailableException {
-    if (registryService == null) {
-      throw new IllegalArgumentException(
-        "O serviço de registro não pode ser nulo.");
+    IRegistryService registryService) {
+    ServiceOffer[] offers = registryService.find(SESSION_SERVICE_TYPE,
+      new openbusidl.rs.Property[0]);
+    if (offers.length == 1) {
+      IComponent component = offers[0].member;
+      Object facet = component.getFacet(SESSION_SERVICE_INTERFACE);
+      if (facet == null) {
+        return null;
+      }
+      return ISessionServiceHelper.narrow(facet);
     }
-    ServiceOffer[] offers =
-      registryService.find(SESSION_SERVICE_TYPE, new openbusidl.rs.Property[0]);
-    if (offers.length <= 0) {
-      throw new RSUnavailableException("Serviço de Sessão não disponível..");
+    return null;
+  }
+
+  /**
+   * Obtém um serviço de dados.
+   * 
+   * @param registryService O serviço de registro.
+   * @param dataServiceId O identificador do Serviço de Dados.
+   * 
+   * @return O serviço de dados, ou {@code null}, caso não seja encontrado.
+   */
+  public static IDataService getDataService(IRegistryService registryService,
+    ComponentId dataServiceId) {
+    Property[] properties = new Property[1];
+    properties[0] = new Property(COMPONENT_ID_PROPERTY_NAME,
+      new String[] { dataServiceId.name + ":" + dataServiceId.version });
+    ServiceOffer[] offers = registryService.find(DATA_SERVICE_INTERFACE,
+      properties);
+    if (offers.length == 1) {
+      IComponent dataServiceComponent = offers[0].member;
+      Object dataServiceFacet = dataServiceComponent
+        .getFacet(DATA_SERVICE_INTERFACE);
+      if (dataServiceFacet == null) {
+        return null;
+      }
+      return IDataServiceHelper.narrow(dataServiceFacet);
     }
-    IComponent component = offers[0].member;
-    Object facet = component.getFacet(SESSION_SERVICE_INTERFACE);
-    return ISessionServiceHelper.narrow(facet);
+    return null;
   }
 }
