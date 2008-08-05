@@ -34,11 +34,13 @@ public final class Utils {
   /**
    * Representa a interface do serviço de controle de acesso.
    */
-  public static final String ACCESS_CONTROL_SERVICE_INTERFACE = "IDL:openbusidl/acs/IAccessControlService:1.0";
+  public static final String ACCESS_CONTROL_SERVICE_INTERFACE =
+    "IDL:openbusidl/acs/IAccessControlService:1.0";
   /**
    * Representa a interface do serviço de sessão.
    */
-  public static final String SESSION_SERVICE_INTERFACE = "IDL:openbusidl/ss/ISessionService:1.0";
+  public static final String SESSION_SERVICE_INTERFACE =
+    "IDL:openbusidl/ss/ISessionService:1.0";
   /**
    * O tipo do serviço de sessão.
    */
@@ -46,7 +48,8 @@ public final class Utils {
   /**
    * Representa a interface do serviço de Dddos.
    */
-  public static final String DATA_SERVICE_INTERFACE = "IDL:openbusidl/ds/IDataService:1.0";
+  public static final String DATA_SERVICE_INTERFACE =
+    "IDL:openbusidl/ds/IDataService:1.0";
   /**
    * Nome da propriedade que indica o identificador de um componente.
    */
@@ -107,8 +110,8 @@ public final class Utils {
    */
   public static ISessionService getSessionService(
     IRegistryService registryService) {
-    ServiceOffer[] offers = registryService.find(SESSION_SERVICE_TYPE,
-      new openbusidl.rs.Property[0]);
+    ServiceOffer[] offers =
+      registryService.find(SESSION_SERVICE_TYPE, new openbusidl.rs.Property[0]);
     if (offers.length == 1) {
       IComponent component = offers[0].member;
       Object facet = component.getFacet(SESSION_SERVICE_INTERFACE);
@@ -131,14 +134,15 @@ public final class Utils {
   public static IDataService getDataService(IRegistryService registryService,
     ComponentId dataServiceId) {
     Property[] properties = new Property[1];
-    properties[0] = new Property(COMPONENT_ID_PROPERTY_NAME,
-      new String[] { dataServiceId.name + ":" + dataServiceId.version });
-    ServiceOffer[] offers = registryService.find(DATA_SERVICE_INTERFACE,
-      properties);
+    properties[0] =
+      new Property(COMPONENT_ID_PROPERTY_NAME,
+        new String[] { dataServiceId.name + ":" + dataServiceId.version });
+    ServiceOffer[] offers =
+      registryService.find(DATA_SERVICE_INTERFACE, properties);
     if (offers.length == 1) {
       IComponent dataServiceComponent = offers[0].member;
-      Object dataServiceFacet = dataServiceComponent
-        .getFacet(DATA_SERVICE_INTERFACE);
+      Object dataServiceFacet =
+        dataServiceComponent.getFacet(DATA_SERVICE_INTERFACE);
       if (dataServiceFacet == null) {
         return null;
       }
