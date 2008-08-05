@@ -128,17 +128,17 @@ public final class Utils {
    * 
    * @param registryService O serviço de registro.
    * @param dataServiceId O identificador do Serviço de Dados.
+   * @param dataServiceType O tipo do Serviço de Dados.
    * 
    * @return O serviço de dados, ou {@code null}, caso não seja encontrado.
    */
   public static IDataService getDataService(IRegistryService registryService,
-    ComponentId dataServiceId) {
+    ComponentId dataServiceId, String dataServiceType) {
     Property[] properties = new Property[1];
     properties[0] =
       new Property(COMPONENT_ID_PROPERTY_NAME,
         new String[] { dataServiceId.name + ":" + dataServiceId.version });
-    ServiceOffer[] offers =
-      registryService.find(DATA_SERVICE_INTERFACE, properties);
+    ServiceOffer[] offers = registryService.find(dataServiceType, properties);
     if (offers.length == 1) {
       IComponent dataServiceComponent = offers[0].member;
       Object dataServiceFacet =
