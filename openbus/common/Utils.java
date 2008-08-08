@@ -115,7 +115,7 @@ public final class Utils {
   public static ISessionService getSessionService(
     IRegistryService registryService) {
     Property[] properties = new openbusidl.rs.Property[1];
-    properties[1] =
+    properties[0] =
       new Property(FACETS_PROPERTY_NAME,
         new String[] { SESSION_SERVICE_FACET_NAME });
     ServiceOffer[] offers = registryService.find(properties);
