@@ -66,7 +66,7 @@ public final class Utils {
    * @param host A máquina onde o serviço está localizado.
    * @param port A porta onde o serviço está disponível.
    * 
-   * @return O serviço de controle de acesso, ou {@code null}.
+   * @return O serviço de controle de acesso.
    * 
    * @throws ACSUnavailableException Caso o serviço não seja encontrado.
    */
@@ -82,7 +82,8 @@ public final class Utils {
     }
     catch (TRANSIENT e) {
       Log.COMMON.severe("Falha no acesso ao serviço de controle de acesso.", e);
-      return null;
+      throw new ACSUnavailableException(
+        "Serviço de Controle de Acesso não disponível.");
     }
     return IAccessControlServiceHelper.narrow(obj);
   }
