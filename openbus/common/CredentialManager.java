@@ -9,6 +9,7 @@ import openbusidl.acs.IAccessControlService;
 
 import org.omg.CORBA.Any;
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.TCKind;
 import org.omg.PortableInterceptor.Current;
 import org.omg.PortableInterceptor.CurrentHelper;
 
@@ -204,6 +205,9 @@ public class CredentialManager {
       Current pic =
         CurrentHelper.narrow(this.orb.resolve_initial_references("PICurrent"));
       Any requestCredentialValue = pic.get_slot(this.credentialSlot);
+      if (requestCredentialValue.type().kind().equals(TCKind.tk_null)) {
+        return null;
+      }
       Credential requestCredential =
         CredentialHelper.extract(requestCredentialValue);
       return requestCredential;
