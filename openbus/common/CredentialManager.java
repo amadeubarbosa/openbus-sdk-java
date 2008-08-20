@@ -45,6 +45,11 @@ public class CredentialManager {
 
   /** Referência para a instância única do gerente de credenciais */
   private static CredentialManager instance;
+  /**
+   * A credencial a ser utilizada numa determinada thread.
+   */
+  private static ThreadLocal<Any> memberCredentialValueThread =
+    new ThreadLocal<Any>();
 
   /**
    * Obtém a referência para a instância do gerente de credenciais;
@@ -137,11 +142,19 @@ public class CredentialManager {
   }
 
   /**
-   * Obtém o valor Any correspondente à credencial do membro corrente.
+   * Obtém o valor Any correspondente à credencial do membro corrente. <br>
+   * 
+   * OBS: Este método deve ser utilizado apenas pelo interceptador.
    * 
    * @return o valor Any da credencial do membro
    */
   public Any getMemberCredentialValue() {
+    Any memberCredentialThread = memberCredentialValueThread.get();
+    if (memberCredentialThread != null) {
+      Log.INTERCEPTORS.info("Utilizando a credencial definida na thread.");
+      return memberCredentialThread;
+    }
+    Log.INTERCEPTORS.info("Utilizando a credencial original.");
     return this.memberCredentialValue;
   }
 
@@ -188,11 +201,11 @@ public class CredentialManager {
       throw new IllegalStateException();
     }
     try {
-      Current pic = CurrentHelper.narrow(this.orb
-        .resolve_initial_references("PICurrent"));
+      Current pic =
+        CurrentHelper.narrow(this.orb.resolve_initial_references("PICurrent"));
       Any requestCredentialValue = pic.get_slot(this.credentialSlot);
-      Credential requestCredential = CredentialHelper
-        .extract(requestCredentialValue);
+      Credential requestCredential =
+        CredentialHelper.extract(requestCredentialValue);
       return requestCredential;
     }
     catch (org.omg.CORBA.ORBPackage.InvalidName in) {
@@ -205,5 +218,16 @@ public class CredentialManager {
       Log.COMMON.severe("CredentialManager: SLOT INVALIDO !!!", is);
     }
     return null;
+  }
+
+  /**
+   * Define a credencial que será utilizada pelo membro na thread corrente.
+   * 
+   * @param credential A credencial a ser utilizada na thread corrente.
+   */
+  public void setMemberCredentialThread(Credential credential) {
+    Any any = this.orb.create_any();
+    CredentialHelper.insert(any, credential);
+    memberCredentialValueThread.set(any);
   }
 }
