@@ -6,7 +6,6 @@
   <property name="core.dir" value="${env.OPENBUS_HOME}/core"/>
   <property name="source.dir" value="."/>
   <property name="classes.dir" value="classes"/>
-  <property name="idl.dir" value="${core.dir}/idl"/>
   <property name="lib.dir" value="lib"/>
 
   <property name="idlpath.dir" value="${env.OPENBUS_HOME}/idlpath"/>
@@ -38,8 +37,7 @@
   </target>
 
   <target name="idl">
-    <jacidl srcdir="${idl.dir}" destdir="${source.dir}"/>
-    <jacidl srcdir="${idlpath.dir}" destdir="${source.dir}" includepath="${idl.dir}"/>
+    <jacidl srcdir="${idlpath.dir}" destdir="${source.dir}"/>
   </target>
 
   <target name="compile" depends="idl">
