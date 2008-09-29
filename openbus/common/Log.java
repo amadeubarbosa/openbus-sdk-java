@@ -83,19 +83,20 @@ public final class Log extends Logger {
    */
   private static class LogFormatter extends Formatter {
     /**
-     * O separador dos campos do registro.
-     */
-    private static final String SEPARATOR = " - ";
-
-    /**
      * A instância única do formatador de registros.
      */
-    static LogFormatter instance;
+    private static LogFormatter instance;
+
+    /**
+     * O formatador de datas.
+     */
+    private SimpleDateFormat dateFormatter;
 
     /**
      * Apenas para impedir que seja instanciado externamente.
      */
     private LogFormatter() {
+      this.dateFormatter = new SimpleDateFormat("dd/MM HH:mm:ss");
     }
 
     /**
@@ -123,17 +124,64 @@ public final class Log extends Logger {
       message.append("]");
       message.append(" ");
       Date recordDate = new Date(record.getMillis());
-      SimpleDateFormat dateFormatter = new SimpleDateFormat("dd/MM HH:mm:ss");
-      message.append(dateFormatter.format(recordDate));
-      message.append(SEPARATOR);
+      message.append(this.dateFormatter.format(recordDate));
+      message.append("\n");
       message.append(this.formatMessage(record));
       message.append("\n");
-      message.append("Classe: ");
-      message.append(record.getSourceClassName());
-      message.append(SEPARATOR);
-      message.append("Método: ");
-      message.append(record.getSourceMethodName());
-      message.append("\n\n");
+      Throwable t = record.getThrown();
+      if (t != null) {
+        message.append("Exceção: ");
+        message.append(format(t));
+      }
+      for (int i = 0; i < 80; i++) {
+        message.append("=");
+      }
+      message.append("\n");
+      return message.toString();
+    }
+
+    /**
+     * Formata a mensagem de uma exceção.
+     * 
+     * @param t A exceção.
+     * 
+     * @return A mensagem formatada.
+     */
+    private static String format(Throwable t) {
+      StringBuilder message = new StringBuilder();
+      message.append(t.getClass().getName());
+      message.append(": ");
+      message.append(t.getMessage().trim());
+      message.append("\n");
+      for (StackTraceElement element : t.getStackTrace()) {
+        message.append("==> ");
+        message.append(element.getClassName());
+        message.append(".");
+        message.append(element.getMethodName());
+        message.append(" (");
+        if (element.isNativeMethod()) {
+          message.append("Método Nativo");
+        }
+        else {
+          String fileName = element.getFileName();
+          if (fileName == null) {
+            message.append("Desconhecido");
+          }
+          else {
+            message.append(fileName);
+            int lineNumber = element.getLineNumber();
+            if (lineNumber > 0) {
+              message.append(":");
+              message.append(lineNumber);
+            }
+          }
+        }
+        message.append(")\n");
+      }
+      if (t.getCause() != null && t.getCause() != t) {
+        message.append("Causada por: ");
+        message.append(format(t.getCause()));
+      }
       return message.toString();
     }
   }
