@@ -9,6 +9,7 @@ import openbusidl.acs.Credential;
 import openbusidl.acs.ILeaseProvider;
 
 import org.omg.CORBA.IntHolder;
+import org.omg.CORBA.SystemException;
 
 /**
  * Responsável por renovar um lease junto a um provedor.
@@ -36,8 +37,8 @@ public final class LeaseRenewer {
   public LeaseRenewer(Credential credential, ILeaseProvider leaseProvider,
     LeaseExpiredCallback expiredCallback) {
     this.leaseProvider = leaseProvider;
-    this.renewer =
-      new RenewerTask(credential, this.leaseProvider, expiredCallback);
+    this.renewer = new RenewerTask(credential, this.leaseProvider,
+      expiredCallback);
   }
 
   /**
@@ -121,12 +122,17 @@ public final class LeaseRenewer {
     public void run() {
       while (this.mustContinue) {
         IntHolder newLease = new IntHolder();
-        if (!this.provider.renewLease(this.credential, newLease)) {
-          Log.LEASE.warning("Falha na renovação da credencial.");
-          if (this.expiredCallback != null) {
-            this.expiredCallback.expired();
+        try {
+          if (!this.provider.renewLease(this.credential, newLease)) {
+            Log.LEASE.warning("Falha na renovação da credencial.");
+            if (this.expiredCallback != null) {
+              this.expiredCallback.expired();
+            }
+            return;
           }
-          return;
+        }
+        catch (SystemException e) {
+          Log.LEASE.severe(e.getMessage(), e);
         }
         StringBuilder msg = new StringBuilder();
         msg.append(new Date());
@@ -138,7 +144,7 @@ public final class LeaseRenewer {
           Thread.sleep(newLease.value * 1000);
         }
         catch (InterruptedException e) {
-          e.printStackTrace();
+          // Nada a ser feito.
         }
       }
     }

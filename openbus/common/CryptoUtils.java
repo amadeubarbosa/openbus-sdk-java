@@ -10,13 +10,16 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
+import java.security.InvalidKeyException;
 import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 
 import javax.crypto.Cipher;
@@ -47,20 +50,14 @@ public final class CryptoUtils {
    * 
    * @param certificateFile O nome do arquivo.
    * 
-   * @return O certificado carregado, ou {@code null}, caso o arquivo não
-   *         exista.
+   * @return O certificado carregado.
    * 
    * @throws CertificateException Caso o arquivo esteja corrompido.
+   * @throws FileNotFoundException Caso o arquivo não exista.
    */
   public static X509Certificate readCertificate(String certificateFile)
-    throws CertificateException {
-    InputStream inputStream;
-    try {
-      inputStream = new FileInputStream(certificateFile);
-    }
-    catch (FileNotFoundException e) {
-      return null;
-    }
+    throws CertificateException, FileNotFoundException {
+    InputStream inputStream = new FileInputStream(certificateFile);
     try {
       CertificateFactory cf = CertificateFactory.getInstance(CERTIFICATE_TYPE);
       return (X509Certificate) cf.generateCertificate(inputStream);
@@ -70,7 +67,7 @@ public final class CryptoUtils {
         inputStream.close();
       }
       catch (IOException e) {
-        e.printStackTrace();
+        Log.COMMON.warning(e.getLocalizedMessage());
       }
     }
   }
@@ -80,19 +77,19 @@ public final class CryptoUtils {
    * 
    * @param privateKeyFileName O nome do arquivo.
    * 
-   * @return A chave privada carregada, ou {@code null}, caso o arquivo não
-   *         exista.
+   * @return A chave privada carregada.
    * 
+   * @throws NoSuchAlgorithmException Caso o algoritmo para criação da chave não
+   *         seja encontrado.
+   * @throws InvalidKeySpecException Caso o formato da chave seja inválido.
+   * @throws InvalidKeyException Caso o formato da chave seja inválido.
    * @throws IOException Caso ocorra algum erro durante a leitura.
-   * @throws GeneralSecurityException Caso ocorra algum erro durante a criação
-   *         da chave.
+   * @throws FileNotFoundException Caso o arquivo não exista.
    */
   public static RSAPrivateKey readPrivateKey(String privateKeyFileName)
-    throws IOException, GeneralSecurityException {
+    throws NoSuchAlgorithmException, InvalidKeySpecException,
+    InvalidKeyException, IOException, FileNotFoundException {
     byte[] encodedBuffer = readBytes(privateKeyFileName);
-    if (encodedBuffer == null) {
-      return null;
-    }
     Base64 base64 = new Base64();
     byte[] bytes = base64.decode(encodedBuffer);
     PKCS8EncodedKeySpec encodedKey = new PKCS8EncodedKeySpec(bytes);
@@ -108,24 +105,21 @@ public final class CryptoUtils {
    * @param privateKeyFileName O nome (caminho completo) do arquivo contendo a
    *        chave privada.
    * 
-   * @return Os bytes representando a chave privada na base 64, ou {@code null},
-   *         caso o arquivo não exista.
+   * @return Os bytes representando a chave privada na base 64.
    * 
    * @throws IOException Caso ocorra algum erro durante a leitura.
+   * @throws InvalidKeyException Caso o formato da chave seja inválido.
+   * @throws FileNotFoundException Caso o arquivo não exista.
    */
-  private static byte[] readBytes(String privateKeyFileName) throws IOException {
-    BufferedReader reader;
-    try {
-      reader = new BufferedReader(new FileReader(privateKeyFileName));
-    }
-    catch (FileNotFoundException e) {
-      return null;
-    }
+  private static byte[] readBytes(String privateKeyFileName)
+    throws InvalidKeyException, IOException, FileNotFoundException {
+    BufferedReader reader = new BufferedReader(new FileReader(
+      privateKeyFileName));
     StringBuilder data = new StringBuilder();
     try {
       String line = reader.readLine();
       if (line == null || !line.equals("-----BEGIN PRIVATE KEY-----")) {
-        throw new IOException(
+        throw new InvalidKeyException(
           "Formato do arquivo inválido: cabeçalho não encontrado.");
       }
       for (line = reader.readLine(); line != null; line = reader.readLine()) {
@@ -134,7 +128,7 @@ public final class CryptoUtils {
         }
         data.append(line);
       }
-      throw new IOException(
+      throw new InvalidKeyException(
         "Formato do arquivo inválido: rodapé não encontrado.");
     }
     finally {
@@ -142,6 +136,7 @@ public final class CryptoUtils {
         reader.close();
       }
       catch (IOException e) {
+        // Nada a ser feito.
       }
     }
   }
@@ -161,6 +156,12 @@ public final class CryptoUtils {
    */
   public static byte[] encrypt(Certificate certificate, byte[] data)
     throws GeneralSecurityException {
+    if (certificate == null) {
+      throw new IllegalArgumentException("certificate == null");
+    }
+    if (data == null) {
+      throw new IllegalArgumentException("data == null");
+    }
     Cipher cipher = Cipher.getInstance(CIPHER_ALGORITHM);
     cipher.init(Cipher.ENCRYPT_MODE, certificate);
     return cipher.doFinal(data);

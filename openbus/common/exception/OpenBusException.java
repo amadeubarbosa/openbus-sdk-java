@@ -10,12 +10,19 @@ package openbus.common.exception;
  */
 public class OpenBusException extends Exception {
   /**
-   * Cria uma exceção do OpenBus com uma mensagem associada.
-   * 
-   * @param message A mensagem de erro.
+   * Cria uma exceção do OpenBus.
    */
-  public OpenBusException(String message) {
-    super(message);
+  public OpenBusException() {
+    super();
+  }
+
+  /**
+   * Cria uma exceção do OpenBus com uma causa associada.
+   * 
+   * @param cause A causa.
+   */
+  public OpenBusException(Throwable cause) {
+    super(cause);
   }
 
   /**

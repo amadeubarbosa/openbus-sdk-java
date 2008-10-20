@@ -44,11 +44,11 @@ public final class Log extends Logger {
    */
   private Log(String name) {
     super(name, null);
-    this.setLevel(Level.FINE);
+    this.setLevel(Level.WARNING);
     this.setUseParentHandlers(false);
     ConsoleHandler consoleHandler = new ConsoleHandler();
     consoleHandler.setFormatter(LogFormatter.getInstance());
-    consoleHandler.setLevel(Level.FINE);
+    consoleHandler.setLevel(Level.WARNING);
     this.addHandler(consoleHandler);
   }
 
@@ -151,7 +151,9 @@ public final class Log extends Logger {
       StringBuilder message = new StringBuilder();
       message.append(t.getClass().getName());
       message.append(": ");
-      message.append(t.getMessage().trim());
+      if (t.getMessage() != null) {
+        message.append(t.getMessage().trim());
+      }
       message.append("\n");
       for (StackTraceElement element : t.getStackTrace()) {
         message.append("==> ");

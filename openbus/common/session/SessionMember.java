@@ -5,6 +5,7 @@ package openbus.common.session;
 
 import java.util.ArrayList;
 
+import openbus.Registry;
 import openbusidl.ss.SessionEventSinkPOA;
 
 import org.omg.CORBA.UserException;
@@ -27,12 +28,7 @@ public final class SessionMember extends IComponentServant {
   /**
    * O nome da interface de um receptor de eventos de uma sessão.
    */
-  private static final String EVENT_SINK_INTERFACE =
-    "IDL:openbusidl/ss/SessionEventSink:1.0";
-  /**
-   * O POA.
-   */
-  private POA poa;
+  private static final String EVENT_SINK_INTERFACE = "IDL:openbusidl/ss/SessionEventSink:1.0";
   /**
    * O receptor de eventos da sessão.
    */
@@ -41,16 +37,14 @@ public final class SessionMember extends IComponentServant {
   /**
    * Cria um componente membro de uma sessão.
    * 
-   * @param poa O POA.
    * @param eventSink O receptor de eventos da sessão.
    * 
    * @throws UserException Caso ocorra algum erro na exportação do receptor de
    *         eventos.
    */
-  public SessionMember(POA poa, SessionEventSinkPOA eventSink)
-    throws UserException {
-    this.poa = poa;
-    this.eventSink = this.poa.servant_to_reference(eventSink);
+  public SessionMember(SessionEventSinkPOA eventSink) throws UserException {
+    POA poa = Registry.getInstance().getPOA();
+    this.eventSink = poa.servant_to_reference(eventSink);
   }
 
   /**
@@ -66,9 +60,8 @@ public final class SessionMember extends IComponentServant {
    */
   @Override
   protected ArrayList<FacetDescription> createFacets() {
-    FacetDescription description =
-      new FacetDescription(EVENT_SINK_NAME, EVENT_SINK_INTERFACE,
-        this.eventSink);
+    FacetDescription description = new FacetDescription(EVENT_SINK_NAME,
+      EVENT_SINK_INTERFACE, this.eventSink);
     ArrayList<FacetDescription> facets = new ArrayList<FacetDescription>();
     facets.add(description);
     return facets;

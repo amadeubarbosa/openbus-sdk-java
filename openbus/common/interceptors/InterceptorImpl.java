@@ -62,5 +62,6 @@ abstract class InterceptorImpl extends LocalObject implements
    * {@inheritDoc}
    */
   public final void destroy() {
+    // Nada a ser feito.
   }
 }
