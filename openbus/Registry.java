@@ -70,7 +70,7 @@ public final class Registry {
    * Cria o registro.
    */
   private Registry() {
-    this.threadLocalCredential = new ThreadLocal<Credential>();
+    this.reset();
   }
 
   /**
@@ -172,14 +172,15 @@ public final class Registry {
    */
   public Credential getRequestCredential() {
     try {
-      Current pic = CurrentHelper.narrow(this.orbWrapper.getORB()
-        .resolve_initial_references("PICurrent"));
+      Current pic =
+        CurrentHelper.narrow(this.orbWrapper.getORB()
+          .resolve_initial_references("PICurrent"));
       Any requestCredentialValue = pic.get_slot(this.requestCredentialSlot);
       if (requestCredentialValue.type().kind().equals(TCKind.tk_null)) {
         return InvalidTypes.CREDENTIAL;
       }
-      Credential requestCredential = CredentialHelper
-        .extract(requestCredentialValue);
+      Credential requestCredential =
+        CredentialHelper.extract(requestCredentialValue);
       return requestCredential;
     }
     catch (org.omg.CORBA.UserException e) {
@@ -204,5 +205,19 @@ public final class Registry {
    */
   public ISession getSession() {
     return this.session;
+  }
+
+  /**
+   * Retorna para o seu estado inicial, ou seja, desfaz as definições de
+   * atributos realizadas.
+   */
+  public void reset() {
+    this.threadLocalCredential = new ThreadLocal<Credential>();
+    this.requestCredentialSlot = -1;
+    this.orbWrapper = null;
+    this.poa = null;
+    this.acs = null;
+    this.credential = null;
+    this.session = null;
   }
 }
