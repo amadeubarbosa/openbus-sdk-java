@@ -9,7 +9,7 @@ import scs.core.ComponentId;
 /**
  * Representa objetos inválidos, usados para indicar erros, de alguns tipos
  * definidos na IDL.
- * 
+ *
  * @author Tecgraf/PUC-Rio
  */
 public final class InvalidTypes {
@@ -21,5 +21,5 @@ public final class InvalidTypes {
   /**
    * Representa uma credencial inválida.
    */
-  public static final Credential CREDENTIAL = new Credential("", "");
+  public static final Credential CREDENTIAL = new Credential("", "", "");
 }

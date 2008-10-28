@@ -19,7 +19,7 @@ import org.omg.PortableInterceptor.ServerRequestInterceptor;
 /**
  * Implementa um interceptador "servidor", para obtenção de informações no
  * contexto de uma requisição.
- * 
+ *
  * @author Tecgraf/PUC-Rio
  */
 class ServerInterceptor extends InterceptorImpl implements
@@ -31,7 +31,7 @@ class ServerInterceptor extends InterceptorImpl implements
 
   /**
    * Constrói o interceptador.
-   * 
+   *
    * @param codec codificador/decodificador
    * @param credentialSlot O slot para transporte da credencial.
    */
@@ -56,7 +56,7 @@ class ServerInterceptor extends InterceptorImpl implements
       Credential credential = CredentialHelper.extract(this.getCodec()
         .decode_value(value, CredentialHelper.type()));
       Log.INTERCEPTORS.fine("CREDENCIAL: " + credential.identifier + ","
-        + credential.entityName);
+        + credential.owner);
 
       AccessControlServiceWrapper acs = Registry.getInstance().getACS();
       /* Verifica se a credencial é válida */
