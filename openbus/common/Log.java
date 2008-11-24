@@ -7,6 +7,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Formatter;
+import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -44,11 +45,9 @@ public final class Log extends Logger {
    */
   private Log(String name) {
     super(name, null);
-    this.setLevel(Level.WARNING);
     this.setUseParentHandlers(false);
     ConsoleHandler consoleHandler = new ConsoleHandler();
     consoleHandler.setFormatter(LogFormatter.getInstance());
-    consoleHandler.setLevel(Level.WARNING);
     this.addHandler(consoleHandler);
   }
 
@@ -60,10 +59,23 @@ public final class Log extends Logger {
    * @see #setLevel(Level)
    */
   public static void setLogsLevel(Level newLevel) {
-    Log.SERVICES.setLevel(newLevel);
-    Log.COMMON.setLevel(newLevel);
-    Log.LEASE.setLevel(newLevel);
-    Log.INTERCEPTORS.setLevel(newLevel);
+    Log.SERVICES.setLogLevel(newLevel);
+    Log.COMMON.setLogLevel(newLevel);
+    Log.LEASE.setLogLevel(newLevel);
+    Log.INTERCEPTORS.setLogLevel(newLevel);
+  }
+
+  /**
+   * Define o nível do log.
+   * 
+   * @param newLevel O novo nível.
+   */
+  private void setLogLevel(Level newLevel) {
+    this.setLevel(newLevel);
+    Handler[] handlers = this.getHandlers();
+    for (int i = 0; i < handlers.length; i++) {
+      handlers[i].setLevel(newLevel);
+    }
   }
 
   /**
