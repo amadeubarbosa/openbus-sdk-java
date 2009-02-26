@@ -28,7 +28,8 @@ public final class SessionMember extends IComponentServant {
   /**
    * O nome da interface de um receptor de eventos de uma sessão.
    */
-  private static final String EVENT_SINK_INTERFACE = "IDL:openbusidl/ss/SessionEventSink:1.0";
+  private static final String EVENT_SINK_INTERFACE =
+    "IDL:openbusidl/ss/SessionEventSink:1.0";
   /**
    * O receptor de eventos da sessão.
    */
@@ -52,7 +53,8 @@ public final class SessionMember extends IComponentServant {
    */
   @Override
   protected ComponentId createComponentId() {
-    return new ComponentId(this.getClass().getName(), 1);
+    return new ComponentId(this.getClass().getName(), (byte) 1, (byte) 0,
+      (byte) 0, "");
   }
 
   /**
@@ -60,8 +62,9 @@ public final class SessionMember extends IComponentServant {
    */
   @Override
   protected ArrayList<FacetDescription> createFacets() {
-    FacetDescription description = new FacetDescription(EVENT_SINK_NAME,
-      EVENT_SINK_INTERFACE, this.eventSink);
+    FacetDescription description =
+      new FacetDescription(EVENT_SINK_NAME, EVENT_SINK_INTERFACE,
+        this.eventSink);
     ArrayList<FacetDescription> facets = new ArrayList<FacetDescription>();
     facets.add(description);
     return facets;

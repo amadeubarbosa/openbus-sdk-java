@@ -35,11 +35,13 @@ public final class Utils {
   /**
    * Representa a interface do serviço de controle de acesso.
    */
-  public static final String ACCESS_CONTROL_SERVICE_INTERFACE = "IDL:openbusidl/acs/IAccessControlService:1.0";
+  public static final String ACCESS_CONTROL_SERVICE_INTERFACE =
+    "IDL:openbusidl/acs/IAccessControlService:1.0";
   /**
    * Representa a interface do serviço de sessão.
    */
-  public static final String SESSION_SERVICE_INTERFACE = "IDL:openbusidl/ss/ISessionService:1.0";
+  public static final String SESSION_SERVICE_INTERFACE =
+    "IDL:openbusidl/ss/ISessionService:1.0";
   /**
    * O nome da faceta do Serviço de Sessão.
    */
@@ -51,7 +53,8 @@ public final class Utils {
   /**
    * Representa a interface do serviço de Dddos.
    */
-  public static final String DATA_SERVICE_INTERFACE = "IDL:openbusidl/ds/IDataService:1.0";
+  public static final String DATA_SERVICE_INTERFACE =
+    "IDL:openbusidl/ds/IDataService:1.0";
   /**
    * Nome da propriedade que indica o identificador de um componente.
    */
@@ -72,8 +75,9 @@ public final class Utils {
   public static IAccessControlService fetchAccessControlService(ORBWrapper orb,
     String host, int port) throws ACSUnavailableException, CORBAException {
     try {
-      org.omg.CORBA.Object obj = orb.getORB().string_to_object(
-        "corbaloc::1.0@" + host + ":" + port + "/ACS");
+      org.omg.CORBA.Object obj =
+        orb.getORB().string_to_object(
+          "corbaloc::1.0@" + host + ":" + port + "/ACS");
       if ((obj == null) || (obj._non_existent())) {
         throw new ACSUnavailableException();
       }
@@ -115,8 +119,9 @@ public final class Utils {
   public static ISessionService getSessionService(
     RegistryServiceWrapper registryService) throws CORBAException {
     Property[] properties = new openbusidl.rs.Property[1];
-    properties[0] = new Property(FACETS_PROPERTY_NAME,
-      new String[] { SESSION_SERVICE_FACET_NAME });
+    properties[0] =
+      new Property(FACETS_PROPERTY_NAME,
+        new String[] { SESSION_SERVICE_FACET_NAME });
     try {
       ServiceOffer[] offers = registryService.find(properties);
       if (offers.length == 1) {
@@ -148,14 +153,16 @@ public final class Utils {
     RegistryServiceWrapper registryService, ComponentId dataServiceId)
     throws CORBAException {
     Property[] properties = new Property[1];
-    properties[0] = new Property(COMPONENT_ID_PROPERTY_NAME,
-      new String[] { dataServiceId.name + ":" + dataServiceId.version });
+    properties[0] =
+      new Property(COMPONENT_ID_PROPERTY_NAME,
+        new String[] { dataServiceId.name + ":" + dataServiceId.major_version
+          + dataServiceId.minor_version + dataServiceId.patch_version });
     try {
       ServiceOffer[] offers = registryService.find(properties);
       if (offers.length == 1) {
         IComponent dataServiceComponent = offers[0].member;
-        Object dataServiceFacet = dataServiceComponent
-          .getFacet(DATA_SERVICE_INTERFACE);
+        Object dataServiceFacet =
+          dataServiceComponent.getFacet(DATA_SERVICE_INTERFACE);
         if (dataServiceFacet == null) {
           return null;
         }
