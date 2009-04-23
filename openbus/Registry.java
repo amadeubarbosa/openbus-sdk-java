@@ -42,7 +42,7 @@ public final class Registry {
    */
   private Credential credential;
   /**
-   * A credencial da enteidade, válida apenas na <i>thread</i> corrente.
+   * A credencial da entidade, válida apenas na <i>thread</i> corrente.
    */
   private ThreadLocal<Credential> threadLocalCredential;
   /**
