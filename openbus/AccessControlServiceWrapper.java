@@ -19,11 +19,16 @@ import openbus.exception.PKIException;
 import openbusidl.acs.Credential;
 import openbusidl.acs.CredentialHolder;
 import openbusidl.acs.IAccessControlService;
+import openbusidl.acs.ILeaseProvider;
+import openbusidl.acs.ILeaseProviderHelper;
 import openbusidl.rs.IRegistryService;
 
 import org.omg.CORBA.IntHolder;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.SystemException;
+
+import scs.core.IComponent;
+import scs.core.IComponentHelper;
 
 /**
  * Encapsula o Serviço de Controle de Acesso.
@@ -32,9 +37,13 @@ import org.omg.CORBA.SystemException;
  */
 public final class AccessControlServiceWrapper {
   /**
-   * O Serviço de Controle de Acesso real, encapsulado por este objeto.
+   * Proxy para a faceta IAccessControlService.
    */
   private IAccessControlService acs;
+  /**
+   * Proxy para a faceta ILeaseProvider.
+   */
+  private ILeaseProvider lp;
   /**
    * O Serviço de Registro.
    */
@@ -61,6 +70,14 @@ public final class AccessControlServiceWrapper {
   public AccessControlServiceWrapper(ORBWrapper orb, String host, int port)
     throws ACSUnavailableException, CORBAException {
     this.acs = Utils.fetchAccessControlService(orb, host, port);
+    try {
+      IComponent component = IComponentHelper.narrow(acs._get_component());
+      this.lp =
+        ILeaseProviderHelper.narrow(component.getFacetByName("ILeaseProvider"));
+    }
+    catch (Exception e) {
+
+    }
     this.rs = new RegistryServiceWrapper();
 
     this.leaseExpiredCallback = new LeaseExpiredCallbackImpl();
@@ -82,8 +99,8 @@ public final class AccessControlServiceWrapper {
     CredentialHolder aCredential = new CredentialHolder();
     boolean result;
     try {
-      result = this.acs.loginByPassword(name, password, aCredential,
-        new IntHolder());
+      result =
+        this.acs.loginByPassword(name, password, aCredential, new IntHolder());
     }
     catch (SystemException e) {
       throw new CORBAException(e);
@@ -91,8 +108,8 @@ public final class AccessControlServiceWrapper {
 
     if (result) {
       Registry.getInstance().setCredential(aCredential.value);
-      this.leaseRenewer = new LeaseRenewer(aCredential.value, this.acs,
-        this.leaseExpiredCallback);
+      this.leaseRenewer =
+        new LeaseRenewer(aCredential.value, this.lp, this.leaseExpiredCallback);
       this.leaseRenewer.start();
       return true;
     }
@@ -136,8 +153,8 @@ public final class AccessControlServiceWrapper {
     CredentialHolder aCredential = new CredentialHolder();
     boolean result;
     try {
-      result = this.acs.loginByCertificate(name, answer, aCredential,
-        new IntHolder());
+      result =
+        this.acs.loginByCertificate(name, answer, aCredential, new IntHolder());
     }
     catch (SystemException e) {
       throw new CORBAException(e);
@@ -145,8 +162,8 @@ public final class AccessControlServiceWrapper {
 
     if (result) {
       Registry.getInstance().setCredential(aCredential.value);
-      this.leaseRenewer = new LeaseRenewer(aCredential.value, this.acs,
-        this.leaseExpiredCallback);
+      this.leaseRenewer =
+        new LeaseRenewer(aCredential.value, this.lp, this.leaseExpiredCallback);
       this.leaseRenewer.start();
       return true;
     }
@@ -306,8 +323,8 @@ public final class AccessControlServiceWrapper {
      * 
      * @param lec O observador.
      * 
-     * @return {@code true}, caso o observador seja adicionado, ou
-     *         {@code false}, caso contrário.
+     * @return {@code true}, caso o observador seja adicionado, ou {@code false}
+     *         , caso contrário.
      */
     boolean addLeaseExpiredCallback(LeaseExpiredCallback lec) {
       return this.callbacks.add(lec);

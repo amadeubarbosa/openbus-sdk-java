@@ -22,7 +22,8 @@ public final class ORBWrapper {
   /**
    * O prefixo do nome da propriedade do(s) inicializador(es) do ORB.
    */
-  private static final String ORB_INITIALIZER_PROPERTY_NAME_PREFIX = "org.omg.PortableInterceptor.ORBInitializerClass.";
+  private static final String ORB_INITIALIZER_PROPERTY_NAME_PREFIX =
+    "org.omg.PortableInterceptor.ORBInitializerClass.";
   /**
    * O ORB real, encapsulado por este objeto.
    */
@@ -36,7 +37,7 @@ public final class ORBWrapper {
    * Cria um objeto que encapsula um ORB.
    */
   public ORBWrapper() {
-    this(new Properties());
+    this(new String[0], new Properties());
   }
 
   /**
@@ -44,17 +45,14 @@ public final class ORBWrapper {
    * 
    * @param properties As propriedades para a criação do ORB real.
    */
-  public ORBWrapper(Properties properties) {
-    Properties props = new Properties(properties);
+  public ORBWrapper(String[] args, Properties properties) {
     String clientInitializerClassName = ClientInitializer.class.getName();
-    props.put(
-      ORB_INITIALIZER_PROPERTY_NAME_PREFIX + clientInitializerClassName,
-      clientInitializerClassName);
+    properties.put(ORB_INITIALIZER_PROPERTY_NAME_PREFIX
+      + clientInitializerClassName, clientInitializerClassName);
     String serverInitializerClassName = ServerInitializer.class.getName();
-    props.put(
-      ORB_INITIALIZER_PROPERTY_NAME_PREFIX + serverInitializerClassName,
-      serverInitializerClassName);
-    this.orb = org.omg.CORBA.ORB.init((String[]) null, props);
+    properties.put(ORB_INITIALIZER_PROPERTY_NAME_PREFIX
+      + serverInitializerClassName, serverInitializerClassName);
+    this.orb = org.omg.CORBA.ORB.init(args, properties);
   }
 
   /**
