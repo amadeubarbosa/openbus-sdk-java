@@ -19,6 +19,7 @@ import openbus.exception.PKIException;
 import openbusidl.acs.Credential;
 import openbusidl.acs.CredentialHolder;
 import openbusidl.acs.IAccessControlService;
+import openbusidl.acs.IAccessControlServiceHelper;
 import openbusidl.acs.ILeaseProvider;
 import openbusidl.acs.ILeaseProviderHelper;
 import openbusidl.rs.IRegistryService;
@@ -28,7 +29,6 @@ import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.SystemException;
 
 import scs.core.IComponent;
-import scs.core.IComponentHelper;
 
 /**
  * Encapsula o Serviço de Controle de Acesso.
@@ -36,6 +36,10 @@ import scs.core.IComponentHelper;
  * @author Tecgraf/PUC-Rio
  */
 public final class AccessControlServiceWrapper {
+  /**
+   * Proxy para a faceta IComponent.
+   */
+  private IComponent ic;
   /**
    * Proxy para a faceta IAccessControlService.
    */
@@ -69,14 +73,20 @@ public final class AccessControlServiceWrapper {
    */
   public AccessControlServiceWrapper(ORBWrapper orb, String host, int port)
     throws ACSUnavailableException, CORBAException {
-    this.acs = Utils.fetchAccessControlService(orb, host, port);
     try {
-      IComponent component = IComponentHelper.narrow(acs._get_component());
+      this.ic = Utils.fetchAccessControlServiceIComponent(orb, host, port);
+      this.acs =
+        IAccessControlServiceHelper.narrow(ic
+          .getFacet(Utils.ACCESS_CONTROL_SERVICE_INTERFACE));
       this.lp =
-        ILeaseProviderHelper.narrow(component.getFacetByName("ILeaseProvider"));
+        ILeaseProviderHelper
+          .narrow(ic.getFacet(Utils.LEASE_PROVIDER_INTERFACE));
     }
-    catch (Exception e) {
-
+    catch (CORBAException e) {
+      throw e;
+    }
+    catch (Exception e1) {
+      throw new ACSUnavailableException();
     }
     this.rs = new RegistryServiceWrapper();
 

@@ -11,8 +11,6 @@ import openbus.ORBWrapper;
 import openbus.RegistryServiceWrapper;
 import openbus.common.exception.ACSUnavailableException;
 import openbus.exception.CORBAException;
-import openbusidl.acs.IAccessControlService;
-import openbusidl.acs.IAccessControlServiceHelper;
 import openbusidl.ds.IDataService;
 import openbusidl.ds.IDataServiceHelper;
 import openbusidl.rs.Property;
@@ -25,6 +23,7 @@ import org.omg.CORBA.SystemException;
 
 import scs.core.ComponentId;
 import scs.core.IComponent;
+import scs.core.IComponentHelper;
 
 /**
  * Métodos utilitários para uso do OpenBus.
@@ -37,6 +36,11 @@ public final class Utils {
    */
   public static final String ACCESS_CONTROL_SERVICE_INTERFACE =
     "IDL:openbusidl/acs/IAccessControlService:1.0";
+  /**
+   * Representa a interface lease provider.
+   */
+  public static final String LEASE_PROVIDER_INTERFACE =
+    "IDL:openbusidl/acs/ILeaseProvider:1.0";
   /**
    * Representa a interface do serviço de sessão.
    */
@@ -72,16 +76,16 @@ public final class Utils {
    * @throws ACSUnavailableException Caso o serviço não seja encontrado.
    * @throws CORBAException Caso ocorra alguma exceção na infra-estrutura CORBA.
    */
-  public static IAccessControlService fetchAccessControlService(ORBWrapper orb,
+  public static IComponent fetchAccessControlServiceIComponent(ORBWrapper orb,
     String host, int port) throws ACSUnavailableException, CORBAException {
     try {
       org.omg.CORBA.Object obj =
         orb.getORB().string_to_object(
-          "corbaloc::1.0@" + host + ":" + port + "/ACS");
+          "corbaloc::1.0@" + host + ":" + port + "/IC");
       if ((obj == null) || (obj._non_existent())) {
         throw new ACSUnavailableException();
       }
-      return IAccessControlServiceHelper.narrow(obj);
+      return IComponentHelper.narrow(obj);
     }
     catch (SystemException e) {
       e.printStackTrace();
