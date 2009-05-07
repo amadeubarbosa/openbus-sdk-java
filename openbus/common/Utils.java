@@ -11,8 +11,8 @@ import openbus.ORBWrapper;
 import openbus.RegistryServiceWrapper;
 import openbus.common.exception.ACSUnavailableException;
 import openbus.exception.CORBAException;
-import openbusidl.ds.IDataService;
-import openbusidl.ds.IDataServiceHelper;
+import openbusidl.data_service.IHDataService;
+import openbusidl.data_service.IHDataServiceHelper;
 import openbusidl.rs.Property;
 import openbusidl.rs.ServiceOffer;
 import openbusidl.ss.ISessionService;
@@ -58,7 +58,7 @@ public final class Utils {
    * Representa a interface do serviço de Dddos.
    */
   public static final String DATA_SERVICE_INTERFACE =
-    "IDL:openbusidl/ds/IDataService:1.0";
+    "IDL:openbusidl/data_service/IHDataService:1.0";
   /**
    * Nome da propriedade que indica o identificador de um componente.
    */
@@ -153,7 +153,7 @@ public final class Utils {
    * 
    * @throws CORBAException Caso ocorra alguma exceção na infra-estrutura CORBA.
    */
-  public static IDataService getDataService(
+  public static IHDataService getDataService(
     RegistryServiceWrapper registryService, ComponentId dataServiceId)
     throws CORBAException {
     Property[] properties = new Property[1];
@@ -170,7 +170,7 @@ public final class Utils {
         if (dataServiceFacet == null) {
           return null;
         }
-        return IDataServiceHelper.narrow(dataServiceFacet);
+        return IHDataServiceHelper.narrow(dataServiceFacet);
       }
       return null;
     }

@@ -4,7 +4,7 @@
 package openbus;
 
 import openbusidl.acs.Credential;
-import openbusidl.ds.DataChannel;
+import openbusidl.data_service.DataChannel;
 import scs.core.ComponentId;
 
 /**
