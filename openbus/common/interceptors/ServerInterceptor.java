@@ -19,7 +19,7 @@ import org.omg.PortableInterceptor.ServerRequestInterceptor;
 /**
  * Implementa um interceptador "servidor", para obtenção de informações no
  * contexto de uma requisição.
- *
+ * 
  * @author Tecgraf/PUC-Rio
  */
 class ServerInterceptor extends InterceptorImpl implements
@@ -31,7 +31,7 @@ class ServerInterceptor extends InterceptorImpl implements
 
   /**
    * Constrói o interceptador.
-   *
+   * 
    * @param codec codificador/decodificador
    * @param credentialSlot O slot para transporte da credencial.
    */
@@ -47,14 +47,39 @@ class ServerInterceptor extends InterceptorImpl implements
   public void receive_request_service_contexts(ServerRequestInfo ri) {
     Log.INTERCEPTORS.fine("ATINGI PONTO DE INTERCEPTAÇÂO SERVIDOR!");
 
+    /*
+     * Work around para o LocateRequest
+     * 
+     * Durante o bind com o servidor, o cliente Orbix envia uma mensagem GIOP
+     * 1.2 LocateRequest para o servidor, que é uma otimização corba para
+     * localizar o objeto. Esta mensageme não passa pelo nosso interceptador
+     * cliente e portanto a mensagem é envidada sem a credencial. O JacORB sabe
+     * lidar com essa mensagen GIOP, porém diferentemente do Orbix, ele passa
+     * essa mensagem pelo interceptador do servidor, que por sua vez faz uma
+     * verificação que falha por falta de credencial. Essa mensagem não deve ser
+     * verificada.
+     * 
+     * Analisando o código do JacORB, podemos ver que para uso interno, ele
+     * define esse request como uma operação de nome "_non_existent". Então no
+     * interceptador do servidor JacORB nós podemos ver esse request com a
+     * operação com esse nome.
+     * 
+     * Logo para podermos responder adequadamente com um GIOP 1.2 LocateReply,
+     * foi adicionado uma condição que inibe a verificação no caso de ser essa
+     * operação interceptada.
+     */
+    if (ri.operation().equals("_non_existent"))
+      return;
+
     ServiceContext serviceContext;
     try {
       /* Verifica se há informação de contexto (credencial) */
       serviceContext = ri.get_request_service_context(CONTEXT_ID);
       Log.INTERCEPTORS.fine("TEM CREDENCIAL!");
       byte[] value = serviceContext.context_data;
-      Credential credential = CredentialHelper.extract(this.getCodec()
-        .decode_value(value, CredentialHelper.type()));
+      Credential credential =
+        CredentialHelper.extract(this.getCodec().decode_value(value,
+          CredentialHelper.type()));
       Log.INTERCEPTORS.fine("CREDENCIAL: " + credential.identifier + ","
         + credential.owner);
 
