@@ -3,11 +3,11 @@
  */
 package openbus.common.interceptors;
 
-import openbus.AccessControlServiceWrapper;
 import openbus.Registry;
 import openbus.common.Log;
 import openbusidl.acs.Credential;
 import openbusidl.acs.CredentialHelper;
+import openbusidl.acs.IAccessControlService;
 
 import org.omg.CORBA.Any;
 import org.omg.CORBA.ORB;
@@ -24,6 +24,22 @@ import org.omg.PortableInterceptor.ServerRequestInterceptor;
  */
 class ServerInterceptor extends InterceptorImpl implements
   ServerRequestInterceptor {
+
+  /**
+   * Instância do ORB associado a este interceptador.
+   */
+  private ORB orb;
+
+  /**
+   * Instância do barramento associado a este ORB e interceptador.
+   */
+  private Registry bus;
+
+  /**
+   * Wrapper para o serviço de controle de acesso associado ao barramento.
+   */
+  private IAccessControlService acs;
+
   /**
    * O slot para transporte da credencial.
    */
@@ -38,7 +54,6 @@ class ServerInterceptor extends InterceptorImpl implements
   ServerInterceptor(Codec codec, int credentialSlot) {
     super("ServerInterceptor", codec);
     this.credentialSlot = credentialSlot;
-    Registry.getInstance().setRequestCredentialSlot(this.credentialSlot);
   }
 
   /**
@@ -71,6 +86,14 @@ class ServerInterceptor extends InterceptorImpl implements
     if (ri.operation().equals("_non_existent"))
       return;
 
+    /* Verifica se já obteve o barramento */
+    if (bus == null) {
+      bus = Registry.getInstance();
+      orb = bus.getORB();
+      acs = bus.getAccessControlService();
+      bus.setInterceptedCredentialSlot(credentialSlot);
+    }
+
     ServiceContext serviceContext;
     try {
       /* Verifica se há informação de contexto (credencial) */
@@ -83,7 +106,6 @@ class ServerInterceptor extends InterceptorImpl implements
       Log.INTERCEPTORS.fine("CREDENCIAL: " + credential.identifier + ","
         + credential.owner);
 
-      AccessControlServiceWrapper acs = Registry.getInstance().getACS();
       /* Verifica se a credencial é válida */
       if (acs.isValid(credential)) {
         Log.INTERCEPTORS.fine("CREDENCIAL VALIDADA!");
@@ -92,7 +114,6 @@ class ServerInterceptor extends InterceptorImpl implements
          * Insere o valor da credencial no slot alocado para seu transporte ao
          * tratador da requisição de serviço
          */
-        ORB orb = Registry.getInstance().getORBWrapper().getORB();
         Any credentialValue = orb.create_any();
         CredentialHelper.insert(credentialValue, credential);
         ri.set_slot(this.credentialSlot, credentialValue);

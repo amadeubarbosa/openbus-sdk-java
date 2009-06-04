@@ -7,17 +7,15 @@ import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 
-import openbus.ORBWrapper;
-import openbus.RegistryServiceWrapper;
 import openbus.common.exception.ACSUnavailableException;
 import openbus.exception.CORBAException;
 import openbusidl.data_service.IHDataService;
 import openbusidl.data_service.IHDataServiceHelper;
+import openbusidl.rs.IRegistryService;
 import openbusidl.rs.Property;
 import openbusidl.rs.ServiceOffer;
-import openbusidl.ss.ISessionService;
-import openbusidl.ss.ISessionServiceHelper;
 
+import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
 import org.omg.CORBA.SystemException;
 
@@ -49,11 +47,11 @@ public final class Utils {
   /**
    * O nome da faceta do Serviço de Sessão.
    */
-  private static final String SESSION_SERVICE_FACET_NAME = "sessionService";
+  public static final String SESSION_SERVICE_FACET_NAME = "sessionService";
   /**
    * O nome da propriedade que representa as facetas de um membro registrado.
    */
-  private static final String FACETS_PROPERTY_NAME = "facets";
+  public static final String FACETS_PROPERTY_NAME = "facets";
   /**
    * Representa a interface do serviço de Dddos.
    */
@@ -74,23 +72,15 @@ public final class Utils {
    * @return O serviço de controle de acesso.
    * 
    * @throws ACSUnavailableException Caso o serviço não seja encontrado.
-   * @throws CORBAException Caso ocorra alguma exceção na infra-estrutura CORBA.
    */
-  public static IComponent fetchAccessControlServiceIComponent(ORBWrapper orb,
-    String host, int port) throws ACSUnavailableException, CORBAException {
-    try {
-      org.omg.CORBA.Object obj =
-        orb.getORB().string_to_object(
-          "corbaloc::1.0@" + host + ":" + port + "/IC");
-      if ((obj == null) || (obj._non_existent())) {
-        throw new ACSUnavailableException();
-      }
-      return IComponentHelper.narrow(obj);
+  public static IComponent fetchAccessControlServiceIComponent(ORB orb,
+    String host, int port) throws ACSUnavailableException {
+    org.omg.CORBA.Object obj =
+      orb.string_to_object("corbaloc::1.0@" + host + ":" + port + "/IC");
+    if ((obj == null) || (obj._non_existent())) {
+      throw new ACSUnavailableException();
     }
-    catch (SystemException e) {
-      e.printStackTrace();
-      throw new CORBAException(e);
-    }
+    return IComponentHelper.narrow(obj);
   }
 
   /**
@@ -112,38 +102,6 @@ public final class Utils {
   }
 
   /**
-   * Obtém o serviço de sessão.
-   * 
-   * @param registryService O serviço de registro.
-   * 
-   * @return O serviço de sessão, ou {@code null}, caso não seja encontrado.
-   * 
-   * @throws CORBAException Caso ocorra alguma exceção na infra-estrutura CORBA.
-   */
-  public static ISessionService getSessionService(
-    RegistryServiceWrapper registryService) throws CORBAException {
-    Property[] properties = new openbusidl.rs.Property[1];
-    properties[0] =
-      new Property(FACETS_PROPERTY_NAME,
-        new String[] { SESSION_SERVICE_FACET_NAME });
-    try {
-      ServiceOffer[] offers = registryService.find(properties);
-      if (offers.length == 1) {
-        IComponent component = offers[0].member;
-        Object facet = component.getFacet(SESSION_SERVICE_INTERFACE);
-        if (facet == null) {
-          return null;
-        }
-        return ISessionServiceHelper.narrow(facet);
-      }
-      return null;
-    }
-    catch (SystemException e) {
-      throw new CORBAException(e);
-    }
-  }
-
-  /**
    * Obtém um serviço de dados.
    * 
    * @param registryService O serviço de registro.
@@ -153,9 +111,8 @@ public final class Utils {
    * 
    * @throws CORBAException Caso ocorra alguma exceção na infra-estrutura CORBA.
    */
-  public static IHDataService getDataService(
-    RegistryServiceWrapper registryService, ComponentId dataServiceId)
-    throws CORBAException {
+  public static IHDataService getDataService(IRegistryService registryService,
+    ComponentId dataServiceId) throws CORBAException {
     Property[] properties = new Property[1];
     properties[0] =
       new Property(COMPONENT_ID_PROPERTY_NAME,

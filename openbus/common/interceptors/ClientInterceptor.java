@@ -23,6 +23,22 @@ import org.omg.PortableInterceptor.ClientRequestInterceptor;
  */
 class ClientInterceptor extends InterceptorImpl implements
   ClientRequestInterceptor {
+
+  /**
+   * Instância do ORB associado a este interceptador.
+   */
+  private ORB orb;
+
+  /**
+   * Instância do barramento associado a este ORB e interceptador.
+   */
+  private Registry bus;
+
+  /**
+   * Credencial a ser enviada.
+   */
+  private Credential credential;
+
   /**
    * Constrói o interceptador.
    * 
@@ -37,10 +53,16 @@ class ClientInterceptor extends InterceptorImpl implements
    * Intercepta o request para inserção de informação de contexto.
    */
   public void send_request(ClientRequestInfo ri) {
-    Log.INTERCEPTORS.info("ATINGI PONTO DE INTERCEPTAÇÂO CLIENTE!");
+    Log.INTERCEPTORS.info("ATINGI PONTO DE INTERCEPTAÇÃO CLIENTE!");
+
+    /* Verifica se já obteve o barramento */
+    if (bus == null) {
+      bus = Registry.getInstance();
+      orb = bus.getORB();
+    }
 
     /* Verifica se existe uma credencial para envio */
-    Credential credential = Registry.getInstance().getCredential();
+    credential = bus.getCredential();
     if ((credential == null) || (credential.identifier.equals(""))) {
       Log.INTERCEPTORS.info("SEM CREDENCIAL!");
       return;
@@ -51,7 +73,6 @@ class ClientInterceptor extends InterceptorImpl implements
     /* Insere a credencial no contexto do serviço */
     byte[] value = null;
     try {
-      ORB orb = Registry.getInstance().getORBWrapper().getORB();
       Any credentialValue = orb.create_any();
       CredentialHelper.insert(credentialValue, credential);
       value = this.getCodec().encode_value(credentialValue);
