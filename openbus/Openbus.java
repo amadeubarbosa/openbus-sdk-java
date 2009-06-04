@@ -161,14 +161,6 @@ public final class Openbus {
         .getFacet(Utils.ACCESS_CONTROL_SERVICE_INTERFACE));
     this.lp =
       ILeaseProviderHelper.narrow(ic.getFacet(Utils.LEASE_PROVIDER_INTERFACE));
-
-    try {
-      this.rgs = this.acs.getRegistryService();
-    }
-    catch (NO_PERMISSION e) {
-      throw new InvalidCredentialException(e);
-    }
-
     this.leaseExpiredCallback = new LeaseExpiredCallbackImpl();
   }
 
@@ -294,7 +286,7 @@ public final class Openbus {
    * @return O Serviço de Sessão.
    */
   public ISessionService getSessionService() {
-    if (this.ss == null) {
+    if (this.ss == null && this.rgs != null) {
       Property[] properties = new openbusidl.rs.Property[1];
       properties[0] =
         new Property(Utils.FACETS_PROPERTY_NAME,
