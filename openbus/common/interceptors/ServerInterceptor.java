@@ -3,7 +3,7 @@
  */
 package openbus.common.interceptors;
 
-import openbus.Registry;
+import openbus.Openbus;
 import openbus.common.Log;
 import openbusidl.acs.Credential;
 import openbusidl.acs.CredentialHelper;
@@ -33,7 +33,7 @@ class ServerInterceptor extends InterceptorImpl implements
   /**
    * Instância do barramento associado a este ORB e interceptador.
    */
-  private Registry bus;
+  private Openbus bus;
 
   /**
    * Wrapper para o serviço de controle de acesso associado ao barramento.
@@ -88,7 +88,7 @@ class ServerInterceptor extends InterceptorImpl implements
 
     /* Verifica se já obteve o barramento */
     if (bus == null) {
-      bus = Registry.getInstance();
+      bus = Openbus.getInstance();
       orb = bus.getORB();
       acs = bus.getAccessControlService();
       bus.setInterceptedCredentialSlot(credentialSlot);

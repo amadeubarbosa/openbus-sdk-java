@@ -56,11 +56,11 @@ import scs.core.IComponent;
  * 
  * @author Tecgraf/PUC-Rio
  */
-public final class Registry {
+public final class Openbus {
   /**
    * A instância única do barramento.
    */
-  private static Registry instance;
+  private static Openbus instance;
   /**
    * O ORB.
    */
@@ -175,7 +175,7 @@ public final class Registry {
   /**
    * Construtor do barramento.
    */
-  private Registry() {
+  private Openbus() {
     this.reset();
   }
 
@@ -184,9 +184,9 @@ public final class Registry {
    * 
    * @return A instância única do barramento.
    */
-  public static Registry getInstance() {
+  public static Openbus getInstance() {
     if (instance == null) {
-      instance = new Registry();
+      instance = new Openbus();
     }
     return instance;
   }
