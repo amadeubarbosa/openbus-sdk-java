@@ -4,7 +4,6 @@
 package openbus;
 
 import openbusidl.acs.Credential;
-import openbusidl.data_service.DataChannel;
 import scs.core.ComponentId;
 
 /**
@@ -23,9 +22,4 @@ public final class InvalidTypes {
    * Representa uma credencial inválida.
    */
   public static final Credential CREDENTIAL = new Credential("", "", "");
-  /**
-   * Representa um canal de dados inválido.
-   */
-  public static final DataChannel DATA_CHANNEL =
-    new DataChannel("", -1, new byte[0], new byte[0], false, -1);
 }

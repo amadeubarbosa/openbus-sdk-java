@@ -9,8 +9,6 @@ import java.security.cert.Certificate;
 
 import openbus.common.exception.ACSUnavailableException;
 import openbus.exception.CORBAException;
-import openbusidl.data_service.IHDataService;
-import openbusidl.data_service.IHDataServiceHelper;
 import openbusidl.rs.IRegistryService;
 import openbusidl.rs.Property;
 import openbusidl.rs.ServiceOffer;
@@ -22,6 +20,8 @@ import org.omg.CORBA.SystemException;
 import scs.core.ComponentId;
 import scs.core.IComponent;
 import scs.core.IComponentHelper;
+import tecgraf.openbus.corba.data_service.IHDataService;
+import tecgraf.openbus.corba.data_service.IHDataServiceHelper;
 
 /**
  * Métodos utilitários para uso do OpenBus.
