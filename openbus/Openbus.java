@@ -19,7 +19,6 @@ import openbus.common.exception.ACSUnavailableException;
 import openbus.common.exception.OpenBusException;
 import openbus.common.interceptors.ClientInitializer;
 import openbus.common.interceptors.ServerInitializer;
-import openbus.exception.CORBAException;
 import openbus.exception.InvalidCredentialException;
 import openbus.exception.PKIException;
 import openbusidl.acs.Credential;
@@ -123,7 +122,13 @@ public final class Openbus {
    * Possíveis estados para a conexão.
    */
   private enum ConnectionStates {
+    /**
+     * Estado conectado.
+     */
     CONNECTED,
+    /**
+     * Estado desconectado.
+     */
     DISCONNECTED
   };
 
@@ -150,7 +155,13 @@ public final class Openbus {
   }
 
   /**
-   * Cria um ACSWrapper.
+   * Se conecta ao AccessControlServer por meio do endereço e da porta. Este
+   * método também instancia um observador de <i>leases</i>.
+   * 
+   * @param ACSHost Endereço do Serviço de Controle de Acesso.
+   * @param ACSPort Porta do Serviço de Controle de Acesso.
+   * @throws ACSUnavailableException
+   * @throws InvalidCredentialException
    */
   private void createACS(String ACSHost, int ACSPort)
     throws ACSUnavailableException, InvalidCredentialException {
@@ -185,8 +196,8 @@ public final class Openbus {
 
   /**
    * Retorna o barramento para o seu estado inicial, ou seja, desfaz as
-   * definições de atributos realizadas. Em seguida, cria um ORBWrapper e um
-   * ACSWrapper a partir dos dados recebidos.
+   * definições de atributos realizadas. Em seguida, inicializa o Orb e se
+   * conecta com o AccessControlServer a partir dos dados recebidos.
    * 
    * @param args Conjunto de argumentos para a criação do ORB.
    * @param props Conjunto de propriedades para a criação do ORB.
@@ -197,10 +208,19 @@ public final class Openbus {
    *         consiga ser contactado.
    * @throws InvalidCredentialException Caso a credencial seja rejeitada ao
    *         tentar obter o Serviço de Registro.
+   * @throws IllegalArgumentException Caso o método esteja com o os argumentos
+   *         incorretos.
    */
   public void resetAndInitialize(String[] args, Properties props,
     String ACSHost, int ACSPort) throws ACSUnavailableException,
     InvalidCredentialException {
+    if (props == null)
+      throw new IllegalArgumentException("O campo 'props' não pode ser null");
+    if (ACSHost == null)
+      throw new IllegalArgumentException("O campo 'ACSHost' não pode ser null");
+    if (ACSPort < 0)
+      throw new IllegalArgumentException(
+        "É necessário que o campo 'ACSPort' tenha uma porta válida.");
     reset();
     // init
     String clientInitializerClassName = ClientInitializer.class.getName();
@@ -227,7 +247,6 @@ public final class Openbus {
   /**
    * Obtém o RootPOA.
    * 
-   * <p>
    * OBS: A chamada a este método ativa o POAManager.
    * 
    * @return O RootPOA.
@@ -281,7 +300,9 @@ public final class Openbus {
   }
 
   /**
-   * Fornece o Serviço de Sessão, obtido a partir do Serviço de Registro.
+   * Fornece o Serviço de Sessão. Caso o Openbus ainda não tenha a referência
+   * para o Serviço de Sessão este obtem o Serviço a partir do Serviço de
+   * Registro.
    * 
    * @return O Serviço de Sessão.
    */
@@ -334,7 +355,7 @@ public final class Openbus {
   /**
    * Define o slot da credencial da requisição atual.
    * 
-   * @param requestCredentialSlot O slot da credencial da requisição.
+   * @param interceptedCredentialSlot O slot da credencial da requisição.
    */
   public void setInterceptedCredentialSlot(int interceptedCredentialSlot) {
     this.requestCredentialSlot = interceptedCredentialSlot;
@@ -364,31 +385,8 @@ public final class Openbus {
   }
 
   /**
-   * Realiza uma tentativa de conexão com o barramento, a partir de uma
-   * credencial.
-   * 
-   * @param credential A credencial.
-   * 
-   * @return O serviço de registro.
-   * 
-   * @throws InvalidCredentialException Caso a credencial seja recusada.
-   * @throws CORBAException Caso ocorra alguma exceção na infra-estrutura CORBA.
-   */
-  public IRegistryService connect(Credential credential)
-    throws InvalidCredentialException {
-    if (this.acs.isValid(credential)) {
-      this.credential = new CredentialHolder(credential);
-      if (this.rgs == null)
-        this.rgs = this.acs.getRegistryService();
-      return this.rgs;
-    }
-    throw new InvalidCredentialException(new NO_PERMISSION(
-      "Credencial inválida."));
-  }
-
-  /**
-   * Realiza uma tentativa de conexão com o barramento, via nome de usuário e
-   * senha.
+   * Realiza uma tentativa de conexão com o barramento (serviço de contorle de
+   * acesso e o serviço de registro), via nome de usuário e senha.
    * 
    * @param user Nome do usuário.
    * @param password Senha do usuário.
@@ -398,9 +396,14 @@ public final class Openbus {
    * @throws ACSLoginFailureException O par nome de usuário e senha não foram
    *         validados.
    * @throws OpenBusException O barramento ainda não foi inicializado.
+   * @throws IllegalArgumentException Caso o método esteja com o os argumentos
+   *         incorretos.
    */
   public IRegistryService connect(String user, String password)
     throws ACSLoginFailureException, OpenBusException {
+    if ((user == null) || (password == null))
+      throw new IllegalArgumentException(
+        "Os campos 'user' e 'password' não podem ser nulos.");
     synchronized (this.connectionState) {
       if (this.connectionState == ConnectionStates.DISCONNECTED) {
         if (this.acs == null) {
@@ -429,7 +432,8 @@ public final class Openbus {
   }
 
   /**
-   * Realiza uma tentativa de conexão com o barramento, via certificado.
+   * Realiza uma tentativa de conexão com o barramento (serviço de contorle de
+   * acesso e o serviço de registro), via certificado.
    * 
    * @param name Nome do usuário.
    * @param privateKey Chave privada.
@@ -485,12 +489,37 @@ public final class Openbus {
   }
 
   /**
+   * Realiza uma tentativa de conexão com o barramento(serviço de contorle de
+   * acesso e o serviço de registro), a partir de uma credencial.
+   * 
+   * @param credential A credencial.
+   * 
+   * @return O serviço de registro.
+   * 
+   * @throws InvalidCredentialException Caso a credencial seja recusada.
+   */
+  public IRegistryService connect(Credential credential)
+    throws InvalidCredentialException {
+    if (credential == null)
+      throw new IllegalArgumentException(
+        "O campos 'credential' não podem ser nulos.");
+    if (this.acs.isValid(credential)) {
+      this.credential = new CredentialHolder(credential);
+      if (this.rgs == null)
+        this.rgs = this.acs.getRegistryService();
+      return this.rgs;
+    }
+    throw new InvalidCredentialException(new NO_PERMISSION(
+      "Credencial inválida."));
+  }
+
+  /**
    * Desfaz a conexão atual.
    * 
-   * @return {@code true} caso a conexão seja desfeita.
-   * @return {@code false} se nenhuma conexão estiver ativa.
+   * @return {@code true} caso a conexão seja desfeita, ou {@code false} se
+   *         nenhuma conexão estiver ativa.
    * 
-   * @throws CORBAException Caso ocorra alguma exceção na infra-estrutura CORBA.
+   * @throws SystemException
    */
   public boolean disconnect() throws SystemException {
     synchronized (this.connectionState) {
@@ -522,8 +551,8 @@ public final class Openbus {
   /**
    * Informa o estado de conexão com o barramento.
    * 
-   * @return {@code true} caso a conexão esteja ativa.
-   * @return {@code false} caso contrário.
+   * @return {@code true} caso a conexão esteja ativa, ou {@code false}, caso
+   *         contrário.
    */
   public boolean isConnected() {
     if (connectionState == ConnectionStates.CONNECTED)
