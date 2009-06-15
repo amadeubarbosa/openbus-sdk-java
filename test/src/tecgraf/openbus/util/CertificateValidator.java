@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.cert.X509Certificate;
 
-import tecgraf.openbus.common.CryptoUtils;
-
 public final class CertificateValidator {
   public static void main(String[] args) throws GeneralSecurityException,
     IOException {

@@ -1,7 +1,7 @@
 /*
  * $Id$
  */
-package tecgraf.openbus.common;
+package tecgraf.openbus.util;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;

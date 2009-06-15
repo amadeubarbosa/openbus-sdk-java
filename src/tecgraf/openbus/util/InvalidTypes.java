@@ -1,7 +1,7 @@
 /*
  * $Id$
  */
-package tecgraf.openbus;
+package tecgraf.openbus.util;
 
 import openbusidl.acs.Credential;
 import scs.core.ComponentId;

@@ -1,7 +1,7 @@
 /*
  * $Id$
  */
-package tecgraf.openbus.common;
+package tecgraf.openbus.util;
 
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
@@ -18,9 +18,9 @@ import org.omg.CORBA.SystemException;
 import scs.core.ComponentId;
 import scs.core.IComponent;
 import scs.core.IComponentHelper;
-import tecgraf.openbus.common.exception.ACSUnavailableException;
 import tecgraf.openbus.corba.data_service.IHDataService;
 import tecgraf.openbus.corba.data_service.IHDataServiceHelper;
+import tecgraf.openbus.exception.ACSUnavailableException;
 import tecgraf.openbus.exception.CORBAException;
 
 /**

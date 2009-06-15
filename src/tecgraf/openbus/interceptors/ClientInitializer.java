@@ -1,15 +1,14 @@
 /*
  * $Id$
  */
-package tecgraf.openbus.common.interceptors;
+package tecgraf.openbus.interceptors;
 
 import org.omg.CORBA.LocalObject;
 import org.omg.CORBA.UserException;
 import org.omg.PortableInterceptor.ORBInitInfo;
 import org.omg.PortableInterceptor.ORBInitializer;
 
-import tecgraf.openbus.common.Log;
-import tecgraf.openbus.interceptors.CodecFactory;
+import tecgraf.openbus.util.Log;
 
 /**
  * Essa classe é responsável pelo procedimento de inicialização do cliente

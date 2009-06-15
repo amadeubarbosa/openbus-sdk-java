@@ -6,8 +6,6 @@ package tecgraf.openbus.exception;
 import org.omg.CORBA.SystemException;
 import org.omg.CORBA.UserException;
 
-import tecgraf.openbus.common.exception.OpenBusException;
-
 /**
  * Representa uma exceção gerada pelo <i>runtime</i> de CORBA.
  * 

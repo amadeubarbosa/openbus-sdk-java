@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.interfaces.RSAPrivateKey;
 
-import tecgraf.openbus.common.CryptoUtils;
-
 public final class PrivateKeyValidator {
   public static void main(String[] args) throws GeneralSecurityException,
     IOException {

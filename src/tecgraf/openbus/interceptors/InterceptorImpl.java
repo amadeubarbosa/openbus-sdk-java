@@ -1,7 +1,7 @@
 /*
  * $Id$
  */
-package tecgraf.openbus.common.interceptors;
+package tecgraf.openbus.interceptors;
 
 import org.omg.CORBA.LocalObject;
 import org.omg.IOP.Codec;

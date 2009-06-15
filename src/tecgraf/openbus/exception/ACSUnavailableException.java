@@ -1,7 +1,7 @@
 /*
  * $Id$
  */
-package tecgraf.openbus.common.exception;
+package tecgraf.openbus.exception;
 
 /**
  * Representa uma exceção de serviço de controle de acesso indisponível.

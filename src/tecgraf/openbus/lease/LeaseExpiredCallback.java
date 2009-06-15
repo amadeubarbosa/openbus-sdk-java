@@ -1,7 +1,7 @@
 /*
  * $Id$
  */
-package tecgraf.openbus.common;
+package tecgraf.openbus.lease;
 
 /**
  * Usada para informar que a renovação de um <i>lease</i> a partir do

@@ -8,8 +8,8 @@ import java.util.logging.Level;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import tecgraf.openbus.common.Log;
-import tecgraf.openbus.common.exception.OpenBusException;
+import tecgraf.openbus.exception.OpenBusException;
+import tecgraf.openbus.util.Log;
 
 public class OpenbusInitializeTest {
 

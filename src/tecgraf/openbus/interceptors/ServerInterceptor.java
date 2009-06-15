@@ -1,7 +1,7 @@
 /*
  * $Id$
  */
-package tecgraf.openbus.common.interceptors;
+package tecgraf.openbus.interceptors;
 
 import openbusidl.acs.Credential;
 import openbusidl.acs.CredentialHelper;
@@ -15,7 +15,7 @@ import org.omg.PortableInterceptor.ServerRequestInfo;
 import org.omg.PortableInterceptor.ServerRequestInterceptor;
 
 import tecgraf.openbus.Openbus;
-import tecgraf.openbus.common.Log;
+import tecgraf.openbus.util.Log;
 
 /**
  * Implementa um interceptador "servidor", para obtenção de informações no

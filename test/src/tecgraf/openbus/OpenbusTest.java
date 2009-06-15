@@ -16,11 +16,11 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.omg.CORBA.UserException;
 
-import tecgraf.openbus.common.CryptoUtils;
-import tecgraf.openbus.common.Log;
-import tecgraf.openbus.common.exception.ACSLoginFailureException;
-import tecgraf.openbus.common.exception.OpenBusException;
+import tecgraf.openbus.exception.ACSLoginFailureException;
+import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.PKIException;
+import tecgraf.openbus.util.CryptoUtils;
+import tecgraf.openbus.util.Log;
 
 public class OpenbusTest {
   private static Properties props;

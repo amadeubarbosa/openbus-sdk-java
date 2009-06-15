@@ -1,4 +1,4 @@
-package tecgraf.openbus.common.exception;
+package tecgraf.openbus.exception;
 
 /**
  * Representa uma exceção de falha ao realizar a autenticação no serviço de

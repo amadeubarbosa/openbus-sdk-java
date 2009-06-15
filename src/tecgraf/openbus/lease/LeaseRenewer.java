@@ -1,7 +1,7 @@
 /*
  * $Id$
  */
-package tecgraf.openbus.common;
+package tecgraf.openbus.lease;
 
 import java.util.Date;
 
@@ -10,6 +10,8 @@ import openbusidl.acs.ILeaseProvider;
 
 import org.omg.CORBA.IntHolder;
 import org.omg.CORBA.SystemException;
+
+import tecgraf.openbus.util.Log;
 
 /**
  * Responsável por renovar um lease junto a um provedor.

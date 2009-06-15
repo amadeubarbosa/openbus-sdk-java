@@ -1,7 +1,7 @@
 /*
  * $Id$
  */
-package tecgraf.openbus.common;
+package tecgraf.openbus.util;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;

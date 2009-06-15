@@ -5,8 +5,6 @@ package tecgraf.openbus.exception;
 
 import java.security.GeneralSecurityException;
 
-import tecgraf.openbus.common.exception.OpenBusException;
-
 /**
  * Representa uma exceção gerada pelos mecanismos de segurança: criptografia e
  * assinatura digital.
