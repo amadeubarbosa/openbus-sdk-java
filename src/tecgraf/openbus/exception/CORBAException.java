@@ -1,0 +1,34 @@
+/*
+ * $Id$
+ */
+package tecgraf.openbus.exception;
+
+import org.omg.CORBA.SystemException;
+import org.omg.CORBA.UserException;
+
+import tecgraf.openbus.common.exception.OpenBusException;
+
+/**
+ * Representa uma exceção gerada pelo <i>runtime</i> de CORBA.
+ * 
+ * @author Tecgraf/PUC-Rio
+ */
+public final class CORBAException extends OpenBusException {
+  /**
+   * Cria a exceção com uma causa associada.
+   * 
+   * @param cause A causa.
+   */
+  public CORBAException(SystemException cause) {
+    super(cause);
+  }
+
+  /**
+   * Cria a exceção com uma causa associada.
+   * 
+   * @param cause A causa.
+   */
+  public CORBAException(UserException cause) {
+    super(cause);
+  }
+}
