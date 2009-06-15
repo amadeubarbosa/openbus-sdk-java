@@ -1,7 +1,7 @@
 package tecgraf.openbus;
 
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.Properties;
@@ -42,8 +42,8 @@ public class OpenbusTest {
   public OpenbusTest() throws IOException {
     // Carregando o arquivo de configuração
     Properties props = new Properties();
-    FileInputStream in =
-      new FileInputStream("./test/resources/AllTests.properties");
+    InputStream in =
+     this.getClass().getResourceAsStream("/AllTests.properties");
     props.load(in);
     in.close();
 

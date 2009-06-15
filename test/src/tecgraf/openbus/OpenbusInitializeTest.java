@@ -1,7 +1,7 @@
 package tecgraf.openbus;
 
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
 import java.util.logging.Level;
 
@@ -26,8 +26,7 @@ public class OpenbusInitializeTest {
   public OpenbusInitializeTest() throws IOException {
     // Carregando o arquivo de configuração
     Properties defaultProps = new Properties();
-    FileInputStream in =
-      new FileInputStream("./test/resources/AllTests.properties");
+    InputStream in = this.getClass().getResourceAsStream("/AllTests.properties");
     defaultProps.load(in);
     in.close();
 
