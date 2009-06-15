@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry excluding=".classpath|.project|.svn/|build.xml|classes/|lib/|lib/.svn/|openbus/.svn/|openbus/common/.svn/|openbus/common/interceptors/.svn/|test/src/" kind="src" path=""/>
 	<classpathentry kind="src" output="test/classes" path="test/src"/>
+	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="lib" path="lib/scs/core.jar"/>
