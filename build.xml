@@ -3,18 +3,19 @@
 <project name="openbus" default="jar">
   <property environment="env"/>
 
-  <property name="core.dir" value="${env.OPENBUS_HOME}/core"/>
-  <property name="source.dir" value="."/>
+  <property name="source.dir" value="src"/>
   <property name="classes.dir" value="classes"/>
   <property name="lib.dir" value="lib"/>
 
-  <property name="idlpath.dir" value="${env.OPENBUS_HOME}/idlpath"/>
+  <property name="idlpath.dir" value="../../idl"/>
 
   <property name="jacorb.dir" value="${lib.dir}/jacorb2.2.4"/>
   <property name="commons.codec.dir" value="${lib.dir}/commons-codec-1.3"/>
   <property name="scs.dir" value="${lib.dir}/scs"/>
 
+<!--
   <property name="findbugs.dir" value="${env.FINDBUGS_HOME}"/>
+-->
 
   <taskdef name="jacidl" classname="org.jacorb.idl.JacIDL">
     <classpath>
@@ -23,11 +24,13 @@
     </classpath>
   </taskdef>
 
+<!--
   <taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask">
     <classpath>
       <pathelement location="${findbugs.dir}/lib/findbugs-ant.jar"/>
     </classpath>
   </taskdef>
+-->
 
   <target name="clean">
     <delete dir="${classes.dir}"/>
@@ -58,6 +61,7 @@
       basedir="${classes.dir}" includes="openbusidl/**"/>
   </target>
 
+<!--
   <target name="findbugs" depends="jar">
     <findbugs home="${findbugs.dir}" output="html" outputFile="findbugs.html">
       <auxClasspath path="${lib.dir}/openbusidl.jar"/>
@@ -67,4 +71,5 @@
       <class location="${lib.dir}/openbus.jar"/>
     </findbugs>
   </target>
+-->
 </project>
