@@ -79,6 +79,14 @@ public final class Openbus {
   private static final String ORB_INITIALIZER_PROPERTY_NAME_PREFIX =
     "org.omg.PortableInterceptor.ORBInitializerClass.";
   /**
+   * O host do Serviço de Controle de Acesso.
+   */
+  private String host;
+  /**
+   * A porta do Serviço de Controle de Acesso.
+   */
+  private int port;
+  /**
    * O Serviço de Controle de Acesso.
    */
   private IAccessControlService acs;
@@ -147,6 +155,8 @@ public final class Openbus {
     this.rootPOA = null;
     this.isORBFinished = false;
     this.acs = null;
+    this.host = null;
+    this.port = -1;
     this.lp = null;
     this.leaseRenewer = null;
     this.leaseExpiredCallback = null;
@@ -159,15 +169,12 @@ public final class Openbus {
    * Se conecta ao AccessControlServer por meio do endereço e da porta. Este
    * método também instancia um observador de <i>leases</i>.
    * 
-   * @param ACSHost Endereço do Serviço de Controle de Acesso.
-   * @param ACSPort Porta do Serviço de Controle de Acesso.
    * @throws ACSUnavailableException
    * @throws InvalidCredentialException
    */
-  private void createACS(String ACSHost, int ACSPort)
-    throws ACSUnavailableException, InvalidCredentialException {
-    IComponent ic =
-      Utils.fetchAccessControlServiceIComponent(orb, ACSHost, ACSPort);
+  private void fetchACS() throws ACSUnavailableException,
+    InvalidCredentialException {
+    IComponent ic = Utils.fetchAccessControlServiceIComponent(orb, host, port);
     this.acs =
       IAccessControlServiceHelper.narrow(ic
         .getFacet(Utils.ACCESS_CONTROL_SERVICE_INTERFACE));
@@ -202,26 +209,22 @@ public final class Openbus {
    * 
    * @param args Conjunto de argumentos para a criação do ORB.
    * @param props Conjunto de propriedades para a criação do ORB.
-   * @param ACSHost Endereço do Serviço de Controle de Acesso.
-   * @param ACSPort Porta do Serviço de Controle de Acesso.
+   * @param host Endereço do Serviço de Controle de Acesso.
+   * @param port Porta do Serviço de Controle de Acesso.
    * 
-   * @throws ACSUnavailableException Caso o Serviço de Controle de Acesso não
-   *         consiga ser contactado.
-   * @throws InvalidCredentialException Caso a credencial seja rejeitada ao
-   *         tentar obter o Serviço de Registro.
+   * @throws UserException Caso ocorra algum erro ao obter o RootPOA.
    * @throws IllegalArgumentException Caso o método esteja com o os argumentos
    *         incorretos.
    */
-  public void resetAndInitialize(String[] args, Properties props,
-    String ACSHost, int ACSPort) throws ACSUnavailableException,
-    InvalidCredentialException {
+  public void resetAndInitialize(String[] args, Properties props, String host,
+    int port) throws UserException {
     if (props == null)
       throw new IllegalArgumentException("O campo 'props' não pode ser null");
-    if (ACSHost == null)
-      throw new IllegalArgumentException("O campo 'ACSHost' não pode ser null");
-    if (ACSPort < 0)
+    if (host == null)
+      throw new IllegalArgumentException("O campo 'host' não pode ser null");
+    if (port < 0)
       throw new IllegalArgumentException(
-        "É necessário que o campo 'ACSPort' tenha uma porta válida.");
+        "O campo 'port' não pode ser negativo.");
     reset();
     // init
     String clientInitializerClassName = ClientInitializer.class.getName();
@@ -233,7 +236,10 @@ public final class Openbus {
       ORB_INITIALIZER_PROPERTY_NAME_PREFIX + serverInitializerClassName,
       serverInitializerClassName);
     this.orb = org.omg.CORBA.ORB.init(args, props);
-    createACS(ACSHost, ACSPort);
+    org.omg.CORBA.Object obj = this.orb.resolve_initial_references("RootPOA");
+    this.rootPOA = POAHelper.narrow(obj);
+    POAManager manager = this.rootPOA.the_POAManager();
+    manager.activate();
   }
 
   /**
@@ -251,16 +257,8 @@ public final class Openbus {
    * OBS: A chamada a este método ativa o POAManager.
    * 
    * @return O RootPOA.
-   * 
-   * @throws UserException Caso ocorra algum erro ao obter o RootPOA.
    */
-  public POA getRootPOA() throws UserException {
-    if (this.rootPOA == null) {
-      org.omg.CORBA.Object obj = this.orb.resolve_initial_references("RootPOA");
-      this.rootPOA = POAHelper.narrow(obj);
-      POAManager manager = this.rootPOA.the_POAManager();
-      manager.activate();
-    }
+  public POA getRootPOA() {
     return this.rootPOA;
   }
 
@@ -396,20 +394,23 @@ public final class Openbus {
    * 
    * @throws ACSLoginFailureException O par nome de usuário e senha não foram
    *         validados.
-   * @throws OpenBusException O barramento ainda não foi inicializado.
+   * @throws ACSUnavailableException Caso o Serviço de Controle de Acesso não
+   *         consiga ser contactado.
+   * @throws InvalidCredentialException Caso a credencial seja rejeitada ao
+   *         tentar obter o Serviço de Registro.
    * @throws IllegalArgumentException Caso o método esteja com o os argumentos
    *         incorretos.
    */
   public IRegistryService connect(String user, String password)
-    throws ACSLoginFailureException, OpenBusException {
+    throws ACSLoginFailureException, ACSUnavailableException,
+    InvalidCredentialException {
     if ((user == null) || (password == null))
       throw new IllegalArgumentException(
         "Os campos 'user' e 'password' não podem ser nulos.");
     synchronized (this.connectionState) {
       if (this.connectionState == ConnectionStates.DISCONNECTED) {
         if (this.acs == null) {
-          throw new OpenBusException(
-            "A referência ao serviço de controle de acesso está inválida. Reinicialize o barramento.");
+          fetchACS();
         }
         if (this.acs.loginByPassword(user, password, this.credential,
           new IntHolder())) {
@@ -445,15 +446,19 @@ public final class Openbus {
    * 
    * @throws ACSLoginFailureException O certificado não foi validado.
    * @throws PKIException Os dados fornecidos não são válidos.
+   * @throws ACSUnavailableException Caso o Serviço de Controle de Acesso não
+   *         consiga ser contactado.
+   * @throws InvalidCredentialException Caso a credencial seja rejeitada ao
+   *         tentar obter o Serviço de Registro.
    * @throws OpenBusException O barramento ainda não foi inicializado.
    */
   public IRegistryService connect(String name, RSAPrivateKey privateKey,
     X509Certificate acsCertificate) throws ACSLoginFailureException,
-    PKIException, OpenBusException {
+    PKIException, ACSUnavailableException, InvalidCredentialException {
     synchronized (this.connectionState) {
       if (this.connectionState == ConnectionStates.DISCONNECTED) {
         if (this.acs == null) {
-          throw new OpenBusException();
+          fetchACS();
         }
         byte[] challenge;
         challenge = this.acs.getChallenge(name);
@@ -497,13 +502,18 @@ public final class Openbus {
    * 
    * @return O serviço de registro.
    * 
-   * @throws InvalidCredentialException Caso a credencial seja recusada.
+   * @throws ACSUnavailableException Caso o Serviço de Controle de Acesso não
+   *         consiga ser contactado.
+   * @throws InvalidCredentialException Caso a credencial seja rejeitada ao
+   *         tentar obter o Serviço de Registro.
    */
   public IRegistryService connect(Credential credential)
-    throws InvalidCredentialException {
+    throws InvalidCredentialException, ACSUnavailableException {
     if (credential == null)
       throw new IllegalArgumentException(
-        "O campos 'credential' não podem ser nulos.");
+        "O campo 'credential' não pode ser nulo.");
+    if (this.acs == null)
+      fetchACS();
     if (this.acs.isValid(credential)) {
       this.credential = new CredentialHolder(credential);
       if (this.rgs == null)
