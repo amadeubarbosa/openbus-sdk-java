@@ -254,8 +254,6 @@ public final class Openbus {
   /**
    * Obtém o RootPOA.
    * 
-   * OBS: A chamada a este método ativa o POAManager.
-   * 
    * @return O RootPOA.
    */
   public POA getRootPOA() {
