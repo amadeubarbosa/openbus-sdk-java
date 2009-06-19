@@ -224,9 +224,9 @@ public final class Openbus {
       throw new IllegalArgumentException(
         "O campo 'port' não pode ser negativo.");
     reset();
+    // init
     this.host = host;
     this.port = port;
-    // init
     String clientInitializerClassName = ClientInitializer.class.getName();
     props.put(
       ORB_INITIALIZER_PROPERTY_NAME_PREFIX + clientInitializerClassName,
@@ -448,10 +448,14 @@ public final class Openbus {
    *         consiga ser contactado.
    * @throws InvalidCredentialException Caso a credencial seja rejeitada ao
    *         tentar obter o Serviço de Registro.
-  */
+   * @throws IllegalArgumentException Caso o método esteja com os argumentos
+   *         incorretos.
+   */
   public IRegistryService connect(String name, RSAPrivateKey privateKey,
     X509Certificate acsCertificate) throws ACSLoginFailureException,
     PKIException, ACSUnavailableException, InvalidCredentialException {
+    if ((name == null) || (privateKey == null) || (acsCertificate == null))
+      throw new IllegalArgumentException("Nenhum parâmetro pode ser nulo.");
     synchronized (this.connectionState) {
       if (this.connectionState == ConnectionStates.DISCONNECTED) {
         if (this.acs == null) {
