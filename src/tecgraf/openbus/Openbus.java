@@ -14,9 +14,7 @@ import openbusidl.acs.Credential;
 import openbusidl.acs.CredentialHelper;
 import openbusidl.acs.CredentialHolder;
 import openbusidl.acs.IAccessControlService;
-import openbusidl.acs.IAccessControlServiceHelper;
 import openbusidl.acs.ILeaseProvider;
-import openbusidl.acs.ILeaseProviderHelper;
 import openbusidl.rs.IRegistryService;
 import openbusidl.rs.Property;
 import openbusidl.rs.ServiceOffer;
@@ -169,16 +167,10 @@ public final class Openbus {
    * método também instancia um observador de <i>leases</i>.
    * 
    * @throws ACSUnavailableException
-   * @throws InvalidCredentialException
    */
-  private void fetchACS() throws ACSUnavailableException,
-    InvalidCredentialException {
-    IComponent ic = Utils.fetchAccessControlServiceIComponent(orb, host, port);
-    this.acs =
-      IAccessControlServiceHelper.narrow(ic
-        .getFacet(Utils.ACCESS_CONTROL_SERVICE_INTERFACE));
-    this.lp =
-      ILeaseProviderHelper.narrow(ic.getFacet(Utils.LEASE_PROVIDER_INTERFACE));
+  private void fetchACS() throws ACSUnavailableException {
+    this.acs = Utils.fetchAccessControlService(orb, host, port);
+    this.lp = Utils.fetchAccessControlServiceLeaseProvider(orb, host, port);
     this.leaseExpiredCallback = new LeaseExpiredCallbackImpl();
   }
 

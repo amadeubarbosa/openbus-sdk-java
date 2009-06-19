@@ -7,6 +7,12 @@ import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 
+import openbusidl.acs.IAccessControlService;
+import openbusidl.acs.IAccessControlServiceHelper;
+import openbusidl.acs.ILeaseProvider;
+import openbusidl.acs.ILeaseProviderHelper;
+import openbusidl.data_service.IHDataService;
+import openbusidl.data_service.IHDataServiceHelper;
 import openbusidl.rs.IRegistryService;
 import openbusidl.rs.Property;
 import openbusidl.rs.ServiceOffer;
@@ -18,8 +24,6 @@ import org.omg.CORBA.SystemException;
 import scs.core.ComponentId;
 import scs.core.IComponent;
 import scs.core.IComponentHelper;
-import tecgraf.openbus.corba.data_service.IHDataService;
-import tecgraf.openbus.corba.data_service.IHDataServiceHelper;
 import tecgraf.openbus.exception.ACSUnavailableException;
 import tecgraf.openbus.exception.CORBAException;
 
@@ -39,6 +43,12 @@ public final class Utils {
    */
   public static final String LEASE_PROVIDER_INTERFACE =
     "IDL:openbusidl/acs/ILeaseProvider:1.0";
+  /**
+   * Representam as chaves CORBALOC para obtenção das interfaces do ACS.
+   */
+  public static final String ICOMPONENT_KEY = "IC";
+  public static final String ACCESS_CONTROL_SERVICE_KEY = "ACS";
+  public static final String LEASE_PROVIDER_KEY = "LP";
   /**
    * Representa a interface do serviço de sessão.
    */
@@ -63,6 +73,19 @@ public final class Utils {
   public static final String COMPONENT_ID_PROPERTY_NAME = "component_id";
 
   /**
+   * Método privado para facilitar a obtenção do serviço de controle de acesso.
+   */
+  private static org.omg.CORBA.Object fetchACS(ORB orb, String host, int port,
+    String key) throws ACSUnavailableException {
+    org.omg.CORBA.Object obj =
+      orb.string_to_object("corbaloc::1.0@" + host + ":" + port + key);
+    if ((obj == null) || (obj._non_existent())) {
+      throw new ACSUnavailableException();
+    }
+    return obj;
+  }
+
+  /**
    * Obtém o serviço de controle de acesso.
    * 
    * @param orb O orb utilizado para obter o serviço.
@@ -73,14 +96,45 @@ public final class Utils {
    * 
    * @throws ACSUnavailableException Caso o serviço não seja encontrado.
    */
-  public static IComponent fetchAccessControlServiceIComponent(ORB orb,
+  public static IAccessControlService fetchAccessControlService(ORB orb,
     String host, int port) throws ACSUnavailableException {
     org.omg.CORBA.Object obj =
-      orb.string_to_object("corbaloc::1.0@" + host + ":" + port + "/IC");
-    if ((obj == null) || (obj._non_existent())) {
-      throw new ACSUnavailableException();
-    }
+      fetchACS(orb, host, port, ACCESS_CONTROL_SERVICE_KEY);
+    return IAccessControlServiceHelper.narrow(obj);
+  }
+
+  /**
+   * Obtém o IComponent do serviço de controle de acesso.
+   * 
+   * @param orb O orb utilizado para obter o serviço.
+   * @param host A máquina onde o serviço está localizado.
+   * @param port A porta onde o serviço está disponível.
+   * 
+   * @return O IComponent do serviço de controle de acesso.
+   * 
+   * @throws ACSUnavailableException Caso o serviço não seja encontrado.
+   */
+  public static IComponent fetchAccessControlServiceIComponent(ORB orb,
+    String host, int port) throws ACSUnavailableException {
+    org.omg.CORBA.Object obj = fetchACS(orb, host, port, ICOMPONENT_KEY);
     return IComponentHelper.narrow(obj);
+  }
+
+  /**
+   * Obtém o LeaseProvider do serviço de controle de acesso.
+   * 
+   * @param orb O orb utilizado para obter o serviço.
+   * @param host A máquina onde o serviço está localizado.
+   * @param port A porta onde o serviço está disponível.
+   * 
+   * @return O LeaseProvider do serviço de controle de acesso.
+   * 
+   * @throws ACSUnavailableException Caso o serviço não seja encontrado.
+   */
+  public static ILeaseProvider fetchAccessControlServiceLeaseProvider(ORB orb,
+    String host, int port) throws ACSUnavailableException {
+    org.omg.CORBA.Object obj = fetchACS(orb, host, port, LEASE_PROVIDER_KEY);
+    return ILeaseProviderHelper.narrow(obj);
   }
 
   /**
