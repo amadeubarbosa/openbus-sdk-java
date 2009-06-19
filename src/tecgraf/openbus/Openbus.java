@@ -203,9 +203,7 @@ public final class Openbus {
 
   /**
    * Retorna o barramento para o seu estado inicial, ou seja, desfaz as
-   * definições de atributos realizadas. Em seguida, inicializa o Orb e guarda o
-   * endereço e a porta do Controle de Acesso para ser utilizado quando o
-   * connect for chamado.
+   * definições de atributos realizadas. Em seguida, inicializa o Orb.
    * 
    * @param args Conjunto de argumentos para a criação do ORB.
    * @param props Conjunto de propriedades para a criação do ORB.
@@ -213,7 +211,7 @@ public final class Openbus {
    * @param port Porta do Serviço de Controle de Acesso.
    * 
    * @throws UserException Caso ocorra algum erro ao obter o RootPOA.
-   * @throws IllegalArgumentException Caso o método esteja com o os argumentos
+   * @throws IllegalArgumentException Caso o método esteja com os argumentos
    *         incorretos.
    */
   public void resetAndInitialize(String[] args, Properties props, String host,
@@ -384,7 +382,7 @@ public final class Openbus {
   }
 
   /**
-   * Realiza uma tentativa de conexão com o barramento (serviço de contorle de
+   * Realiza uma tentativa de conexão com o barramento (serviço de controle de
    * acesso e o serviço de registro), via nome de usuário e senha.
    * 
    * @param user Nome do usuário.
@@ -398,7 +396,7 @@ public final class Openbus {
    *         consiga ser contactado.
    * @throws InvalidCredentialException Caso a credencial seja rejeitada ao
    *         tentar obter o Serviço de Registro.
-   * @throws IllegalArgumentException Caso o método esteja com o os argumentos
+   * @throws IllegalArgumentException Caso o método esteja com os argumentos
    *         incorretos.
    */
   public IRegistryService connect(String user, String password)
@@ -406,7 +404,7 @@ public final class Openbus {
     InvalidCredentialException {
     if ((user == null) || (password == null))
       throw new IllegalArgumentException(
-        "Os campos 'user' e 'password' não podem ser nulos.");
+        "Os parâmetros 'user' e 'password' não podem ser nulos.");
     synchronized (this.connectionState) {
       if (this.connectionState == ConnectionStates.DISCONNECTED) {
         if (this.acs == null) {
@@ -434,7 +432,7 @@ public final class Openbus {
   }
 
   /**
-   * Realiza uma tentativa de conexão com o barramento (serviço de contorle de
+   * Realiza uma tentativa de conexão com o barramento (serviço de controle de
    * acesso e o serviço de registro), via certificado.
    * 
    * @param name Nome do usuário.
@@ -450,7 +448,7 @@ public final class Openbus {
    *         consiga ser contactado.
    * @throws InvalidCredentialException Caso a credencial seja rejeitada ao
    *         tentar obter o Serviço de Registro.
-   */
+  */
   public IRegistryService connect(String name, RSAPrivateKey privateKey,
     X509Certificate acsCertificate) throws ACSLoginFailureException,
     PKIException, ACSUnavailableException, InvalidCredentialException {
@@ -494,7 +492,7 @@ public final class Openbus {
   }
 
   /**
-   * Realiza uma tentativa de conexão com o barramento(serviço de contorle de
+   * Realiza uma tentativa de conexão com o barramento(serviço de controle de
    * acesso e o serviço de registro), a partir de uma credencial.
    * 
    * @param credential A credencial.
@@ -505,12 +503,14 @@ public final class Openbus {
    *         consiga ser contactado.
    * @throws InvalidCredentialException Caso a credencial seja rejeitada ao
    *         tentar obter o Serviço de Registro.
+   * @throws IllegalArgumentException Caso o método esteja com os argumentos
+   *         incorretos.
    */
   public IRegistryService connect(Credential credential)
     throws InvalidCredentialException, ACSUnavailableException {
     if (credential == null)
       throw new IllegalArgumentException(
-        "O campo 'credential' não pode ser nulo.");
+        "O parâmetro 'credential' não pode ser nulo.");
     if (this.acs == null)
       fetchACS();
     if (this.acs.isValid(credential)) {
