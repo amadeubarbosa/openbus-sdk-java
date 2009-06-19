@@ -7,6 +7,7 @@ import java.util.logging.Level;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.omg.CORBA.UserException;
 
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.util.Log;
@@ -26,7 +27,8 @@ public class OpenbusInitializeTest {
   public OpenbusInitializeTest() throws IOException {
     // Carregando o arquivo de configuração
     Properties defaultProps = new Properties();
-    InputStream in = this.getClass().getResourceAsStream("/AllTests.properties");
+    InputStream in =
+      this.getClass().getResourceAsStream("/AllTests.properties");
     defaultProps.load(in);
     in.close();
 
@@ -51,9 +53,11 @@ public class OpenbusInitializeTest {
    * Testa o resetAndInitialize passando o Properties null.
    * 
    * @throws OpenBusException
+   * @throws UserException
    */
   @Test(expected = IllegalArgumentException.class)
-  public void resetAndInitializeNullProps() throws OpenBusException {
+  public void resetAndInitializeNullProps() throws OpenBusException,
+    UserException {
     Openbus.getInstance().resetAndInitialize(null, null, hostName, hostPort);
   }
 
@@ -61,9 +65,11 @@ public class OpenbusInitializeTest {
    * Testa o resetAndInitialize passando ACSHost null.
    * 
    * @throws OpenBusException
+   * @throws UserException
    */
   @Test(expected = IllegalArgumentException.class)
-  public void resetAndInitializeNullHost() throws OpenBusException {
+  public void resetAndInitializeNullHost() throws OpenBusException,
+    UserException {
     Openbus.getInstance().resetAndInitialize(null, props, null, 0);
   }
 
@@ -71,9 +77,11 @@ public class OpenbusInitializeTest {
    * Testa o resetAndInitialize passando ACSPort null.
    * 
    * @throws OpenBusException
+   * @throws UserException
    */
   @Test(expected = IllegalArgumentException.class)
-  public void resetAndInitializeInvalidPort() throws OpenBusException {
+  public void resetAndInitializeInvalidPort() throws OpenBusException,
+    UserException {
     Openbus.getInstance().resetAndInitialize(null, props, hostName, -1);
   }
 

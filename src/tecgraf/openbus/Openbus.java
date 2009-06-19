@@ -41,7 +41,6 @@ import scs.core.IComponent;
 import tecgraf.openbus.exception.ACSLoginFailureException;
 import tecgraf.openbus.exception.ACSUnavailableException;
 import tecgraf.openbus.exception.InvalidCredentialException;
-import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.PKIException;
 import tecgraf.openbus.interceptors.ClientInitializer;
 import tecgraf.openbus.interceptors.ServerInitializer;
@@ -204,8 +203,9 @@ public final class Openbus {
 
   /**
    * Retorna o barramento para o seu estado inicial, ou seja, desfaz as
-   * definições de atributos realizadas. Em seguida, inicializa o Orb e se
-   * conecta com o AccessControlServer a partir dos dados recebidos.
+   * definições de atributos realizadas. Em seguida, inicializa o Orb e guarda o
+   * endereço e a porta do Controle de Acesso para ser utilizado quando o
+   * connect for chamado.
    * 
    * @param args Conjunto de argumentos para a criação do ORB.
    * @param props Conjunto de propriedades para a criação do ORB.
@@ -226,6 +226,8 @@ public final class Openbus {
       throw new IllegalArgumentException(
         "O campo 'port' não pode ser negativo.");
     reset();
+    this.host = host;
+    this.port = port;
     // init
     String clientInitializerClassName = ClientInitializer.class.getName();
     props.put(
@@ -448,7 +450,6 @@ public final class Openbus {
    *         consiga ser contactado.
    * @throws InvalidCredentialException Caso a credencial seja rejeitada ao
    *         tentar obter o Serviço de Registro.
-   * @throws OpenBusException O barramento ainda não foi inicializado.
    */
   public IRegistryService connect(String name, RSAPrivateKey privateKey,
     X509Certificate acsCertificate) throws ACSLoginFailureException,

@@ -43,7 +43,7 @@ public class OpenbusTest {
     // Carregando o arquivo de configuração
     Properties props = new Properties();
     InputStream in =
-     this.getClass().getResourceAsStream("/AllTests.properties");
+      this.getClass().getResourceAsStream("/AllTests.properties");
     props.load(in);
     in.close();
 
@@ -74,10 +74,12 @@ public class OpenbusTest {
    * Este método é chamado antes de cada testCase.
    * 
    * @throws OpenBusException
+   * @throws UserException
    */
   @Before
-  public void beforeTest() throws OpenBusException {
-    Openbus.getInstance().resetAndInitialize(null, props, hostName, hostPort);
+  public void beforeTest() throws OpenBusException, UserException {
+    Openbus openbus = Openbus.getInstance();
+    openbus.resetAndInitialize(null, props, hostName, hostPort);
   }
 
   /**
