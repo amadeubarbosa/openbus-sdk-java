@@ -18,7 +18,6 @@ import org.omg.CORBA.UserException;
 
 import tecgraf.openbus.exception.ACSLoginFailureException;
 import tecgraf.openbus.exception.OpenBusException;
-import tecgraf.openbus.exception.PKIException;
 import tecgraf.openbus.util.CryptoUtils;
 import tecgraf.openbus.util.Log;
 
@@ -154,7 +153,7 @@ public class OpenbusTest {
    * @throws OpenBusException
    * @throws Exception
    */
-  @Test(expected = PKIException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void connectByCertificateNullKey() throws OpenBusException, Exception {
     X509Certificate acsCert = CryptoUtils.readCertificate(acsCertificate);
     Openbus openbus = Openbus.getInstance();
