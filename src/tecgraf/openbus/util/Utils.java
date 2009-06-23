@@ -11,8 +11,6 @@ import openbusidl.acs.IAccessControlService;
 import openbusidl.acs.IAccessControlServiceHelper;
 import openbusidl.acs.ILeaseProvider;
 import openbusidl.acs.ILeaseProviderHelper;
-import openbusidl.data_service.IHDataService;
-import openbusidl.data_service.IHDataServiceHelper;
 import openbusidl.rs.IRegistryService;
 import openbusidl.rs.Property;
 import openbusidl.rs.ServiceOffer;
@@ -24,6 +22,8 @@ import org.omg.CORBA.SystemException;
 import scs.core.ComponentId;
 import scs.core.IComponent;
 import scs.core.IComponentHelper;
+import tecgraf.openbus.data_service.IHDataService;
+import tecgraf.openbus.data_service.IHDataServiceHelper;
 import tecgraf.openbus.exception.ACSUnavailableException;
 import tecgraf.openbus.exception.CORBAException;
 
@@ -78,7 +78,7 @@ public final class Utils {
   private static org.omg.CORBA.Object fetchACS(ORB orb, String host, int port,
     String key) throws ACSUnavailableException {
     org.omg.CORBA.Object obj =
-      orb.string_to_object("corbaloc::1.0@" + host + ":" + port + key);
+      orb.string_to_object("corbaloc::1.0@" + host + ":" + port + "/" + key);
     if ((obj == null) || (obj._non_existent())) {
       throw new ACSUnavailableException();
     }
@@ -173,7 +173,8 @@ public final class Utils {
         new String[] { dataServiceId.name + ":" + dataServiceId.major_version
           + dataServiceId.minor_version + dataServiceId.patch_version });
     try {
-      ServiceOffer[] offers = registryService.find(properties);
+      ServiceOffer[] offers =
+        registryService.findByCriteria(new String[0], properties);
       if (offers.length == 1) {
         IComponent dataServiceComponent = offers[0].member;
         Object dataServiceFacet =

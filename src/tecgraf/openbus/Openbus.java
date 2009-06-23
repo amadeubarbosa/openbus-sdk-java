@@ -16,7 +16,6 @@ import openbusidl.acs.CredentialHolder;
 import openbusidl.acs.IAccessControlService;
 import openbusidl.acs.ILeaseProvider;
 import openbusidl.rs.IRegistryService;
-import openbusidl.rs.Property;
 import openbusidl.rs.ServiceOffer;
 import openbusidl.ss.ISessionService;
 import openbusidl.ss.ISessionServiceHelper;
@@ -297,11 +296,8 @@ public final class Openbus {
    */
   public ISessionService getSessionService() {
     if (this.ss == null && this.rgs != null) {
-      Property[] properties = new openbusidl.rs.Property[1];
-      properties[0] =
-        new Property(Utils.FACETS_PROPERTY_NAME,
-          new String[] { Utils.SESSION_SERVICE_FACET_NAME });
-      ServiceOffer[] offers = this.rgs.find(properties);
+      ServiceOffer[] offers =
+        this.rgs.find(new String[] { Utils.SESSION_SERVICE_FACET_NAME });
       if (offers.length > 0) {
         IComponent component = offers[0].member;
         Object facet = component.getFacet(Utils.SESSION_SERVICE_INTERFACE);
