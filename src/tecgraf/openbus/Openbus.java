@@ -297,7 +297,7 @@ public final class Openbus {
         this.rgs.find(new String[] { Utils.SESSION_SERVICE_FACET_NAME });
       if (offers.length > 0) {
         IComponent component = offers[0].member;
-        Object facet = component.getFacet(Utils.SESSION_SERVICE_INTERFACE);
+        Object facet = component.getFacet(ISessionServiceHelper.id());
         if (facet == null) {
           return null;
         }
