@@ -54,6 +54,15 @@ public final class LeaseRenewer {
   }
 
   /**
+   * Define o observador do <i>lease</i>.
+   * 
+   * @param lec O observador do <i>lease</i>.
+   */
+  public void setLeaseExpiredCallback(LeaseExpiredCallback lec) {
+    this.renewer.expiredCallback = lec;
+  }
+
+  /**
    * Inicia uma renovação de <i>lease</i>.
    */
   public void start() {

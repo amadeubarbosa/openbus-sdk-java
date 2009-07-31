@@ -6,9 +6,7 @@ package tecgraf.openbus;
 import java.security.GeneralSecurityException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
-import java.util.HashSet;
 import java.util.Properties;
-import java.util.Set;
 
 import openbusidl.acs.Credential;
 import openbusidl.acs.CredentialHelper;
@@ -97,7 +95,7 @@ public final class Openbus {
   /**
    * <i>Callback</i> para a notificação de que um <i>lease</i> expirou.
    */
-  private LeaseExpiredCallbackImpl leaseExpiredCallback;
+  private LeaseExpiredCallback leaseExpiredCallback;
   /**
    * Serviço de registro.
    */
@@ -170,7 +168,6 @@ public final class Openbus {
   private void fetchACS() throws ACSUnavailableException {
     this.acs = Utils.fetchAccessControlService(orb, host, port);
     this.lp = Utils.fetchAccessControlServiceLeaseProvider(orb, host, port);
-    this.leaseExpiredCallback = new LeaseExpiredCallbackImpl();
   }
 
   /**
@@ -563,80 +560,25 @@ public final class Openbus {
   }
 
   /**
-   * Adiciona um observador para receber eventos de expiração do <i>lease</i>.
+   * Atribui o observador para receber eventos de expiração do <i>lease</i>.
    * 
    * @param lec O observador.
    * 
-   * @return {@code true}, caso o observador seja adicionado, ou {@code false},
-   *         caso contrário.
    */
-  public boolean addLeaseExpiredCallback(LeaseExpiredCallback lec) {
-    return this.leaseExpiredCallback.addLeaseExpiredCallback(lec);
+  public void addLeaseExpiredCallback(LeaseExpiredCallback lec) {
+    this.leaseExpiredCallback = lec;
+    if (this.connectionState == ConnectionStates.CONNECTED) {
+      this.leaseRenewer.setLeaseExpiredCallback(lec);
+    }
   }
 
   /**
-   * Remove um observador de expiração do <i>lease</i>.
-   * 
-   * @param lec O observador.
-   * 
-   * @return {@code true}, caso o observador seja removido, ou {@code false},
-   *         caso contrário.
+   * Remove o observador de expiração do <i>lease</i>.
    */
-  public boolean removeLeaseExpiredCallback(LeaseExpiredCallback lec) {
-    return this.leaseExpiredCallback.removeLeaseExpiredCallback(lec);
-  }
-
-  /**
-   * Implementa uma <i>callback</i> para a notificação de que um <i>lease</i>
-   * expirou.
-   * 
-   * @author Tecgraf/PUC-Rio
-   */
-  private static class LeaseExpiredCallbackImpl implements LeaseExpiredCallback {
-    /**
-     * Observadores da expiração do <i>lease</i>.
-     */
-    private Set<LeaseExpiredCallback> callbacks;
-
-    /**
-     * Cria a <i>callback</i>.
-     */
-    LeaseExpiredCallbackImpl() {
-      this.callbacks = new HashSet<LeaseExpiredCallback>();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void expired() {
-      for (LeaseExpiredCallback lec : this.callbacks) {
-        lec.expired();
-      }
-    }
-
-    /**
-     * Adiciona um observador para receber eventos de expiração do <i>lease</i>.
-     * 
-     * @param lec O observador.
-     * 
-     * @return {@code true}, caso o observador seja adicionado, ou {@code false}
-     *         , caso contrário.
-     */
-    boolean addLeaseExpiredCallback(LeaseExpiredCallback lec) {
-      return this.callbacks.add(lec);
-    }
-
-    /**
-     * Remove um observador de expiração do <i>lease</i>.
-     * 
-     * @param lec O observador.
-     * 
-     * @return {@code true}, caso o observador seja removido, ou {@code false},
-     *         caso contrário.
-     */
-    boolean removeLeaseExpiredCallback(LeaseExpiredCallback lec) {
-      return this.callbacks.remove(lec);
+  public void removeLeaseExpiredCallback() {
+    this.leaseExpiredCallback = null;
+    if (this.connectionState == ConnectionStates.CONNECTED) {
+      this.leaseRenewer.setLeaseExpiredCallback(null);
     }
   }
 }
