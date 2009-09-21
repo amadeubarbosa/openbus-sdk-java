@@ -502,8 +502,8 @@ public final class Openbus {
         "O parâmetro 'credential' não pode ser nulo.");
     if (this.acs == null)
       fetchACS();
+    this.credential = new CredentialHolder(credential);
     if (this.acs.isValid(credential)) {
-      this.credential = new CredentialHolder(credential);
       if (this.rgs == null)
         this.rgs = this.acs.getRegistryService();
       return this.rgs;

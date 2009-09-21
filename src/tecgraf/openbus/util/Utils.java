@@ -33,7 +33,7 @@ public final class Utils {
   /**
    * O nome da faceta do Serviço de Sessão.
    */
-  public static final String SESSION_SERVICE_FACET_NAME = "sessionService";
+  public static final String SESSION_SERVICE_FACET_NAME = "ISessionService";
   /**
    * O nome da propriedade que representa as facetas de um membro registrado.
    */
