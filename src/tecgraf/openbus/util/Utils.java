@@ -12,6 +12,7 @@ import openbusidl.acs.IAccessControlServiceHelper;
 import openbusidl.acs.ILeaseProvider;
 import openbusidl.acs.ILeaseProviderHelper;
 
+import org.omg.CORBA.OBJECT_NOT_EXIST;
 import org.omg.CORBA.ORB;
 
 import scs.core.IComponent;
@@ -50,7 +51,15 @@ public final class Utils {
     String key) throws ACSUnavailableException {
     org.omg.CORBA.Object obj =
       orb.string_to_object("corbaloc::1.0@" + host + ":" + port + "/" + key);
-    if ((obj == null) || (obj._non_existent())) {
+    if (obj == null) {
+      throw new ACSUnavailableException();
+    }
+    try {
+      if (obj._non_existent()) {
+        throw new ACSUnavailableException();
+      }
+    }
+    catch (OBJECT_NOT_EXIST e) {
       throw new ACSUnavailableException();
     }
     return obj;
