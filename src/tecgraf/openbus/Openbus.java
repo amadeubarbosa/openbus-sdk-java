@@ -261,7 +261,7 @@ public final class Openbus {
    * @param force Se a finalização deve ser forçada ou não.
    */
   public void finish(boolean force) {
-    this.orb.shutdown(force);
+    this.orb.shutdown(!force);
     this.orb.destroy();
     this.isORBFinished = true;
   }
