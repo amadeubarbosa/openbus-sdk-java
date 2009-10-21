@@ -14,6 +14,7 @@ import openbusidl.acs.CredentialHolder;
 import openbusidl.acs.IAccessControlService;
 import openbusidl.acs.ILeaseProvider;
 import openbusidl.rs.IRegistryService;
+import openbusidl.rs.IRegistryServiceHelper;
 import openbusidl.rs.ServiceOffer;
 import openbusidl.ss.ISessionService;
 import openbusidl.ss.ISessionServiceHelper;
@@ -32,7 +33,11 @@ import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 import org.omg.PortableServer.POAManager;
 
+import scs.core.ConnectionDescription;
 import scs.core.IComponent;
+import scs.core.IReceptacles;
+import scs.core.IReceptaclesHelper;
+import scs.core.InvalidName;
 import tecgraf.openbus.exception.ACSLoginFailureException;
 import tecgraf.openbus.exception.ACSUnavailableException;
 import tecgraf.openbus.exception.InvalidCredentialException;
@@ -88,6 +93,10 @@ public final class Openbus {
    * Interface ILeaseProvider do Serviço de Controle de Acesso.
    */
   private ILeaseProvider lp;
+  /**
+   * Interface ILeaseProvider do Serviço de Controle de Acesso.
+   */
+  private IComponent ic;
   /**
    * O renovador do <i>lease</i>.
    */
@@ -152,6 +161,7 @@ public final class Openbus {
     this.host = null;
     this.port = -1;
     this.lp = null;
+    this.ic = null;
     this.leaseRenewer = null;
     this.leaseExpiredCallback = null;
     this.rgs = null;
@@ -168,6 +178,7 @@ public final class Openbus {
   private void fetchACS() throws ACSUnavailableException {
     this.acs = Utils.fetchAccessControlService(orb, host, port);
     this.lp = Utils.fetchAccessControlServiceLeaseProvider(orb, host, port);
+    this.ic = Utils.fetchAccessControlServiceIComponent(orb, host, port);
   }
 
   /**
@@ -281,6 +292,20 @@ public final class Openbus {
    * @return O Serviço de Registro.
    */
   public IRegistryService getRegistryService() {
+	if (this.rgs == null && this.ic != null) {
+	  Object objRecep = this.ic.getFacetByName("IReceptacles");
+	  IReceptacles irecep = IReceptaclesHelper.narrow(objRecep);
+	  try {
+		ConnectionDescription[] connections = 
+		  irecep.getConnections("RegistryServiceReceptacle");
+		if (connections.length > 0) {
+	      Object objref = connections[0].objref;
+	      this.rgs = IRegistryServiceHelper.narrow(objref);
+		}
+	  } catch (InvalidName e) {
+		Log.COMMON.severe("Não foi possível obter o serviço de registro.", e);
+	  }
+	}
     return this.rgs;
   }
 
@@ -402,7 +427,7 @@ public final class Openbus {
               this.leaseExpiredCallback);
           this.leaseRenewer.start();
           connectionState = ConnectionStates.CONNECTED;
-          this.rgs = this.acs.getRegistryService();
+          this.rgs = this.getRegistryService();
           return this.rgs;
         }
         else {
@@ -466,7 +491,7 @@ public final class Openbus {
               this.leaseExpiredCallback);
           this.leaseRenewer.start();
           connectionState = ConnectionStates.CONNECTED;
-          this.rgs = this.acs.getRegistryService();
+          this.rgs = this.getRegistryService();
           return this.rgs;
         }
         else {
@@ -505,7 +530,7 @@ public final class Openbus {
     this.credential = new CredentialHolder(credential);
     if (this.acs.isValid(credential)) {
       if (this.rgs == null)
-        this.rgs = this.acs.getRegistryService();
+        this.rgs = this.getRegistryService();
       return this.rgs;
     }
     throw new InvalidCredentialException(new NO_PERMISSION(
