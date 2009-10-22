@@ -94,7 +94,7 @@ public final class Openbus {
    */
   private ILeaseProvider lp;
   /**
-   * Interface ILeaseProvider do Serviço de Controle de Acesso.
+   * Interface IComponent do Serviço de Controle de Acesso.
    */
   private IComponent ic;
   /**
