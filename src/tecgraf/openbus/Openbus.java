@@ -116,7 +116,7 @@ public final class Openbus {
   /**
    * Credencial recebida ao se conectar ao barramento.
    */
-  private CredentialHolder credential;
+  private Credential credential;
   /**
    * A credencial da entidade, válida apenas na <i>thread</i> corrente.
    */
@@ -150,7 +150,7 @@ public final class Openbus {
    */
   private void reset() {
     this.threadLocalCredential = new ThreadLocal<Credential>();
-    this.credential = new CredentialHolder();
+    this.credential = null;
     this.requestCredentialSlot = -1;
     if (!this.isORBFinished && this.orb != null)
       this.finish(true);
@@ -292,20 +292,21 @@ public final class Openbus {
    * @return O Serviço de Registro.
    */
   public IRegistryService getRegistryService() {
-	if (this.rgs == null && this.ic != null) {
-	  Object objRecep = this.ic.getFacetByName("IReceptacles");
-	  IReceptacles irecep = IReceptaclesHelper.narrow(objRecep);
-	  try {
-		ConnectionDescription[] connections = 
-		  irecep.getConnections("RegistryServiceReceptacle");
-		if (connections.length > 0) {
-	      Object objref = connections[0].objref;
-	      this.rgs = IRegistryServiceHelper.narrow(objref);
-		}
-	  } catch (InvalidName e) {
-		Log.COMMON.severe("Não foi possível obter o serviço de registro.", e);
-	  }
-	}
+    if (this.rgs == null && this.ic != null) {
+      Object objRecep = this.ic.getFacetByName("IReceptacles");
+      IReceptacles irecep = IReceptaclesHelper.narrow(objRecep);
+      try {
+        ConnectionDescription[] connections =
+          irecep.getConnections("RegistryServiceReceptacle");
+        if (connections.length > 0) {
+          Object objref = connections[0].objref;
+          this.rgs = IRegistryServiceHelper.narrow(objref);
+        }
+      }
+      catch (InvalidName e) {
+        Log.COMMON.severe("Não foi possível obter o serviço de registro.", e);
+      }
+    }
     return this.rgs;
   }
 
@@ -343,9 +344,7 @@ public final class Openbus {
     Credential threadCredential = this.threadLocalCredential.get();
     if (threadCredential != null)
       return threadCredential;
-    if (this.credential == null)
-      return null;
-    return this.credential.value;
+    return this.credential;
   }
 
   /**
@@ -420,10 +419,12 @@ public final class Openbus {
         if (this.acs == null) {
           fetchACS();
         }
-        if (this.acs.loginByPassword(user, password, this.credential,
+        CredentialHolder credentialHolder = new CredentialHolder();
+        if (this.acs.loginByPassword(user, password, credentialHolder,
           new IntHolder())) {
+          this.credential = credentialHolder.value;
           this.leaseRenewer =
-            new LeaseRenewer(this.credential.value, this.lp,
+            new LeaseRenewer(this.credential, this.lp,
               this.leaseExpiredCallback);
           this.leaseRenewer.start();
           connectionState = ConnectionStates.CONNECTED;
@@ -484,10 +485,12 @@ public final class Openbus {
           throw new PKIException(e);
         }
 
-        if (this.acs.loginByCertificate(name, answer, this.credential,
+        CredentialHolder credentialHolder = new CredentialHolder();
+        if (this.acs.loginByCertificate(name, answer, credentialHolder,
           new IntHolder())) {
+          this.credential = credentialHolder.value;
           this.leaseRenewer =
-            new LeaseRenewer(this.credential.value, this.lp,
+            new LeaseRenewer(this.credential, this.lp,
               this.leaseExpiredCallback);
           this.leaseRenewer.start();
           connectionState = ConnectionStates.CONNECTED;
@@ -527,8 +530,8 @@ public final class Openbus {
         "O parâmetro 'credential' não pode ser nulo.");
     if (this.acs == null)
       fetchACS();
-    this.credential = new CredentialHolder(credential);
-    if (this.acs.isValid(credential)) {
+    this.credential = credential;
+    if (this.acs.isValid(this.credential)) {
       if (this.rgs == null)
         this.rgs = this.getRegistryService();
       return this.rgs;
@@ -552,7 +555,7 @@ public final class Openbus {
         try {
           this.leaseRenewer.finish();
           this.leaseRenewer = null;
-          status = this.acs.logout(this.credential.value);
+          status = this.acs.logout(this.credential);
         }
         catch (SystemException e) {
           this.connectionState = ConnectionStates.CONNECTED;
