@@ -24,22 +24,6 @@ import tecgraf.openbus.util.Log;
  */
 class ClientInterceptor extends InterceptorImpl implements
   ClientRequestInterceptor {
-
-  /**
-   * Instância do ORB associado a este interceptador.
-   */
-  private ORB orb;
-
-  /**
-   * Instância do barramento associado a este ORB e interceptador.
-   */
-  private Openbus bus;
-
-  /**
-   * Credencial a ser enviada.
-   */
-  private Credential credential;
-
   /**
    * Constrói o interceptador.
    * 
@@ -56,14 +40,10 @@ class ClientInterceptor extends InterceptorImpl implements
   public void send_request(ClientRequestInfo ri) {
     Log.INTERCEPTORS.info("ATINGI PONTO DE INTERCEPTAÇÃO CLIENTE!");
 
-    /* Verifica se já obteve o barramento */
-    if (bus == null) {
-      bus = Openbus.getInstance();
-      orb = bus.getORB();
-    }
+    Openbus bus = Openbus.getInstance();
 
     /* Verifica se existe uma credencial para envio */
-    credential = bus.getCredential();
+    Credential credential = bus.getCredential();
     if ((credential == null) || (credential.identifier.equals(""))) {
       Log.INTERCEPTORS.info("SEM CREDENCIAL!");
       return;
@@ -74,6 +54,7 @@ class ClientInterceptor extends InterceptorImpl implements
     /* Insere a credencial no contexto do serviço */
     byte[] value = null;
     try {
+      ORB orb = bus.getORB();
       Any credentialValue = orb.create_any();
       CredentialHelper.insert(credentialValue, credential);
       value = this.getCodec().encode_value(credentialValue);
