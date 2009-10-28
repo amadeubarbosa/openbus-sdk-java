@@ -378,7 +378,7 @@ public final class Openbus {
         CurrentHelper.narrow(this.orb.resolve_initial_references("PICurrent"));
       Any requestCredentialValue = pic.get_slot(this.requestCredentialSlot);
       if (requestCredentialValue.type().kind().equals(TCKind.tk_null)) {
-        return InvalidTypes.CREDENTIAL;
+        return null;
       }
       Credential requestCredential =
         CredentialHelper.extract(requestCredentialValue);
@@ -386,7 +386,7 @@ public final class Openbus {
     }
     catch (org.omg.CORBA.UserException e) {
       Log.COMMON.severe("Erro ao obter a credencial da requisição,", e);
-      return InvalidTypes.CREDENTIAL;
+      return null;
     }
   }
 
