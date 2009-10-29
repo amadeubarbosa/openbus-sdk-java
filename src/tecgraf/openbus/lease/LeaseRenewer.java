@@ -4,6 +4,8 @@
 package tecgraf.openbus.lease;
 
 import java.util.Date;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import openbusidl.acs.Credential;
 import openbusidl.acs.ILeaseProvider;
@@ -27,6 +29,18 @@ public final class LeaseRenewer {
    * A tarefa responsável por renovar um <i>lease</i>.
    */
   private RenewerTask renewer;
+  /**
+   * A thread de renovação.
+   */
+  private Thread renewerThread;
+  /**
+   * Indica se a thread está em execução.
+   */
+  private boolean running;
+  /**
+   * Sincroniza os métodos start() e finish().
+   */
+  private Lock lock;
 
   /**
    * Cria um renovador de <i>lease</i> junto a um provedor.
@@ -39,8 +53,10 @@ public final class LeaseRenewer {
   public LeaseRenewer(Credential credential, ILeaseProvider leaseProvider,
     LeaseExpiredCallback expiredCallback) {
     this.leaseProvider = leaseProvider;
-    this.renewer = new RenewerTask(credential, this.leaseProvider,
-      expiredCallback);
+    this.renewer =
+      new RenewerTask(credential, this.leaseProvider, expiredCallback);
+    this.running = false;
+    this.lock = new ReentrantLock();
   }
 
   /**
@@ -66,14 +82,35 @@ public final class LeaseRenewer {
    * Inicia uma renovação de <i>lease</i>.
    */
   public void start() {
-    this.renewer.start();
+    lock.lock();
+    try {
+      if (!running) {
+        this.running = true;
+        this.renewerThread = new Thread(this.renewer);
+        this.renewerThread.setDaemon(true);
+        this.renewerThread.start();
+      }
+    }
+    finally {
+      lock.unlock();
+    }
   }
 
   /**
    * Solicita o fim da renovação do <i>lease</i>.
    */
-  public void finish() {
-    this.renewer.finish();
+  public void stop() {
+    lock.lock();
+    try {
+      if (running) {
+        this.renewerThread.interrupt();
+        this.renewerThread = null;
+        this.running = false;
+      }
+    }
+    finally {
+      lock.unlock();
+    }
   }
 
   /**
@@ -81,7 +118,7 @@ public final class LeaseRenewer {
    * 
    * @author Tecgraf/PUC-Rio
    */
-  private static class RenewerTask extends Thread {
+  private static class RenewerTask implements Runnable {
     /**
      * A credencial correspondente ao <i>lease</i>.
      */
@@ -95,10 +132,6 @@ public final class LeaseRenewer {
      * falhou.
      */
     private LeaseExpiredCallback expiredCallback;
-    /**
-     * Indica se a <i>thread</i> deve continuar executando.
-     */
-    private boolean mustContinue;
 
     /**
      * Cria uma tarefa para renovar um <i>lease</i>.
@@ -109,7 +142,6 @@ public final class LeaseRenewer {
     RenewerTask(Credential credential, ILeaseProvider provider) {
       this.credential = credential;
       this.provider = provider;
-      this.mustContinue = true;
     }
 
     /**
@@ -131,40 +163,35 @@ public final class LeaseRenewer {
      */
     @Override
     public void run() {
-      while (this.mustContinue) {
-        IntHolder newLease = new IntHolder();
-        try {
-          if (!this.provider.renewLease(this.credential, newLease)) {
-            Log.LEASE.warning("Falha na renovação da credencial.");
-            if (this.expiredCallback != null) {
-              this.expiredCallback.expired();
+      try {
+        while (true) {
+          IntHolder newLease = new IntHolder();
+          try {
+            if (!this.provider.renewLease(this.credential, newLease)) {
+              Log.LEASE.warning("Falha na renovação da credencial.");
+              if (this.expiredCallback != null) {
+                this.expiredCallback.expired();
+              }
+              return;
             }
-            return;
           }
-        }
-        catch (SystemException e) {
-          Log.LEASE.severe(e.getMessage(), e);
-        }
-        StringBuilder msg = new StringBuilder();
-        msg.append(new Date());
-        msg.append(" - Lease renovado. Próxima renovação em ");
-        msg.append(newLease.value);
-        msg.append(" segundos.");
-        Log.LEASE.fine(msg.toString());
-        try {
+          catch (SystemException e) {
+            Log.LEASE.severe(e.getMessage(), e);
+          }
+          StringBuilder msg = new StringBuilder();
+          msg.append(new Date());
+          msg.append(" - Lease renovado. Próxima renovação em ");
+          msg.append(newLease.value);
+          msg.append(" segundos.");
+          Log.LEASE.fine(msg.toString());
           Thread.sleep(newLease.value * 1000);
         }
-        catch (InterruptedException e) {
-          // Nada a ser feito.
-        }
       }
-    }
-
-    /**
-     * Finaliza o renovador de <i>lease</i>.
-     */
-    public void finish() {
-      this.mustContinue = false;
+      catch (InterruptedException e) {
+        // Quando for interrompida, a thread deve morrer, portanto, 
+        // precisa sair do while.
+        // Nada a ser feito.
+      }
     }
 
     /**

@@ -46,7 +46,6 @@ import tecgraf.openbus.interceptors.ClientInitializer;
 import tecgraf.openbus.interceptors.ServerInitializer;
 import tecgraf.openbus.lease.LeaseExpiredCallback;
 import tecgraf.openbus.lease.LeaseRenewer;
-import tecgraf.openbus.util.InvalidTypes;
 import tecgraf.openbus.util.Log;
 import tecgraf.openbus.util.Utils;
 
@@ -553,7 +552,7 @@ public final class Openbus {
       if (this.connectionState == ConnectionStates.CONNECTED) {
         boolean status = false;
         try {
-          this.leaseRenewer.finish();
+          this.leaseRenewer.stop();
           this.leaseRenewer = null;
           status = this.acs.logout(this.credential);
         }
