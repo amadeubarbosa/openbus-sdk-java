@@ -6,6 +6,10 @@ package tecgraf.openbus;
 import java.security.GeneralSecurityException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
+import java.util.Map;
+import java.util.Set;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Properties;
 
 import openbusidl.acs.Credential;
@@ -130,6 +134,11 @@ public final class Openbus {
   private ConnectionStates connectionState;
 
   /**
+   * Mantém a lista de métodos a serem liberados por interface.
+   */
+  private Map<String, Set<String>> ifaceMap;
+
+  /**
    * Possíveis estados para a conexão.
    */
   private enum ConnectionStates {
@@ -166,6 +175,7 @@ public final class Openbus {
     this.rgs = null;
     this.ss = null;
     this.connectionState = ConnectionStates.DISCONNECTED;
+    this.ifaceMap = new HashMap<String, Set<String>>();
   }
 
   /**
@@ -607,5 +617,49 @@ public final class Openbus {
     if (this.connectionState == ConnectionStates.CONNECTED) {
       this.leaseRenewer.setLeaseExpiredCallback(null);
     }
+  }
+
+  /**
+   * Controla se o método deve ou não ser interceptado pelo servidor.
+   *
+   * @param iface RepID da interface.
+   * @param method Nome do método.
+   * @param interceptable Indica se o método deve ser inteceptado ou não.
+   *
+   */
+  public void setInterceptable(String iface, String method,
+      boolean interceptable)
+  {
+      Set<String> methods;
+      if (interceptable) {
+          methods = ifaceMap.get(iface);
+          if (methods != null) {
+              methods.remove(method);
+              if (methods.size() == 0)
+                  ifaceMap.remove(iface);
+          }
+      }
+      else {
+          methods = ifaceMap.get(iface);
+          if (methods == null) {
+              methods = new HashSet<String>();
+              ifaceMap.put(iface, methods);
+          }
+          methods.add(method);
+      }
+  }
+
+  /**
+   * Indica se o método da interface dever interceptado.
+   *
+   * @param iface RepID da interface.
+   * @param method Nome do método a ser testado.
+   *
+   * @return <code>true</code> se o método de ver interceptado, caso
+   *  contrário <code>false</code>.
+   */
+  public boolean isInterceptable(String iface, String method) {
+      Set<String> methods = ifaceMap.get(iface);
+      return (methods == null) || !methods.contains(method);
   }
 }
