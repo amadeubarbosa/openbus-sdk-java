@@ -17,8 +17,8 @@ import openbusidl.acs.CredentialHelper;
 import openbusidl.acs.CredentialHolder;
 import openbusidl.acs.IAccessControlService;
 import openbusidl.acs.ILeaseProvider;
+import openbusidl.ft.IFaultTolerantService;
 import openbusidl.rs.IRegistryService;
-import openbusidl.rs.IRegistryServiceHelper;
 import openbusidl.rs.ServiceOffer;
 import openbusidl.ss.ISessionService;
 import openbusidl.ss.ISessionServiceHelper;
@@ -37,16 +37,16 @@ import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 import org.omg.PortableServer.POAManager;
 
-import scs.core.ConnectionDescription;
 import scs.core.IComponent;
-import scs.core.IReceptacles;
-import scs.core.IReceptaclesHelper;
-import scs.core.InvalidName;
 import tecgraf.openbus.exception.ACSLoginFailureException;
 import tecgraf.openbus.exception.ACSUnavailableException;
+import tecgraf.openbus.exception.CORBAException;
 import tecgraf.openbus.exception.InvalidCredentialException;
+import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.PKIException;
+import tecgraf.openbus.exception.ServiceUnavailableException;
 import tecgraf.openbus.interceptors.ClientInitializer;
+import tecgraf.openbus.interceptors.FTClientInitializer;
 import tecgraf.openbus.interceptors.ServerInitializer;
 import tecgraf.openbus.lease.LeaseExpiredCallback;
 import tecgraf.openbus.lease.LeaseRenewer;
@@ -97,7 +97,12 @@ public final class Openbus {
    */
   private ILeaseProvider lp;
   /**
-   * Interface IComponent do Serviço de Controle de Acesso.
+   * Interface IFaultTolerantService do Serviço de Controle de Acesso.
+   */
+  private IFaultTolerantService ft;
+  /**
+
+   * Interface ILeaseProvider do Serviço de Controle de Acesso.
    */
   private IComponent ic;
   /**
@@ -108,10 +113,7 @@ public final class Openbus {
    * <i>Callback</i> para a notificação de que um <i>lease</i> expirou.
    */
   private LeaseExpiredCallback leaseExpiredCallback;
-  /**
-   * Serviço de registro.
-   */
-  private IRegistryService rgs;
+
   /**
    * Serviço de sessão.
    */
@@ -132,8 +134,13 @@ public final class Openbus {
    * Indica o estado da conexão.
    */
   private ConnectionStates connectionState;
-
+  
   /**
+   * Indica se o mecanismo de tolerancia a falhas esta ativado.
+   */
+  private boolean isFaultToleranceEnable;
+  
+/**
    * Mantém a lista de métodos a serem liberados por interface.
    */
   private Map<String, Set<String>> ifaceMap;
@@ -169,25 +176,33 @@ public final class Openbus {
     this.host = null;
     this.port = -1;
     this.lp = null;
+    this.ft = null;
     this.ic = null;
     this.leaseRenewer = null;
     this.leaseExpiredCallback = null;
-    this.rgs = null;
     this.ss = null;
     this.connectionState = ConnectionStates.DISCONNECTED;
+    this.isFaultToleranceEnable = false;
     this.ifaceMap = new HashMap<String, Set<String>>();
   }
 
   /**
    * Se conecta ao AccessControlServer por meio do endereço e da porta. Este
    * método também instancia um observador de <i>leases</i>.
-   * 
-   * @throws ACSUnavailableException
+ * @throws CORBAException 
+ * @throws ACSUnavailableException 
+ * @throws OpenBusException 
    */
-  private void fetchACS() throws ACSUnavailableException {
-    this.acs = Utils.fetchAccessControlService(orb, host, port);
-    this.lp = Utils.fetchAccessControlServiceLeaseProvider(orb, host, port);
-    this.ic = Utils.fetchAccessControlServiceIComponent(orb, host, port);
+  public void fetchACS() throws CORBAException,ServiceUnavailableException, ACSUnavailableException {
+		  try {
+			  this.acs = Utils.fetchAccessControlService(orb, host, port);
+			  this.lp = Utils.fetchAccessControlServiceLeaseProvider(orb, host, port);
+			  this.ft = Utils.fetchAccessControlServiceFaultTolerant(orb, host, port);
+			  this.ic = Utils.fetchAccessControlServiceIComponent(orb, host, port);
+		    }
+		    catch (ACSUnavailableException ex) {
+		    	System.out.println("[ACSUnavailableException] " + ex.getMessage());
+			}
   }
 
   /**
@@ -224,25 +239,65 @@ public final class Openbus {
    */
   public void resetAndInitialize(String[] args, Properties props, String host,
     int port) throws UserException {
+    
+    reset(host, port);
+    
     if (props == null)
-      throw new IllegalArgumentException("O campo 'props' não pode ser null");
-    if (host == null)
-      throw new IllegalArgumentException("O campo 'host' não pode ser null");
-    if (port < 0)
-      throw new IllegalArgumentException(
-        "O campo 'port' não pode ser negativo.");
-    reset();
-    // init
-    this.host = host;
-    this.port = port;
-    String clientInitializerClassName = ClientInitializer.class.getName();
-    props.put(
-      ORB_INITIALIZER_PROPERTY_NAME_PREFIX + clientInitializerClassName,
-      clientInitializerClassName);
+	      throw new IllegalArgumentException("O campo 'props' não pode ser null");
+	  String clientInitializerClassName = ClientInitializer.class.getName();
+	    props.put(ORB_INITIALIZER_PROPERTY_NAME_PREFIX + clientInitializerClassName,
+	    			clientInitializerClassName);
+	    String serverInitializerClassName = ServerInitializer.class.getName();
+	    props.put(ORB_INITIALIZER_PROPERTY_NAME_PREFIX + serverInitializerClassName,
+	    			serverInitializerClassName);
+	    this.orb = org.omg.CORBA.ORB.init(args, props);
+	    org.omg.CORBA.Object obj = this.orb.resolve_initial_references("RootPOA");
+	    this.rootPOA = POAHelper.narrow(obj);
+	    POAManager manager = this.rootPOA.the_POAManager();
+	    manager.activate();
+  }
+  
+  private void reset(String host,int port){
+	  if (host == null)
+	      throw new IllegalArgumentException("O campo 'host' não pode ser null");
+	    if (port < 0)
+	      throw new IllegalArgumentException(
+	        "O campo 'port' não pode ser negativo.");
+	    reset();
+	    // init
+	    this.host = host;
+	    this.port = port;
+  }
+  
+  
+  /**
+   * Retorna o barramento para o seu estado inicial, ou seja, desfaz as
+   * definições de atributos realizadas. Em seguida, inicializa o Orb com 
+   * mecanismo de tolerancia a falhas ativado
+   * 
+   * @param args Conjunto de argumentos para a criação do ORB.
+   * @param props Conjunto de propriedades para a criação do ORB.
+   * @param host Endereço do Serviço de Controle de Acesso.
+   * @param port Porta do Serviço de Controle de Acesso.
+   * 
+   * @throws UserException Caso ocorra algum erro ao obter o RootPOA.
+   * @throws IllegalArgumentException Caso o método esteja com os argumentos
+   *         incorretos.
+   */
+  public void resetAndInitializeWithFaultTolerance(String[] args, Properties props, String host,
+    int port) throws UserException {
+     
+	reset(host, port);
+	
+	this.isFaultToleranceEnable = true;
+	
+    String clientInitializerClassName = FTClientInitializer.class.getName();
+    props.put(ORB_INITIALIZER_PROPERTY_NAME_PREFIX + clientInitializerClassName,
+    			clientInitializerClassName);
+    //TODO mudar para FTServerInitializer
     String serverInitializerClassName = ServerInitializer.class.getName();
-    props.put(
-      ORB_INITIALIZER_PROPERTY_NAME_PREFIX + serverInitializerClassName,
-      serverInitializerClassName);
+    props.put(ORB_INITIALIZER_PROPERTY_NAME_PREFIX + serverInitializerClassName,
+    			serverInitializerClassName);
     this.orb = org.omg.CORBA.ORB.init(args, props);
     org.omg.CORBA.Object obj = this.orb.resolve_initial_references("RootPOA");
     this.rootPOA = POAHelper.narrow(obj);
@@ -295,31 +350,8 @@ public final class Openbus {
     return this.acs;
   }
 
-  /**
-   * Fornece o Serviço de Registro.
-   * 
-   * @return O Serviço de Registro.
-   */
-  public IRegistryService getRegistryService() {
-    if (this.rgs == null && this.ic != null) {
-      Object objRecep = this.ic.getFacetByName("IReceptacles");
-      IReceptacles irecep = IReceptaclesHelper.narrow(objRecep);
-      try {
-        ConnectionDescription[] connections =
-          irecep.getConnections("RegistryServiceReceptacle");
-        if (connections.length > 0) {
-          Object objref = connections[0].objref;
-          this.rgs = IRegistryServiceHelper.narrow(objref);
-        }
-      }
-      catch (InvalidName e) {
-        Log.COMMON.severe("Não foi possível obter o serviço de registro.", e);
-      }
-    }
-    return this.rgs;
-  }
 
-  /**
+/**
    * Fornece o Serviço de Sessão. Caso o Openbus ainda não tenha a referência
    * para o Serviço de Sessão este obtem o Serviço a partir do Serviço de
    * Registro.
@@ -327,9 +359,11 @@ public final class Openbus {
    * @return O Serviço de Sessão.
    */
   public ISessionService getSessionService() {
-    if (this.ss == null && this.rgs != null) {
+	  
+    if (this.ss == null ) {
+      IRegistryService rgs = this.acs.getRegistryService();
       ServiceOffer[] offers =
-        this.rgs.find(new String[] { Utils.SESSION_SERVICE_FACET_NAME });
+        rgs.find(new String[] { Utils.SESSION_SERVICE_FACET_NAME });
       if (offers.length > 0) {
         IComponent component = offers[0].member;
         Object facet = component.getFacet(ISessionServiceHelper.id());
@@ -414,12 +448,13 @@ public final class Openbus {
    *         consiga ser contactado.
    * @throws InvalidCredentialException Caso a credencial seja rejeitada ao
    *         tentar obter o Serviço de Registro.
+ * @throws CORBAException 
    * @throws IllegalArgumentException Caso o método esteja com os argumentos
    *         incorretos.
    */
   public IRegistryService connect(String user, String password)
-    throws ACSLoginFailureException, ACSUnavailableException,
-    InvalidCredentialException {
+    throws ACSLoginFailureException, ACSUnavailableException,ServiceUnavailableException,
+    InvalidCredentialException, CORBAException, OpenBusException {
     if ((user == null) || (password == null))
       throw new IllegalArgumentException(
         "Os parâmetros 'user' e 'password' não podem ser nulos.");
@@ -437,8 +472,7 @@ public final class Openbus {
               this.leaseExpiredCallback);
           this.leaseRenewer.start();
           connectionState = ConnectionStates.CONNECTED;
-          this.rgs = this.getRegistryService();
-          return this.rgs;
+		  return this.acs.getRegistryService();
         }
         else {
           throw new ACSLoginFailureException(
@@ -468,12 +502,13 @@ public final class Openbus {
    *         consiga ser contactado.
    * @throws InvalidCredentialException Caso a credencial seja rejeitada ao
    *         tentar obter o Serviço de Registro.
+ * @throws CORBAException 
    * @throws IllegalArgumentException Caso o método esteja com os argumentos
    *         incorretos.
    */
   public IRegistryService connect(String name, RSAPrivateKey privateKey,
-    X509Certificate acsCertificate) throws ACSLoginFailureException,
-    PKIException, ACSUnavailableException, InvalidCredentialException {
+    X509Certificate acsCertificate) throws ACSLoginFailureException,ServiceUnavailableException,
+    PKIException, ACSUnavailableException, InvalidCredentialException, OpenBusException, CORBAException {
     if ((name == null) || (privateKey == null) || (acsCertificate == null))
       throw new IllegalArgumentException("Nenhum parâmetro pode ser nulo.");
     synchronized (this.connectionState) {
@@ -503,8 +538,7 @@ public final class Openbus {
               this.leaseExpiredCallback);
           this.leaseRenewer.start();
           connectionState = ConnectionStates.CONNECTED;
-          this.rgs = this.getRegistryService();
-          return this.rgs;
+          return this.acs.getRegistryService();
         }
         else {
           throw new ACSLoginFailureException(
@@ -529,11 +563,13 @@ public final class Openbus {
    *         consiga ser contactado.
    * @throws InvalidCredentialException Caso a credencial seja rejeitada ao
    *         tentar obter o Serviço de Registro.
+ * @throws CORBAException 
    * @throws IllegalArgumentException Caso o método esteja com os argumentos
    *         incorretos.
    */
   public IRegistryService connect(Credential credential)
-    throws InvalidCredentialException, ACSUnavailableException {
+    throws InvalidCredentialException, OpenBusException,
+    ServiceUnavailableException,ACSUnavailableException, CORBAException {
     if (credential == null)
       throw new IllegalArgumentException(
         "O parâmetro 'credential' não pode ser nulo.");
@@ -541,15 +577,13 @@ public final class Openbus {
       fetchACS();
     this.credential = credential;
     if (this.acs.isValid(this.credential)) {
-      if (this.rgs == null)
-        this.rgs = this.getRegistryService();
-      return this.rgs;
+      return this.acs.getRegistryService();
     }
     throw new InvalidCredentialException(new NO_PERMISSION(
       "Credencial inválida."));
   }
 
-  /**
+/**
    * Desfaz a conexão atual.
    * 
    * @return {@code true} caso a conexão seja desfeita, ou {@code false} se
@@ -661,5 +695,17 @@ public final class Openbus {
   public boolean isInterceptable(String iface, String method) {
       Set<String> methods = ifaceMap.get(iface);
       return (methods == null) || !methods.contains(method);
+  }
+  
+  public boolean isFaultToleranceEnable() {
+		return isFaultToleranceEnable;
+  }
+
+  public void setHost(String host) {
+	  this.host = host;
+  }
+
+  public void setPort(int hostPort) {
+	  this.port = hostPort;
   }
 }

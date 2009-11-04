@@ -12,6 +12,7 @@ import org.omg.IOP.Codec;
 import org.omg.IOP.ServiceContext;
 import org.omg.PortableInterceptor.ClientRequestInfo;
 import org.omg.PortableInterceptor.ClientRequestInterceptor;
+import org.omg.PortableInterceptor.ForwardRequest;
 
 import tecgraf.openbus.Openbus;
 import tecgraf.openbus.util.Log;
@@ -84,8 +85,9 @@ class ClientInterceptor extends InterceptorImpl implements
 
   /**
    * {@inheritDoc}
+ * @throws ForwardRequest 
    */
-  public void receive_exception(ClientRequestInfo ri) {
+  public void receive_exception(ClientRequestInfo ri) throws ForwardRequest {
     // Nada a ser feito.
   }
 

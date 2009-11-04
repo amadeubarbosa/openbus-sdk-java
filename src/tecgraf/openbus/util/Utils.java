@@ -11,13 +11,23 @@ import openbusidl.acs.IAccessControlService;
 import openbusidl.acs.IAccessControlServiceHelper;
 import openbusidl.acs.ILeaseProvider;
 import openbusidl.acs.ILeaseProviderHelper;
+import openbusidl.ft.IFaultTolerantService;
+import openbusidl.ft.IFaultTolerantServiceHelper;
+import openbusidl.rs.IRegistryService;
+import openbusidl.rs.IRegistryServiceHelper;
 
+import org.omg.CORBA.COMM_FAILURE;
 import org.omg.CORBA.OBJECT_NOT_EXIST;
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.SystemException;
+import org.omg.CORBA.TRANSIENT;
 
 import scs.core.IComponent;
 import scs.core.IComponentHelper;
 import tecgraf.openbus.exception.ACSUnavailableException;
+import tecgraf.openbus.exception.CORBAException;
+import tecgraf.openbus.exception.RSUnavailableException;
+import tecgraf.openbus.exception.ServiceUnavailableException;
 
 /**
  * Métodos utilitários para uso do OpenBus.
@@ -30,7 +40,10 @@ public final class Utils {
    */
   public static final String ICOMPONENT_KEY = "IC";
   public static final String ACCESS_CONTROL_SERVICE_KEY = "ACS";
+  public static final String REGISTRY_SERVICE_KEY = "RS";
   public static final String LEASE_PROVIDER_KEY = "LP";
+  public static final String FAULT_TOLERANT_KEY = "FT";
+  
   /**
    * O nome da faceta do Serviço de Sessão.
    */
@@ -47,23 +60,36 @@ public final class Utils {
   /**
    * Método privado para facilitar a obtenção do serviço de controle de acesso.
    */
-  private static org.omg.CORBA.Object fetchACS(ORB orb, String host, int port,
-    String key) throws ACSUnavailableException {
+  private static org.omg.CORBA.Object fetchService(ORB orb, String host, int port,
+    String key) throws ServiceUnavailableException {
     org.omg.CORBA.Object obj =
       orb.string_to_object("corbaloc::1.0@" + host + ":" + port + "/" + key);
-    if (obj == null) {
-      throw new ACSUnavailableException();
-    }
-    try {
-      if (obj._non_existent()) {
-        throw new ACSUnavailableException();
-      }
-    }
-    catch (OBJECT_NOT_EXIST e) {
-      throw new ACSUnavailableException();
-    }
     return obj;
   }
+  
+  private static void checkACS(org.omg.CORBA.Object acs) throws ACSUnavailableException, CORBAException {
+	  if (acs == null) {
+	      throw new ACSUnavailableException();
+	    }
+	    try {
+	      if (acs._non_existent()) {
+	        throw new ACSUnavailableException();
+	      }
+	    }
+	    catch (TRANSIENT te) {
+	    	throw new ACSUnavailableException();
+		}
+	    catch (OBJECT_NOT_EXIST e) {
+	      throw new ACSUnavailableException();
+	    }
+	    catch (COMM_FAILURE ce){
+	    	throw new ACSUnavailableException();
+	    }catch (SystemException e) {
+	    	e.printStackTrace();
+	    	throw new CORBAException(e);
+		}
+  }
+  
 
   /**
    * Obtém o serviço de controle de acesso.
@@ -75,13 +101,17 @@ public final class Utils {
    * @return O serviço de controle de acesso.
    * 
    * @throws ACSUnavailableException Caso o serviço não seja encontrado.
+ * @throws CORBAException 
    */
   public static IAccessControlService fetchAccessControlService(ORB orb,
-    String host, int port) throws ACSUnavailableException {
+    String host, int port) throws ServiceUnavailableException, CORBAException {
     org.omg.CORBA.Object obj =
-      fetchACS(orb, host, port, ACCESS_CONTROL_SERVICE_KEY);
+      fetchService(orb, host, port, ACCESS_CONTROL_SERVICE_KEY);
+    checkACS(obj);
     return IAccessControlServiceHelper.narrow(obj);
   }
+  
+  
 
   /**
    * Obtém o IComponent do serviço de controle de acesso.
@@ -93,10 +123,12 @@ public final class Utils {
    * @return O IComponent do serviço de controle de acesso.
    * 
    * @throws ACSUnavailableException Caso o serviço não seja encontrado.
+ * @throws CORBAException 
    */
   public static IComponent fetchAccessControlServiceIComponent(ORB orb,
-    String host, int port) throws ACSUnavailableException {
-    org.omg.CORBA.Object obj = fetchACS(orb, host, port, ICOMPONENT_KEY);
+    String host, int port) throws ServiceUnavailableException, CORBAException {
+    org.omg.CORBA.Object obj = fetchService(orb, host, port, ICOMPONENT_KEY);
+    checkACS(obj);
     return IComponentHelper.narrow(obj);
   }
 
@@ -110,12 +142,38 @@ public final class Utils {
    * @return O LeaseProvider do serviço de controle de acesso.
    * 
    * @throws ACSUnavailableException Caso o serviço não seja encontrado.
+ * @throws CORBAException 
    */
   public static ILeaseProvider fetchAccessControlServiceLeaseProvider(ORB orb,
-    String host, int port) throws ACSUnavailableException {
-    org.omg.CORBA.Object obj = fetchACS(orb, host, port, LEASE_PROVIDER_KEY);
+    String host, int port) throws ServiceUnavailableException, CORBAException {
+    org.omg.CORBA.Object obj = fetchService(orb, host, port, LEASE_PROVIDER_KEY);
+    checkACS(obj);
     return ILeaseProviderHelper.narrow(obj);
   }
+  
+  
+  /**
+   * Obtém a faceta IFaultTolerantService do serviço de controle de acesso.
+   * 
+   * @param orb O orb utilizado para obter o serviço.
+   * @param host A máquina onde o serviço está localizado.
+   * @param port A porta onde o serviço está disponível.
+   * 
+   * @return A faceta de tolerancia a falhas do serviço de controle de acesso.
+   * 
+   * @throws ServiceUnavailableException Caso o serviço não seja encontrado.
+ * @throws CORBAException 
+   */
+  public static IFaultTolerantService fetchAccessControlServiceFaultTolerant(
+			ORB orb, String host, int port) throws ServiceUnavailableException, CORBAException {
+	  org.omg.CORBA.Object obj = fetchService(orb, host, port, FAULT_TOLERANT_KEY + "ACS");
+	  checkACS(obj);
+	  return IFaultTolerantServiceHelper.narrow(obj);
+  }
+  
+  
+  
+  
 
   /**
    * Gera a resposta para o desafio gerado pelo serviço de controle de acesso.
@@ -134,4 +192,6 @@ public final class Utils {
     byte[] plainChallenge = CryptoUtils.decrypt(privateKey, challenge);
     return CryptoUtils.encrypt(acsCertificate, plainChallenge);
   }
+
+  
 }
