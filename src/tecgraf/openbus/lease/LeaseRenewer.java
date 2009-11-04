@@ -22,10 +22,6 @@ import tecgraf.openbus.util.Log;
  */
 public final class LeaseRenewer {
   /**
-   * O provedor onde o <i>lease</i> deve ser renovado.
-   */
-  private ILeaseProvider leaseProvider;
-  /**
    * A tarefa responsável por renovar um <i>lease</i>.
    */
   private RenewerTask renewer;
@@ -52,21 +48,9 @@ public final class LeaseRenewer {
    */
   public LeaseRenewer(Credential credential, ILeaseProvider leaseProvider,
     LeaseExpiredCallback expiredCallback) {
-    this.leaseProvider = leaseProvider;
-    this.renewer =
-      new RenewerTask(credential, this.leaseProvider, expiredCallback);
+    this.renewer = new RenewerTask(credential, leaseProvider, expiredCallback);
     this.running = false;
     this.lock = new ReentrantLock();
-  }
-
-  /**
-   * Define o provedor onde o <i>lease</i> deve ser renovado.
-   * 
-   * @param leaseProvider O provedor onde o <i>lease</i> deve ser renovado.
-   */
-  public void setProvider(ILeaseProvider leaseProvider) {
-    this.leaseProvider = leaseProvider;
-    this.renewer.setProvider(this.leaseProvider);
   }
 
   /**
@@ -188,9 +172,8 @@ public final class LeaseRenewer {
         }
       }
       catch (InterruptedException e) {
-        // Quando for interrompida, a thread deve morrer, portanto, 
+        // Quando for interrompida, a thread deve morrer, portanto,
         // precisa sair do while.
-        // Nada a ser feito.
       }
     }
 
