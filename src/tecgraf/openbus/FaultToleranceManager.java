@@ -19,10 +19,8 @@ public class FaultToleranceManager {
 		   * A máquina que contem a réplica que está sendo usada. 
 		   */
 		private Host acsHostInUse;
-		private Host rsHostInUse;
 		
 		private final String acsRef = "acs";
-		private final String rsRef = "rs";
 		
 		private static FaultToleranceManager ftManager;
 		
@@ -47,23 +45,14 @@ public class FaultToleranceManager {
 			if(this.acsHosts==null)
 				this.acsHosts = new ArrayList<Host>();
 			
-			if(this.rsHosts==null)
-				this.rsHosts = new ArrayList<Host>();
-
 			for (int i = 1; i <= NBR_SERVERS; i++) {
 				String[] hostStr = (PropertiesLoaderImpl.getValor(acsRef + "HostAdd-" + i)).split(":");
 				String name =  hostStr[0];
 				int port = Integer.valueOf(hostStr[1]);
 				this.acsHosts.add( new Host(name, port) );
-				
-				hostStr = (PropertiesLoaderImpl.getValor(rsRef + "HostAdd-" + i)).split(":");
-				name =  hostStr[0];
-				port = Integer.valueOf(hostStr[1]);
-				this.rsHosts.add( new Host(name, port) );
 			}
 			
 			this.acsHostInUse = this.acsHosts.get(0);
-			this.rsHostInUse = this.rsHosts.get(0);
 		}
 		  
 		  public ArrayList<Host> getHosts() {
@@ -85,14 +74,6 @@ public class FaultToleranceManager {
 				this.acsHostInUse = hostInUse;
 			}
 			
-			public Host getRSHostInUse() {
-				return rsHostInUse;
-			}
-
-
-			public void setRSHostInUse(Host hostInUse) {
-				this.rsHostInUse = hostInUse;
-			}
 			
 			/**
 			   * No caso de uma falha de réplica, este método deve ser chamado para atualizar a máquina a ser 
@@ -117,25 +98,5 @@ public class FaultToleranceManager {
 			      	return false;
 			  }  
 			  
-			  public boolean updateRSHostInUse(){
-			  		int indexCurr = this.acsHosts.indexOf(this.rsHostInUse);
-			      	//Se a maquina em uso eh a ultima da lista
-			      	if(indexCurr==this.acsHosts.size()-1){
-			      		//eu pego a primeira
-			      		//this.rsHostInUse = this.hosts.get(0);
-			      		return false;
-			      	}else{
-			      		for (Host host : this.acsHosts) {
-			      			if(indexCurr< this.acsHosts.indexOf(host)){
-			      				//se eu estou na proxima maquina da list
-			      				this.rsHostInUse = host;
-			      				return true;
-			      			}
-			      		}
-			      	}
-			      	return false;
-			  }
-		
-		
 
 }
