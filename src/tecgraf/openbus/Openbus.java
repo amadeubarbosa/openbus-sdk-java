@@ -604,18 +604,19 @@ public final class Openbus {
           this.connectionState = ConnectionStates.CONNECTED;
           throw e;
         }
-        if (status) {
-          reset();
-        }
-        else {
-          this.connectionState = ConnectionStates.CONNECTED;
-        }
         return status;
       }
       else {
         return false;
       }
     }
+  }
+
+  /**
+   * Finaliza a utilização do barramento.
+   */
+  public void destroy () {
+	this.reset();
   }
 
   /**

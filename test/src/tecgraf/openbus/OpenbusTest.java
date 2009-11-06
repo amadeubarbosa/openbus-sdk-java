@@ -10,6 +10,7 @@ import java.util.logging.Level;
 import openbusidl.acs.Credential;
 import openbusidl.rs.IRegistryService;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -79,6 +80,18 @@ public class OpenbusTest {
   public void beforeTest() throws OpenBusException, UserException {
     Openbus openbus = Openbus.getInstance();
     openbus.resetAndInitialize(null, props, hostName, hostPort);
+  }
+
+  /**
+   * Este método é chamado depois de cada testCase.
+   * 
+   * @throws OpenBusException
+   * @throws UserException
+   */
+  @After
+  public void afterTest() throws OpenBusException, UserException {
+    Openbus openbus = Openbus.getInstance();
+    openbus.destroy();
   }
 
   /**
@@ -285,13 +298,13 @@ public class OpenbusTest {
   }
 
   /**
-   * Testa se o método getAccessControlServer retorna um objeto
+   * Testa se o método getAccessControlService retorna um objeto
    * 
    * @throws OpenBusException
    * @throws UserException
    */
   @Test
-  public void getAcs() throws OpenBusException, UserException {
+  public void getAccessControlService() throws OpenBusException, UserException {
     Openbus openbus = Openbus.getInstance();
     IRegistryService registryService = openbus.connect(userLogin, userPassword);
     Assert.assertNotNull(registryService);
@@ -300,13 +313,13 @@ public class OpenbusTest {
   }
 
   /**
-   * Testa se o método getRegistryServer retorna um objeto
+   * Testa se o método getRegistryService retorna um objeto
    * 
    * @throws OpenBusException
    * @throws UserException
    */
   @Test
-  public void getRegistryServer() throws OpenBusException, UserException {
+  public void getRegistryService() throws OpenBusException, UserException {
     Openbus openbus = Openbus.getInstance();
     IRegistryService registryService = openbus.connect(userLogin, userPassword);
     Assert.assertNotNull(registryService);
@@ -327,7 +340,7 @@ public class OpenbusTest {
     Openbus openbus = Openbus.getInstance();
     IRegistryService registryService = openbus.connect(userLogin, userPassword);
     Assert.assertNotNull(registryService);
-    Assert.assertNull(openbus.getSessionService());
+    Assert.assertNotNull(openbus.getSessionService());
     Assert.assertTrue(openbus.disconnect());
   }
 
