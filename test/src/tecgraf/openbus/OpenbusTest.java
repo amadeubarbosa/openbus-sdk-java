@@ -79,7 +79,7 @@ public class OpenbusTest {
   @Before
   public void beforeTest() throws OpenBusException, UserException {
     Openbus openbus = Openbus.getInstance();
-    openbus.resetAndInitialize(null, props, hostName, hostPort);
+    openbus.init(null, props, hostName, hostPort);
   }
 
   /**
@@ -328,9 +328,7 @@ public class OpenbusTest {
   }
 
   /**
-   * Testa se o método getSessionService não retorna um objeto. Lembrando que
-   * este teste espera que o Serviço de Sessão não tenha sido levantado no
-   * barramento.
+   * Testa se o método getSessionService retorna um objeto
    * 
    * @throws OpenBusException
    * @throws UserException
@@ -343,5 +341,4 @@ public class OpenbusTest {
     Assert.assertNotNull(openbus.getSessionService());
     Assert.assertTrue(openbus.disconnect());
   }
-
 }

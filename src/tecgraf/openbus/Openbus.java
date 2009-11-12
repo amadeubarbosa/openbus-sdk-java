@@ -3,7 +3,6 @@
  */
 package tecgraf.openbus;
 
-import java.security.GeneralSecurityException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.HashMap;
@@ -14,7 +13,6 @@ import java.util.Set;
 
 import openbusidl.acs.Credential;
 import openbusidl.acs.CredentialHelper;
-import openbusidl.acs.CredentialHolder;
 import openbusidl.acs.IAccessControlService;
 import openbusidl.acs.ILeaseProvider;
 import openbusidl.ft.IFaultTolerantService;
@@ -24,11 +22,9 @@ import openbusidl.ss.ISessionService;
 import openbusidl.ss.ISessionServiceHelper;
 
 import org.omg.CORBA.Any;
-import org.omg.CORBA.IntHolder;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
-import org.omg.CORBA.SystemException;
 import org.omg.CORBA.TCKind;
 import org.omg.CORBA.UserException;
 import org.omg.PortableInterceptor.Current;
@@ -38,6 +34,9 @@ import org.omg.PortableServer.POAHelper;
 import org.omg.PortableServer.POAManager;
 
 import scs.core.IComponent;
+import tecgraf.openbus.authenticators.Authenticator;
+import tecgraf.openbus.authenticators.CertificateAuthenticator;
+import tecgraf.openbus.authenticators.LoginPasswordAuthenticator;
 import tecgraf.openbus.exception.ACSLoginFailureException;
 import tecgraf.openbus.exception.ACSUnavailableException;
 import tecgraf.openbus.exception.CORBAException;
@@ -60,6 +59,14 @@ import tecgraf.openbus.util.Utils;
  */
 public final class Openbus {
   /**
+   * Um valor inválido para a porta do Serviço de Controle de Acesso.
+   */
+  private static final int INVALID_PORT = -1;
+  /**
+   * Um valor inválido para o slot da credencial.
+   */
+  private static final int INVALID_CREDENTIAL_SLOT = -1;
+  /**
    * A instância única do barramento.
    */
   private static Openbus instance;
@@ -67,10 +74,6 @@ public final class Openbus {
    * O ORB.
    */
   private ORB orb;
-  /**
-   * Indica se o ORB já foi finalizado.
-   */
-  private boolean isORBFinished;
   /**
    * O RootPOA.
    */
@@ -130,10 +133,6 @@ public final class Openbus {
    * O slot da credencial da requisição.
    */
   private int requestCredentialSlot;
-  /**
-   * Indica o estado da conexão.
-   */
-  private ConnectionStates connectionState;
 
   /**
    * Indica se o mecanismo de tolerancia a falhas esta ativado.
@@ -144,47 +143,6 @@ public final class Openbus {
    * Mantém a lista de métodos a serem liberados por interface.
    */
   private Map<String, Set<String>> ifaceMap;
-
-  /**
-   * Possíveis estados para a conexão.
-   */
-  private enum ConnectionStates {
-    /**
-     * Estado conectado.
-     */
-    CONNECTED,
-    /**
-     * Estado desconectado.
-     */
-    DISCONNECTED
-  };
-
-  /**
-   * Retorna ao seu estado inicial, ou seja, desfaz as definições de atributos
-   * realizadas.
-   */
-  private void reset() {
-    this.threadLocalCredential = new ThreadLocal<Credential>();
-    this.credential = null;
-    this.requestCredentialSlot = -1;
-    if (!this.isORBFinished && this.orb != null)
-      this.finish(true);
-    this.orb = null;
-    this.rootPOA = null;
-    this.isORBFinished = false;
-    this.acs = null;
-    this.host = null;
-    this.port = -1;
-    this.lp = null;
-    this.ft = null;
-    this.ic = null;
-    this.leaseRenewer = null;
-    this.leaseExpiredCallback = null;
-    this.ss = null;
-    this.connectionState = ConnectionStates.DISCONNECTED;
-    this.isFaultToleranceEnable = false;
-    this.ifaceMap = new HashMap<String, Set<String>>();
-  }
 
   /**
    * Se conecta ao AccessControlServer por meio do endereço e da porta. Este
@@ -211,7 +169,10 @@ public final class Openbus {
    * Construtor do barramento.
    */
   private Openbus() {
-    this.reset();
+    this.port = INVALID_PORT;
+    this.requestCredentialSlot = INVALID_CREDENTIAL_SLOT;
+    this.ifaceMap = new HashMap<String, Set<String>>();
+    this.threadLocalCredential = new ThreadLocal<Credential>();
   }
 
   /**
@@ -239,10 +200,19 @@ public final class Openbus {
    * @throws IllegalArgumentException Caso o método esteja com os argumentos
    *         incorretos.
    */
-  public void resetAndInitialize(String[] args, Properties props, String host,
-    int port) throws UserException {
+  public void init(String[] args, Properties props, String host, int port)
+    throws UserException {
+    if (orb != null) {
+      return;
+    }
 
-    reset(host, port);
+    if (host == null)
+      throw new IllegalArgumentException("O campo 'host' não pode ser null");
+    if (port < 0)
+      throw new IllegalArgumentException(
+        "O campo 'port' não pode ser negativo.");
+    this.host = host;
+    this.port = port;
 
     if (props == null)
       throw new IllegalArgumentException("O campo 'props' não pode ser null");
@@ -261,18 +231,6 @@ public final class Openbus {
     manager.activate();
   }
 
-  private void reset(String host, int port) {
-    if (host == null)
-      throw new IllegalArgumentException("O campo 'host' não pode ser null");
-    if (port < 0)
-      throw new IllegalArgumentException(
-        "O campo 'port' não pode ser negativo.");
-    reset();
-    // init
-    this.host = host;
-    this.port = port;
-  }
-
   /**
    * Retorna o barramento para o seu estado inicial, ou seja, desfaz as
    * definições de atributos realizadas. Em seguida, inicializa o Orb com
@@ -287,10 +245,19 @@ public final class Openbus {
    * @throws IllegalArgumentException Caso o método esteja com os argumentos
    *         incorretos.
    */
-  public void resetAndInitializeWithFaultTolerance(String[] args,
-    Properties props, String host, int port) throws UserException {
+  public void initWithFaultTolerance(String[] args, Properties props,
+    String host, int port) throws UserException {
+    if (orb != null) {
+      return;
+    }
 
-    reset(host, port);
+    if (host == null)
+      throw new IllegalArgumentException("O campo 'host' não pode ser null");
+    if (port < 0)
+      throw new IllegalArgumentException(
+        "O campo 'port' não pode ser negativo.");
+    this.host = host;
+    this.port = port;
 
     this.isFaultToleranceEnable = true;
 
@@ -340,10 +307,8 @@ public final class Openbus {
    * 
    * @param force Se a finalização deve ser forçada ou não.
    */
-  public void finish(boolean force) {
+  public void shutdown(boolean force) {
     this.orb.shutdown(!force);
-    this.orb.destroy();
-    this.isORBFinished = true;
   }
 
   /**
@@ -456,38 +421,16 @@ public final class Openbus {
    * @throws IllegalArgumentException Caso o método esteja com os argumentos
    *         incorretos.
    */
-  public IRegistryService connect(String user, String password)
+  public synchronized IRegistryService connect(String user, String password)
     throws ACSLoginFailureException, ACSUnavailableException,
     ServiceUnavailableException, InvalidCredentialException, CORBAException,
     OpenBusException {
     if ((user == null) || (password == null))
       throw new IllegalArgumentException(
         "Os parâmetros 'user' e 'password' não podem ser nulos.");
-    synchronized (this.connectionState) {
-      if (this.connectionState == ConnectionStates.DISCONNECTED) {
-        if (this.acs == null) {
-          fetchACS();
-        }
-        CredentialHolder credentialHolder = new CredentialHolder();
-        if (this.acs.loginByPassword(user, password, credentialHolder,
-          new IntHolder())) {
-          this.credential = credentialHolder.value;
-          this.leaseRenewer =
-            new LeaseRenewer(this.credential, this.lp,
-              this.leaseExpiredCallback);
-          this.leaseRenewer.start();
-          connectionState = ConnectionStates.CONNECTED;
-          return this.acs.getRegistryService();
-        }
-        else {
-          throw new ACSLoginFailureException(
-            "Não foi possível conectar ao barramento.");
-        }
-      }
-      else {
-        throw new ACSLoginFailureException("O barramento já está conectado.");
-      }
-    }
+    Authenticator authenticator =
+      new LoginPasswordAuthenticator(user, password);
+    return this.connect(authenticator);
   }
 
   /**
@@ -511,49 +454,49 @@ public final class Openbus {
    * @throws IllegalArgumentException Caso o método esteja com os argumentos
    *         incorretos.
    */
-  public IRegistryService connect(String name, RSAPrivateKey privateKey,
-    X509Certificate acsCertificate) throws ACSLoginFailureException,
-    ServiceUnavailableException, PKIException, ACSUnavailableException,
-    InvalidCredentialException, OpenBusException, CORBAException {
+  public synchronized IRegistryService connect(String name,
+    RSAPrivateKey privateKey, X509Certificate acsCertificate)
+    throws ACSLoginFailureException, ServiceUnavailableException, PKIException,
+    ACSUnavailableException, InvalidCredentialException, OpenBusException,
+    CORBAException {
     if ((name == null) || (privateKey == null) || (acsCertificate == null))
       throw new IllegalArgumentException("Nenhum parâmetro pode ser nulo.");
-    synchronized (this.connectionState) {
-      if (this.connectionState == ConnectionStates.DISCONNECTED) {
-        if (this.acs == null) {
-          fetchACS();
-        }
-        byte[] challenge;
-        challenge = this.acs.getChallenge(name);
-        if (challenge.length == 0) {
-          throw new ACSLoginFailureException("Desafio inválido.");
-        }
-        byte[] answer;
-        try {
-          answer = Utils.generateAnswer(challenge, privateKey, acsCertificate);
-        }
-        catch (GeneralSecurityException e) {
-          throw new PKIException(e);
-        }
+    Authenticator authenticator =
+      new CertificateAuthenticator(name, privateKey, acsCertificate);
+    return this.connect(authenticator);
+  }
 
-        CredentialHolder credentialHolder = new CredentialHolder();
-        if (this.acs.loginByCertificate(name, answer, credentialHolder,
-          new IntHolder())) {
-          this.credential = credentialHolder.value;
-          this.leaseRenewer =
-            new LeaseRenewer(this.credential, this.lp,
-              this.leaseExpiredCallback);
-          this.leaseRenewer.start();
-          connectionState = ConnectionStates.CONNECTED;
-          return this.acs.getRegistryService();
-        }
-        else {
-          throw new ACSLoginFailureException(
-            "Não foi possível conectar ao barramento.");
-        }
+  /**
+   * Realiza uma tentativa de conexão com o barramento (serviço de controle de
+   * acesso e o serviço de registro).
+   * 
+   * @param authenticator O responsável por efetuar a autenticação.
+   * 
+   * @return O Serviço de Registro.
+   * 
+   * @throws ACSLoginFailureException O certificado não foi validado.
+   * @throws OpenBusException
+   */
+  private IRegistryService connect(Authenticator authenticator)
+    throws ACSLoginFailureException, OpenBusException {
+    if (this.credential == null) {
+      if (this.acs == null) {
+        fetchACS();
+      }
+      this.credential = authenticator.authenticate(this.acs);
+      if (this.credential != null) {
+        this.leaseRenewer =
+          new LeaseRenewer(this.credential, this.lp, this.leaseExpiredCallback);
+        this.leaseRenewer.start();
+        return this.acs.getRegistryService();
       }
       else {
-        throw new ACSLoginFailureException("O barramento já está conectado.");
+        throw new ACSLoginFailureException(
+          "Não foi possível conectar ao barramento.");
       }
+    }
+    else {
+      throw new ACSLoginFailureException("O barramento já está conectado.");
     }
   }
 
@@ -576,6 +519,7 @@ public final class Openbus {
   public IRegistryService connect(Credential credential)
     throws InvalidCredentialException, OpenBusException,
     ServiceUnavailableException, ACSUnavailableException, CORBAException {
+
     if (credential == null)
       throw new IllegalArgumentException(
         "O parâmetro 'credential' não pode ser nulo.");
@@ -594,27 +538,21 @@ public final class Openbus {
    * 
    * @return {@code true} caso a conexão seja desfeita, ou {@code false} se
    *         nenhuma conexão estiver ativa.
-   * 
-   * @throws SystemException
    */
-  public boolean disconnect() throws SystemException {
-    synchronized (this.connectionState) {
-      if (this.connectionState == ConnectionStates.CONNECTED) {
-        boolean status = false;
-        try {
-          this.leaseRenewer.stop();
-          this.leaseRenewer = null;
-          status = this.acs.logout(this.credential);
-        }
-        catch (SystemException e) {
-          this.connectionState = ConnectionStates.CONNECTED;
-          throw e;
-        }
-        return status;
+  public synchronized boolean disconnect() {
+    if (this.credential != null) {
+      try {
+        this.leaseRenewer.stop();
+        this.acs.logout(this.credential);
       }
-      else {
-        return false;
+      finally {
+        this.leaseRenewer = null;
+        this.credential = null;
       }
+      return true;
+    }
+    else {
+      return false;
     }
   }
 
@@ -622,7 +560,29 @@ public final class Openbus {
    * Finaliza a utilização do barramento.
    */
   public void destroy() {
-    this.reset();
+    if (this.orb == null) {
+      return;
+    }
+
+    this.orb.destroy();
+    this.orb = null;
+    this.rootPOA = null;
+    this.host = null;
+    this.port = INVALID_PORT;
+    this.acs = null;
+    this.lp = null;
+    this.ft = null;
+    this.ic = null;
+    this.ss = null;
+    this.credential = null;
+    this.leaseRenewer = null;
+    this.leaseExpiredCallback = null;
+    this.isFaultToleranceEnable = false;
+
+    this.threadLocalCredential.set(null);
+    this.ifaceMap = new HashMap<String, Set<String>>();
+    this.requestCredentialSlot = INVALID_CREDENTIAL_SLOT;
+    this.port = INVALID_PORT;
   }
 
   /**
@@ -632,9 +592,7 @@ public final class Openbus {
    *         contrário.
    */
   public boolean isConnected() {
-    if (connectionState == ConnectionStates.CONNECTED)
-      return true;
-    return false;
+    return (this.credential != null);
   }
 
   /**
@@ -645,9 +603,7 @@ public final class Openbus {
    */
   public void addLeaseExpiredCallback(LeaseExpiredCallback lec) {
     this.leaseExpiredCallback = lec;
-    if (this.connectionState == ConnectionStates.CONNECTED) {
-      this.leaseRenewer.setLeaseExpiredCallback(lec);
-    }
+    this.leaseRenewer.setLeaseExpiredCallback(lec);
   }
 
   /**
@@ -655,9 +611,7 @@ public final class Openbus {
    */
   public void removeLeaseExpiredCallback() {
     this.leaseExpiredCallback = null;
-    if (this.connectionState == ConnectionStates.CONNECTED) {
-      this.leaseRenewer.setLeaseExpiredCallback(null);
-    }
+    this.leaseRenewer.setLeaseExpiredCallback(null);
   }
 
   /**

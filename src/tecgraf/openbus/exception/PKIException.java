@@ -13,11 +13,12 @@ import java.security.GeneralSecurityException;
  */
 public final class PKIException extends OpenBusException {
   /**
-   * Cria a exceção com uma causa associada.
+   * Cria a exceção com uma mensagem e uma causa associadas.
    * 
+   * @param message A mensagem.
    * @param cause A causa.
    */
-  public PKIException(GeneralSecurityException cause) {
-    super(cause);
+  public PKIException(String message, GeneralSecurityException cause) {
+    super(message, cause);
   }
 }

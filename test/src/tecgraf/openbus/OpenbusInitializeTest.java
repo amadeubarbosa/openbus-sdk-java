@@ -50,39 +50,39 @@ public class OpenbusInitializeTest {
   }
 
   /**
-   * Testa o resetAndInitialize passando o Properties null.
+   * Testa o init passando o Properties null.
    * 
    * @throws OpenBusException
    * @throws UserException
    */
   @Test(expected = IllegalArgumentException.class)
-  public void resetAndInitializeNullProps() throws OpenBusException,
+  public void initNullProps() throws OpenBusException,
     UserException {
-    Openbus.getInstance().resetAndInitialize(null, null, hostName, hostPort);
+    Openbus.getInstance().init(null, null, hostName, hostPort);
   }
 
   /**
-   * Testa o resetAndInitialize passando ACSHost null.
+   * Testa o init passando ACSHost null.
    * 
    * @throws OpenBusException
    * @throws UserException
    */
   @Test(expected = IllegalArgumentException.class)
-  public void resetAndInitializeNullHost() throws OpenBusException,
+  public void initNullHost() throws OpenBusException,
     UserException {
-    Openbus.getInstance().resetAndInitialize(null, props, null, 0);
+    Openbus.getInstance().init(null, props, null, 0);
   }
 
   /**
-   * Testa o resetAndInitialize passando ACSPort null.
+   * Testa o init passando ACSPort null.
    * 
    * @throws OpenBusException
    * @throws UserException
    */
   @Test(expected = IllegalArgumentException.class)
-  public void resetAndInitializeInvalidPort() throws OpenBusException,
+  public void initInvalidPort() throws OpenBusException,
     UserException {
-    Openbus.getInstance().resetAndInitialize(null, props, hostName, -1);
+    Openbus.getInstance().init(null, props, hostName, -1);
   }
 
 }
