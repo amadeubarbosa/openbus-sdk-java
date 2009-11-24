@@ -4,13 +4,12 @@
 package tecgraf.openbus.lease;
 
 import java.util.Date;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import openbusidl.acs.Credential;
 import openbusidl.acs.ILeaseProvider;
 
 import org.omg.CORBA.IntHolder;
+import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.SystemException;
 
 import tecgraf.openbus.util.Log;
@@ -22,6 +21,14 @@ import tecgraf.openbus.util.Log;
  */
 public final class LeaseRenewer {
   /**
+   * O nome da <i>thread</i> onde a renovação do lease é efetuada.
+   */
+  private static final String RENEWER_THREAD_NAME = "RenewerThread";
+  /**
+   * O tempo padrão para a renovação do lease.
+   */
+  private static final int DEFAULT_LEASE = 30;
+  /**
    * A tarefa responsável por renovar um <i>lease</i>.
    */
   private RenewerTask renewer;
@@ -29,14 +36,6 @@ public final class LeaseRenewer {
    * A thread de renovação.
    */
   private Thread renewerThread;
-  /**
-   * Indica se a thread está em execução.
-   */
-  private boolean running;
-  /**
-   * Sincroniza os métodos start() e finish().
-   */
-  private Lock lock;
 
   /**
    * Cria um renovador de <i>lease</i> junto a um provedor.
@@ -49,8 +48,15 @@ public final class LeaseRenewer {
   public LeaseRenewer(Credential credential, ILeaseProvider leaseProvider,
     LeaseExpiredCallback expiredCallback) {
     this.renewer = new RenewerTask(credential, leaseProvider, expiredCallback);
-    this.running = false;
-    this.lock = new ReentrantLock();
+  }
+
+  /**
+   * Define o provedor onde o <i>lease</i> deve ser renovado.
+   * 
+   * @param leaseProvider O provedor onde o <i>lease</i> deve ser renovado.
+   */
+  public void setProvider(ILeaseProvider leaseProvider) {
+    this.renewer.provider = leaseProvider;
   }
 
   /**
@@ -65,35 +71,23 @@ public final class LeaseRenewer {
   /**
    * Inicia uma renovação de <i>lease</i>.
    */
-  public void start() {
-    lock.lock();
-    try {
-      if (!running) {
-        this.running = true;
-        this.renewerThread = new Thread(this.renewer);
-        this.renewerThread.setDaemon(true);
-        this.renewerThread.start();
-      }
+  public synchronized void start() {
+    if (this.renewerThread != null) {
+      this.stop();
     }
-    finally {
-      lock.unlock();
-    }
+    this.renewerThread = new Thread(this.renewer, RENEWER_THREAD_NAME);
+    this.renewerThread.setDaemon(true);
+    this.renewerThread.start();
   }
 
   /**
    * Solicita o fim da renovação do <i>lease</i>.
    */
-  public void stop() {
-    lock.lock();
-    try {
-      if (running) {
-        this.renewerThread.interrupt();
-        this.renewerThread = null;
-        this.running = false;
-      }
-    }
-    finally {
-      lock.unlock();
+  public synchronized void stop() {
+    if (this.renewerThread != null) {
+      this.renewer.finish();
+      this.renewerThread.interrupt();
+      this.renewerThread = null;
     }
   }
 
@@ -108,14 +102,18 @@ public final class LeaseRenewer {
      */
     private Credential credential;
     /**
+    * Indica se a <i>thread</i> deve continuar executando.
+    */
+    private boolean mustContinue;
+    /**
      * O provedor do <i>lease</i>.
      */
-    private ILeaseProvider provider;
+    ILeaseProvider provider;
     /**
      * <i>Callback</i> usada para informar que a renovação de um <i>lease</i>
      * falhou.
      */
-    private LeaseExpiredCallback expiredCallback;
+    LeaseExpiredCallback expiredCallback;
 
     /**
      * Cria uma tarefa para renovar um <i>lease</i>.
@@ -126,6 +124,7 @@ public final class LeaseRenewer {
     RenewerTask(Credential credential, ILeaseProvider provider) {
       this.credential = credential;
       this.provider = provider;
+      this.mustContinue = true;
     }
 
     /**
@@ -147,43 +146,59 @@ public final class LeaseRenewer {
      */
     @Override
     public void run() {
-      try {
-        while (true) {
-          IntHolder newLease = new IntHolder();
+      int lease = DEFAULT_LEASE;
+
+      while (this.mustContinue) {
+        IntHolder newLease = new IntHolder();
+
+        try {
+          boolean expired;
           try {
-            if (!this.provider.renewLease(this.credential, newLease)) {
-              Log.LEASE.warning("Falha na renovação da credencial.");
-              if (this.expiredCallback != null) {
-                this.expiredCallback.expired();
-              }
-              return;
+            expired = !(this.provider.renewLease(this.credential, newLease));
+          }
+          catch (NO_PERMISSION ne) {
+            expired = true;
+          }
+
+          if (expired) {
+            Log.LEASE.warning("Falha na renovação da credencial.");
+            this.mustContinue = false;
+            if (this.expiredCallback != null) {
+              Log.LEASE.info("Chamando a callback de expiração do lease.");
+              this.expiredCallback.expired();
             }
           }
-          catch (SystemException e) {
-            Log.LEASE.severe(e.getMessage(), e);
+          else {
+            StringBuilder msg = new StringBuilder();
+            msg.append("Lease renovado. Próxima renovação em ");
+            msg.append(newLease.value);
+            msg.append(" segundos.");
+            Log.LEASE.fine(msg.toString());
+            lease = newLease.value;
           }
-          StringBuilder msg = new StringBuilder();
-          msg.append(new Date());
-          msg.append(" - Lease renovado. Próxima renovação em ");
-          msg.append(newLease.value);
-          msg.append(" segundos.");
-          Log.LEASE.fine(msg.toString());
-          Thread.sleep(newLease.value * 1000);
+        }
+        catch (SystemException e) {
+          Log.LEASE.severe(e.getMessage(), e);
+        }
+
+        if (this.mustContinue) {
+          try {
+            Thread.sleep(lease * 1000);
+          }
+          catch (InterruptedException e) {
+            // Nada a ser feito.
+          }
         }
       }
-      catch (InterruptedException e) {
-        // Quando for interrompida, a thread deve morrer, portanto,
-        // precisa sair do while.
-      }
+
+      Log.LEASE.info("Finalizando a renovação do lease.");
     }
 
     /**
-     * Define o provedor do <i>lease</i>.
-     * 
-     * @param provider O provedor do <i>lease</i>.
+     * Finaliza o renovador de <i>lease</i>.
      */
-    public void setProvider(ILeaseProvider provider) {
-      this.provider = provider;
+    public void finish() {
+      this.mustContinue = false;
     }
   }
 }
