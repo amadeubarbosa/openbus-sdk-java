@@ -8,6 +8,7 @@ import org.omg.CORBA.UserException;
 import org.omg.PortableInterceptor.ORBInitInfo;
 import org.omg.PortableInterceptor.ORBInitializer;
 
+import tecgraf.openbus.Openbus;
 import tecgraf.openbus.util.Log;
 
 /**
@@ -26,6 +27,26 @@ public class ServerInitializer extends LocalObject implements ORBInitializer {
       info.add_server_request_interceptor(new ServerInterceptor(CodecFactory
         .createCodec(info), info.allocate_slot_id()));
       Log.INTERCEPTORS.info("REGISTREI INTERCEPTADOR SERVIDOR!");
+      Openbus bus = Openbus.getInstance();
+      CredentialValidationPolicy policy = bus.getCredentialValidationPolicy();
+      switch (policy) {
+        case ALWAYS:
+          info
+            .add_server_request_interceptor(CredentialValidatorServerInterceptor
+              .getInstance());
+          break;
+        case CACHED:
+          info
+            .add_server_request_interceptor(CachedCredentialValidatorServerInterceptor
+              .getInstance());
+          break;
+        case NONE:
+          break;
+        default:
+          Log.INTERCEPTORS
+            .warning("Não foi escolhida nenhuma política para a validação de credenciais obtidas pelo interceptador servidor.");
+          break;
+      }
     }
     catch (UserException e) {
       Log.INTERCEPTORS.severe("ERRO NO REGISTRO DO INTERCEPTADOR SERVIDOR!", e);

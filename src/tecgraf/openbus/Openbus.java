@@ -45,6 +45,7 @@ import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.PKIException;
 import tecgraf.openbus.exception.ServiceUnavailableException;
 import tecgraf.openbus.interceptors.ClientInitializer;
+import tecgraf.openbus.interceptors.CredentialValidationPolicy;
 import tecgraf.openbus.interceptors.FTClientInitializer;
 import tecgraf.openbus.interceptors.ServerInitializer;
 import tecgraf.openbus.lease.LeaseExpiredCallback;
@@ -143,6 +144,11 @@ public final class Openbus {
    * Mantém a lista de métodos a serem liberados por interface.
    */
   private Map<String, Set<String>> ifaceMap;
+  /**
+   * A política de validação das credenciais obtidas pelo interceptador
+   * servidor.
+   */
+  private CredentialValidationPolicy credentialValidationPolicy;
 
   /**
    * Se conecta ao AccessControlServer por meio do endereço e da porta. Este
@@ -154,15 +160,10 @@ public final class Openbus {
    */
   public void fetchACS() throws CORBAException, ServiceUnavailableException,
     ACSUnavailableException {
-    try {
-      this.acs = Utils.fetchAccessControlService(orb, host, port);
-      this.lp = Utils.fetchAccessControlServiceLeaseProvider(orb, host, port);
-      this.ft = Utils.fetchAccessControlServiceFaultTolerant(orb, host, port);
-      this.ic = Utils.fetchAccessControlServiceIComponent(orb, host, port);
-    }
-    catch (ACSUnavailableException ex) {
-      System.out.println("[ACSUnavailableException] " + ex.getMessage());
-    }
+    this.acs = Utils.fetchAccessControlService(orb, host, port);
+    this.lp = Utils.fetchAccessControlServiceLeaseProvider(orb, host, port);
+    this.ft = Utils.fetchAccessControlServiceFaultTolerant(orb, host, port);
+    this.ic = Utils.fetchAccessControlServiceIComponent(orb, host, port);
   }
 
   /**
@@ -202,6 +203,26 @@ public final class Openbus {
    */
   public void init(String[] args, Properties props, String host, int port)
     throws UserException {
+    this.init(args, props, host, port, CredentialValidationPolicy.ALWAYS);
+  }
+
+  /**
+   * Retorna o barramento para o seu estado inicial, ou seja, desfaz as
+   * definições de atributos realizadas. Em seguida, inicializa o Orb.
+   * 
+   * @param args Conjunto de argumentos para a criação do ORB.
+   * @param props Conjunto de propriedades para a criação do ORB.
+   * @param host Endereço do Serviço de Controle de Acesso.
+   * @param port Porta do Serviço de Controle de Acesso.
+   * @param policy A política de validação de credenciais obtidas pelo
+   *        interceptador servidor.
+   * 
+   * @throws UserException Caso ocorra algum erro ao obter o RootPOA.
+   * @throws IllegalArgumentException Caso o método esteja com os argumentos
+   *         incorretos.
+   */
+  public void init(String[] args, Properties props, String host, int port,
+    CredentialValidationPolicy policy) throws UserException {
     if (orb != null) {
       return;
     }
@@ -224,7 +245,13 @@ public final class Openbus {
     props.put(
       ORB_INITIALIZER_PROPERTY_NAME_PREFIX + serverInitializerClassName,
       serverInitializerClassName);
+
+    // A política deve ser definida antes do ORB.init pois o ServerInitializer
+    // utiliza esta propriedade.
+    this.credentialValidationPolicy = policy;
+
     this.orb = org.omg.CORBA.ORB.init(args, props);
+
     org.omg.CORBA.Object obj = this.orb.resolve_initial_references("RootPOA");
     this.rootPOA = POAHelper.narrow(obj);
     POAManager manager = this.rootPOA.the_POAManager();
@@ -667,5 +694,15 @@ public final class Openbus {
 
   public void setPort(int hostPort) {
     this.port = hostPort;
+  }
+
+  /**
+   * Obtém a política de validação de credenciais obtidas pelo interceptador
+   * servidor.
+   * 
+   * @return A política de validação.
+   */
+  public CredentialValidationPolicy getCredentialValidationPolicy() {
+    return this.credentialValidationPolicy;
   }
 }

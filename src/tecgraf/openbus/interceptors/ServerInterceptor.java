@@ -5,7 +5,6 @@ package tecgraf.openbus.interceptors;
 
 import openbusidl.acs.Credential;
 import openbusidl.acs.CredentialHelper;
-import openbusidl.acs.IAccessControlService;
 
 import org.omg.CORBA.Any;
 import org.omg.CORBA.ORB;
@@ -15,6 +14,7 @@ import org.omg.PortableInterceptor.ServerRequestInfo;
 import org.omg.PortableInterceptor.ServerRequestInterceptor;
 
 import tecgraf.openbus.Openbus;
+import tecgraf.openbus.access_control_service.CredentialWrapper;
 import tecgraf.openbus.util.Log;
 
 /**
@@ -25,22 +25,6 @@ import tecgraf.openbus.util.Log;
  */
 class ServerInterceptor extends InterceptorImpl implements
   ServerRequestInterceptor {
-
-  /**
-   * Instância do ORB associado a este interceptador.
-   */
-  private ORB orb;
-
-  /**
-   * Instância do barramento associado a este ORB e interceptador.
-   */
-  private Openbus bus;
-
-  /**
-   * Wrapper para o serviço de controle de acesso associado ao barramento.
-   */
-  private IAccessControlService acs;
-
   /**
    * O slot para transporte da credencial.
    */
@@ -87,13 +71,8 @@ class ServerInterceptor extends InterceptorImpl implements
     if (ri.operation().equals("_non_existent"))
       return;
 
-    /* Verifica se já obteve o barramento */
-    if (bus == null) {
-      bus = Openbus.getInstance();
-      orb = bus.getORB();
-      acs = bus.getAccessControlService();
-      bus.setInterceptedCredentialSlot(credentialSlot);
-    }
+    Openbus bus = Openbus.getInstance();
+    bus.setInterceptedCredentialSlot(credentialSlot);
 
     ServiceContext serviceContext;
     try {
@@ -104,26 +83,17 @@ class ServerInterceptor extends InterceptorImpl implements
       Credential credential =
         CredentialHelper.extract(this.getCodec().decode_value(value,
           CredentialHelper.type()));
-      Log.INTERCEPTORS.fine("CREDENCIAL: " + credential.identifier + ","
-        + credential.owner);
+      CredentialWrapper wrapper = new CredentialWrapper(credential);
+      Log.INTERCEPTORS.info("CREDENCIAL: " + wrapper);
 
-      /* Verifica se a credencial é válida */
-      if (acs.isValid(credential)) {
-        Log.INTERCEPTORS.fine("CREDENCIAL VALIDADA!");
-
-        /*
-         * Insere o valor da credencial no slot alocado para seu transporte ao
-         * tratador da requisição de serviço
-         */
-        Any credentialValue = orb.create_any();
-        CredentialHelper.insert(credentialValue, credential);
-        ri.set_slot(this.credentialSlot, credentialValue);
-      }
-      else {
-        Log.INTERCEPTORS.info("CREDENCIAL INVALIDA!");
-        throw new org.omg.CORBA.NO_PERMISSION(0,
-          org.omg.CORBA.CompletionStatus.COMPLETED_NO);
-      }
+      /*
+       * Insere o valor da credencial no slot alocado para seu transporte ao
+       * tratador da requisição de serviço
+       */
+      ORB orb = bus.getORB();
+      Any credentialValue = orb.create_any();
+      CredentialHelper.insert(credentialValue, credential);
+      ri.set_slot(this.credentialSlot, credentialValue);
     }
     catch (Exception e) {
       Log.INTERCEPTORS.severe("Falha na validação da credencial", e);
