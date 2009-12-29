@@ -36,6 +36,7 @@ import org.omg.PortableServer.POAManager;
 
 import scs.core.ConnectionDescription;
 import scs.core.IComponent;
+import scs.core.IComponentHelper;
 import scs.core.IReceptacles;
 import scs.core.IReceptaclesHelper;
 import scs.core.InvalidName;
@@ -164,8 +165,8 @@ public final class Openbus {
    * método também instancia um observador de <i>leases</i>.
    * 
    * @throws CORBAException
+   * @throws ServiceUnavailableException
    * @throws ACSUnavailableException
-   * @throws OpenBusException
    */
   public void fetchACS() throws CORBAException, ServiceUnavailableException,
     ACSUnavailableException {
@@ -363,21 +364,29 @@ public final class Openbus {
    * @return O Serviço de Registro.
    */
   public IRegistryService getRegistryService() {
-    if (this.rgs == null && this.ic != null) {
-      Object objRecep = this.ic.getFacetByName("IReceptacles");
-      IReceptacles irecep = IReceptaclesHelper.narrow(objRecep);
-      try {
-        ConnectionDescription[] connections =
-          irecep.getConnections("RegistryServiceReceptacle");
-        if (connections.length > 0) {
-          Object objref = connections[0].objref;
-          this.rgs = IRegistryServiceHelper.narrow(objref);
-        }
-      }
-      catch (InvalidName e) {
-        Log.COMMON.severe("Não foi possível obter o serviço de registro.", e);
+    if (this.rgs != null)
+      return this.rgs;
+    if (this.ic == null)
+      return null;
+
+    Object objRecep = this.ic.getFacetByName(Utils.RECEPTACLES_NAME);
+    IReceptacles ireceptacle = IReceptaclesHelper.narrow(objRecep);
+
+    try {
+      ConnectionDescription[] connections =
+        ireceptacle.getConnections(Utils.REGISTRY_SERVICE_RECEPTACLE_NAME);
+      if (connections.length > 0) {
+        Object objRef = connections[0].objref;
+        IComponent registryComponent = IComponentHelper.narrow(objRef);
+        Object objReg =
+          registryComponent.getFacetByName(Utils.REGISTRY_SERVICE_FACET_NAME);
+        this.rgs = IRegistryServiceHelper.narrow(objReg);
       }
     }
+    catch (InvalidName e) {
+      Log.COMMON.severe("Não foi possível obter o serviço de registro.", e);
+    }
+
     return this.rgs;
   }
 
@@ -478,9 +487,11 @@ public final class Openbus {
    *         validados.
    * @throws ACSUnavailableException Caso o Serviço de Controle de Acesso não
    *         consiga ser contactado.
+   * @throws ServiceUnavailableException
    * @throws InvalidCredentialException Caso a credencial seja rejeitada ao
    *         tentar obter o Serviço de Registro.
    * @throws CORBAException
+   * @throws OpenBusException
    * @throws IllegalArgumentException Caso o método esteja com os argumentos
    *         incorretos.
    */
@@ -508,11 +519,13 @@ public final class Openbus {
    * @return O Serviço de Registro.
    * 
    * @throws ACSLoginFailureException O certificado não foi validado.
+   * @throws ServiceUnavailableException
    * @throws PKIException Os dados fornecidos não são válidos.
    * @throws ACSUnavailableException Caso o Serviço de Controle de Acesso não
    *         consiga ser contactado.
    * @throws InvalidCredentialException Caso a credencial seja rejeitada ao
    *         tentar obter o Serviço de Registro.
+   * @throws OpenBusException
    * @throws CORBAException
    * @throws IllegalArgumentException Caso o método esteja com os argumentos
    *         incorretos.
@@ -575,6 +588,8 @@ public final class Openbus {
    *         consiga ser contactado.
    * @throws InvalidCredentialException Caso a credencial seja rejeitada ao
    *         tentar obter o Serviço de Registro.
+   * @throws OpenBusException
+   * @throws ServiceUnavailableException
    * @throws CORBAException
    * @throws IllegalArgumentException Caso o método esteja com os argumentos
    *         incorretos.
@@ -720,14 +735,31 @@ public final class Openbus {
     return (methods == null) || !methods.contains(method);
   }
 
+  /**
+   * Indica se o mecanismo de tolerancia a falhas esta ativado.
+   * 
+   * @return <code>true</code> se o mecanismo está ativo e <code>false</code>,
+   *         caso contrário.
+   * 
+   */
   public boolean isFaultToleranceEnable() {
     return isFaultToleranceEnable;
   }
 
+  /**
+   * Define o endereço do Serviço de Controle de Acesso.
+   * 
+   * @param host Endereço do Serviço de Controle de Acesso.
+   */
   public void setHost(String host) {
     this.host = host;
   }
 
+  /**
+   * Define a porta do Serviço de Controle de Acesso.
+   * 
+   * @param hostPort A porta do Serviço de Controle de Acesso.
+   */
   public void setPort(int hostPort) {
     this.port = hostPort;
   }

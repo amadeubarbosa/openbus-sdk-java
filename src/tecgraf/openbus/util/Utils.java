@@ -42,6 +42,20 @@ public final class Utils {
   public static final String FAULT_TOLERANT_KEY = "FT";
 
   /**
+   * Nome da faceta IReceptacles.
+   */
+  public static final String RECEPTACLES_NAME = "IReceptacles";
+  /**
+   * Nome do receptáculo do Serviço de Registro.
+   */
+  public static final String REGISTRY_SERVICE_RECEPTACLE_NAME =
+    "RegistryServiceReceptacle";
+
+  /**
+   * O nome da faceta do Serviço de Registro.
+   */
+  public static final String REGISTRY_SERVICE_FACET_NAME = "IRegistryService";
+  /**
    * O nome da faceta do Serviço de Sessão.
    */
   public static final String SESSION_SERVICE_FACET_NAME = "ISessionService";
