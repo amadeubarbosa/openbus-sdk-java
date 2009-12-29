@@ -17,6 +17,7 @@ import openbusidl.acs.IAccessControlService;
 import openbusidl.acs.ILeaseProvider;
 import openbusidl.ft.IFaultTolerantService;
 import openbusidl.rs.IRegistryService;
+import openbusidl.rs.IRegistryServiceHelper;
 import openbusidl.rs.ServiceOffer;
 import openbusidl.ss.ISessionService;
 import openbusidl.ss.ISessionServiceHelper;
@@ -33,7 +34,11 @@ import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 import org.omg.PortableServer.POAManager;
 
+import scs.core.ConnectionDescription;
 import scs.core.IComponent;
+import scs.core.IReceptacles;
+import scs.core.IReceptaclesHelper;
+import scs.core.InvalidName;
 import tecgraf.openbus.authenticators.Authenticator;
 import tecgraf.openbus.authenticators.CertificateAuthenticator;
 import tecgraf.openbus.authenticators.LoginPasswordAuthenticator;
@@ -118,6 +123,10 @@ public final class Openbus {
    */
   private LeaseExpiredCallback leaseExpiredCallback;
 
+  /**
+   * Serviço de registro.
+   */
+  private IRegistryService rgs;
   /**
    * Serviço de sessão.
    */
@@ -246,7 +255,8 @@ public final class Openbus {
       ORB_INITIALIZER_PROPERTY_NAME_PREFIX + serverInitializerClassName,
       serverInitializerClassName);
 
-    // A política deve ser definida antes do ORB.init pois o ServerInitializer
+    // A política deve ser definida antes do ORB.init pois o
+    // ServerInitializer
     // utiliza esta propriedade.
     this.credentialValidationPolicy = policy;
 
@@ -348,6 +358,30 @@ public final class Openbus {
   }
 
   /**
+   * Fornece o Serviço de Registro.
+   * 
+   * @return O Serviço de Registro.
+   */
+  public IRegistryService getRegistryService() {
+    if (this.rgs == null && this.ic != null) {
+      Object objRecep = this.ic.getFacetByName("IReceptacles");
+      IReceptacles irecep = IReceptaclesHelper.narrow(objRecep);
+      try {
+        ConnectionDescription[] connections =
+          irecep.getConnections("RegistryServiceReceptacle");
+        if (connections.length > 0) {
+          Object objref = connections[0].objref;
+          this.rgs = IRegistryServiceHelper.narrow(objref);
+        }
+      }
+      catch (InvalidName e) {
+        Log.COMMON.severe("Não foi possível obter o serviço de registro.", e);
+      }
+    }
+    return this.rgs;
+  }
+
+  /**
    * Fornece o Serviço de Sessão. Caso o Openbus ainda não tenha a referência
    * para o Serviço de Sessão este obtem o Serviço a partir do Serviço de
    * Registro.
@@ -357,7 +391,9 @@ public final class Openbus {
   public ISessionService getSessionService() {
 
     if (this.ss == null) {
-      IRegistryService rgs = this.acs.getRegistryService();
+      IRegistryService rgs = this.getRegistryService();
+      if (rgs == null)
+        return null;
       ServiceOffer[] offers =
         rgs.find(new String[] { Utils.SESSION_SERVICE_FACET_NAME });
       if (offers.length > 0) {
@@ -515,7 +551,7 @@ public final class Openbus {
         this.leaseRenewer =
           new LeaseRenewer(this.credential, this.lp, this.leaseExpiredCallback);
         this.leaseRenewer.start();
-        return this.acs.getRegistryService();
+        return this.getRegistryService();
       }
       else {
         throw new ACSLoginFailureException(
@@ -554,7 +590,7 @@ public final class Openbus {
       fetchACS();
     this.credential = credential;
     if (this.acs.isValid(this.credential)) {
-      return this.acs.getRegistryService();
+      return this.getRegistryService();
     }
     throw new InvalidCredentialException(new NO_PERMISSION(
       "Credencial inválida."));

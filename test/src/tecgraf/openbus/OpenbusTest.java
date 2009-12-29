@@ -325,7 +325,7 @@ public class OpenbusTest {
     Openbus openbus = Openbus.getInstance();
     IRegistryService registryService = openbus.connect(userLogin, userPassword);
     Assert.assertNotNull(registryService);
-    Assert.assertNotNull(openbus.getAccessControlService().getRegistryService());
+    Assert.assertNotNull(openbus.getRegistryService());
     Assert.assertTrue(openbus.disconnect());
   }
 

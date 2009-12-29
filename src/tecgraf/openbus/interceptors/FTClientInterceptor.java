@@ -106,7 +106,7 @@ class FTClientInterceptor extends ClientInterceptor {
       System.out.println("[ACSUnavailableException] " + msg);
     }
     else if (key.equals(Utils.REGISTRY_SERVICE_KEY)) {
-      IRegistryService rs = bus.getAccessControlService().getRegistryService();
+      IRegistryService rs = bus.getRegistryService();
       throw new ForwardRequest(rs);
     }
   }
