@@ -648,6 +648,7 @@ public final class Openbus {
     this.host = null;
     this.port = INVALID_PORT;
     this.acs = null;
+    this.rgs = null;
     this.lp = null;
     this.ft = null;
     this.ic = null;
