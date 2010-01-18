@@ -45,7 +45,8 @@ class ServerInterceptor extends InterceptorImpl implements
    * {@inheritDoc}
    */
   public void receive_request_service_contexts(ServerRequestInfo ri) {
-    Log.INTERCEPTORS.fine("ATINGI PONTO DE INTERCEPTAÇÂO SERVIDOR!");
+    Log.INTERCEPTORS.info("Operação {" + ri.operation()
+      + "} interceptada no servidor.");
 
     /*
      * Work around para o LocateRequest
@@ -78,13 +79,13 @@ class ServerInterceptor extends InterceptorImpl implements
     try {
       /* Verifica se há informação de contexto (credencial) */
       serviceContext = ri.get_request_service_context(CONTEXT_ID);
-      Log.INTERCEPTORS.fine("TEM CREDENCIAL!");
+
       byte[] value = serviceContext.context_data;
       Credential credential =
         CredentialHelper.extract(this.getCodec().decode_value(value,
           CredentialHelper.type()));
       CredentialWrapper wrapper = new CredentialWrapper(credential);
-      Log.INTERCEPTORS.info("CREDENCIAL: " + wrapper);
+      Log.INTERCEPTORS.info("Credencial: " + wrapper);
 
       /*
        * Insere o valor da credencial no slot alocado para seu transporte ao

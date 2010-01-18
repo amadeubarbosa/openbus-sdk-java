@@ -15,6 +15,7 @@ import org.omg.PortableInterceptor.ClientRequestInterceptor;
 import org.omg.PortableInterceptor.ForwardRequest;
 
 import tecgraf.openbus.Openbus;
+import tecgraf.openbus.access_control_service.CredentialWrapper;
 import tecgraf.openbus.util.Log;
 
 /**
@@ -39,8 +40,8 @@ class ClientInterceptor extends InterceptorImpl implements
    * Intercepta o request para inserção de informação de contexto.
    */
   public void send_request(ClientRequestInfo ri) {
-    Log.INTERCEPTORS.info("ATINGI PONTO DE INTERCEPTAÇÃO CLIENTE!");
-
+    Log.INTERCEPTORS.info("Operação {" + ri.operation()
+      + "} interceptada no cliente.");
     Openbus bus = Openbus.getInstance();
 
     /* Verifica se existe uma credencial para envio */
@@ -50,7 +51,8 @@ class ClientInterceptor extends InterceptorImpl implements
       return;
     }
 
-    Log.INTERCEPTORS.fine("TEM CREDENCIAL!");
+    CredentialWrapper wrapper = new CredentialWrapper(credential);
+    Log.INTERCEPTORS.info("Credencial: " + wrapper);
 
     /* Insere a credencial no contexto do serviço */
     byte[] value = null;
@@ -85,7 +87,8 @@ class ClientInterceptor extends InterceptorImpl implements
 
   /**
    * {@inheritDoc}
- * @throws ForwardRequest 
+   * 
+   * @throws ForwardRequest
    */
   public void receive_exception(ClientRequestInfo ri) throws ForwardRequest {
     // Nada a ser feito.
