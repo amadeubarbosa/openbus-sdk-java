@@ -172,8 +172,10 @@ public final class Openbus {
     ACSUnavailableException {
     this.acs = Utils.fetchAccessControlService(orb, host, port);
     this.lp = Utils.fetchAccessControlServiceLeaseProvider(orb, host, port);
-    this.ft = Utils.fetchAccessControlServiceFaultTolerant(orb, host, port);
     this.ic = Utils.fetchAccessControlServiceIComponent(orb, host, port);
+    if (this.isFaultToleranceEnable) {
+      this.ft = Utils.fetchAccessControlServiceFaultTolerant(orb, host, port);
+    }
   }
 
   /**
