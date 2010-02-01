@@ -3,11 +3,11 @@
  */
 package tecgraf.openbus.authenticators;
 
-import openbusidl.acs.Credential;
-import openbusidl.acs.CredentialHolder;
-import openbusidl.acs.IAccessControlService;
-
 import org.omg.CORBA.IntHolder;
+
+import tecgraf.openbus.core.v1_05.access_control_service.Credential;
+import tecgraf.openbus.core.v1_05.access_control_service.CredentialHolder;
+import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlService;
 
 /**
  * Utilizado para efetuar a autenticação de uma entidade junto ao Serviço de

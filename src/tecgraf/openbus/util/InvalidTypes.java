@@ -3,8 +3,8 @@
  */
 package tecgraf.openbus.util;
 
-import openbusidl.acs.Credential;
 import scs.core.ComponentId;
+import tecgraf.openbus.core.v1_05.access_control_service.Credential;
 
 /**
  * Representa objetos inválidos, usados para indicar erros, de alguns tipos

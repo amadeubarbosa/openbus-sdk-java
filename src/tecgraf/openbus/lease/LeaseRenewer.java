@@ -3,15 +3,12 @@
  */
 package tecgraf.openbus.lease;
 
-import java.util.Date;
-
-import openbusidl.acs.Credential;
-import openbusidl.acs.ILeaseProvider;
-
 import org.omg.CORBA.IntHolder;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.SystemException;
 
+import tecgraf.openbus.core.v1_05.access_control_service.Credential;
+import tecgraf.openbus.core.v1_05.access_control_service.ILeaseProvider;
 import tecgraf.openbus.util.Log;
 
 /**
@@ -102,8 +99,8 @@ public final class LeaseRenewer {
      */
     private Credential credential;
     /**
-    * Indica se a <i>thread</i> deve continuar executando.
-    */
+     * Indica se a <i>thread</i> deve continuar executando.
+     */
     private boolean mustContinue;
     /**
      * O provedor do <i>lease</i>.

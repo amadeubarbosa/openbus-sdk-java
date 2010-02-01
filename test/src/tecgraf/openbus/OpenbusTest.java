@@ -7,10 +7,6 @@ import java.security.interfaces.RSAPrivateKey;
 import java.util.Properties;
 import java.util.logging.Level;
 
-import openbusidl.acs.Credential;
-import openbusidl.acs.IAccessControlService;
-import openbusidl.rs.IRegistryService;
-
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -18,6 +14,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.omg.CORBA.UserException;
 
+import tecgraf.openbus.core.v1_05.access_control_service.Credential;
+import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlService;
+import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
 import tecgraf.openbus.exception.ACSLoginFailureException;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.lease.LeaseExpiredCallback;
@@ -346,10 +345,10 @@ public class OpenbusTest {
 
   /**
    * Testa se a callback de expiração da credencial é corretament acionada.
-   *
+   * 
    * @throws OpenBusException
    */
-  @Test(timeout=120*1000)
+  @Test(timeout = 120 * 1000)
   public void credentialExpired() throws OpenBusException {
     Openbus openbus = Openbus.getInstance();
     IRegistryService registryService = openbus.connect(userLogin, userPassword);
@@ -374,7 +373,7 @@ public class OpenbusTest {
     IAccessControlService acs = openbus.getAccessControlService();
     acs.logout(openbus.getCredential());
     while (!callback.isExpired()) {
-     ;
+      ;
     }
   }
 }

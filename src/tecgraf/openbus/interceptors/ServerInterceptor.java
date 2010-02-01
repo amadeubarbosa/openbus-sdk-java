@@ -3,9 +3,6 @@
  */
 package tecgraf.openbus.interceptors;
 
-import openbusidl.acs.Credential;
-import openbusidl.acs.CredentialHelper;
-
 import org.omg.CORBA.Any;
 import org.omg.CORBA.ORB;
 import org.omg.IOP.Codec;
@@ -15,6 +12,8 @@ import org.omg.PortableInterceptor.ServerRequestInterceptor;
 
 import tecgraf.openbus.Openbus;
 import tecgraf.openbus.access_control_service.CredentialWrapper;
+import tecgraf.openbus.core.v1_05.access_control_service.Credential;
+import tecgraf.openbus.core.v1_05.access_control_service.CredentialHelper;
 import tecgraf.openbus.util.Log;
 
 /**

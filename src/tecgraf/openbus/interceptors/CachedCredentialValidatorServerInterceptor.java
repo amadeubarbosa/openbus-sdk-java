@@ -10,9 +10,6 @@ import java.util.TimerTask;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import openbusidl.acs.Credential;
-import openbusidl.acs.IAccessControlService;
-
 import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.LocalObject;
 import org.omg.CORBA.NO_PERMISSION;
@@ -23,6 +20,8 @@ import org.omg.PortableInterceptor.ServerRequestInterceptor;
 
 import tecgraf.openbus.Openbus;
 import tecgraf.openbus.access_control_service.CredentialWrapper;
+import tecgraf.openbus.core.v1_05.access_control_service.Credential;
+import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlService;
 import tecgraf.openbus.util.Log;
 
 /**

@@ -7,13 +7,6 @@ import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 
-import openbusidl.acs.IAccessControlService;
-import openbusidl.acs.IAccessControlServiceHelper;
-import openbusidl.acs.ILeaseProvider;
-import openbusidl.acs.ILeaseProviderHelper;
-import openbusidl.ft.IFaultTolerantService;
-import openbusidl.ft.IFaultTolerantServiceHelper;
-
 import org.omg.CORBA.COMM_FAILURE;
 import org.omg.CORBA.OBJECT_NOT_EXIST;
 import org.omg.CORBA.ORB;
@@ -22,9 +15,15 @@ import org.omg.CORBA.TRANSIENT;
 
 import scs.core.IComponent;
 import scs.core.IComponentHelper;
+import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlService;
+import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlServiceHelper;
+import tecgraf.openbus.core.v1_05.access_control_service.ILeaseProvider;
+import tecgraf.openbus.core.v1_05.access_control_service.ILeaseProviderHelper;
 import tecgraf.openbus.exception.ACSUnavailableException;
 import tecgraf.openbus.exception.CORBAException;
 import tecgraf.openbus.exception.ServiceUnavailableException;
+import tecgraf.openbus.fault_tolerance.v1_05.IFaultTolerantService;
+import tecgraf.openbus.fault_tolerance.v1_05.IFaultTolerantServiceHelper;
 
 /**
  * Métodos utilitários para uso do OpenBus.

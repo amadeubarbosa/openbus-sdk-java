@@ -8,12 +8,11 @@ import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
 import java.text.MessageFormat;
 
-import openbusidl.acs.Credential;
-import openbusidl.acs.CredentialHolder;
-import openbusidl.acs.IAccessControlService;
-
 import org.omg.CORBA.IntHolder;
 
+import tecgraf.openbus.core.v1_05.access_control_service.Credential;
+import tecgraf.openbus.core.v1_05.access_control_service.CredentialHolder;
+import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlService;
 import tecgraf.openbus.exception.ACSLoginFailureException;
 import tecgraf.openbus.exception.PKIException;
 import tecgraf.openbus.util.Utils;
