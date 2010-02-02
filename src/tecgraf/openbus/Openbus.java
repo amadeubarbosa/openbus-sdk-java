@@ -181,10 +181,7 @@ public final class Openbus {
    * Construtor do barramento.
    */
   private Openbus() {
-    this.port = INVALID_PORT;
-    this.requestCredentialSlot = INVALID_CREDENTIAL_SLOT;
-    this.ifaceMap = new HashMap<String, Set<String>>();
-    this.threadLocalCredential = new ThreadLocal<Credential>();
+    reset();
   }
 
   /**
@@ -563,7 +560,8 @@ public final class Openbus {
       this.credential = authenticator.authenticate(this.acs);
       if (this.credential != null) {
         this.leaseRenewer =
-          new LeaseRenewer(this.credential, this.lp, this.leaseExpiredCallback);
+          new LeaseRenewer(this.credential, this.lp,
+            new OpenbusExpiredCallback());
         this.leaseRenewer.start();
         return this.getRegistryService();
       }
@@ -639,30 +637,36 @@ public final class Openbus {
    * Finaliza a utilização do barramento.
    */
   public void destroy() {
-    if (this.orb == null) {
-      return;
+    if (this.orb != null) {
+      this.orb.destroy();
     }
 
-    this.orb.destroy();
+    this.reset();
     this.orb = null;
     this.rootPOA = null;
     this.host = null;
     this.port = INVALID_PORT;
+    this.leaseExpiredCallback = null;
+
+    this.isFaultToleranceEnable = false;
+    this.ifaceMap = new HashMap<String, Set<String>>();
+  }
+
+  /**
+   * Retorna para o estado encontrado após a inicialização do Openbus.
+   */
+  private void reset() {
     this.acs = null;
     this.rgs = null;
     this.lp = null;
     this.ft = null;
     this.ic = null;
     this.ss = null;
-    this.credential = null;
-    this.leaseRenewer = null;
-    this.leaseExpiredCallback = null;
-    this.isFaultToleranceEnable = false;
 
-    this.threadLocalCredential.set(null);
-    this.ifaceMap = new HashMap<String, Set<String>>();
+    this.credential = null;
+    this.threadLocalCredential = new ThreadLocal<Credential>();
+    this.leaseRenewer = null;
     this.requestCredentialSlot = INVALID_CREDENTIAL_SLOT;
-    this.port = INVALID_PORT;
   }
 
   /**
@@ -779,4 +783,28 @@ public final class Openbus {
   public CredentialValidationPolicy getCredentialValidationPolicy() {
     return this.credentialValidationPolicy;
   }
+
+  /**
+   * Informa aos observadores que o <i>lease</i> expirou.
+   */
+  private void leaseExpired() {
+    Log.LEASE.fine("Atualizando estado do Openbus");
+    reset();
+    if (this.leaseExpiredCallback != null) {
+      this.leaseExpiredCallback.expired();
+    }
+  }
+
+  /**
+   * Classe responsável por informar aos observadores que o <i>lease</i>
+   * expirou.
+   * 
+   * @author Tecgraf
+   */
+  class OpenbusExpiredCallback implements LeaseExpiredCallback {
+    public void expired() {
+      leaseExpired();
+    }
+  }
+
 }
