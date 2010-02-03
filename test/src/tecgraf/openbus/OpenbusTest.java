@@ -344,15 +344,14 @@ public class OpenbusTest {
   }
 
   /**
-   * Testa se a callback de expiração da credencial é corretament acionada.
+   * Testa se a callback de expiração da credencial é corretamente acionada.
    * 
    * @throws OpenBusException
    */
-  @Test(timeout = 120 * 1000)
+
+  @Test(timeout = 4 * 60 * 1000)
   public void credentialExpired() throws OpenBusException {
     Openbus openbus = Openbus.getInstance();
-    IRegistryService registryService = openbus.connect(userLogin, userPassword);
-    Assert.assertNotNull(registryService);
     class LeaseExpiredCallbackImpl implements LeaseExpiredCallback {
       private volatile boolean expired;
 
@@ -370,10 +369,58 @@ public class OpenbusTest {
     }
     LeaseExpiredCallbackImpl callback = new LeaseExpiredCallbackImpl();
     openbus.addLeaseExpiredCallback(callback);
+    IRegistryService registryService = openbus.connect(userLogin, userPassword);
+    Assert.assertNotNull(registryService);
     IAccessControlService acs = openbus.getAccessControlService();
     acs.logout(openbus.getCredential());
     while (!callback.isExpired()) {
       ;
     }
+  }
+
+  /**
+   * Testa a utilização de uma callback responsável por reconectar após a
+   * expiração da credencial.
+   * 
+   * @throws OpenBusException
+   */
+  @Test(timeout = 4 * 60 * 1000)
+  public void credentialExpiredReconnect() throws OpenBusException {
+    Openbus openbus = Openbus.getInstance();
+    class LeaseExpiredCallbackImpl implements LeaseExpiredCallback {
+      private volatile boolean reconnected;
+
+      LeaseExpiredCallbackImpl() {
+        this.reconnected = false;
+      }
+
+      public void expired() {
+        Openbus openbus = Openbus.getInstance();
+        try {
+          openbus.connect(userLogin, userPassword);
+        }
+        catch (OpenBusException e) {
+          this.reconnected = false;
+        }
+        this.reconnected = true;
+      }
+
+      public boolean isReconnected() {
+        return this.reconnected;
+      }
+    }
+    LeaseExpiredCallbackImpl callback = new LeaseExpiredCallbackImpl();
+    openbus.addLeaseExpiredCallback(callback);
+    IRegistryService registryService = openbus.connect(userLogin, userPassword);
+    Credential credential = openbus.getCredential();
+    Assert.assertNotNull(registryService);
+    IAccessControlService acs = openbus.getAccessControlService();
+    acs.logout(openbus.getCredential());
+    while (!callback.isReconnected()) {
+      ;
+    }
+    //O Openbus foi reconectado
+    Credential newCredential = openbus.getCredential();
+    Assert.assertFalse(credential.identifier.equals(newCredential.identifier));
   }
 }
