@@ -398,11 +398,11 @@ public class OpenbusTest {
         Openbus openbus = Openbus.getInstance();
         try {
           openbus.connect(userLogin, userPassword);
+          this.reconnected = true;
         }
         catch (OpenBusException e) {
           this.reconnected = false;
         }
-        this.reconnected = true;
       }
 
       public boolean isReconnected() {
@@ -445,11 +445,11 @@ public class OpenbusTest {
         Openbus openbus = Openbus.getInstance();
         try {
           openbus.connect(userLogin, userPassword);
+          this.reconnected = true;
         }
         catch (OpenBusException e) {
           this.reconnected = false;
         }
-        this.reconnected = true;
       }
 
       public boolean isReconnected() {
