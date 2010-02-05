@@ -687,9 +687,6 @@ public final class Openbus {
    */
   public void addLeaseExpiredCallback(LeaseExpiredCallback lec) {
     this.leaseExpiredCallback = lec;
-    if (this.leaseRenewer != null) {
-      this.leaseRenewer.setLeaseExpiredCallback(lec);
-    }
   }
 
   /**
@@ -697,9 +694,6 @@ public final class Openbus {
    */
   public void removeLeaseExpiredCallback() {
     this.leaseExpiredCallback = null;
-    if (this.leaseRenewer != null) {
-      this.leaseRenewer.setLeaseExpiredCallback(null);
-    }
   }
 
   /**
