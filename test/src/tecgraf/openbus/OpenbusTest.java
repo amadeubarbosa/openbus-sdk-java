@@ -385,7 +385,7 @@ public class OpenbusTest {
    * @throws OpenBusException
    */
   @Test(timeout = 4 * 60 * 1000)
-  public void credentialExpiredReconnectBeforeClass() throws OpenBusException {
+  public void addLeaseExpiredCbBeforeConnect() throws OpenBusException {
     Openbus openbus = Openbus.getInstance();
     class LeaseExpiredCallbackImpl implements LeaseExpiredCallback {
       private volatile boolean reconnected;
@@ -432,7 +432,7 @@ public class OpenbusTest {
    * @throws OpenBusException
    */
   @Test(timeout = 4 * 60 * 1000)
-  public void credentialExpiredReconnectAfterConnect() throws OpenBusException {
+  public void addLeaseExpiredCbAfterConnect() throws OpenBusException {
     Openbus openbus = Openbus.getInstance();
     class LeaseExpiredCallbackImpl implements LeaseExpiredCallback {
       private volatile boolean reconnected;
