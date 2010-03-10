@@ -367,7 +367,7 @@ public class OpenbusTest {
       }
     }
     LeaseExpiredCallbackImpl callback = new LeaseExpiredCallbackImpl();
-    openbus.addLeaseExpiredCallback(callback);
+    openbus.setLeaseExpiredCallback(callback);
     IRegistryService registryService = openbus.connect(userLogin, userPassword);
     Assert.assertNotNull(registryService);
     IAccessControlService acs = openbus.getAccessControlService();
@@ -410,7 +410,7 @@ public class OpenbusTest {
       }
     }
     LeaseExpiredCallbackImpl callback = new LeaseExpiredCallbackImpl();
-    openbus.addLeaseExpiredCallback(callback);
+    openbus.setLeaseExpiredCallback(callback);
     IRegistryService registryService = openbus.connect(userLogin, userPassword);
     Credential credential = openbus.getCredential();
     Assert.assertNotNull(registryService);
@@ -458,7 +458,7 @@ public class OpenbusTest {
     }
     LeaseExpiredCallbackImpl callback = new LeaseExpiredCallbackImpl();
     IRegistryService registryService = openbus.connect(userLogin, userPassword);
-    openbus.addLeaseExpiredCallback(callback);
+    openbus.setLeaseExpiredCallback(callback);
     Credential credential = openbus.getCredential();
     Assert.assertNotNull(registryService);
     IAccessControlService acs = openbus.getAccessControlService();

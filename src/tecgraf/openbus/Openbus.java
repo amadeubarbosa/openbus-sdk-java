@@ -685,7 +685,7 @@ public final class Openbus {
    * @param lec O observador.
    * 
    */
-  public void addLeaseExpiredCallback(LeaseExpiredCallback lec) {
+  public void setLeaseExpiredCallback(LeaseExpiredCallback lec) {
     this.leaseExpiredCallback = lec;
   }
 
