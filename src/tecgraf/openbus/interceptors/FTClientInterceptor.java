@@ -39,6 +39,8 @@ class FTClientInterceptor extends ClientInterceptor {
   FTClientInterceptor(Codec codec) {
     super(codec);
     this.ftManager = FaultToleranceManager.getInstance();
+    Log.INTERCEPTORS
+    .info("[FTClientInterceptor] INTERCEPTADOR CRIADO!");
   }
 
   /**
@@ -51,7 +53,8 @@ class FTClientInterceptor extends ClientInterceptor {
 
     String msg = "";
     boolean fetch = false;
-    if (ri.received_exception_id().equals("IDL:omg.org/CORBA/TRANSIENT:1.0")) {
+    if (ri.received_exception_id().equals(
+      "IDL:omg.org/CORBA/TRANSIENT:1.0")) {
       fetch = true;
     }
     else if (ri.received_exception_id().equals(
@@ -62,10 +65,7 @@ class FTClientInterceptor extends ClientInterceptor {
       "IDL:omg.org/CORBA/COMM_FAILURE:1.0")) {
       fetch = true;
     }
-    else if (ri.received_exception_id().equals(
-      "IDL:omg.org/CORBA/TRANSIENT:1.0")) {
-      fetch = true;
-    }
+
     Openbus bus = Openbus.getInstance();
     ORB orb = bus.getORB();
 
@@ -83,7 +83,15 @@ class FTClientInterceptor extends ClientInterceptor {
           bus.setPort(ftManager.getACSHostInUse().getHostPort());
           try {
             bus.fetchACS();
-            throw new ForwardRequest(bus.getAccessControlService());
+            if (key.equals(Utils.ACCESS_CONTROL_SERVICE_KEY)) {
+            	throw new ForwardRequest(bus.getAccessControlService());
+            }else if (key.equals(Utils.LEASE_PROVIDER_KEY)) {
+            	throw new ForwardRequest(bus.getLeaseProvider());
+            }else if (key.equals(Utils.ICOMPONENT_KEY)){
+            	throw new ForwardRequest(bus.getACSIComponent());
+            }else if (key.equals(Utils.FAULT_TOLERANT_KEY + "ACS")) {
+                throw new ForwardRequest(bus.getACSFaultTolerantService());
+            }
           }
           catch (ACSUnavailableException e) {
             fetch = true;

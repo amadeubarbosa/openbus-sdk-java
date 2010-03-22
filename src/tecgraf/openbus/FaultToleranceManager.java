@@ -11,16 +11,13 @@ public class FaultToleranceManager {
 	    * A lista de máquinas e portas que contem uma réplica rodando. 
 	    */
 		private ArrayList<Host> acsHosts;
-		private ArrayList<Host> rsHosts;
-		
-		private static int NBR_SERVERS = Integer.valueOf(PropertiesLoaderImpl.getValor("numServers"));
 		
 		/**
 		   * A máquina que contem a réplica que está sendo usada. 
 		   */
 		private Host acsHostInUse;
 		
-		private final String acsRef = "acs";
+		private int currIndex = 0;
 		
 		private static FaultToleranceManager ftManager;
 		
@@ -44,15 +41,17 @@ public class FaultToleranceManager {
 
 			if(this.acsHosts==null)
 				this.acsHosts = new ArrayList<Host>();
-			
-			for (int i = 1; i <= NBR_SERVERS; i++) {
-				String[] hostStr = (PropertiesLoaderImpl.getValor(acsRef + "HostAdd-" + i)).split(":");
+            //Todos os hosts das replicas			
+			String[] hostsStr = (PropertiesLoaderImpl.getValor("hosts")).split(",");
+			for (int i = 0; i < hostsStr.length; i++) {
+				//para cada host de replica
+				String[] hostStr = hostsStr[i].split(":");
 				String name =  hostStr[0];
 				int port = Integer.valueOf(hostStr[1]);
-				this.acsHosts.add( new Host(name, port) );
+				this.acsHosts.add( new Host(name, port) );	
 			}
 			
-			this.acsHostInUse = this.acsHosts.get(0);
+			this.acsHostInUse = this.acsHosts.get(currIndex);
 		}
 		  
 		  public ArrayList<Host> getHosts() {
@@ -80,22 +79,15 @@ public class FaultToleranceManager {
 			   * obtida uma réplica.
 			   */
 			  public boolean updateACSHostInUse(){
-			  		int indexCurr = this.acsHosts.indexOf(this.acsHostInUse);
 			      	//Se a maquina em uso eh a ultima da lista
-			      	if(indexCurr==this.acsHosts.size()-1){
+			      	if(currIndex==this.acsHosts.size()){
 			      		// eu pego a primeira
-			      		//this.acsHostInUse = this.hosts.get(0);
-			      		return false;
+			      		currIndex = 0;
 			      	}else{
-			      		for (Host host : this.acsHosts) {
-			      			if(indexCurr< this.acsHosts.indexOf(host)){
-			      				//se eu estou na proxima maquina da list
-			      				this.acsHostInUse = host;
-			      				return true;
-			      			}
-			      		}
+			      		currIndex += 1;
 			      	}
-			      	return false;
+			      	this.acsHostInUse = this.acsHosts.get(currIndex);
+			      	return true;
 			  }  
 			  
 
