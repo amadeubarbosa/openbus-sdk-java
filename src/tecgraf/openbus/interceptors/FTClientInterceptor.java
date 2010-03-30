@@ -15,7 +15,6 @@ import tecgraf.openbus.Openbus;
 import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
 import tecgraf.openbus.exception.ACSUnavailableException;
 import tecgraf.openbus.exception.CORBAException;
-import tecgraf.openbus.exception.ServiceUnavailableException;
 import tecgraf.openbus.util.Log;
 import tecgraf.openbus.util.Utils;
 
@@ -25,6 +24,10 @@ import tecgraf.openbus.util.Utils;
  * @author Tecgraf/PUC-Rio
  */
 class FTClientInterceptor extends ClientInterceptor {
+  private static final String ACCESS_CONTROL_SERVICE_KEY = "ACS_v1_05";
+  private static final String LEASE_PROVIDER_KEY = "LP_v1_05";
+  private static final String FAULT_TOLERANT_ACS_KEY = "FTACS_v1_05";
+  private static final String REGISTRY_SERVICE_KEY = "RS_v1_05";
 
   /**
    *Gerencia a lista de replicas.
@@ -39,8 +42,7 @@ class FTClientInterceptor extends ClientInterceptor {
   FTClientInterceptor(Codec codec) {
     super(codec);
     this.ftManager = FaultToleranceManager.getInstance();
-    Log.INTERCEPTORS
-    .info("[FTClientInterceptor] INTERCEPTADOR CRIADO!");
+    Log.INTERCEPTORS.info("[FTClientInterceptor] INTERCEPTADOR CRIADO!");
   }
 
   /**
@@ -53,8 +55,7 @@ class FTClientInterceptor extends ClientInterceptor {
 
     String msg = "";
     boolean fetch = false;
-    if (ri.received_exception_id().equals(
-      "IDL:omg.org/CORBA/TRANSIENT:1.0")) {
+    if (ri.received_exception_id().equals("IDL:omg.org/CORBA/TRANSIENT:1.0")) {
       fetch = true;
     }
     else if (ri.received_exception_id().equals(
@@ -73,24 +74,25 @@ class FTClientInterceptor extends ClientInterceptor {
       new ParsedIOR((org.jacorb.orb.ORB) orb, orb.object_to_string(ri.target()));
     String key = CorbaLoc.parseKey(pior.get_object_key());
 
-    if (key.equals(Utils.ACCESS_CONTROL_SERVICE_KEY)
-      || key.equals(Utils.LEASE_PROVIDER_KEY)
-      || key.equals(Utils.ICOMPONENT_KEY)
-      || key.equals(Utils.FAULT_TOLERANT_KEY + "ACS")) {
+    if (key.equals(Utils.OPENBUS_KEY) || key.equals(ACCESS_CONTROL_SERVICE_KEY)
+      || key.equals(LEASE_PROVIDER_KEY) || key.equals(FAULT_TOLERANT_ACS_KEY)) {
       while (fetch) {
         if (ftManager.updateACSHostInUse()) {
           bus.setHost(ftManager.getACSHostInUse().getHostName());
           bus.setPort(ftManager.getACSHostInUse().getHostPort());
           try {
             bus.fetchACS();
-            if (key.equals(Utils.ACCESS_CONTROL_SERVICE_KEY)) {
-            	throw new ForwardRequest(bus.getAccessControlService());
-            }else if (key.equals(Utils.LEASE_PROVIDER_KEY)) {
-            	throw new ForwardRequest(bus.getLeaseProvider());
-            }else if (key.equals(Utils.ICOMPONENT_KEY)){
-            	throw new ForwardRequest(bus.getACSIComponent());
-            }else if (key.equals(Utils.FAULT_TOLERANT_KEY + "ACS")) {
-                throw new ForwardRequest(bus.getACSFaultTolerantService());
+            if (key.equals(ACCESS_CONTROL_SERVICE_KEY)) {
+              throw new ForwardRequest(bus.getAccessControlService());
+            }
+            else if (key.equals(LEASE_PROVIDER_KEY)) {
+              throw new ForwardRequest(bus.getLeaseProvider());
+            }
+            else if (key.equals(Utils.OPENBUS_KEY)) {
+              throw new ForwardRequest(bus.getACSIComponent());
+            }
+            else if (key.equals(FAULT_TOLERANT_ACS_KEY)) {
+              throw new ForwardRequest(bus.getACSFaultTolerantService());
             }
           }
           catch (ACSUnavailableException e) {
@@ -101,10 +103,6 @@ class FTClientInterceptor extends ClientInterceptor {
             fetch = true;
             msg = e.getMessage();
           }
-          catch (ServiceUnavailableException e) {
-            fetch = true;
-            msg = e.getMessage();
-          }
         }
         else {
           fetch = false;
@@ -112,7 +110,7 @@ class FTClientInterceptor extends ClientInterceptor {
       }
       System.out.println("[ACSUnavailableException] " + msg);
     }
-    else if (key.equals(Utils.REGISTRY_SERVICE_KEY)) {
+    else if (key.equals(REGISTRY_SERVICE_KEY)) {
       IRegistryService rs = bus.getRegistryService();
       throw new ForwardRequest(rs);
     }

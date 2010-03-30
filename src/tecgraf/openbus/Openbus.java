@@ -38,7 +38,9 @@ import tecgraf.openbus.authenticators.LoginPasswordAuthenticator;
 import tecgraf.openbus.core.v1_05.access_control_service.Credential;
 import tecgraf.openbus.core.v1_05.access_control_service.CredentialHelper;
 import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlService;
+import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlServiceHelper;
 import tecgraf.openbus.core.v1_05.access_control_service.ILeaseProvider;
+import tecgraf.openbus.core.v1_05.access_control_service.ILeaseProviderHelper;
 import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
 import tecgraf.openbus.core.v1_05.registry_service.IRegistryServiceHelper;
 import tecgraf.openbus.core.v1_05.registry_service.ServiceOffer;
@@ -50,6 +52,7 @@ import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.PKIException;
 import tecgraf.openbus.exception.ServiceUnavailableException;
 import tecgraf.openbus.fault_tolerance.v1_05.IFaultTolerantService;
+import tecgraf.openbus.fault_tolerance.v1_05.IFaultTolerantServiceHelper;
 import tecgraf.openbus.interceptors.ClientInitializer;
 import tecgraf.openbus.interceptors.CredentialValidationPolicy;
 import tecgraf.openbus.interceptors.FTClientInitializer;
@@ -127,7 +130,6 @@ public final class Openbus {
    * <i>Callback</i> para a notificação de que um <i>lease</i> expirou.
    */
   private LeaseExpiredCallback leaseExpiredCallback;
-
   /**
    * Serviço de registro.
    */
@@ -148,7 +150,6 @@ public final class Openbus {
    * O slot da credencial da requisição.
    */
   private int requestCredentialSlot;
-
   /**
    * Indica se o mecanismo de tolerancia a falhas esta ativado.
    */
@@ -158,6 +159,7 @@ public final class Openbus {
    * Mantém a lista de métodos a serem liberados por interface.
    */
   private Map<String, Set<String>> ifaceMap;
+
   /**
    * A política de validação das credenciais obtidas pelo interceptador
    * servidor.
@@ -173,17 +175,21 @@ public final class Openbus {
    * Se conecta ao AccessControlServer por meio do endereço e da porta. Este
    * método também instancia um observador de <i>leases</i>.
    * 
-   * @throws CORBAException
-   * @throws ServiceUnavailableException
-   * @throws ACSUnavailableException
+   * @throws ACSUnavailableException Caso o serviço não seja encontrado.
+   * @throws CORBAException Caso ocorra algum erro no acesso ao serviço.
    */
-  public void fetchACS() throws CORBAException, ServiceUnavailableException,
-    ACSUnavailableException {
-    this.acs = Utils.fetchAccessControlService(orb, host, port);
-    this.lp = Utils.fetchAccessControlServiceLeaseProvider(orb, host, port);
-    this.ic = Utils.fetchAccessControlServiceIComponent(orb, host, port);
+  public void fetchACS() throws ACSUnavailableException, CORBAException {
+    this.ic = Utils.fetchAccessControlServiceComponent(orb, host, port);
+
+    org.omg.CORBA.Object obj = ic.getFacet(IAccessControlServiceHelper.id());
+    this.acs = IAccessControlServiceHelper.narrow(obj);
+
+    obj = ic.getFacet(ILeaseProviderHelper.id());
+    this.lp = ILeaseProviderHelper.narrow(obj);
+
     if (this.isFaultToleranceEnable) {
-      this.ft = Utils.fetchAccessControlServiceFaultTolerant(orb, host, port);
+      obj = ic.getFacet(IFaultTolerantServiceHelper.id());
+      this.ft = IFaultTolerantServiceHelper.narrow(obj);
       
       this.acs._set_policy_override(new Policy[] { this.timeOutPolicy }, 
     		                        SetOverrideType.ADD_OVERRIDE);
