@@ -54,18 +54,13 @@ class FTClientInterceptor extends ClientInterceptor {
       .info("[receive_exception] TRATANDO EXCECAO ENVIADA DO SERVIDOR!");
 
     String msg = "";
-    boolean fetch = false;
-    if (ri.received_exception_id().equals("IDL:omg.org/CORBA/TRANSIENT:1.0")) {
-      fetch = true;
-    }
-    else if (ri.received_exception_id().equals(
-      "IDL:omg.org/CORBA/OBJECT_NOT_EXIST:1.0")) {
-      fetch = true;
-    }
-    else if (ri.received_exception_id().equals(
-      "IDL:omg.org/CORBA/COMM_FAILURE:1.0")) {
-      fetch = true;
-    }
+    boolean fetch =
+      ri.received_exception_id().equals("IDL:omg.org/CORBA/TRANSIENT:1.0") ||
+      ri.received_exception_id()
+        .equals("IDL:omg.org/CORBA/OBJECT_NOT_EXIST:1.0") ||
+      ri.received_exception_id().equals("IDL:omg.org/CORBA/COMM_FAILURE:1.0");
+
+    if (!fetch) return;
 
     Openbus bus = Openbus.getInstance();
     ORB orb = bus.getORB();
