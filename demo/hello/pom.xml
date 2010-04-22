@@ -1,0 +1,111 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>tecgraf.openbus</groupId>
+  <artifactId>openbus-demo-hello</artifactId>
+  <packaging>jar</packaging>
+  <version>1.5-SNAPSHOT</version>
+
+  <name>OpenBus Demo Hello</name>
+  <url>https://subversion.tecgraf.puc-rio.br/engdist/openbus/sdk/java/trunk/demo/hello</url>
+
+  <properties>
+    <java.version>1.6</java.version>
+    <scs.version>1.1.0</scs.version>
+    <jacorb.version>2.3.0</jacorb.version>
+    <source.encoding>ISO-8859-1</source.encoding>
+  </properties>
+
+  <build>
+    <sourceDirectory>src</sourceDirectory>
+    <resources>
+      <resource>
+        <directory>resources</directory>
+      </resource>
+    </resources>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>${java.version}</source>
+          <target>${java.version}</target>
+          <encoding>${source.encoding}</encoding>
+          <compilerArgument>-Xbootclasspath/p:${settings.localRepository}/org/jacorb/jacorb/${jacorb.version}/jacorb-${jacorb.version}.jar</compilerArgument>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <configuration>
+          <encoding>${source.encoding}</encoding>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>idlj-maven-plugin</artifactId>
+        <version>1.1</version>
+
+        <dependencies>
+          <dependency>
+            <groupId>org.jacorb</groupId>
+            <artifactId>jacorb-idl-compiler</artifactId>
+            <version>${jacorb.version}</version>
+          </dependency> 
+        </dependencies>
+        
+        <executions>
+          <execution>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
+
+        <configuration>
+          <compiler>jacorb</compiler>
+          <sourceDirectory>idl</sourceDirectory>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <dependencies>
+    <dependency>
+      <groupId>tecgraf.openbus</groupId>
+      <artifactId>openbus-idl-jacorb</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>tecgraf.openbus</groupId>
+      <artifactId>openbus-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>tecgraf.scs</groupId>
+      <artifactId>scs-idl-jacorb</artifactId>
+      <version>${scs.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>tecgraf.scs</groupId>
+      <artifactId>scs-core</artifactId>
+      <version>${scs.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jacorb</groupId>
+      <artifactId>jacorb</artifactId>
+      <version>${jacorb.version}</version>
+      <scope>runtime</scope>
+    </dependency> 
+  </dependencies>
+</project>
+

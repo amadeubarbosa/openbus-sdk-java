@@ -1,0 +1,66 @@
+descriptors = {
+  { name = "jacorb-2.3.0",
+    url = "http://www.tecgraf.puc-rio.br/~openbus/repository/jacorb-2.3.0.tar.gz",
+    build = {
+      type = "mavenimport",
+      src = PRODAPP.."/jacorb-2.3.0"
+    },
+    parameters = { 
+      ["lib/jacorb.jar"] = { groupId="org.jacorb", artifactId="jacorb",
+          version="2.3.0", pomFile="jacorb-pom.xml" },
+      ["lib/idl.jar"] = { groupId="org.jacorb",
+          artifactId="jacorb-idl-compiler", version="2.3.0",
+          pomFile="jacorb-idl-compiler-pom.xml" },
+    },
+  },
+  { name = "openbus-api",
+    build = {
+      type = "maven",
+      src = SVNDIR,      
+    },
+    install_files = {
+      ["target/openbus-api-*.jar"] = "libpath/java",
+      ["target/dependency/*.jar"] = "libpath/java",
+    },
+  },
+  { name = "openbus-api-javadoc",
+    build = {
+      type = "command",
+      src = SVNDIR,
+      cmd = "mvn",
+      rebuild = "clean",
+      arguments = "javadoc:javadoc -Dquiet",
+    },
+    install_files = {
+      ["target/site"] = "libpath/java/doc",
+    },
+  },
+  { name = "openbus-demo-hello",
+    build = {
+      type = "maven",
+      src = SVNDIR.."/demo/hello",
+    },
+    install_files = {
+      ["target/openbus-demo-hello-*.jar"] = "demo/hello",
+      ["target/dependency/*.jar"] = "libpath/java",
+    },
+    dev_files = {
+      ["resources"] = "demo/hello",
+      ["src"] = "demo/hello",
+    },
+  },
+  { name = "openbus-demo-delegate",
+    build = {
+      type = "maven",
+      src = SVNDIR.."/demo/delegate",
+    },
+    install_files = {
+      ["target/openbus-demo-delegate-*.jar"] = "demo/delegate",
+      ["target/dependency/*.jar"] = "libpath/java",
+    },
+    dev_files = {
+      ["resources"] = "demo/delegate",
+      ["src"] = "demo/delegate",
+    },
+  },
+}
