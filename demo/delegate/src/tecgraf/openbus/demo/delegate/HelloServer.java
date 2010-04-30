@@ -95,14 +95,15 @@ public class HelloServer {
     IComponent component = IComponentHelper.narrow(obj);
     ServiceOffer serviceOffer = new ServiceOffer(new Property[0], component);
     try {
-    	String registrationId = registryService.register(serviceOffer);
-        System.out.println("Hello Server registrado.");
-    } catch (UnathorizedFacets uf) {
-        System.out.println("Não foi possível registrar Hello Server.");
-        for (String facet : uf.facets) {
-            System.out.println("Faceta '" + facet + "' não autorizada");
-        }
-        System.exit(1);
+      String registrationId = registryService.register(serviceOffer);
+      System.out.println("Hello Server registrado.");
+    }
+    catch (UnathorizedFacets uf) {
+      System.out.println("Não foi possível registrar Hello Server.");
+      for (String facet : uf.facets) {
+        System.out.println("Faceta '" + facet + "' não autorizada");
+      }
+      System.exit(1);
     }
 
     Runtime.getRuntime().addShutdownHook(new ShutdownThread());
