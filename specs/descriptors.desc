@@ -47,6 +47,8 @@ descriptors = {
     dev_files = {
       ["resources"] = "demo/hello",
       ["src"] = "demo/hello",
+      ["idl"] = "demo/hello",
+      ["management"] = "demo/hello",
     },
   },
   { name = "openbus-demo-delegate",
@@ -61,6 +63,8 @@ descriptors = {
     dev_files = {
       ["resources"] = "demo/delegate",
       ["src"] = "demo/delegate",
+      ["idl"] = "demo/delegate",
+      ["management"] = "demo/delegate",
     },
   },
 }
