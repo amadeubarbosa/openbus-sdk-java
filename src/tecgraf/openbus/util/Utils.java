@@ -30,6 +30,16 @@ public final class Utils {
   public static final String OPENBUS_KEY = "openbus_v1_05";
 
   /**
+   * Versao atual do OpenBus.
+   */
+  public static final String OB_VERSION = "1_05";
+  
+  /**
+   * Versao anterior do OpenBus.
+   */
+  public static final String OB_PREV = "1_04";
+  
+  /**
    * Nome da faceta IReceptacles.
    */
   public static final String RECEPTACLES_NAME = "IReceptacles";
@@ -42,11 +52,11 @@ public final class Utils {
   /**
    * O nome da faceta do Serviço de Registro.
    */
-  public static final String REGISTRY_SERVICE_FACET_NAME = "IRegistryService";
+  public static final String REGISTRY_SERVICE_FACET_NAME = "IRegistryService_v" + OB_VERSION;
   /**
    * O nome da faceta do Serviço de Sessão.
    */
-  public static final String SESSION_SERVICE_FACET_NAME = "ISessionService";
+  public static final String SESSION_SERVICE_FACET_NAME = "ISessionService_v" + OB_VERSION;
   /**
    * O nome da propriedade que representa as facetas de um membro registrado.
    */
