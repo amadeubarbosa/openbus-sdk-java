@@ -9,11 +9,6 @@ import java.security.interfaces.RSAPrivateKey;
 import java.util.Properties;
 import java.util.logging.Level;
 
-import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
-import tecgraf.openbus.core.v1_05.registry_service.Property;
-import tecgraf.openbus.core.v1_05.registry_service.ServiceOffer;
-import tecgraf.openbus.core.v1_05.registry_service.UnathorizedFacets;
-
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.UserException;
 
@@ -24,6 +19,10 @@ import scs.core.servant.ComponentBuilder;
 import scs.core.servant.ComponentContext;
 import scs.core.servant.ExtendedFacetDescription;
 import tecgraf.openbus.Openbus;
+import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
+import tecgraf.openbus.core.v1_05.registry_service.Property;
+import tecgraf.openbus.core.v1_05.registry_service.ServiceOffer;
+import tecgraf.openbus.core.v1_05.registry_service.UnathorizedFacets;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.RSUnavailableException;
 import tecgraf.openbus.util.CryptoUtils;
@@ -61,7 +60,7 @@ public class HelloServer {
     orbProps.setProperty("org.omg.CORBA.ORBSingletonClass",
       "org.jacorb.orb.ORBSingleton");
     Openbus bus = Openbus.getInstance();
-    //bus.resetAndInitialize(args, orbProps, host, port);
+    // bus.resetAndInitialize(args, orbProps, host, port);
     bus.initWithFaultTolerance(args, orbProps, host, port);
 
     String entityName = props.getProperty("entity.name");
@@ -101,14 +100,15 @@ public class HelloServer {
     registrationProps[0].value[0] = "IDL:demoidl/hello/IHello:1.0";
     ServiceOffer serviceOffer = new ServiceOffer(registrationProps, component);
     try {
-    	String registrationId = registryService.register(serviceOffer);
-        System.out.println("Hello Server registrado.");
-    } catch (UnathorizedFacets uf) {
-        System.out.println("Não foi possível registrar Hello Server.");
-        for (String facet : uf.facets) {
-            System.out.println("Faceta '" + facet + "' não autorizada");
-        }
-        System.exit(1);
+      String registrationId = registryService.register(serviceOffer);
+      System.out.println("Hello Server registrado.");
+    }
+    catch (UnathorizedFacets uf) {
+      System.out.println("Não foi possível registrar Hello Server.");
+      for (String facet : uf.facets) {
+        System.out.println("Faceta '" + facet + "' não autorizada");
+      }
+      System.exit(1);
     }
 
     Runtime.getRuntime().addShutdownHook(new ShutdownThread());

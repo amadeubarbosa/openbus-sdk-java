@@ -1,7 +1,5 @@
 package tecgraf.openbus.demo.hello;
 
-import org.omg.CORBA.Object;
-
 import scs.core.servant.ComponentContext;
 import demoidl.hello.IHelloPOA;
 

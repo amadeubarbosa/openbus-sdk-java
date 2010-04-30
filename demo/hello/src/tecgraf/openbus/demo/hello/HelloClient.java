@@ -5,13 +5,12 @@ import java.io.InputStream;
 import java.util.Properties;
 import java.util.logging.Level;
 
-import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
-import tecgraf.openbus.core.v1_05.registry_service.ServiceOffer;
-
 import org.omg.CORBA.UserException;
 
 import scs.core.IComponent;
 import tecgraf.openbus.Openbus;
+import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
+import tecgraf.openbus.core.v1_05.registry_service.ServiceOffer;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.RSUnavailableException;
 import tecgraf.openbus.util.Log;
