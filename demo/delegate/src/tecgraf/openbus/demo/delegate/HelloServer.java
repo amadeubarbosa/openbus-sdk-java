@@ -30,6 +30,12 @@ import tecgraf.openbus.util.Log;
 import demoidl.demoDelegate.IHelloHelper;
 
 public class HelloServer {
+
+  /**
+   * Identificador da oferta.
+   */
+  private static String registrationId;
+
   public static void main(String[] args) throws IOException, UserException,
     GeneralSecurityException, SecurityException, InstantiationException,
     IllegalAccessException, ClassNotFoundException, InvocationTargetException,
@@ -95,7 +101,7 @@ public class HelloServer {
     IComponent component = IComponentHelper.narrow(obj);
     ServiceOffer serviceOffer = new ServiceOffer(new Property[0], component);
     try {
-      String registrationId = registryService.register(serviceOffer);
+      registrationId = registryService.register(serviceOffer);
       System.out.println("Hello Server registrado.");
     }
     catch (UnathorizedFacets uf) {
@@ -115,6 +121,8 @@ public class HelloServer {
     @Override
     public void run() {
       Openbus bus = Openbus.getInstance();
+      IRegistryService registryService = bus.getRegistryService();
+      registryService.unregister(registrationId);
       bus.disconnect();
     }
   }

@@ -30,6 +30,12 @@ import tecgraf.openbus.util.Log;
 import demoidl.hello.IHelloHelper;
 
 public class HelloServer {
+
+  /**
+   * Identificador da oferta.
+   */
+  private static String registrationId;
+
   public static void main(String[] args) throws IOException, UserException,
     GeneralSecurityException, SecurityException, InstantiationException,
     IllegalAccessException, ClassNotFoundException, InvocationTargetException,
@@ -60,7 +66,7 @@ public class HelloServer {
     orbProps.setProperty("org.omg.CORBA.ORBSingletonClass",
       "org.jacorb.orb.ORBSingleton");
     Openbus bus = Openbus.getInstance();
-    // bus.resetAndInitialize(args, orbProps, host, port);
+
     bus.initWithFaultTolerance(args, orbProps, host, port);
 
     String entityName = props.getProperty("entity.name");
@@ -100,7 +106,7 @@ public class HelloServer {
     registrationProps[0].value[0] = "IDL:demoidl/hello/IHello:1.0";
     ServiceOffer serviceOffer = new ServiceOffer(registrationProps, component);
     try {
-      String registrationId = registryService.register(serviceOffer);
+      registrationId = registryService.register(serviceOffer);
       System.out.println("Hello Server registrado.");
     }
     catch (UnathorizedFacets uf) {
@@ -120,6 +126,8 @@ public class HelloServer {
     @Override
     public void run() {
       Openbus bus = Openbus.getInstance();
+      IRegistryService registryService = bus.getRegistryService();
+      registryService.unregister(registrationId);
       bus.disconnect();
     }
   }
