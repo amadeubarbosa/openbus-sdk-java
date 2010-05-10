@@ -81,10 +81,15 @@ Antes de se começar a programação, é aconselhável que o usuário coloque em funci
 Naturalmente a execução da demo necessita de um barramento em operação. A demo pode ser executada seguindo os seguintes passos:
 
 \begin{itemize}
-  \item Entrar no diretório \$OPENBUS\_HOME/demo/hello/java/resources e configurar a localização do barramento no arquivo Hello.properties.
-  \item Executar o processo servidor da classe \$OPENBUS\_HOME/demo/hello/java/src/tecgraf/openbus/demo/hello/HelloServer.java.
-  \item Executar o processo cliente da classe \$OPENBUS\_HOME/demo/hello/java/src/tecgraf/openbus/demo/hello/HelloClient.java. Após a execução do cliente, no terminal do processo servidor a seguinte mensagem deve ser exibida: "Hello !!!"
+  \item Entrar no diretório \linebreak
+    \$OPENBUS\_HOME/demo/hello/java/resources e configurar a localização do barramento no arquivo Hello.properties.
+  \item Executar o processo servidor da classe \linebreak
+    \$OPENBUS\_HOME/demo/hello/java/src/tecgraf/openbus/demo/hello/HelloServer.java.
+  \item Executar o processo cliente da classe \linebreak
+    \$OPENBUS\_HOME/demo/hello/java/src/tecgraf/openbus/demo/hello/HelloClient.java. Após a execução do cliente, no terminal do processo servidor a seguinte mensagem deve ser exibida: "Hello !!!"
 \end{itemize}
+
+Após a execução do cliente, no terminal a seguinte mensagem deve ser exibida pelo processo servidor, entre outras: "HELLO!"
 
 \section{Desenvolvimento}
 
@@ -100,10 +105,10 @@ Openbus bus = Openbus.getInstance();
 // host e porta apenas para fins de exemplo.
 // args são argumentos da linha de comando e props são propriedades como as
 // do Código 1. Ambos serão passados ao ORB em sua inicialização.
-bus.resetAndInitialize(args, props, "localhost", 2089);
+bus.init(args, props, "localhost", 2089);
 \end{labeledcode}
 
-Um ORB e POA são criados implicitamente na chamada \emph{resetAndInitialize}.
+Um ORB e POA são criados implicitamente na chamada \emph{init}.
 
 Os outros métodos da API Openbus serão explicados em mais detalhes a seguir:
 
@@ -111,16 +116,15 @@ Os outros métodos da API Openbus serão explicados em mais detalhes a seguir:
   \item \code{ORB Openbus::getORB()}: Retorna o ORB utilizado.
   \item \code{POA getRootPOA()}: Retorna o RootPOA.
   \item \code{void run()}: \emph{Loop} que processa requisições remotas. Execução de \emph{orb.run()}.
-  \item \code{void finish(boolean force)}: Finaliza a execução do ORB.
+  \item \code{void destroy()}: Finaliza a execução do barramento.
   \item \code{IAccessControlService getAccessControlService()}: Retorna o \emph{stub} do Serviço de Controle de Acesso.
   \item \code{IRegistryService getRegistryService()}: Retorna o \emph{stub} do Serviço de Registro.
   \item \code{ISessionService getSessionService()}: Retorna o \emph{stub} do serviço de sessão.
   \item \code{Credential getCredential()}: Retorna a credencial de identificação do usuário frente ao barramento.
   \item \code{Credential getInterceptedCredential()}: Retorna a credencial interceptada pelo interceptador servidor. Esta operação somente deve ser chamada durante o tratamento de alguma requisição à aplicação do usuário.
-  \item \code{void setInterceptedCredentialSlot(int)}: Define o slot da credencial da requisição atual.
   \item \code{void setThreadCredential(Credential credential)}: Define uma credencial a ser utilizada no lugar da credencial corrente. Útil para fornecer uma credencial com o campo delegate preenchido.
   \item \code{void setLeaseExpiredCallback(LeaseExpiredCallback lec)}: Registra uma callback para a notificação de que o lease da credencial	de identificação do usuário expirou.
-  \item \code{boolean removeLeaseExpiredCallback(LeaseExpiredCallback lec)}: Remove uma callback previamente registrada para a notificação de lease expirado.
+  \item \code{void removeLeaseExpiredCallback(LeaseExpiredCallback lec)}: Remove uma callback previamente registrada para a notificação de lease expirado.
   \item \code{boolean isConnected()}: Informa o estado de conexão com o barramento.
   \item \code{IRegistryService connect(String user, String password}: Realiza uma tentativa de conexão com o barramento. Se a tentativa for bem sucedida, um \emph{stub} do Serviço de Registro é retornado. Caso contrário, quatro exceções além das de CORBA podem ser lançadas:
     \subitem \code{ACSLoginFailureException}: O par nome de usuário e senha não foram validados.
@@ -188,7 +192,7 @@ Openbus bus = Openbus.getInstance();
 // host e porta apenas para fins de exemplo.
 // args são argumentos da linha de comando e props são propriedades como as
 // do Código 1. Ambos serão passados ao ORB em sua inicialização.
-bus.resetAndInitialize(args, props, "localhost", 2089);
+bus.init(args, props, "localhost", 2089);
 
 RSAPrivateKey privateKey = CryptoUtils.readPrivateKey("HelloService.key");
 X509Certificate acsCertificate =
@@ -229,7 +233,7 @@ ComponentBuilder builder = new ComponentBuilder(bus.getRootPOA(), bus.getORB());
 // especificação das descrições de facetas e receptáculos do componente
 ExtendedFacetDescription[] descriptions = new ExtendedFacetDescription[1];
 descriptions[0] =
-  new ExtendedFacetDescription("IHello", "IDL:demoidl/hello/IHello:1.0",
+  new ExtendedFacetDescription("IHello", IHelloHelper.id(),
     HelloImpl.class.getCanonicalName());
 
 // instanciação do componente
@@ -301,7 +305,7 @@ ServiceOffer[] servicesOffers =
 ServiceOffer serviceOffer = servicesOffers[0];
 \end{labeledcode}
 
-Como visto anteriormente, a oferta de serviço contém uma referência para um componente SCS ou, mais especificamente, para sua faceta IComponent. Como esse componente pode apresentar diversas facetas, o usuário deve obter a faceta que deseja utilizar. No exemplo há somente uma faceta além das facetas básicas do modelo SCS, que é a IHello. A faceta recebida na oferta, IComponent, oferece métodos (\emph{getFacet} e \emph{getFacetByName}) para que o usuário possa obter um objeto CORBA que represente a faceta desejada. De posse do objeto CORBA, o usuário deve efetuar um \emph{narrow} para mapeá-lo para a interface desejada e daí em diante o programador estará apto a utilizar essa faceta / serviço. Um exemplo pode ser visto no Código~\ref{lst:clientfacet}.
+Como visto anteriormente, a oferta de serviço contém uma referência para um componente SCS ou, mais especificamente, para sua faceta IComponent. Como esse componente pode apresentar diversas facetas, o usuário deve obter a faceta que deseja utilizar. No exemplo há somente uma faceta além das facetas básicas do modelo SCS, a IHello. A faceta recebida na oferta, IComponent, oferece métodos (\emph{getFacet} e \emph{getFacetByName}) para que o usuário possa obter um objeto CORBA que represente a faceta desejada. De posse do objeto CORBA, o usuário deve efetuar um \emph{narrow} para mapeá-lo para a interface desejada e daí em diante o programador estará apto a utilizar essa faceta / serviço. Um exemplo pode ser visto no Código~\ref{lst:clientfacet}.
 
 \begin{labeledcode}[java]{clientfacet}{Acesso à Faceta Desejada}
 // obtenção da faceta IHello
