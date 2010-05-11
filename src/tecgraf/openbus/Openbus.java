@@ -220,6 +220,11 @@ public final class Openbus {
     }
     return instance;
   }
+  
+  public static Openbus getNewInstance(){
+	  instance = new Openbus();
+	  return instance;
+  }
 
   /**
    * Retorna o barramento para o seu estado inicial, ou seja, desfaz as
@@ -330,7 +335,6 @@ public final class Openbus {
       ORB_INITIALIZER_PROPERTY_NAME_PREFIX + clientInitializerClassName,
       clientInitializerClassName);
     
-    //TODO mudar para FTServerInitializer
     String serverInitializerClassName = ServerInitializer.class.getName();
     props.put(
       ORB_INITIALIZER_PROPERTY_NAME_PREFIX + serverInitializerClassName,

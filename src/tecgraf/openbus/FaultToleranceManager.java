@@ -3,6 +3,7 @@ package tecgraf.openbus;
 import java.util.ArrayList;
 
 import tecgraf.openbus.util.Host;
+import tecgraf.openbus.util.Log;
 import tecgraf.openbus.util.PropertiesLoaderImpl;
 
 public class FaultToleranceManager {
@@ -20,6 +21,9 @@ public class FaultToleranceManager {
 		private int currIndex = 0;
 		
 		private static FaultToleranceManager ftManager;
+		
+		private int trials = 1;
+		private int currTrial = 0;
 		
 		private FaultToleranceManager() {
 			this.acsHosts = new ArrayList<Host>();
@@ -52,6 +56,11 @@ public class FaultToleranceManager {
 			}
 			
 			this.acsHostInUse = this.acsHosts.get(currIndex);
+			
+			String _trials = PropertiesLoaderImpl.getValor("trials");
+			if (_trials.length() > 0 ){
+				this.trials = Integer.valueOf(_trials);
+			}
 		}
 		  
 		  public ArrayList<Host> getHosts() {
@@ -79,10 +88,17 @@ public class FaultToleranceManager {
 			   * obtida uma réplica.
 			   */
 			  public boolean updateACSHostInUse(){
+				  
+				   Log.COMMON.info("currTrial: " + currTrial);
+				   if (currTrial == trials){
+					   return false;
+				   }
+				  
 			      	//Se a maquina em uso eh a ultima da lista
-			      	if(currIndex==this.acsHosts.size()){
+			      	if(currIndex==this.acsHosts.size()-1){
 			      		// eu pego a primeira
 			      		currIndex = 0;
+			      		currTrial += 1;
 			      	}else{
 			      		currIndex += 1;
 			      	}

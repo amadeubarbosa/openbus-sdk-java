@@ -80,6 +80,9 @@ public final class Utils {
    */
   public static IComponent fetchAccessControlServiceComponent(ORB orb,
     String host, int port) throws ACSUnavailableException, CORBAException {
+	 Log.COMMON.info("Buscando...  corbaloc::1.0@" + host + ":" + port + "/"
+        + Utils.OPENBUS_KEY);
+	  
     org.omg.CORBA.Object obj =
       orb.string_to_object("corbaloc::1.0@" + host + ":" + port + "/"
         + Utils.OPENBUS_KEY);
