@@ -41,17 +41,28 @@ class ClientInterceptor extends InterceptorImpl implements
   public void send_request(ClientRequestInfo ri) {
     Log.INTERCEPTORS.info("Operação {" + ri.operation()
       + "} interceptada no cliente.");
+    
+    //operacao getFacet nao precisa de credencial
+    if (ri.operation().equals("getFacet")) return;
+    
+    //operacoes do ORB nao precisam de credencial
+    for (java.lang.reflect.Method op : ClientInterceptor.class.getMethods()) {
+		if (ri.operation().equals(op.getName()) ) return;
+	} 
+    
     Openbus bus = Openbus.getInstance();
 
     /* Verifica se existe uma credencial para envio */
     Credential credential = bus.getCredential();
     if ((credential == null) || (credential.identifier.equals(""))) {
-      Log.INTERCEPTORS.info("SEM CREDENCIAL!");
+      Log.INTERCEPTORS.info("Operação {" + ri.operation()
+      + "} SEM CREDENCIAL!");
       return;
     }
 
     CredentialWrapper wrapper = new CredentialWrapper(credential);
-    Log.INTERCEPTORS.info("Credencial: " + wrapper);
+    Log.INTERCEPTORS.info("Operação {" + ri.operation()
+    	      + "} Credencial: " + wrapper);
 
     /* Insere a credencial no contexto do serviço */
     byte[] value = null;
@@ -62,12 +73,14 @@ class ClientInterceptor extends InterceptorImpl implements
       value = this.getCodec().encode_value(credentialValue);
     }
     catch (Exception e) {
-      Log.INTERCEPTORS.severe("ERRO NA CODIFICAÇÂO DA CREDENCIAL!", e);
+      Log.INTERCEPTORS.severe("Operação {" + ri.operation()
+    	      + "} ERRO NA CODIFICAÇÂO DA CREDENCIAL!", e);
       return;
     }
     ri
       .add_request_service_context(new ServiceContext(CONTEXT_ID, value), false);
-    Log.INTERCEPTORS.fine("INSERI CREDENCIAL!");
+    Log.INTERCEPTORS.fine("Operação {" + ri.operation()
+      + "} INSERI CREDENCIAL!");
   }
 
   /**
