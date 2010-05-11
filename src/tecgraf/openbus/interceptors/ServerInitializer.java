@@ -29,24 +29,30 @@ public class ServerInitializer extends LocalObject implements ORBInitializer {
       Log.INTERCEPTORS.info("REGISTREI INTERCEPTADOR SERVIDOR!");
       Openbus bus = Openbus.getInstance();
       CredentialValidationPolicy policy = bus.getCredentialValidationPolicy();
-      switch (policy) {
-        case ALWAYS:
-          info
-            .add_server_request_interceptor(CredentialValidatorServerInterceptor
-              .getInstance());
-          break;
-        case CACHED:
-          info
-            .add_server_request_interceptor(CachedCredentialValidatorServerInterceptor
-              .getInstance());
-          break;
-        case NONE:
-          break;
-        default:
-          Log.INTERCEPTORS
-            .warning("Não foi escolhida nenhuma política para a validação de credenciais obtidas pelo interceptador servidor.");
-          break;
+      if (policy == null){
+    	  Log.INTERCEPTORS
+          .warning("Não foi escolhida nenhuma política para a validação de credenciais obtidas pelo interceptador servidor.");
+      }else{
+    	  switch (policy) {
+          case ALWAYS:
+            info
+              .add_server_request_interceptor(CredentialValidatorServerInterceptor
+                .getInstance());
+            break;
+          case CACHED:
+            info
+              .add_server_request_interceptor(CachedCredentialValidatorServerInterceptor
+                .getInstance());
+            break;
+          case NONE:
+            break;
+          default:
+            Log.INTERCEPTORS
+              .warning("Não foi escolhida nenhuma política para a validação de credenciais obtidas pelo interceptador servidor.");
+            break;
+        }
       }
+      
     }
     catch (UserException e) {
       Log.INTERCEPTORS.severe("ERRO NO REGISTRO DO INTERCEPTADOR SERVIDOR!", e);
