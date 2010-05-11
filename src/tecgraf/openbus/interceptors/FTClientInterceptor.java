@@ -15,6 +15,7 @@ import tecgraf.openbus.Openbus;
 import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
 import tecgraf.openbus.exception.ACSUnavailableException;
 import tecgraf.openbus.exception.CORBAException;
+import tecgraf.openbus.util.LoadLog;
 import tecgraf.openbus.util.Log;
 import tecgraf.openbus.util.Utils;
 
@@ -28,6 +29,13 @@ class FTClientInterceptor extends ClientInterceptor {
   private static final String LEASE_PROVIDER_KEY = "LP_v1_05";
   private static final String FAULT_TOLERANT_ACS_KEY = "FTACS_v1_05";
   private static final String REGISTRY_SERVICE_KEY = "RS_v1_05";
+  
+  /**
+   * O log dos testes de carga.
+   */
+  public static final LoadLog LOAD_TEST = new LoadLog("openbus.loadtest");
+  
+  private long start;
 
   /**
    *Gerencia a lista de replicas.
@@ -44,30 +52,63 @@ class FTClientInterceptor extends ClientInterceptor {
     this.ftManager = FaultToleranceManager.getInstance();
     Log.INTERCEPTORS.info("[FTClientInterceptor] INTERCEPTADOR CRIADO!");
   }
+  
+  
+  
+  @Override
+  public void receive_reply(ClientRequestInfo ri) {
+	String key = getObjectKey(ri);
+	String loadMsg =   "receive_reply; --; ; " + (System.currentTimeMillis() - start) + "; " 
+		+ key + "; " + ri.operation();
+	LOAD_TEST.info(loadMsg);
+  }
 
-  /**
+  
+
+@Override
+public void send_request(ClientRequestInfo ri) {
+	String key = getObjectKey(ri);
+	
+	start = System.currentTimeMillis();
+	String loadMsg =   "send_request; inicio; 0; " 
+		+ key + "; " + ri.operation();
+	LOAD_TEST.info(loadMsg);
+
+	super.send_request(ri);
+	
+	loadMsg =   "send_request; fim; ; " + (System.currentTimeMillis() - start) + "; " 
+		+ key + "; " + ri.operation();
+	LOAD_TEST.info(loadMsg);
+}
+
+
+
+/**
    * {@inheritDoc}
    */
   @Override
   public void receive_exception(ClientRequestInfo ri) throws ForwardRequest {
-    Log.INTERCEPTORS
-      .info("[receive_exception] TRATANDO EXCECAO ENVIADA DO SERVIDOR!");
-
+	Log.INTERCEPTORS
+      .info("[receive_exception] TRATANDO EXCECAO ENVIADA DO SERVIDOR: " + ri.received_exception_id());
+	  
+	String key = getObjectKey(ri);
+	String loadMsg =   "receive_exception; inicio; ; " + (System.currentTimeMillis() - start) + "; " 
+	+ key + "; " + ri.operation() + "; " + ri.received_exception_id();
+	LOAD_TEST.severe(loadMsg);
+	
     String msg = "";
     boolean fetch =
       ri.received_exception_id().equals("IDL:omg.org/CORBA/TRANSIENT:1.0") ||
       ri.received_exception_id()
         .equals("IDL:omg.org/CORBA/OBJECT_NOT_EXIST:1.0") ||
       ri.received_exception_id().equals("IDL:omg.org/CORBA/COMM_FAILURE:1.0");
-
-    if (!fetch) return;
+    
+    if (!fetch) {
+  	  Log.INTERCEPTORS.severe(ri.received_exception_id());
+  	  return;
+    }
 
     Openbus bus = Openbus.getInstance();
-    ORB orb = bus.getORB();
-
-    ParsedIOR pior =
-      new ParsedIOR((org.jacorb.orb.ORB) orb, orb.object_to_string(ri.target()));
-    String key = CorbaLoc.parseKey(pior.get_object_key());
 
     if (key.equals(Utils.OPENBUS_KEY) || key.equals(ACCESS_CONTROL_SERVICE_KEY)
       || key.equals(LEASE_PROVIDER_KEY) || key.equals(FAULT_TOLERANT_ACS_KEY)) {
@@ -77,6 +118,11 @@ class FTClientInterceptor extends ClientInterceptor {
           bus.setPort(ftManager.getACSHostInUse().getHostPort());
           try {
             bus.fetchACS();
+            
+            loadMsg =   "receive_exception; fim; ; " + (System.currentTimeMillis() - start) + "; " 
+        	             + key + "; " + ri.operation() + "; " + ri.received_exception_id();
+            LOAD_TEST.severe(loadMsg);
+            
             if (key.equals(ACCESS_CONTROL_SERVICE_KEY)) {
               throw new ForwardRequest(bus.getAccessControlService());
             }
@@ -103,10 +149,20 @@ class FTClientInterceptor extends ClientInterceptor {
           fetch = false;
         }
       }
-      System.out.println("[ACSUnavailableException] " + msg);
+      loadMsg =   "receive_exception; fim; ; " + (System.currentTimeMillis() - start) + "; " 
+  	              + key + "; " + ri.operation() + "; " + ri.received_exception_id();
+      LOAD_TEST.severe(loadMsg);
+      
+      Log.INTERCEPTORS
+      .info("[receive_exception][ACSUnavailableException] " + msg);
     }
     else if (key.equals(REGISTRY_SERVICE_KEY)) {
       IRegistryService rs = bus.getRegistryService();
+      
+      loadMsg =   "receive_exception; fim; ; " + (System.currentTimeMillis() - start) + "; " 
+  	             + key + "; " + ri.operation() + "; " + ri.received_exception_id();
+      LOAD_TEST.severe(loadMsg);
+      
       throw new ForwardRequest(rs);
     }
   }
@@ -117,6 +173,21 @@ class FTClientInterceptor extends ClientInterceptor {
   @Override
   public void receive_other(ClientRequestInfo ri) {
     Log.INTERCEPTORS.info("[receive_other] TRATANDO OUTRA RESPOSTA!");
-    // TODO
+    
+    String key = getObjectKey(ri);
+	String loadMsg =   "receive_other; --; ; " + (System.currentTimeMillis() - start) + "; " 
+	+ key + "; " + ri.operation();
+	LOAD_TEST.severe(loadMsg);
   }
+  
+  public String getObjectKey(ClientRequestInfo ri){
+	  Openbus bus = Openbus.getInstance();
+	    ORB orb = bus.getORB();
+		ParsedIOR pior =
+		      new ParsedIOR((org.jacorb.orb.ORB) orb, orb.object_to_string(ri.target()));
+		    String key = CorbaLoc.parseKey(pior.get_object_key());
+		return key;
+	  }
+  
+  
 }
