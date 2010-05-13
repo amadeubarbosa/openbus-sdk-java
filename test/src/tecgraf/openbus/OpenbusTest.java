@@ -7,9 +7,11 @@ import java.security.interfaces.RSAPrivateKey;
 import java.util.Properties;
 import java.util.logging.Level;
 
-import junit.framework.Assert;
-import junit.framework.TestCase;
-
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.omg.CORBA.UserException;
 
 import tecgraf.openbus.core.v1_05.access_control_service.Credential;
@@ -21,7 +23,7 @@ import tecgraf.openbus.lease.LeaseExpiredCallback;
 import tecgraf.openbus.util.CryptoUtils;
 import tecgraf.openbus.util.Log;
 
-public class OpenbusTest extends TestCase{
+public class OpenbusTest {
   private static Properties props;
 
   private String userLogin;
@@ -46,8 +48,7 @@ public class OpenbusTest extends TestCase{
     props.load(in);
     in.close();
 
-    this.userLogin = props.getProperty("userLogin") + System.currentTimeMillis();
-    
+    this.userLogin = props.getProperty("userLogin");
     this.userPassword = props.getProperty("userPassword");
     this.hostName = props.getProperty("hostName");
     this.hostPort = Integer.valueOf(props.getProperty("hostPort"));
@@ -56,8 +57,19 @@ public class OpenbusTest extends TestCase{
     this.acsCertificate = props.getProperty("ACServiceCert");
     this.testCertificateName = props.getProperty("testCertificateName");
   }
-  
-  Openbus openbus;
+
+  /**
+   * Este método é chamado antes de todos os testCases.
+   */
+  @BeforeClass
+  public static void beforeClass() {
+    props = new Properties();
+    props.setProperty("org.omg.CORBA.ORBClass", "org.jacorb.orb.ORB");
+    props.setProperty("org.omg.CORBA.ORBSingletonClass",
+      "org.jacorb.orb.ORBSingleton");
+
+    Log.setLogsLevel(Level.FINEST);
+  }
 
   /**
    * Este método é chamado antes de cada testCase.
@@ -65,19 +77,11 @@ public class OpenbusTest extends TestCase{
    * @throws OpenBusException
    * @throws UserException
    */
-  public void setUp() throws OpenBusException, UserException {
-	props = new Properties();
-	props.setProperty("org.omg.CORBA.ORBClass", "org.jacorb.orb.ORB");
-	props.setProperty("org.omg.CORBA.ORBSingletonClass",
-	      "org.jacorb.orb.ORBSingleton");
-
-	Log.setLogsLevel(Level.FINEST);
-	  
-	openbus = Openbus.getInstance();
-    //openbus.init(null, props, hostName, hostPort);
-    openbus.initWithFaultTolerance(null, props, hostName, hostPort);
+  @Before
+  public void beforeTest() throws OpenBusException, UserException {
+    Openbus openbus = Openbus.getInstance();
+    openbus.init(null, props, hostName, hostPort);
   }
-  
 
   /**
    * Este método é chamado depois de cada testCase.
@@ -85,7 +89,9 @@ public class OpenbusTest extends TestCase{
    * @throws OpenBusException
    * @throws UserException
    */
-  public void tearDown() throws OpenBusException, UserException {
+  @After
+  public void afterTest() throws OpenBusException, UserException {
+    Openbus openbus = Openbus.getInstance();
     openbus.destroy();
   }
 
@@ -94,7 +100,9 @@ public class OpenbusTest extends TestCase{
    * 
    * @throws OpenBusException
    */
-  public void testConnectByPassword() throws OpenBusException {
+  @Test
+  public void connectByPassword() throws OpenBusException {
+    Openbus openbus = Openbus.getInstance();
     IRegistryService registryService = openbus.connect(userLogin, userPassword);
     Assert.assertNotNull(registryService);
     Assert.assertTrue(openbus.disconnect());
@@ -105,15 +113,17 @@ public class OpenbusTest extends TestCase{
    * 
    * @throws OpenBusException
    */
-  public void testConnectByPasswordLoginNull() throws OpenBusException {
+  @Test(expected = IllegalArgumentException.class)
+  public void connectByPasswordLoginNull() throws OpenBusException {
+    Openbus openbus = Openbus.getInstance();
     IRegistryService registryService = null;
     try {
       registryService = openbus.connect(null, null);
-    } catch (Exception e) {
-    	Assert.assertNull(registryService);
-        Assert.assertFalse(openbus.disconnect());
-	}
-    
+    }
+    finally {
+      Assert.assertNull(registryService);
+      Assert.assertFalse(openbus.disconnect());
+    }
   }
 
   /**
@@ -121,11 +131,14 @@ public class OpenbusTest extends TestCase{
    * 
    * @throws OpenBusException
    */
-  public void testConnectByPasswordInvalidLogin() throws OpenBusException {
+  @Test(expected = ACSLoginFailureException.class)
+  public void connectByPasswordInvalidLogin() throws OpenBusException {
+    Openbus openbus = Openbus.getInstance();
     IRegistryService registryService = null;
     try {
       registryService = openbus.connect("null", "null");
-    }catch (Exception e) {
+    }
+    finally {
       Assert.assertNull(registryService);
       Assert.assertFalse(openbus.disconnect());
     }
@@ -137,9 +150,11 @@ public class OpenbusTest extends TestCase{
    * @throws OpenBusException
    * @throws Exception
    */
-  public void testConnectByCertificate() throws OpenBusException, Exception {
+  @Test
+  public void connectByCertificate() throws OpenBusException, Exception {
     RSAPrivateKey key = CryptoUtils.readPrivateKey(testKey);
     X509Certificate acsCert = CryptoUtils.readCertificate(acsCertificate);
+    Openbus openbus = Openbus.getInstance();
     IRegistryService registryService =
       openbus.connect(testCertificateName, key, acsCert);
     Assert.assertNotNull(registryService);
@@ -152,12 +167,15 @@ public class OpenbusTest extends TestCase{
    * @throws OpenBusException
    * @throws Exception
    */
-  public void testConnectByCertificateNullKey() throws OpenBusException, Exception {
+  @Test(expected = IllegalArgumentException.class)
+  public void connectByCertificateNullKey() throws OpenBusException, Exception {
     X509Certificate acsCert = CryptoUtils.readCertificate(acsCertificate);
+    Openbus openbus = Openbus.getInstance();
     IRegistryService registryService = null;
     try {
       registryService = openbus.connect(testCertificateName, null, acsCert);
-    }catch (Exception e) {
+    }
+    finally {
       Assert.assertNull(registryService);
       Assert.assertFalse(openbus.disconnect());
     }
@@ -169,13 +187,16 @@ public class OpenbusTest extends TestCase{
    * @throws OpenBusException
    * @throws Exception
    */
-  public void testConnectByCertificateNullACSCertificate() throws OpenBusException,
+  @Test(expected = IllegalArgumentException.class)
+  public void connectByCertificateNullACSCertificate() throws OpenBusException,
     Exception {
     RSAPrivateKey Key = CryptoUtils.readPrivateKey(testKey);
+    Openbus openbus = Openbus.getInstance();
     IRegistryService registryService = null;
     try {
       registryService = openbus.connect(testCertificateName, Key, null);
-    }catch (Exception e) {
+    }
+    finally {
       Assert.assertNull(registryService);
       Assert.assertFalse(openbus.disconnect());
     }
@@ -188,7 +209,9 @@ public class OpenbusTest extends TestCase{
    * 
    * @throws OpenBusException
    */
-  public void testConnectByCredential() throws OpenBusException {
+  @Test
+  public void connectByCredential() throws OpenBusException {
+    Openbus openbus = Openbus.getInstance();
     Credential credential = openbus.getCredential();
     Assert.assertNull(credential);
     // Fazendo o Login de um usuário para receber uma credencial.
@@ -208,18 +231,14 @@ public class OpenbusTest extends TestCase{
    * 
    * @throws OpenBusException
    */
-  public void testConnectByCredentialNullCredential() throws OpenBusException {
+  @Test(expected = IllegalArgumentException.class)
+  public void connectByCredentialNullCredential() throws OpenBusException {
+    Openbus openbus = Openbus.getInstance();
     Credential credential = openbus.getCredential();
     Assert.assertNull(credential);
-    IRegistryService registryService = null;
-    try {
-    	registryService = openbus.connect(credential);
-	} catch (Exception e) {
-		Assert.assertNull(registryService);
-	    Assert.assertFalse(openbus.disconnect());
-	}
-    
-    
+    IRegistryService registryService = openbus.connect(credential);
+    Assert.assertNotNull(registryService);
+    Assert.assertTrue(openbus.disconnect());
   }
 
   /**
@@ -228,7 +247,9 @@ public class OpenbusTest extends TestCase{
    * @throws OpenBusException
    * @throws ACSLoginFailureException
    */
-  public void testIsConnected() throws ACSLoginFailureException, OpenBusException {
+  @Test
+  public void isConnected() throws ACSLoginFailureException, OpenBusException {
+    Openbus openbus = Openbus.getInstance();
     Assert.assertFalse(openbus.isConnected());
     IRegistryService registryService = openbus.connect(userLogin, userPassword);
     Assert.assertNotNull(registryService);
@@ -242,7 +263,9 @@ public class OpenbusTest extends TestCase{
    * 
    * @throws OpenBusException
    */
-  public void testDisconnected() throws OpenBusException {
+  @Test
+  public void disconnected() throws OpenBusException {
+    Openbus openbus = Openbus.getInstance();
     Assert.assertFalse(openbus.disconnect());
   }
 
@@ -251,7 +274,9 @@ public class OpenbusTest extends TestCase{
    * 
    * @throws OpenBusException
    */
-  public void testGetOrb() throws OpenBusException {
+  @Test
+  public void getOrb() throws OpenBusException {
+    Openbus openbus = Openbus.getInstance();
     IRegistryService registryService = openbus.connect(userLogin, userPassword);
     Assert.assertNotNull(registryService);
     Assert.assertNotNull(openbus.getORB());
@@ -264,7 +289,9 @@ public class OpenbusTest extends TestCase{
    * @throws OpenBusException
    * @throws UserException
    */
-  public void testGetRootPOA() throws OpenBusException, UserException {
+  @Test
+  public void getRootPOA() throws OpenBusException, UserException {
+    Openbus openbus = Openbus.getInstance();
     IRegistryService registryService = openbus.connect(userLogin, userPassword);
     Assert.assertNotNull(registryService);
     Assert.assertNotNull(openbus.getRootPOA());
@@ -277,7 +304,9 @@ public class OpenbusTest extends TestCase{
    * @throws OpenBusException
    * @throws UserException
    */
-  public void testGetAccessControlService() throws OpenBusException, UserException {
+  @Test
+  public void getAccessControlService() throws OpenBusException, UserException {
+    Openbus openbus = Openbus.getInstance();
     IRegistryService registryService = openbus.connect(userLogin, userPassword);
     Assert.assertNotNull(registryService);
     Assert.assertNotNull(openbus.getAccessControlService());
@@ -290,7 +319,9 @@ public class OpenbusTest extends TestCase{
    * @throws OpenBusException
    * @throws UserException
    */
-  public void testGetRegistryService() throws OpenBusException, UserException {
+  @Test
+  public void getRegistryService() throws OpenBusException, UserException {
+    Openbus openbus = Openbus.getInstance();
     IRegistryService registryService = openbus.connect(userLogin, userPassword);
     Assert.assertNotNull(registryService);
     Assert.assertNotNull(openbus.getRegistryService());
@@ -303,22 +334,23 @@ public class OpenbusTest extends TestCase{
    * @throws OpenBusException
    * @throws UserException
    */
-/*  
-  public void testGetSessionService() throws OpenBusException, UserException {
+  @Test
+  public void getSessionService() throws OpenBusException, UserException {
+    Openbus openbus = Openbus.getInstance();
     IRegistryService registryService = openbus.connect(userLogin, userPassword);
     Assert.assertNotNull(registryService);
     Assert.assertNotNull(openbus.getSessionService());
     Assert.assertTrue(openbus.disconnect());
   }
-*/
+
   /**
    * Testa se a callback de expiração da credencial é corretamente acionada.
    * 
    * @throws OpenBusException
    */
-  ///@Test(timeout = 4 * 60 * 1000)
-/*  
-  public void testCredentialExpired() throws OpenBusException {
+  @Test(timeout = 4 * 60 * 1000)
+  public void credentialExpired() throws OpenBusException {
+    Openbus openbus = Openbus.getInstance();
     class LeaseExpiredCallbackImpl implements LeaseExpiredCallback {
       private volatile boolean expired;
 
@@ -344,7 +376,7 @@ public class OpenbusTest extends TestCase{
       ;
     }
   }
-*/
+
   /**
    * Testa a utilização de uma callback responsável por reconectar após a
    * expiração da credencial. O cadastro dessa lease acontece antes do método
@@ -352,9 +384,9 @@ public class OpenbusTest extends TestCase{
    * 
    * @throws OpenBusException
    */
-  //@Test(timeout = 4 * 60 * 1000)
-/*  
-  public void testAddLeaseExpiredCbBeforeConnect() throws OpenBusException {
+  @Test(timeout = 4 * 60 * 1000)
+  public void addLeaseExpiredCbBeforeConnect() throws OpenBusException {
+    Openbus openbus = Openbus.getInstance();
     class LeaseExpiredCallbackImpl implements LeaseExpiredCallback {
       private volatile boolean reconnected;
 
@@ -363,6 +395,7 @@ public class OpenbusTest extends TestCase{
       }
 
       public void expired() {
+        Openbus openbus = Openbus.getInstance();
         try {
           openbus.connect(userLogin, userPassword);
           this.reconnected = true;
@@ -390,7 +423,7 @@ public class OpenbusTest extends TestCase{
     Credential newCredential = openbus.getCredential();
     Assert.assertFalse(credential.identifier.equals(newCredential.identifier));
   }
-*/
+
   /**
    * Testa a utilização de uma callback responsável por reconectar ao barramento
    * após a expiração da credencial. O cadastro dessa lease acontece depois do
@@ -398,9 +431,9 @@ public class OpenbusTest extends TestCase{
    * 
    * @throws OpenBusException
    */
-  //@Test(timeout = 4 * 60 * 1000)
-/*  
-  public void testAddLeaseExpiredCbAfterConnect() throws OpenBusException {
+  @Test(timeout = 4 * 60 * 1000)
+  public void addLeaseExpiredCbAfterConnect() throws OpenBusException {
+    Openbus openbus = Openbus.getInstance();
     class LeaseExpiredCallbackImpl implements LeaseExpiredCallback {
       private volatile boolean reconnected;
 
@@ -409,6 +442,7 @@ public class OpenbusTest extends TestCase{
       }
 
       public void expired() {
+        Openbus openbus = Openbus.getInstance();
         try {
           openbus.connect(userLogin, userPassword);
           this.reconnected = true;
@@ -436,6 +470,4 @@ public class OpenbusTest extends TestCase{
     Credential newCredential = openbus.getCredential();
     Assert.assertFalse(credential.identifier.equals(newCredential.identifier));
   }
-*/
-
 }
