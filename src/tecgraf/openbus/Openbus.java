@@ -220,11 +220,6 @@ public final class Openbus {
     }
     return instance;
   }
-  
-  public static Openbus getNewInstance(){
-	  instance = new Openbus();
-	  return instance;
-  }
 
   /**
    * Retorna o barramento para o seu estado inicial, ou seja, desfaz as
