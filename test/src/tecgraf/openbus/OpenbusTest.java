@@ -24,12 +24,12 @@ import tecgraf.openbus.util.CryptoUtils;
 import tecgraf.openbus.util.Log;
 
 public class OpenbusTest {
-  private static Properties props;
+  protected static Properties props;
 
   private String userLogin;
   private String userPassword;
-  private String hostName;
-  private int hostPort;
+  protected String hostName;
+  protected int hostPort;
 
   private String testKey;
   private String acsCertificate;

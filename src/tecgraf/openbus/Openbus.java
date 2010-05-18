@@ -335,13 +335,15 @@ public final class Openbus {
       ORB_INITIALIZER_PROPERTY_NAME_PREFIX + serverInitializerClassName,
       serverInitializerClassName);
     
-    //TIMEOUT = 1000 * 36 * 50 = 180000 => 3 MINUTOS
+    //TIMEOUT = 1000 * 36 * 5 = 180000 => 3 MINUTOS
+    //TIMEOUT = 1000 * 12 * 1 = 12000  => 12 segundos
     //Esse timeout é considerado primeiro em relação ao definido pela política
     //e por isso está sendo configurado
     props.setProperty("jacorb.connection.client.connect_timeout", "1000");
     props.setProperty("jacorb.retries", "36"); 
-    props.setProperty("jacorb.retry_interval", "50"); //tenta a cada 50 milesegundos
+    props.setProperty("jacorb.retry_interval", "5"); //tenta a cada 5 milesegundos
     props.setProperty("jacorb.poa.check_reply_end_time", "on");
+    int totalTimeOut = 180000;
     
     this.orb = org.omg.CORBA.ORB.init(args, props);
     org.omg.CORBA.Object obj = this.orb.resolve_initial_references("RootPOA");
@@ -349,7 +351,8 @@ public final class Openbus {
     POAManager manager = this.rootPOA.the_POAManager();
     manager.activate();
     
-	timeOutPolicy = new RelativeRoundtripTimeoutPolicy(180000 * 10000);
+    //Set this policy's value in 100-nanosecond units
+	timeOutPolicy = new RelativeRoundtripTimeoutPolicy(totalTimeOut * 10000);
   }
 
   /**

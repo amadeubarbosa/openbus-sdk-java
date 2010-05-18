@@ -42,9 +42,6 @@ class ClientInterceptor extends InterceptorImpl implements
     Log.INTERCEPTORS.info("Operação {" + ri.operation()
       + "} interceptada no cliente.");
     
-    //operacao getFacet nao precisa de credencial
-    if (ri.operation().equals("getFacet")) return;
-    
     //operacoes do ORB nao precisam de credencial
     for (java.lang.reflect.Method op : ClientInterceptor.class.getMethods()) {
 		if (ri.operation().equals(op.getName()) ) return;
