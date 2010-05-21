@@ -113,7 +113,8 @@ Um ORB e POA são criados implicitamente na chamada \emph{init}.
 Os outros métodos da API Openbus serão explicados em mais detalhes a seguir:
 
 \begin{itemize}
-  \item \code{ORB Openbus::getORB()}: Retorna o ORB utilizado.
+  \item \code{void initWithFaultTolerance()}: Inicializa a API com o mecanismo de tolerância a falha.
+  \item \code{ORB getORB()}: Retorna o ORB utilizado.
   \item \code{POA getRootPOA()}: Retorna o RootPOA.
   \item \code{void run()}: \emph{Loop} que processa requisições remotas. Execução de \emph{orb.run()}.
   \item \code{void destroy()}: Finaliza a execução do barramento.
