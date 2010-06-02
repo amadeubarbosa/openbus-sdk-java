@@ -112,8 +112,7 @@ public final class Openbus {
    */
   private ILeaseProvider lp;
 
-
-/**
+  /**
    * Interface IFaultTolerantService do Serviço de Controle de Acesso.
    */
   private IFaultTolerantService ft;
@@ -165,7 +164,7 @@ public final class Openbus {
    * servidor.
    */
   private CredentialValidationPolicy credentialValidationPolicy;
-  
+
   /**
    * A política de timeout de uma resposta no cliente
    */
@@ -190,15 +189,15 @@ public final class Openbus {
     if (this.isFaultToleranceEnable) {
       obj = ic.getFacet(IFaultTolerantServiceHelper.id());
       this.ft = IFaultTolerantServiceHelper.narrow(obj);
-      
-      this.acs._set_policy_override(new Policy[] { this.timeOutPolicy }, 
-    		                        SetOverrideType.ADD_OVERRIDE);
-      this.lp._set_policy_override(new Policy[] { this.timeOutPolicy }, 
-              SetOverrideType.ADD_OVERRIDE);
-      this.ic._set_policy_override(new Policy[] { this.timeOutPolicy }, 
-              SetOverrideType.ADD_OVERRIDE);
-      this.ft._set_policy_override(new Policy[] { this.timeOutPolicy }, 
-              SetOverrideType.ADD_OVERRIDE);
+
+      this.acs._set_policy_override(new Policy[] { this.timeOutPolicy },
+        SetOverrideType.ADD_OVERRIDE);
+      this.lp._set_policy_override(new Policy[] { this.timeOutPolicy },
+        SetOverrideType.ADD_OVERRIDE);
+      this.ic._set_policy_override(new Policy[] { this.timeOutPolicy },
+        SetOverrideType.ADD_OVERRIDE);
+      this.ft._set_policy_override(new Policy[] { this.timeOutPolicy },
+        SetOverrideType.ADD_OVERRIDE);
     }
   }
 
@@ -318,8 +317,8 @@ public final class Openbus {
       throw new IllegalArgumentException(
         "O campo 'port' não pode ser negativo.");
     if (props == null)
-        throw new IllegalArgumentException("O campo 'props' não pode ser null");
-    
+      throw new IllegalArgumentException("O campo 'props' não pode ser null");
+
     this.host = host;
     this.port = port;
 
@@ -329,30 +328,31 @@ public final class Openbus {
     props.put(
       ORB_INITIALIZER_PROPERTY_NAME_PREFIX + clientInitializerClassName,
       clientInitializerClassName);
-    
+
     String serverInitializerClassName = ServerInitializer.class.getName();
     props.put(
       ORB_INITIALIZER_PROPERTY_NAME_PREFIX + serverInitializerClassName,
       serverInitializerClassName);
-    
-    //TIMEOUT = 1000 * 36 * 5 = 180000 => 3 MINUTOS
-    //TIMEOUT = 1000 * 12 * 1 = 12000  => 12 segundos
-    //Esse timeout é considerado primeiro em relação ao definido pela política
-    //e por isso está sendo configurado
+
+    // TIMEOUT = 1000 * 36 * 5 = 180000 => 3 MINUTOS
+    // TIMEOUT = 1000 * 12 * 1 = 12000 => 12 segundos
+    // Esse timeout é considerado primeiro em relação ao definido pela política
+    // e por isso está sendo configurado
     props.setProperty("jacorb.connection.client.connect_timeout", "1000");
-    props.setProperty("jacorb.retries", "36"); 
-    props.setProperty("jacorb.retry_interval", "5"); //tenta a cada 5 milesegundos
+    props.setProperty("jacorb.retries", "36");
+    props.setProperty("jacorb.retry_interval", "5"); // tenta a cada 5
+    // milesegundos
     props.setProperty("jacorb.poa.check_reply_end_time", "on");
     int totalTimeOut = 180000;
-    
+
     this.orb = org.omg.CORBA.ORB.init(args, props);
     org.omg.CORBA.Object obj = this.orb.resolve_initial_references("RootPOA");
     this.rootPOA = POAHelper.narrow(obj);
     POAManager manager = this.rootPOA.the_POAManager();
     manager.activate();
-    
-    //Set this policy's value in 100-nanosecond units
-	timeOutPolicy = new RelativeRoundtripTimeoutPolicy(totalTimeOut * 10000);
+
+    // Set this policy's value in 100-nanosecond units
+    timeOutPolicy = new RelativeRoundtripTimeoutPolicy(totalTimeOut * 10000);
   }
 
   /**
@@ -411,7 +411,7 @@ public final class Openbus {
 
     Object objRecep = this.ic.getFacetByName(Utils.RECEPTACLES_NAME);
     IReceptacles ireceptacle = IReceptaclesHelper.narrow(objRecep);
-    
+
     try {
       ConnectionDescription[] connections =
         ireceptacle.getConnections(Utils.REGISTRY_SERVICE_RECEPTACLE_NAME);
@@ -421,10 +421,10 @@ public final class Openbus {
         Object objReg =
           registryComponent.getFacetByName(Utils.REGISTRY_SERVICE_FACET_NAME);
         this.rgs = IRegistryServiceHelper.narrow(objReg);
-        
-        if (this.isFaultToleranceEnable){
-            this.rgs._set_policy_override(new Policy[] { this.timeOutPolicy }, 
-                    SetOverrideType.ADD_OVERRIDE);
+
+        if (this.isFaultToleranceEnable) {
+          this.rgs._set_policy_override(new Policy[] { this.timeOutPolicy },
+            SetOverrideType.ADD_OVERRIDE);
         }
       }
     }
@@ -814,17 +814,17 @@ public final class Openbus {
   public void setPort(int hostPort) {
     this.port = hostPort;
   }
-  
+
   public ILeaseProvider getLeaseProvider() {
-		return lp;
-	}
+    return lp;
+  }
 
   public IFaultTolerantService getACSFaultTolerantService() {
-		return ft;
+    return ft;
   }
 
   public IComponent getACSIComponent() {
-		return ic;
+    return ic;
   }
 
   /**
