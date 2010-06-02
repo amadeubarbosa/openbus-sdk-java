@@ -18,6 +18,7 @@ import tecgraf.openbus.core.v1_05.access_control_service.Credential;
 import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlService;
 import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
 import tecgraf.openbus.exception.ACSLoginFailureException;
+import tecgraf.openbus.exception.InvalidCredentialException;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.lease.LeaseExpiredCallback;
 import tecgraf.openbus.util.CryptoUtils;
@@ -127,6 +128,25 @@ public class OpenbusTest {
   }
 
   /**
+   * Testa o connect sendo executado duas vezes.
+   * 
+   * @throws OpenBusException
+   */
+  @Test(expected = ACSLoginFailureException.class)
+  public void connectByPasswordLoginTwice() throws OpenBusException {
+    Openbus openbus = Openbus.getInstance();
+    IRegistryService registryService = null;
+    try {
+      registryService = openbus.connect(userLogin, userPassword);
+      Assert.assertNotNull(registryService);
+      registryService = openbus.connect(userLogin, userPassword);
+    }
+    finally {
+      Assert.assertTrue(openbus.disconnect());
+    }
+  }
+
+  /**
    * Testa o connect passando usuário e senha inválido.
    * 
    * @throws OpenBusException
@@ -182,6 +202,28 @@ public class OpenbusTest {
   }
 
   /**
+   * Testa o connect sendo executado duas vezes.
+   * 
+   * @throws OpenBusException
+   * @throws Exception
+   */
+  @Test(expected = ACSLoginFailureException.class)
+  public void connectByCertificateTwice() throws OpenBusException, Exception {
+    RSAPrivateKey key = CryptoUtils.readPrivateKey(testKey);
+    X509Certificate acsCert = CryptoUtils.readCertificate(acsCertificate);
+    Openbus openbus = Openbus.getInstance();
+    IRegistryService registryService =
+      openbus.connect(testCertificateName, key, acsCert);
+    Assert.assertNotNull(registryService);
+    try {
+      registryService = openbus.connect(testCertificateName, key, acsCert);
+    }
+    finally {
+      Assert.assertTrue(openbus.disconnect());
+    }
+  }
+
+  /**
    * Testa o connect passando o certificado do ACS nulo.
    * 
    * @throws OpenBusException
@@ -195,6 +237,28 @@ public class OpenbusTest {
     IRegistryService registryService = null;
     try {
       registryService = openbus.connect(testCertificateName, Key, null);
+    }
+    finally {
+      Assert.assertNull(registryService);
+      Assert.assertFalse(openbus.disconnect());
+    }
+  }
+
+  /**
+   * Testa o connect passando um <i>entityName</i> inválido.
+   * 
+   * @throws OpenBusException
+   * @throws Exception
+   */
+  @Test(expected = ACSLoginFailureException.class)
+  public void connectByCertificateInlaidEntityName() throws OpenBusException,
+    Exception {
+    RSAPrivateKey key = CryptoUtils.readPrivateKey(testKey);
+    X509Certificate acsCert = CryptoUtils.readCertificate(acsCertificate);
+    Openbus openbus = Openbus.getInstance();
+    IRegistryService registryService = null;
+    try {
+      registryService = openbus.connect("INVALID", key, acsCert);
     }
     finally {
       Assert.assertNull(registryService);
@@ -223,6 +287,30 @@ public class OpenbusTest {
     registryService = openbus.connect(credential);
     Assert.assertNotNull(registryService);
     Assert.assertTrue(openbus.disconnect());
+  }
+
+  /**
+   * Testa o connect passando a credencial inválida.
+   * 
+   * @throws OpenBusException
+   */
+  @Test(expected = InvalidCredentialException.class)
+  public void connectByCredentialInvalidCredencial() throws OpenBusException {
+    Openbus openbus = Openbus.getInstance();
+    // Fazendo o Login de um usuário para receber uma credencial.
+    IRegistryService registryService = openbus.connect(userLogin, userPassword);
+    Assert.assertNotNull(registryService);
+    Credential credential = openbus.getCredential();
+    Assert.assertNotNull(credential);
+    Assert.assertTrue(openbus.disconnect());
+    registryService = null;
+    try {
+      registryService = openbus.connect(credential);
+    }
+    finally {
+      Assert.assertNull(registryService);
+    }
+
   }
 
   /**
@@ -419,7 +507,7 @@ public class OpenbusTest {
     while (!callback.isReconnected()) {
       ;
     }
-    //O Openbus foi reconectado
+    // O Openbus foi reconectado
     Credential newCredential = openbus.getCredential();
     Assert.assertFalse(credential.identifier.equals(newCredential.identifier));
   }
@@ -466,7 +554,7 @@ public class OpenbusTest {
     while (!callback.isReconnected()) {
       ;
     }
-    //O Openbus foi reconectado
+    // O Openbus foi reconectado
     Credential newCredential = openbus.getCredential();
     Assert.assertFalse(credential.identifier.equals(newCredential.identifier));
   }
