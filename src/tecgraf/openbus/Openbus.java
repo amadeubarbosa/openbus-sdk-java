@@ -306,15 +306,20 @@ public final class Openbus {
    * @param props Conjunto de propriedades para a criação do ORB.
    * @param host Endereço do Serviço de Controle de Acesso.
    * @param port Porta do Serviço de Controle de Acesso.
+   * @param policy A política de validação de credenciais obtidas pelo
+   *        interceptador servidor.
    * 
    * @throws UserException Caso ocorra algum erro ao obter o RootPOA.
+   * @throws OpenbusAlreadyInitializedException Caso a classe <i>Openbus</i> já
+   *         tenha sido inicializada.
    * @throws IllegalArgumentException Caso o método esteja com os argumentos
    *         incorretos.
    */
   public void initWithFaultTolerance(String[] args, Properties props,
-    String host, int port) throws UserException {
+    String host, int port, CredentialValidationPolicy policy)
+    throws UserException, OpenbusAlreadyInitializedException {
     if (orb != null) {
-      return;
+      throw new OpenbusAlreadyInitializedException();
     }
 
     if (host == null)
@@ -329,6 +334,7 @@ public final class Openbus {
     this.port = port;
 
     this.isFaultToleranceEnable = true;
+    this.credentialValidationPolicy = policy;
 
     String clientInitializerClassName = FTClientInitializer.class.getName();
     props.put(
@@ -359,6 +365,29 @@ public final class Openbus {
 
     // Set this policy's value in 100-nanosecond units
     timeOutPolicy = new RelativeRoundtripTimeoutPolicy(totalTimeOut * 10000);
+  }
+
+  /**
+   * Retorna o barramento para o seu estado inicial, ou seja, desfaz as
+   * definições de atributos realizadas. Em seguida, inicializa o Orb com
+   * mecanismo de tolerancia a falhas ativado
+   * 
+   * @param args Conjunto de argumentos para a criação do ORB.
+   * @param props Conjunto de propriedades para a criação do ORB.
+   * @param host Endereço do Serviço de Controle de Acesso.
+   * @param port Porta do Serviço de Controle de Acesso.
+   * 
+   * @throws UserException Caso ocorra algum erro ao obter o RootPOA.
+   * @throws OpenbusAlreadyInitializedException Caso a classe <i>Openbus</i> já
+   *         tenha sido inicializada.
+   * @throws IllegalArgumentException Caso o método esteja com os argumentos
+   *         incorretos.
+   */
+  public void initWithFaultTolerance(String[] args, Properties props,
+    String host, int port) throws UserException,
+    OpenbusAlreadyInitializedException {
+    initWithFaultTolerance(args, props, host, port,
+      CredentialValidationPolicy.ALWAYS);
   }
 
   /**
