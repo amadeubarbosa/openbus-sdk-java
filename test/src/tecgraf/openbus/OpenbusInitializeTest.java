@@ -9,7 +9,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.omg.CORBA.UserException;
 
+import tecgraf.openbus.exception.ACSUnavailableException;
 import tecgraf.openbus.exception.OpenBusException;
+import tecgraf.openbus.exception.OpenbusAlreadyInitializedException;
 import tecgraf.openbus.util.Log;
 
 public class OpenbusInitializeTest {
@@ -18,6 +20,8 @@ public class OpenbusInitializeTest {
 
   private String hostName;
   private int hostPort;
+  private String userLogin;
+  private String userPassword;
 
   /**
    * Construtor
@@ -34,6 +38,8 @@ public class OpenbusInitializeTest {
 
     this.hostName = defaultProps.getProperty("hostName");
     this.hostPort = Integer.valueOf(defaultProps.getProperty("hostPort"));
+    this.userLogin = defaultProps.getProperty("userLogin");
+    this.userPassword = defaultProps.getProperty("userPassword");
   }
 
   /**
@@ -56,8 +62,7 @@ public class OpenbusInitializeTest {
    * @throws UserException
    */
   @Test(expected = IllegalArgumentException.class)
-  public void initNullProps() throws OpenBusException,
-    UserException {
+  public void initNullProps() throws OpenBusException, UserException {
     Openbus.getInstance().init(null, null, hostName, hostPort);
   }
 
@@ -68,8 +73,7 @@ public class OpenbusInitializeTest {
    * @throws UserException
    */
   @Test(expected = IllegalArgumentException.class)
-  public void initNullHost() throws OpenBusException,
-    UserException {
+  public void initNullHost() throws OpenBusException, UserException {
     Openbus.getInstance().init(null, props, null, 0);
   }
 
@@ -80,9 +84,51 @@ public class OpenbusInitializeTest {
    * @throws UserException
    */
   @Test(expected = IllegalArgumentException.class)
-  public void initInvalidPort() throws OpenBusException,
-    UserException {
+  public void initInvalidPort() throws OpenBusException, UserException {
     Openbus.getInstance().init(null, props, hostName, -1);
+  }
+
+  /**
+   * Testa o init sendo executado duas vezes.
+   * 
+   * @throws OpenBusException
+   * @throws UserException
+   */
+  @Test(expected = OpenbusAlreadyInitializedException.class)
+  public void initTwice() throws OpenBusException, UserException {
+    Openbus openbus = Openbus.getInstance();
+    try {
+      openbus.init(null, props, hostName, hostPort);
+      openbus.init(null, props, hostName, hostPort);
+    }
+    finally {
+      openbus.destroy();
+    }
+  }
+
+  /**
+   * Testa o init passando um endereço inválido.
+   * 
+   * @throws OpenBusException
+   * @throws UserException
+   */
+  @Test(expected = ACSUnavailableException.class)
+  public void initInvalidAddress() throws OpenBusException, UserException {
+    Openbus openbus = Openbus.getInstance();
+    openbus.init(null, props, "INVALID", hostPort);
+    openbus.connect(userLogin, userPassword);
+  }
+
+  /**
+   * Testa o destroy mesmo que o <i>Openbus</i> não tenha sido inicializado.
+   * 
+   * @throws OpenBusException
+   * @throws UserException
+   */
+  @Test
+  public void destroyWithoutInit() throws OpenBusException, UserException {
+    Openbus openbus = Openbus.getInstance();
+    openbus.destroy();
   }
 
 }
