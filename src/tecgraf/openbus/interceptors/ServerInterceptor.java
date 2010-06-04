@@ -4,6 +4,7 @@
 package tecgraf.openbus.interceptors;
 
 import org.omg.CORBA.Any;
+import org.omg.CORBA.BAD_PARAM;
 import org.omg.CORBA.ORB;
 import org.omg.IOP.Codec;
 import org.omg.IOP.ServiceContext;
@@ -44,8 +45,9 @@ class ServerInterceptor extends InterceptorImpl implements
    * {@inheritDoc}
    */
   public void receive_request_service_contexts(ServerRequestInfo ri) {
-    Log.INTERCEPTORS.info("Operação {" + ri.operation()
-      + "} interceptada no servidor.");
+    String interceptedOperation = ri.operation();
+    Log.INTERCEPTORS.info(String.format(
+      "Operação {%s} interceptada no servidor.", interceptedOperation));
 
     /*
      * Work around para o LocateRequest
@@ -68,17 +70,28 @@ class ServerInterceptor extends InterceptorImpl implements
      * foi adicionado uma condição que inibe a verificação no caso de ser essa
      * operação interceptada.
      */
-    if (ri.operation().equals("_non_existent"))
+    if (interceptedOperation.equals("_non_existent"))
       return;
 
     Openbus bus = Openbus.getInstance();
     bus.setInterceptedCredentialSlot(credentialSlot);
 
-    ServiceContext serviceContext;
+    ServiceContext serviceContext = null;
     try {
-      /* Verifica se há informação de contexto (credencial) */
       serviceContext = ri.get_request_service_context(CONTEXT_ID);
+    }
+    catch (BAD_PARAM e) {
+      Log.INTERCEPTORS.info(String.format(
+        "Operação '%s' não possui credencial", interceptedOperation));
+      return;
+    }
 
+    if (serviceContext == null) {
+      Log.INTERCEPTORS
+        .severe("Não há informação de contexto (transporte de credencial)");
+      return;
+    }
+    try {
       byte[] value = serviceContext.context_data;
       Credential credential =
         CredentialHelper.extract(this.getCodec().decode_value(value,
@@ -97,8 +110,6 @@ class ServerInterceptor extends InterceptorImpl implements
     }
     catch (Exception e) {
       Log.INTERCEPTORS.severe("Falha na validação da credencial", e);
-      throw new org.omg.CORBA.NO_PERMISSION(0,
-        org.omg.CORBA.CompletionStatus.COMPLETED_NO);
     }
   }
 

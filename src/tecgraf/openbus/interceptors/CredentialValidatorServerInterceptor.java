@@ -54,9 +54,19 @@ final class CredentialValidatorServerInterceptor extends LocalObject implements
   @Override
   public void receive_request(ServerRequestInfo ri) throws ForwardRequest {
     Openbus bus = Openbus.getInstance();
+
+    String repID = ri.target_most_derived_interface();
+    String method = ri.operation();
+    boolean isInterceptable = bus.isInterceptable(repID, method);
+    if (!isInterceptable) {
+      Log.INTERCEPTORS.info(String.format(
+        "Operação '%s' não interceptada no servidor.", method));
+      return;
+    }
+
     Credential interceptedCredential = bus.getInterceptedCredential();
     if (interceptedCredential == null) {
-      Log.INTERCEPTORS.info("Nenhuma credencial foi interceptada.");
+      Log.INTERCEPTORS.warning("Nenhuma credencial foi interceptada.");
       throw new NO_PERMISSION(0, CompletionStatus.COMPLETED_NO);
     }
 
@@ -78,7 +88,7 @@ final class CredentialValidatorServerInterceptor extends LocalObject implements
         + " é válida.");
     }
     else {
-      Log.INTERCEPTORS.info("A credencial interceptada " + wrapper
+      Log.INTERCEPTORS.warning("A credencial interceptada " + wrapper
         + " não é válida.");
       throw new NO_PERMISSION(0, CompletionStatus.COMPLETED_NO);
     }

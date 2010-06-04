@@ -729,9 +729,7 @@ public final class Openbus {
     this.host = null;
     this.port = INVALID_PORT;
     this.leaseExpiredCallback = null;
-
     this.isFaultToleranceEnable = false;
-    this.ifaceMap = new HashMap<String, Set<String>>();
   }
 
   /**
@@ -749,6 +747,7 @@ public final class Openbus {
     this.threadLocalCredential = new ThreadLocal<Credential>();
     this.leaseRenewer = null;
     this.requestCredentialSlot = INVALID_CREDENTIAL_SLOT;
+    this.ifaceMap = new HashMap<String, Set<String>>();
   }
 
   /**
@@ -788,9 +787,8 @@ public final class Openbus {
    */
   public void setInterceptable(String iface, String method,
     boolean interceptable) {
-    Set<String> methods;
+    Set<String> methods = ifaceMap.get(iface);
     if (interceptable) {
-      methods = ifaceMap.get(iface);
       if (methods != null) {
         methods.remove(method);
         if (methods.size() == 0)
@@ -798,7 +796,6 @@ public final class Openbus {
       }
     }
     else {
-      methods = ifaceMap.get(iface);
       if (methods == null) {
         methods = new HashSet<String>();
         ifaceMap.put(iface, methods);
