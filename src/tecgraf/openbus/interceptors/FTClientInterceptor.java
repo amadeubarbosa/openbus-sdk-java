@@ -84,7 +84,7 @@ class FTClientInterceptor extends ClientInterceptor {
   @Override
   public void receive_exception(ClientRequestInfo ri) throws ForwardRequest {
     Log.INTERCEPTORS
-      .info("[receive_exception] TRATANDO EXCECAO ENVIADA DO SERVIDOR: "
+      .fine("[receive_exception] TRATANDO EXCECAO ENVIADA DO SERVIDOR: "
         + ri.received_exception_id());
 
     String key = getObjectKey(ri);
@@ -177,7 +177,7 @@ class FTClientInterceptor extends ClientInterceptor {
    */
   @Override
   public void receive_other(ClientRequestInfo ri) {
-    Log.INTERCEPTORS.info("[receive_other] TRATANDO OUTRA RESPOSTA!");
+    Log.INTERCEPTORS.fine("[receive_other] TRATANDO OUTRA RESPOSTA!");
 
     String key = getObjectKey(ri);
     String loadMsg =
