@@ -14,6 +14,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.omg.CORBA.UserException;
 
+import scs.core.IReceptaclesHelper;
 import tecgraf.openbus.core.v1_05.access_control_service.Credential;
 import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlService;
 import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
@@ -429,6 +430,26 @@ public class OpenbusTest {
     Assert.assertNotNull(registryService);
     Assert.assertNotNull(openbus.getSessionService());
     Assert.assertTrue(openbus.disconnect());
+  }
+
+  /**
+   * Testa se o método isInterceptable está funcionando corretamente.
+   * 
+   * @throws OpenBusException
+   * @throws UserException
+   */
+  @Test
+  public void isInterceptable() throws OpenBusException, UserException {
+    Openbus openbus = Openbus.getInstance();
+    String repID = IReceptaclesHelper.id();
+    String methodName = "getConnections";
+
+    openbus.setInterceptable(repID, methodName, true);
+    Assert.assertTrue(openbus.isInterceptable(repID, methodName));
+    openbus.setInterceptable(repID, methodName, false);
+    Assert.assertFalse(openbus.isInterceptable(repID, methodName));
+    openbus.setInterceptable(repID, methodName, true);
+    Assert.assertTrue(openbus.isInterceptable(repID, methodName));
   }
 
   /**
