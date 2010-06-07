@@ -206,7 +206,7 @@ public final class Openbus {
    * Construtor do barramento.
    */
   private Openbus() {
-    reset();
+    resetInstance();
   }
 
   /**
@@ -705,8 +705,7 @@ public final class Openbus {
         this.acs.logout(this.credential);
       }
       finally {
-        this.leaseRenewer = null;
-        this.credential = null;
+        reset();
       }
       return true;
     }
@@ -719,17 +718,25 @@ public final class Openbus {
    * Finaliza a utilização do barramento.
    */
   public void destroy() {
+    this.resetInstance();
+  }
+
+  /**
+   * Finaliza a utilização do barramento.
+   */
+  public void resetInstance() {
     if (this.orb != null) {
       this.orb.destroy();
     }
-
-    this.reset();
     this.orb = null;
     this.rootPOA = null;
     this.host = null;
     this.port = INVALID_PORT;
     this.leaseExpiredCallback = null;
+    this.ifaceMap = new HashMap<String, Set<String>>();
     this.isFaultToleranceEnable = false;
+
+    this.reset();
   }
 
   /**
@@ -747,7 +754,6 @@ public final class Openbus {
     this.threadLocalCredential = new ThreadLocal<Credential>();
     this.leaseRenewer = null;
     this.requestCredentialSlot = INVALID_CREDENTIAL_SLOT;
-    this.ifaceMap = new HashMap<String, Set<String>>();
   }
 
   /**

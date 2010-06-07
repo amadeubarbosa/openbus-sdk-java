@@ -400,6 +400,7 @@ public class OpenbusTest {
     Assert.assertNotNull(registryService);
     Assert.assertNotNull(openbus.getAccessControlService());
     Assert.assertTrue(openbus.disconnect());
+    Assert.assertNull(openbus.getAccessControlService());
   }
 
   /**
@@ -415,6 +416,7 @@ public class OpenbusTest {
     Assert.assertNotNull(registryService);
     Assert.assertNotNull(openbus.getRegistryService());
     Assert.assertTrue(openbus.disconnect());
+    Assert.assertNull(openbus.getRegistryService());
   }
 
   /**
@@ -430,6 +432,7 @@ public class OpenbusTest {
     Assert.assertNotNull(registryService);
     Assert.assertNotNull(openbus.getSessionService());
     Assert.assertTrue(openbus.disconnect());
+    Assert.assertNull(openbus.getSessionService());
   }
 
   /**
