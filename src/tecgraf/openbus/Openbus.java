@@ -43,7 +43,6 @@ import tecgraf.openbus.core.v1_05.access_control_service.ILeaseProvider;
 import tecgraf.openbus.core.v1_05.access_control_service.ILeaseProviderHelper;
 import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
 import tecgraf.openbus.core.v1_05.registry_service.IRegistryServiceHelper;
-import tecgraf.openbus.core.v1_05.registry_service.ServiceOffer;
 import tecgraf.openbus.exception.ACSLoginFailureException;
 import tecgraf.openbus.exception.ACSUnavailableException;
 import tecgraf.openbus.exception.CORBAException;
@@ -60,8 +59,6 @@ import tecgraf.openbus.interceptors.FTClientInitializer;
 import tecgraf.openbus.interceptors.ServerInitializer;
 import tecgraf.openbus.lease.LeaseExpiredCallback;
 import tecgraf.openbus.lease.LeaseRenewer;
-import tecgraf.openbus.session_service.v1_05.ISessionService;
-import tecgraf.openbus.session_service.v1_05.ISessionServiceHelper;
 import tecgraf.openbus.util.Log;
 import tecgraf.openbus.util.Utils;
 
@@ -134,10 +131,6 @@ public final class Openbus {
    * Serviço de registro.
    */
   private IRegistryService rgs;
-  /**
-   * Serviço de sessão.
-   */
-  private ISessionService ss;
   /**
    * Credencial recebida ao se conectar ao barramento.
    */
@@ -471,35 +464,6 @@ public final class Openbus {
   }
 
   /**
-   * Fornece o Serviço de Sessão. Caso o Openbus ainda não tenha a referência
-   * para o Serviço de Sessão este obtem o Serviço a partir do Serviço de
-   * Registro.
-   * 
-   * @return O Serviço de Sessão.
-   */
-  public ISessionService getSessionService() {
-
-    if (this.ss == null) {
-      IRegistryService rgs = this.getRegistryService();
-      if (rgs == null)
-        return null;
-      ServiceOffer[] offers =
-        rgs.find(new String[] { Utils.SESSION_SERVICE_FACET_NAME });
-      if (offers.length > 0) {
-        IComponent component = offers[0].member;
-        Object facet = component.getFacet(ISessionServiceHelper.id());
-        if (facet == null) {
-          return null;
-        }
-        this.ss = ISessionServiceHelper.narrow(facet);
-        return this.ss;
-      }
-      return null;
-    }
-    return this.ss;
-  }
-
-  /**
    * Fornece a credencial da entidade.
    * 
    * @return A credencial.
@@ -748,7 +712,6 @@ public final class Openbus {
     this.lp = null;
     this.ft = null;
     this.ic = null;
-    this.ss = null;
 
     this.credential = null;
     this.threadLocalCredential = new ThreadLocal<Credential>();

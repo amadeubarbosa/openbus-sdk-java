@@ -21,16 +21,18 @@ import scs.core.servant.ComponentContext;
 import scs.core.servant.ExtendedFacetDescription;
 import tecgraf.openbus.Openbus;
 import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
+import tecgraf.openbus.core.v1_05.registry_service.ServiceOffer;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.RSUnavailableException;
+import tecgraf.openbus.exception.SSUnavailableException;
 import tecgraf.openbus.session_service.v1_05.ISession;
 import tecgraf.openbus.session_service.v1_05.ISessionHelper;
 import tecgraf.openbus.session_service.v1_05.ISessionService;
+import tecgraf.openbus.session_service.v1_05.ISessionServiceHelper;
 import tecgraf.openbus.session_service.v1_05.SessionEvent;
 import tecgraf.openbus.session_service.v1_05.SessionEventSink;
 import tecgraf.openbus.session_service.v1_05.SessionEventSinkHelper;
 import tecgraf.openbus.util.Log;
-import tecgraf.openbus.util.Utils;
 
 /**
  * Demo que exercita callbacks de Sessão.
@@ -95,8 +97,19 @@ public class EventSinkDemo {
       new ComponentId("EventSink", (byte) 1, (byte) 0, (byte) 0, "Java");
     ComponentContext context = builder.newComponent(descriptions, null, id);
 
+    ServiceOffer[] offers =
+      registryService.find(new String[] { "ISessionService_v1_05" });
+    if (offers.length <= 0) {
+      throw new SSUnavailableException();
+    }
+    IComponent component = offers[0].member;
+    org.omg.CORBA.Object facet = component.getFacet(ISessionServiceHelper.id());
+    if (facet == null) {
+      throw new SSUnavailableException();
+    }
+    ISessionService sessionService = ISessionServiceHelper.narrow(facet);
+
     // cria sessão
-    ISessionService sessionService = bus.getSessionService();
     IComponentHolder icholder = new IComponentHolder();
     StringHolder sholder = new StringHolder();
     sessionService.createSession(IComponentHelper.narrow(context
@@ -106,12 +119,12 @@ public class EventSinkDemo {
     IComponent ic2 = IComponentHelper.narrow(context2.getIComponent());
     IComponent sessionIC = icholder.value;
     ISession session =
-      ISessionHelper.narrow(sessionIC.getFacet(Utils.SESSION_INTERFACE));
+      ISessionHelper.narrow(sessionIC.getFacet(ISessionHelper.id()));
     String identifier = session.addMember(ic2);
     // manda eventos push e disconnect
     SessionEventSink sessionES =
-      SessionEventSinkHelper.narrow(sessionIC
-        .getFacet(Utils.SESSION_ES_INTERFACE));
+      SessionEventSinkHelper.narrow(sessionIC.getFacet(SessionEventSinkHelper
+        .id()));
     Any any = orb.create_any();
     any.insert_string("evento de teste");
     sessionES.push("tester", new SessionEvent("teste", any));

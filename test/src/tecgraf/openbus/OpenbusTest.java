@@ -420,22 +420,6 @@ public class OpenbusTest {
   }
 
   /**
-   * Testa se o método getSessionService retorna um objeto
-   * 
-   * @throws OpenBusException
-   * @throws UserException
-   */
-  @Test
-  public void getSessionService() throws OpenBusException, UserException {
-    Openbus openbus = Openbus.getInstance();
-    IRegistryService registryService = openbus.connect(userLogin, userPassword);
-    Assert.assertNotNull(registryService);
-    Assert.assertNotNull(openbus.getSessionService());
-    Assert.assertTrue(openbus.disconnect());
-    Assert.assertNull(openbus.getSessionService());
-  }
-
-  /**
    * Testa se o método isInterceptable está funcionando corretamente.
    * 
    * @throws OpenBusException

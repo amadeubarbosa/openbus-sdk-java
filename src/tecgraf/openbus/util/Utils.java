@@ -48,36 +48,11 @@ public final class Utils {
    */
   public static final String REGISTRY_SERVICE_RECEPTACLE_NAME =
     "RegistryServiceReceptacle";
-
   /**
    * O nome da faceta do Serviço de Registro.
    */
   public static final String REGISTRY_SERVICE_FACET_NAME =
     "IRegistryService_v" + OB_VERSION;
-  /**
-   * O nome da faceta do Serviço de Sessão.
-   */
-  public static final String SESSION_SERVICE_FACET_NAME =
-    "ISessionService_v" + OB_VERSION;
-  /**
-   * O nome da interface de Sessão.
-   */
-  public static final String SESSION_INTERFACE =
-    "IDL:tecgraf/openbus/session_service/v1_05/ISession:1.0";
-  /**
-   * O nome da faceta de Sessão.
-   */
-  public static final String SESSION_FACET_NAME = "ISession_v" + OB_VERSION;
-  /**
-   * O nome da interface da faceta SessionEventSink.
-   */
-  public static final String SESSION_ES_INTERFACE =
-    "IDL:tecgraf/openbus/session_service/v1_05/SessionEventSink:1.0";
-  /**
-   * O nome da faceta SessionEventSink.
-   */
-  public static final String SESSION_EVENT_SINK_FACET_NAME =
-    "SessionEventSink_v" + OB_VERSION;
   /**
    * O nome da propriedade que representa as facetas de um membro registrado.
    */
