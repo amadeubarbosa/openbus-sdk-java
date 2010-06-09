@@ -57,6 +57,7 @@ final class CredentialValidatorServerInterceptor extends LocalObject implements
 
     String repID = ri.target_most_derived_interface();
     String method = ri.operation();
+
     boolean isInterceptable = bus.isInterceptable(repID, method);
     if (!isInterceptable) {
       Log.INTERCEPTORS.info(String.format(

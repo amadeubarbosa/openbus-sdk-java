@@ -5,8 +5,10 @@ package tecgraf.openbus;
 
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -288,6 +290,7 @@ public final class Openbus {
     // ServerInitializer
     // utiliza esta propriedade.
     this.credentialValidationPolicy = policy;
+    addInterceptedMethods();
 
     this.orb = org.omg.CORBA.ORB.init(args, props);
 
@@ -335,6 +338,7 @@ public final class Openbus {
 
     this.isFaultToleranceEnable = true;
     this.credentialValidationPolicy = policy;
+    addInterceptedMethods();
 
     String clientInitializerClassName = FTClientInitializer.class.getName();
     props.put(
@@ -805,7 +809,8 @@ public final class Openbus {
   }
 
   /**
-   * Indica se o método da interface dever interceptado.
+   * Indica se o método da interface deve ser interceptado. Irá verificar se o
+   * método se encontra no <i>iface</i> ou em super interfaces de <i>iface</i>.
    * 
    * @param iface RepID da interface.
    * @param method Nome do método a ser testado.
@@ -814,8 +819,23 @@ public final class Openbus {
    *         <code>false</code>.
    */
   public boolean isInterceptable(String iface, String method) {
+    List<Set<String>> methodsList = new ArrayList<Set<String>>();
     Set<String> methods = ifaceMap.get(iface);
-    return (methods == null) || !methods.contains(method);
+    if (methods != null)
+      methodsList.add(methods);
+
+    // TODO: Verificar se é necessário procurar o "method" em todas as
+    // superinterfaces de "iface".
+    String corbaObjRepID = "org.omg.CORBA.Object";
+    methods = ifaceMap.get(corbaObjRepID);
+    if (methods != null)
+      methodsList.add(methods);
+
+    for (Set<String> methodSet : methodsList)
+      if (methodSet.contains(method))
+        return false;
+
+    return true;
   }
 
   /**
@@ -867,6 +887,34 @@ public final class Openbus {
    */
   public CredentialValidationPolicy getCredentialValidationPolicy() {
     return this.credentialValidationPolicy;
+  }
+
+  /**
+   * Adiciona os métodos internos que devem ser interceptados na API.
+   */
+  private void addInterceptedMethods() {
+    /*
+     * Work around para o LocateRequest
+     * 
+     * Durante o bind com o servidor, o cliente Orbix envia uma mensagem GIOP
+     * 1.2 LocateRequest para o servidor, que é uma otimização corba para
+     * localizar o objeto. Esta mensageme não passa pelo nosso interceptador
+     * cliente e portanto a mensagem é envidada sem a credencial. O JacORB sabe
+     * lidar com essa mensagen GIOP, porém diferentemente do Orbix, ele passa
+     * essa mensagem pelo interceptador do servidor, que por sua vez faz uma
+     * verificação que falha por falta de credencial. Essa mensagem não deve ser
+     * verificada.
+     * 
+     * Analisando o código do JacORB, podemos ver que para uso interno, ele
+     * define esse request como uma operação de nome "_non_existent". Então no
+     * interceptador do servidor JacORB nós podemos ver esse request com a
+     * operação com esse nome.
+     * 
+     * Logo para podermos responder adequadamente com um GIOP 1.2 LocateReply,
+     * foi adicionado uma condição que inibe a verificação no caso de ser essa
+     * operação interceptada.
+     */
+    setInterceptable("org.omg.CORBA.Object", "_non_existent", false);
   }
 
   /**
