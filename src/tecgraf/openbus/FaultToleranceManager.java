@@ -84,7 +84,7 @@ public class FaultToleranceManager {
    * atualizar a máquina a ser obtida uma réplica.
    */
   public boolean updateACSHostInUse() {
-    Log.COMMON.info("currTrial: " + currTrial);
+    Log.COMMON.finest("currTrial: " + currTrial);
     if (currTrial == trials) {
       return false;
     }
