@@ -96,11 +96,14 @@ class FTClientInterceptor extends ClientInterceptor {
 
     String msg = "";
     boolean fetch =
-      ri.received_exception_id().equals("IDL:omg.org/CORBA/TRANSIENT:1.0")
-        || ri.received_exception_id().equals(
-          "IDL:omg.org/CORBA/OBJECT_NOT_EXIST:1.0")
-        || ri.received_exception_id().equals(
-          "IDL:omg.org/CORBA/COMM_FAILURE:1.0");
+      ri.received_exception_id().equals("IDL:omg.org/CORBA/TRANSIENT:1.0") ||
+      ri.received_exception_id().equals("IDL:omg.org/CORBA/OBJECT_NOT_EXIST:1.0") ||
+      ri.received_exception_id().equals("IDL:omg.org/CORBA/COMM_FAILURE:1.0")  ||
+      ri.received_exception_id().equals("IDL:omg.org/CORBA/TIMEOUT:1.0")||
+      ri.received_exception_id().equals("IDL:omg.org/CORBA/NO_RESPONSE:1.0")||
+      ri.received_exception_id().equals("IDL:omg.org/CORBA/NO_RESOURCES:1.0")||
+      ri.received_exception_id().equals("IDL:omg.org/CORBA/NO_MEMORY:1.0")||
+      ri.received_exception_id().equals("IDL:omg.org/CORBA/INTERNAL:1.0");
 
     if (!fetch) {
       Log.INTERCEPTORS.severe(ri.received_exception_id());
