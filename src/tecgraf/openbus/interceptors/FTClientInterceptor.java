@@ -61,6 +61,11 @@ class FTClientInterceptor extends ClientInterceptor {
 	String loadMsg =   "receive_reply; --; ; " + (System.currentTimeMillis() - start) + "; " 
 		+ key + "; " + ri.operation();
 	LOAD_TEST.info(loadMsg);
+	
+	//se entrou aqui é porque a chamada remota retornou sem erro, 
+	//logo deve reiniciar a variável de controle de tentativas de 
+	//buscar por uma réplica válida
+	ftManager.resetCurrTrial();
   }
 
   
