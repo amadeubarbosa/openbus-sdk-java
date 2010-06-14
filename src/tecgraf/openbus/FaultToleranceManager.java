@@ -102,4 +102,14 @@ public class FaultToleranceManager {
     return true;
   }
 
+  /**
+  * Quando uma replica for encontrada antes de acabar um trial, é necessário resetar esta variável.
+  * Caso contrário, o Manager poderá nunca encontrar réplicas válidas se estiver no último trial
+  * e tiver havia uma falha e o index for maior que 0 e todas as replicas de hosts indexadas
+  * acima da corrente não estiverem disponíveis
+  */
+  public void resetCurrTrial() {
+		this.currTrial = 0;
+  }
+
 }
