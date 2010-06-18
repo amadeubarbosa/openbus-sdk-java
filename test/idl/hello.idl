@@ -1,0 +1,13 @@
+#ifndef HELLO_IDL
+#define HELLO_IDL
+
+module testidl {
+  module hello {
+    interface IHello {
+      void sayHello();
+      void sayHelloName(in string name);
+    };
+  };
+};
+
+#endif

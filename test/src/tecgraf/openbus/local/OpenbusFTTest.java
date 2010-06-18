@@ -1,10 +1,11 @@
-package tecgraf.openbus;
+package tecgraf.openbus.local;
 
 import java.io.IOException;
 
 import org.junit.Before;
 import org.omg.CORBA.UserException;
 
+import tecgraf.openbus.Openbus;
 import tecgraf.openbus.exception.OpenBusException;
 
 public class OpenbusFTTest extends OpenbusTest {

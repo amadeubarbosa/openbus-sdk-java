@@ -1,4 +1,4 @@
-package tecgraf.openbus;
+package tecgraf.openbus.local;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,6 +9,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.omg.CORBA.UserException;
 
+import tecgraf.openbus.Openbus;
 import tecgraf.openbus.exception.ACSUnavailableException;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.OpenbusAlreadyInitializedException;

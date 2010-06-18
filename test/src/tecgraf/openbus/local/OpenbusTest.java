@@ -1,4 +1,4 @@
-package tecgraf.openbus;
+package tecgraf.openbus.local;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.omg.CORBA.UserException;
 
 import scs.core.IReceptaclesHelper;
+import tecgraf.openbus.Openbus;
 import tecgraf.openbus.core.v1_05.access_control_service.Credential;
 import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlService;
 import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;

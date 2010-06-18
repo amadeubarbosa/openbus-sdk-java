@@ -51,6 +51,33 @@
           <encoding>${source.encoding}</encoding>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>idlj-maven-plugin</artifactId>
+        <version>1.1</version>
+
+        <dependencies>
+          <dependency>
+            <groupId>org.jacorb</groupId>
+            <artifactId>jacorb-idl-compiler</artifactId>
+            <version>${jacorb.version}</version>
+          </dependency>
+        </dependencies>
+
+        <executions>
+          <execution>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
+
+        <configuration>
+          <compiler>jacorb</compiler>
+          <sourceDirectory>test/idl</sourceDirectory>
+       </configuration>
+      </plugin>
     </plugins>
   </build>
 
