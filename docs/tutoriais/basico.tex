@@ -144,7 +144,7 @@ Os outros métodos da API Openbus serão explicados em mais detalhes a seguir:
     \subitem \code{IllegalArgumentException}: Caso o método receba argumentos inválidos.
   \item \code{boolean disconnect()}: Desfaz a conexão atual.
 \end{itemize}
-	
+
 Os outros métodos do \emph{stub} do Serviço de Registro serão explicados em mais detalhes a seguir:
 
 \begin{itemize}
@@ -153,6 +153,11 @@ Os outros métodos do \emph{stub} do Serviço de Registro serão explicados em mais
   \item \code{ServiceOfferList find(FacetList facets)}: Busca uma ou mais ofertas de serviço no barramento que implementem todas as facetas discriminadas em \emph{facets}.
   \item \code{ServiceOfferList findByCriteria(FacetList facets,	PropertyList properties)}: Busca uma ou mais ofertas de serviço no barramento que implementem todas as facetas discriminadas em \emph{facets} e que atendam aos critérios descritos no parâmetro \emph{criteria}, que é uma lista de propriedades descrita através de strings no	formato chave = {valor1, valor2, ..., valorN}.
 \end{itemize}
+
+A API utiliza o log do Java, que possui os níveis de log descritos na classe
+ \emph{java.util.logging.Level}. Para alterar o nível de log da API deve-se 
+ chamar o método \emph{setLogsLevel()} enviando o nível desejado como parâmetro. 
+ Este método se encontra na classe \emph{tecgraf.openbus.util.Log}.
 
 \subsection{Primeiros Passos}
 
