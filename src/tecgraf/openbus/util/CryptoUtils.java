@@ -9,6 +9,8 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
@@ -48,7 +50,7 @@ public final class CryptoUtils {
   /**
    * Lê um certificado digital a partir de um arquivo.
    * 
-   * @param certificateFile O nome do arquivo.
+   * @param certificateFile O caminho para o arquivo.
    * 
    * @return O certificado carregado.
    * 
@@ -57,7 +59,20 @@ public final class CryptoUtils {
    */
   public static X509Certificate readCertificate(String certificateFile)
     throws CertificateException, FileNotFoundException {
-    InputStream inputStream = new FileInputStream(certificateFile);
+    return readCertificate(new FileInputStream(certificateFile));
+  }
+
+  /**
+   * Lê um certificado digital a partir de um stream de arquivo.
+   * 
+   * @param inputStream O stream de entrada para o arquivo.
+   * 
+   * @return O certificado carregado.
+   * 
+   * @throws CertificateException Caso o arquivo esteja corrompido.
+   */
+  public static X509Certificate readCertificate(InputStream inputStream)
+    throws CertificateException {
     try {
       CertificateFactory cf = CertificateFactory.getInstance(CERTIFICATE_TYPE);
       return (X509Certificate) cf.generateCertificate(inputStream);
@@ -75,7 +90,7 @@ public final class CryptoUtils {
   /**
    * Lê uma chave privada a partir de um arquivo.
    * 
-   * @param privateKeyFileName O nome do arquivo.
+   * @param privateKeyFileName O caminho para o arquivo.
    * 
    * @return A chave privada carregada.
    * 
@@ -89,9 +104,65 @@ public final class CryptoUtils {
   public static RSAPrivateKey readPrivateKey(String privateKeyFileName)
     throws NoSuchAlgorithmException, InvalidKeySpecException,
     InvalidKeyException, IOException, FileNotFoundException {
-    byte[] encodedBuffer = readBytes(privateKeyFileName);
+    return generatePrivateKey(readBytes(privateKeyFileName));
+  }
+
+  /**
+   * Lê uma chave privada a partir de um stream de arquivo.
+   * 
+   * @param inputStream O stream de entrada para o arquivo.
+   * 
+   * @return A chave privada carregada.
+   * 
+   * @throws NoSuchAlgorithmException Caso o algoritmo para criação da chave não
+   *         seja encontrado.
+   * @throws InvalidKeySpecException Caso o formato da chave seja inválido.
+   * @throws InvalidKeyException Caso o formato da chave seja inválido.
+   * @throws IOException Caso ocorra algum erro durante a leitura.
+   * @throws FileNotFoundException Caso o arquivo não exista.
+   */
+  public static RSAPrivateKey readPrivateKey(InputStream inputStream)
+    throws NoSuchAlgorithmException, InvalidKeySpecException,
+    InvalidKeyException, IOException, FileNotFoundException {
+    return generatePrivateKey(readBytes(inputStream));
+  }
+
+  /**
+   * Lê uma chave privada a partir de um leitor de arquivo.
+   * 
+   * @param reader O leitor do arquivo.
+   * 
+   * @return A chave privada carregada.
+   * 
+   * @throws NoSuchAlgorithmException Caso o algoritmo para criação da chave não
+   *         seja encontrado.
+   * @throws InvalidKeySpecException Caso o formato da chave seja inválido.
+   * @throws InvalidKeyException Caso o formato da chave seja inválido.
+   * @throws IOException Caso ocorra algum erro durante a leitura.
+   * @throws FileNotFoundException Caso o arquivo não exista.
+   */
+  public static RSAPrivateKey readPrivateKey(Reader reader)
+    throws NoSuchAlgorithmException, InvalidKeySpecException,
+    InvalidKeyException, IOException, FileNotFoundException {
+    return generatePrivateKey(readBytes(reader));
+  }
+
+  /**
+   * Gera uma chave privada a partir de um vetor de bytes codificados em base
+   * 64.
+   * 
+   * @param encodedBytes o vetor de bytes.
+   * 
+   * @return A chave privada carregada.
+   * 
+   * @throws NoSuchAlgorithmException Caso o algoritmo para criação da chave não
+   *         seja encontrado.
+   * @throws InvalidKeySpecException Caso o formato da chave seja inválido.
+   */
+  private static RSAPrivateKey generatePrivateKey(byte[] encodedBytes)
+    throws NoSuchAlgorithmException, InvalidKeySpecException {
     Base64 base64 = new Base64();
-    byte[] bytes = base64.decode(encodedBuffer);
+    byte[] bytes = base64.decode(encodedBytes);
     PKCS8EncodedKeySpec encodedKey = new PKCS8EncodedKeySpec(bytes);
     KeyFactory kf = KeyFactory.getInstance(KEY_FACTORY_TYPE);
     return (RSAPrivateKey) kf.generatePrivate(encodedKey);
@@ -107,22 +178,54 @@ public final class CryptoUtils {
    * 
    * @return Os bytes representando a chave privada na base 64.
    * 
-   * @throws IOException Caso ocorra algum erro durante a leitura.
    * @throws InvalidKeyException Caso o formato da chave seja inválido.
+   * @throws IOException Caso ocorra algum erro durante a leitura.
    * @throws FileNotFoundException Caso o arquivo não exista.
    */
   private static byte[] readBytes(String privateKeyFileName)
     throws InvalidKeyException, IOException, FileNotFoundException {
-    BufferedReader reader = new BufferedReader(new FileReader(
-      privateKeyFileName));
+    return readBytes(new FileReader(privateKeyFileName));
+  }
+
+  /**
+   * Lê os bytes de um arquivo que representa uma chave privada, no formato
+   * PKCS#8 e na base 64, retirando o seu cabeçalho e o seu rodapé.
+   * 
+   * @param inputStream O stream de entrada para o arquivo.
+   * 
+   * @return Os bytes representando a chave privada na base 64.
+   * 
+   * @throws InvalidKeyException Caso o formato da chave seja inválido.
+   * @throws IOException Caso ocorra algum erro durante a leitura.
+   */
+  private static byte[] readBytes(InputStream inputStream)
+    throws InvalidKeyException, IOException {
+    return readBytes(new InputStreamReader(inputStream));
+  }
+
+  /**
+   * Lê os bytes de um arquivo que representa uma chave privada, no formato
+   * PKCS#8 e na base 64, retirando o seu cabeçalho e o seu rodapé.
+   * 
+   * @param reader O leitor para o arquivo.
+   * 
+   * @return Os bytes representando a chave privada na base 64.
+   * 
+   * @throws InvalidKeyException Caso o formato da chave seja inválido.
+   * @throws IOException Caso ocorra algum erro durante a leitura.
+   */
+  private static byte[] readBytes(Reader reader) throws InvalidKeyException,
+    IOException {
+    BufferedReader bufferedReader = new BufferedReader(reader);
     StringBuilder data = new StringBuilder();
     try {
-      String line = reader.readLine();
+      String line = bufferedReader.readLine();
       if (line == null || !line.equals("-----BEGIN PRIVATE KEY-----")) {
         throw new InvalidKeyException(
           "Formato do arquivo inválido: cabeçalho não encontrado.");
       }
-      for (line = reader.readLine(); line != null; line = reader.readLine()) {
+      for (line = bufferedReader.readLine(); line != null; line =
+        bufferedReader.readLine()) {
         if (line.equals("-----END PRIVATE KEY-----")) {
           return data.toString().getBytes();
         }
@@ -133,7 +236,7 @@ public final class CryptoUtils {
     }
     finally {
       try {
-        reader.close();
+        bufferedReader.close();
       }
       catch (IOException e) {
         // Nada a ser feito.
