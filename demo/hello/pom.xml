@@ -5,10 +5,10 @@
   <groupId>tecgraf.openbus</groupId>
   <artifactId>openbus-demo-hello</artifactId>
   <packaging>jar</packaging>
-  <version>1.5-SNAPSHOT</version>
+  <version>1.5.0</version>
 
   <name>OpenBus Demo Hello</name>
-  <url>https://subversion.tecgraf.puc-rio.br/engdist/openbus/sdk/java/trunk/demo/hello</url>
+  <url>https://subversion.tecgraf.puc-rio.br/engdist/openbus/sdk/java/tags/OB_SDK_JAVA_v1_05_2010_06_23/demo/hello</url>
 
   <properties>
     <java.version>1.6</java.version>
@@ -55,9 +55,9 @@
             <groupId>org.jacorb</groupId>
             <artifactId>jacorb-idl-compiler</artifactId>
             <version>${jacorb.version}</version>
-          </dependency> 
+          </dependency>
         </dependencies>
-        
+
         <executions>
           <execution>
             <phase>generate-sources</phase>
@@ -105,7 +105,7 @@
       <artifactId>jacorb</artifactId>
       <version>${jacorb.version}</version>
       <scope>runtime</scope>
-    </dependency> 
+    </dependency>
   </dependencies>
 </project>
 
