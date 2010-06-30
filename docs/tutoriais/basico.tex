@@ -34,7 +34,7 @@
 \begin{document} 
 
 \title{OpenBus-Java - Tutorial - API}
-\author{C. Augusto, R. Cosme, R. Cerqueira \\
+\author{C. Augusto, R. Cosme, R. Cerqueira, M. Gatti \\
         Tecgraf \\
         Pontifícia Universidade Católica do Rio de Janeiro 
         (PUC-Rio)\\
@@ -60,7 +60,7 @@ Este documento é destinado aos usuários desenvolvedores de aplicações Java que d
 \section{Preparação do Ambiente}
 
 O OpenBus utiliza o mecanismo de interceptação de CORBA no processo de controle de acesso aos serviços. Após a chamada de requisição de \emph{login} no barramento, todas as chamadas seguintes devem estar com a credencial de acesso anexada. Sendo assim, faz-se necessário a habilitação dos interceptadores frente ao ORB que será utilizado. No OpenBus-Java o ORB utilizado será o JacORB, e o barramento se encarregará da instalação dos interceptadores em sua inicialização, não sendo necessária nenhuma ação por parte do usuário nesse aspecto.
-	
+
 \subsection{JacORB}\label{jacorb}
 
 Devido à máquina virtual Java contar com seu próprio ORB, certas configurações são necessárias para que o JacORB seja utilizado em seu lugar. Essas configurações podem ser vizualizadas no Código~\ref{lst:jacoconfig}. O conjunto de propriedades deverá ser repassado posteriormente ao barramento, em sua inicialização, como veremos mais adiante.
@@ -73,6 +73,11 @@ props.setProperty("org.omg.CORBA.ORBClass", "org.jacorb.orb.ORB");
 props.setProperty("org.omg.CORBA.ORBSingletonClass",
   "org.jacorb.orb.ORBSingleton");
 \end{labeledcode}
+
+\subsection{Preparação do Ambiente com Mecanismo de Tolerância a Falhas}
+O barramento possui um mecanismo de tolerância a falhas baseado em replicação. Ou seja, pode existir mais de uma réplica do componente do Serviço de Controle de Acesso ou do Serviço de Registro ativos em um dado momento. Para que este mecanismo possa funcionar corretamente, é preciso configurar os endereços das réplicas do Serviço de Controle de Acesso acessíveis no arquivo \textit{"/resources/FaultToleranceConfiguration.properties"}.
+
+O mecanismo percorre de forma cíclica a lista de endereços especificadas por \textit{host:port} e separadas por vírgulas no atributo \textit{hosts} em caso de falha recebida pelo servidor. Além disso, existe o atributo \textit{trials} que representa a quantidade máxima de iterações que o mecanismo deve executar na busca por uma réplica ativa.
 
 \subsection{Teste}
 
@@ -110,10 +115,25 @@ bus.init(args, props, "localhost", 2089);
 
 Um ORB e POA são criados implicitamente na chamada \emph{init}.
 
+Adicionalmente, para que o cliente possa se beneficiar do mecanismo de tolerância a falhas de forma transparente, é necessário inicializar o barramento com o mecanismo habilitado. Para isto, ao invés de inicializar usando o método \emph{init}, deve-se usar o método \emph{initWithFaultTolerance} passando os mesmos parâmetros tal como usado no método \emph{init}.
+
+Se os endereços das réplicas do Serviço de Controle de Acesso acessíveis estiverem devidamente configurados, a API tentará redirecionar a chamada para uma réplica sem falha sempre que houver uma das seguintes falhas durante uma requisição:
+
+\begin{verbatim}
+  IDL:omg.org/CORBA/NO_RESPONSE:1.0
+  IDL:omg.org/CORBA/COMM_FAILURE:1.0
+  IDL:omg.org/CORBA/OBJECT_NOT_EXIST:1.0
+  IDL:omg.org/CORBA/TRANSIENT:1.0
+  IDL:omg.org/CORBA/TIMEOUT:1.0
+  IDL:omg.org/CORBA/NO_RESOURCES:1.0
+  IDL:omg.org/CORBA/FREE_MEM:1.0
+  IDL:omg.org/CORBA/NO_MEMORY:1.0
+  IDL:omg.org/CORBA/INTERNAL:1.0
+\end{verbatim}
+
 Os outros métodos da API Openbus serão explicados em mais detalhes a seguir:
 
 \begin{itemize}
-  \item \code{void initWithFaultTolerance()}: Inicializa a API com o mecanismo de tolerância a falha.
   \item \code{ORB getORB()}: Retorna o ORB utilizado.
   \item \code{POA getRootPOA()}: Retorna o RootPOA.
   \item \code{void run()}: \emph{Loop} que processa requisições remotas. Execução de \emph{orb.run()}.
@@ -148,16 +168,35 @@ Os outros métodos da API Openbus serão explicados em mais detalhes a seguir:
 Os outros métodos do \emph{stub} do Serviço de Registro serão explicados em mais detalhes a seguir:
 
 \begin{itemize}
-  \item \code{void Register(ServiceOffer serviceOffer, String registryId)}: Registra um serviço no barramento. O serviço é descrito através de uma oferta de	serviço. Caso o serviço seja registrado com sucesso, a identificação do mesmo é	armazenada no parâmetro de saída registryId.
+  \item \code{void register(ServiceOffer serviceOffer, String registryId)}: Registra um serviço no barramento. O serviço é descrito através de uma oferta de	serviço. Caso o serviço seja registrado com sucesso, a identificação do mesmo é	armazenada no parâmetro de saída registryId.
   \item \code{void unregister(String registryId)}: Remove uma oferta de serviço do barramento.
   \item \code{ServiceOfferList find(FacetList facets)}: Busca uma ou mais ofertas de serviço no barramento que implementem todas as facetas discriminadas em \emph{facets}.
   \item \code{ServiceOfferList findByCriteria(FacetList facets,	PropertyList properties)}: Busca uma ou mais ofertas de serviço no barramento que implementem todas as facetas discriminadas em \emph{facets} e que atendam aos critérios descritos no parâmetro \emph{criteria}, que é uma lista de propriedades descrita através de strings no	formato chave = {valor1, valor2, ..., valorN}.
 \end{itemize}
 
+\subsection{Configurações avançadas}
+
+\subsubsection{Definindo os níveis de log da API}
 A API utiliza o log do Java, que possui os níveis de log descritos na classe
- \emph{java.util.logging.Level}. Para alterar o nível de log da API deve-se 
- chamar o método \emph{setLogsLevel()} enviando o nível desejado como parâmetro. 
- Este método se encontra na classe \emph{tecgraf.openbus.util.Log}.
+ \emph{java.util.logging.Level}. Para alterar o nível de log da API deve-se chamar o método \emph{setLogsLevel()} enviando o nível desejado como parâmetro.
+Este método se encontra na classe \emph{tecgraf.openbus.util.Log}.
+
+\subsubsection{Habilitando a política de cache das credenciais}
+A API fornece uma forma de inicializar o barramento com a configuração desejada da política de validação de credenciais obtidas pelo interceptador servidor. Esta política permite que a API use um mecanismo de cache otimizando o desempenho do barramento.
+
+Para usar uma política, basta especificá-la na inicialização através do método \emph{init} ou emph{initWithFaultTolerance}. Para maiores informações sobre os tipos de política que podem ser definidos, vide a classe \emph{interceptors.CredentialValidationPolicy). Por padrão, o barramento é inicializado com a política de sempre validar uma credencial interceptada no servidor.
+
+\subsubsection{Definindo os \textit{timeouts} do mecanismo de tolerância a falhas}
+Ao iniciar o barramento com o mecanismo de tolerância a falhas ativado, a API configura um \textit{timeout} para as requisições de forma que, se uma réplica demorar muito para responder, o interceptador tentará redirecionar a requisição para outra réplica. A API configura esse tempo de duas formas: (i) alterando o arquivo de configuração do próprio JacORB (jacorb.properties), e (ii) definindo a política de \textit{timeout} para cada objeto remoto.
+
+Desta forma, se o desenvolvedor precisar alterar essas valores, é preciso alterar os tempos definidos nos atributos dentro do método \textit{initWithFaultTolerance}:
+\begin{itemize}
+\item jacorb.connection.client.connect\_timeout
+\item jacorb.retries
+\item jacorb.retry\_interval
+\end{itemize}
+
+O tempo padrão configurado máximo é de 3 minutos e é uma composição dos atributos mencionados.  Além disso, deve especificar explicitamente este valor no atributo \emph{totalTimeOut} também dentro do método \emph{initWithFaultTolerance}, pois ele é usado para definir a política. 
 
 \subsection{Primeiros Passos}
 
