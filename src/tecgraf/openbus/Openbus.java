@@ -24,6 +24,7 @@ import org.omg.CORBA.TCKind;
 import org.omg.CORBA.UserException;
 import org.omg.PortableInterceptor.Current;
 import org.omg.PortableInterceptor.CurrentHelper;
+import org.omg.PortableInterceptor.InvalidSlot;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 import org.omg.PortableServer.POAManager;
@@ -505,21 +506,26 @@ public final class Openbus {
    * @return A credencial da requisição.
    */
   public Credential getInterceptedCredential() {
+    Current pic;
     try {
-      Current pic =
+      pic =
         CurrentHelper.narrow(this.orb.resolve_initial_references("PICurrent"));
-      Any requestCredentialValue = pic.get_slot(this.requestCredentialSlot);
-      if (requestCredentialValue.type().kind().equals(TCKind.tk_null)) {
-        return null;
-      }
-      Credential requestCredential =
-        CredentialHelper.extract(requestCredentialValue);
-      return requestCredential;
     }
-    catch (org.omg.CORBA.UserException e) {
+    catch (org.omg.CORBA.ORBPackage.InvalidName e) {
       Log.COMMON.severe("Erro ao obter a credencial da requisição,", e);
       return null;
     }
+    Any requestCredentialValue;
+    try {
+      requestCredentialValue = pic.get_slot(this.requestCredentialSlot);
+    }
+    catch (InvalidSlot e) {
+      return null;
+    }
+    if (requestCredentialValue.type().kind().equals(TCKind.tk_null)) {
+      return null;
+    }
+    return CredentialHelper.extract(requestCredentialValue);
   }
 
   /**
