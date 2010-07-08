@@ -141,7 +141,6 @@ public final class LeaseRenewer {
     /**
      * {@inheritDoc}
      */
-    @Override
     public void run() {
       int lease = DEFAULT_LEASE;
 

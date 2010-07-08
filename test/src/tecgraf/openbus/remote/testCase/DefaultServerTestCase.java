@@ -43,7 +43,6 @@ public class DefaultServerTestCase implements ServerTestCase {
   /**
    * {@inheritDoc}
    */
-  @Override
   public void init(ServerTestContext context) throws OpenBusException,
     UserException {
     Openbus openbus = Openbus.getInstance();
@@ -64,7 +63,6 @@ public class DefaultServerTestCase implements ServerTestCase {
   /**
    * {@inheritDoc}
    */
-  @Override
   public void connect(ServerTestContext context) throws OpenBusException {
     Openbus openbus = Openbus.getInstance();
     Properties props = context.properties;
@@ -88,7 +86,6 @@ public class DefaultServerTestCase implements ServerTestCase {
   /**
    * {@inheritDoc}
    */
-  @Override
   public void createComponent(ServerTestContext context) throws Exception {
     Openbus openbus = Openbus.getInstance();
     ORB orb = openbus.getORB();
@@ -112,7 +109,6 @@ public class DefaultServerTestCase implements ServerTestCase {
   /**
    * {@inheritDoc}
    */
-  @Override
   public String registerComponent(ServerTestContext context)
     throws UnathorizedFacets {
     Openbus openbus = Openbus.getInstance();
@@ -134,7 +130,6 @@ public class DefaultServerTestCase implements ServerTestCase {
   /**
    * {@inheritDoc}
    */
-  @Override
   public void disconnect(ServerTestContext context) {
     Openbus openbus = Openbus.getInstance();
     openbus.disconnect();
@@ -143,7 +138,6 @@ public class DefaultServerTestCase implements ServerTestCase {
   /**
    * {@inheritDoc}
    */
-  @Override
   public void destroy(ServerTestContext context) {
     Openbus openbus = Openbus.getInstance();
     openbus.destroy();

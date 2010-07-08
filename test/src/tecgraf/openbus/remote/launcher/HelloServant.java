@@ -34,7 +34,6 @@ public class HelloServant extends IHelloPOA {
   /**
    * {@inheritDoc}
    */
-  @Override
   public void sayHello() {
     operations.sayHello();
 
@@ -43,7 +42,6 @@ public class HelloServant extends IHelloPOA {
   /**
    * {@inheritDoc}
    */
-  @Override
   public void sayHelloName(String name) {
     operations.sayHelloName(name);
   }

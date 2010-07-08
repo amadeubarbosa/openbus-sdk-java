@@ -103,7 +103,6 @@ class DelegateThread implements Runnable {
     this.hello = hello;
   }
 
-  @Override
   public void run() {
     Openbus openbus = Openbus.getInstance();
     Credential credential = openbus.getCredential();

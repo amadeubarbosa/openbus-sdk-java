@@ -10,7 +10,6 @@ public final class HelloImpl extends IHelloPOA {
     this.context = context;
   }
 
-  @Override
   public void sayHello() {
     System.out.println("Hello !!!");
   }
