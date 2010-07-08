@@ -55,7 +55,6 @@ public class CertificateAuthenticator implements Authenticator {
   /**
    * {@inheritDoc}
    */
-  @Override
   public Credential authenticate(IAccessControlService acs)
     throws ACSLoginFailureException, PKIException {
     byte[] challenge;

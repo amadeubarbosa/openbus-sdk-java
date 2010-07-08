@@ -33,7 +33,6 @@ public class DefaultClientTestCase implements ClientTestCase {
    * 
    * @throws UserException Caso ocorra um erro ao iniciar o RootPOA.
    */
-  @Override
   public void init(ClientTestContext context) throws OpenBusException,
     UserException {
 
@@ -56,7 +55,6 @@ public class DefaultClientTestCase implements ClientTestCase {
   /**
    * {@inheritDoc}
    */
-  @Override
   public void connect(ClientTestContext context) throws OpenBusException {
     Openbus openbus = Openbus.getInstance();
     Properties props = context.properties;
@@ -69,7 +67,6 @@ public class DefaultClientTestCase implements ClientTestCase {
   /**
    * {@inheritDoc}
    */
-  @Override
   public void findOffer(ClientTestContext context) {
     Openbus openbus = Openbus.getInstance();
     IRegistryService registryService = openbus.getRegistryService();
@@ -85,7 +82,6 @@ public class DefaultClientTestCase implements ClientTestCase {
   /**
    * {@inheritDoc}
    */
-  @Override
   public void executeServant(ClientTestContext context) {
     org.omg.CORBA.Object servant = context.servant;
     IHello hello = IHelloHelper.narrow(servant);
@@ -96,7 +92,6 @@ public class DefaultClientTestCase implements ClientTestCase {
   /**
    * {@inheritDoc}
    */
-  @Override
   public void disconnect(ClientTestContext context) {
     Openbus openbus = Openbus.getInstance();
     openbus.disconnect();
@@ -105,7 +100,6 @@ public class DefaultClientTestCase implements ClientTestCase {
   /**
    * {@inheritDoc}
    */
-  @Override
   public void destroy(ClientTestContext context) {
     Openbus openbus = Openbus.getInstance();
     openbus.destroy();

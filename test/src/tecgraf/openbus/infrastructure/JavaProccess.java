@@ -3,7 +3,6 @@ package tecgraf.openbus.infrastructure;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -80,7 +79,8 @@ public class JavaProccess {
    * @param args
    */
   public void setArgs(String... args) {
-    this.args = Arrays.copyOf(args, args.length);
+    this.args = new String[args.length];
+    System.arraycopy(args, 0, this.args, 0, args.length);
   }
 
   /**

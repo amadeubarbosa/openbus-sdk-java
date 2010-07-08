@@ -3,7 +3,6 @@
  */
 package tecgraf.openbus.interceptors;
 
-import java.util.Deque;
 import java.util.LinkedList;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -50,7 +49,7 @@ final class CachedCredentialValidatorServerInterceptor extends LocalObject
    * O cache de credenciais, que é mantido utilizando-se a política LRU (Least
    * Recently Used).
    */
-  private Deque<CredentialWrapper> credentials;
+  private LinkedList<CredentialWrapper> credentials;
   /**
    * O mecanismo de lock utilizado para sincronizar o acesso ao cache de
    * credenciai.
@@ -92,7 +91,6 @@ final class CachedCredentialValidatorServerInterceptor extends LocalObject
   /**
    * {@inheritDoc}
    */
-  @Override
   public void receive_request(ServerRequestInfo ri) throws ForwardRequest {
     Openbus bus = Openbus.getInstance();
 
@@ -117,7 +115,7 @@ final class CachedCredentialValidatorServerInterceptor extends LocalObject
       if (this.credentials.remove(wrapper)) {
         Log.INTERCEPTORS.fine("A credencial interceptada " + wrapper
           + " está no cache.");
-        this.credentials.offerLast(wrapper);
+        this.credentials.addLast(wrapper);
         return;
       }
     }
@@ -145,10 +143,9 @@ final class CachedCredentialValidatorServerInterceptor extends LocalObject
       try {
         if (this.credentials.size() == MAXIMUM_CREDENTIALS_CACHE_SIZE) {
           Log.INTERCEPTORS.info("O cache está cheio.");
-          this.credentials.pollFirst();
+          this.credentials.removeFirst();
         }
-        this.credentials
-          .offerLast(new CredentialWrapper(interceptedCredential));
+        this.credentials.addLast(new CredentialWrapper(interceptedCredential));
       }
       finally {
         this.lock.unlock();
@@ -164,7 +161,6 @@ final class CachedCredentialValidatorServerInterceptor extends LocalObject
   /**
    * {@inheritDoc}
    */
-  @Override
   public void receive_request_service_contexts(ServerRequestInfo ri)
     throws ForwardRequest {
     // Nada a ser feito.
@@ -173,7 +169,6 @@ final class CachedCredentialValidatorServerInterceptor extends LocalObject
   /**
    * {@inheritDoc}
    */
-  @Override
   public void send_exception(ServerRequestInfo ri) throws ForwardRequest {
     // Nada a ser feito.
   }
@@ -181,7 +176,6 @@ final class CachedCredentialValidatorServerInterceptor extends LocalObject
   /**
    * {@inheritDoc}
    */
-  @Override
   public void send_other(ServerRequestInfo ri) throws ForwardRequest {
     // Nada a ser feito.
   }
@@ -189,7 +183,6 @@ final class CachedCredentialValidatorServerInterceptor extends LocalObject
   /**
    * {@inheritDoc}
    */
-  @Override
   public void send_reply(ServerRequestInfo ri) {
     // Nada a ser feito.
   }
@@ -197,7 +190,6 @@ final class CachedCredentialValidatorServerInterceptor extends LocalObject
   /**
    * {@inheritDoc}
    */
-  @Override
   public void destroy() {
     this.timer.cancel();
   }
@@ -205,7 +197,6 @@ final class CachedCredentialValidatorServerInterceptor extends LocalObject
   /**
    * {@inheritDoc}
    */
-  @Override
   public String name() {
     return CachedCredentialValidatorServerInterceptor.class.getName();
   }

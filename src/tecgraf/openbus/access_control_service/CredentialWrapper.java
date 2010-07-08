@@ -72,7 +72,7 @@ public final class CredentialWrapper {
     builder.append(this.credential.identifier);
     builder.append(" - ");
     builder.append(this.credential.owner);
-    if (!this.credential.delegate.isEmpty()) {
+    if (!this.credential.delegate.equals("")) {
       builder.append("/");
       builder.append(this.credential.delegate);
     }

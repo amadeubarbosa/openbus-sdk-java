@@ -51,7 +51,6 @@ final class CredentialValidatorServerInterceptor extends LocalObject implements
   /**
    * {@inheritDoc}
    */
-  @Override
   public void receive_request(ServerRequestInfo ri) throws ForwardRequest {
     Openbus bus = Openbus.getInstance();
 
@@ -98,7 +97,6 @@ final class CredentialValidatorServerInterceptor extends LocalObject implements
   /**
    * {@inheritDoc}
    */
-  @Override
   public void receive_request_service_contexts(ServerRequestInfo ri)
     throws ForwardRequest {
     // Nada a ser feito.
@@ -107,7 +105,6 @@ final class CredentialValidatorServerInterceptor extends LocalObject implements
   /**
    * {@inheritDoc}
    */
-  @Override
   public void send_exception(ServerRequestInfo ri) throws ForwardRequest {
     // Nada a ser feito.
   }
@@ -115,7 +112,6 @@ final class CredentialValidatorServerInterceptor extends LocalObject implements
   /**
    * {@inheritDoc}
    */
-  @Override
   public void send_other(ServerRequestInfo ri) throws ForwardRequest {
     // Nada a ser feito.
   }
@@ -123,7 +119,6 @@ final class CredentialValidatorServerInterceptor extends LocalObject implements
   /**
    * {@inheritDoc}
    */
-  @Override
   public void send_reply(ServerRequestInfo ri) {
     // Nada a ser feito.
 
@@ -132,7 +127,6 @@ final class CredentialValidatorServerInterceptor extends LocalObject implements
   /**
    * {@inheritDoc}
    */
-  @Override
   public void destroy() {
     // Nada a ser feito.
   }
@@ -140,7 +134,6 @@ final class CredentialValidatorServerInterceptor extends LocalObject implements
   /**
    * {@inheritDoc}
    */
-  @Override
   public String name() {
     return CredentialValidatorServerInterceptor.class.getName();
   }

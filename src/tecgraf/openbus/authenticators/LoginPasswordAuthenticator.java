@@ -39,7 +39,6 @@ public final class LoginPasswordAuthenticator implements Authenticator {
   /**
    * {@inheritDoc}
    */
-  @Override
   public Credential authenticate(IAccessControlService acs) {
     CredentialHolder credentialHolder = new CredentialHolder();
     if (acs.loginByPassword(this.name, this.password, credentialHolder,
