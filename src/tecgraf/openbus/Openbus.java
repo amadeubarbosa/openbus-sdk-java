@@ -675,7 +675,8 @@ public final class Openbus {
   public synchronized boolean disconnect() {
     if (this.credential != null) {
       try {
-        this.leaseRenewer.stop();
+        if (this.leaseRenewer != null)
+          this.leaseRenewer.stop();
         this.acs.logout(this.credential);
       }
       finally {
