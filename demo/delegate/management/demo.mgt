@@ -10,6 +10,13 @@ SystemDeployment {
   certificate = "DelegateService.crt",
 }
 
+SystemDeployment {
+  id = "DelegateClient",
+  system = "DelegateDemo",
+  description = "Cliente do Demo Delegate",
+  certificate = "DelegateClient.crt",
+}
+
 Interface {
   id = "IDL:demoidl/demoDelegate/IHello:1.0"
 }

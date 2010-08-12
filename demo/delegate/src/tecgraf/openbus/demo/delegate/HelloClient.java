@@ -2,6 +2,12 @@ package tecgraf.openbus.demo.delegate;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Properties;
 import java.util.logging.Level;
 
@@ -15,13 +21,15 @@ import tecgraf.openbus.core.v1_05.registry_service.Property;
 import tecgraf.openbus.core.v1_05.registry_service.ServiceOffer;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.RSUnavailableException;
+import tecgraf.openbus.util.CryptoUtils;
 import tecgraf.openbus.util.Log;
 import demoidl.demoDelegate.IHello;
 import demoidl.demoDelegate.IHelloHelper;
 
 public class HelloClient {
   public static void main(String[] args) throws OpenBusException,
-    UserException, IOException {
+    UserException, IOException, InvalidKeyException, NoSuchAlgorithmException,
+    InvalidKeySpecException, CertificateException {
     Properties props = new Properties();
     InputStream in =
       HelloClient.class.getResourceAsStream("/Delegate.properties");
@@ -44,10 +52,16 @@ public class HelloClient {
     Openbus bus = Openbus.getInstance();
     bus.init(args, orbProps, host, port);
 
-    String userLogin = props.getProperty("login");
-    String userPassword = props.getProperty("password");
+    String entityName = props.getProperty("client.entity.name");
+    String privateKeyFile = props.getProperty("client.private.key");
+    String acsCertificateFile = props.getProperty("acs.certificate");
 
-    IRegistryService registryService = bus.connect(userLogin, userPassword);
+    RSAPrivateKey privateKey = CryptoUtils.readPrivateKey(privateKeyFile);
+    X509Certificate acsCertificate =
+      CryptoUtils.readCertificate(acsCertificateFile);
+
+    IRegistryService registryService =
+      bus.connect(entityName, privateKey, acsCertificate);
     if (registryService == null) {
       throw new RSUnavailableException();
     }
