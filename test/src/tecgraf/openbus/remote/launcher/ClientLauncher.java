@@ -3,7 +3,6 @@ package tecgraf.openbus.remote.launcher;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
-import java.util.logging.Level;
 
 import org.omg.CORBA.UserException;
 
@@ -12,7 +11,6 @@ import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.RSUnavailableException;
 import tecgraf.openbus.remote.testCase.ClientTestCase;
-import tecgraf.openbus.util.Log;
 
 /**
  * Responsável por lançar um teste cliente.
@@ -53,7 +51,6 @@ public class ClientLauncher {
     }
 
     ClientTestCase clientTestCase = (ClientTestCase) instance;
-    Log.setLogsLevel(Level.FINEST);
     Openbus openbus = Openbus.getInstance();
     ClientTestContext context = new ClientTestContext();
 

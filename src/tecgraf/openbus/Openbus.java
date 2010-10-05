@@ -28,6 +28,8 @@ import org.omg.PortableInterceptor.InvalidSlot;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 import org.omg.PortableServer.POAManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import scs.core.ConnectionDescription;
 import scs.core.IComponent;
@@ -62,7 +64,6 @@ import tecgraf.openbus.interceptors.FTClientInitializer;
 import tecgraf.openbus.interceptors.ServerInitializer;
 import tecgraf.openbus.lease.LeaseExpiredCallback;
 import tecgraf.openbus.lease.LeaseRenewer;
-import tecgraf.openbus.util.Log;
 import tecgraf.openbus.util.Utils;
 
 /**
@@ -442,6 +443,7 @@ public final class Openbus {
     if (this.ic == null)
       return null;
 
+    Logger logger = LoggerFactory.getLogger(Openbus.class);
     Object objRecep = this.ic.getFacetByName(Utils.RECEPTACLES_NAME);
     IReceptacles ireceptacle = IReceptaclesHelper.narrow(objRecep);
 
@@ -462,7 +464,7 @@ public final class Openbus {
       }
     }
     catch (InvalidName e) {
-      Log.COMMON.severe("Não foi possível obter o serviço de registro.", e);
+      logger.error("Não foi possível obter o serviço de registro.", e);
     }
 
     return this.rgs;
@@ -506,13 +508,14 @@ public final class Openbus {
    * @return A credencial da requisição.
    */
   public Credential getInterceptedCredential() {
+    Logger logger = LoggerFactory.getLogger(Openbus.class);
     Current pic;
     try {
       pic =
         CurrentHelper.narrow(this.orb.resolve_initial_references("PICurrent"));
     }
     catch (org.omg.CORBA.ORBPackage.InvalidName e) {
-      Log.COMMON.severe("Erro ao obter a credencial da requisição,", e);
+      logger.error("Erro ao obter a credencial interceptada.", e);
       return null;
     }
     Any requestCredentialValue;
@@ -897,7 +900,8 @@ public final class Openbus {
    * Informa aos observadores que o <i>lease</i> expirou.
    */
   private void leaseExpired() {
-    Log.LEASE.fine("Atualizando estado do Openbus");
+    Logger logger = LoggerFactory.getLogger(Openbus.class);
+    logger.debug("Atualizando estado do Openbus");
     reset();
     if (this.leaseExpiredCallback != null) {
       this.leaseExpiredCallback.expired();

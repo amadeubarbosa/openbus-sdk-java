@@ -10,12 +10,13 @@ import org.omg.CORBA.SystemException;
 import org.omg.PortableInterceptor.ForwardRequest;
 import org.omg.PortableInterceptor.ServerRequestInfo;
 import org.omg.PortableInterceptor.ServerRequestInterceptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import tecgraf.openbus.Openbus;
 import tecgraf.openbus.access_control_service.CredentialWrapper;
 import tecgraf.openbus.core.v1_05.access_control_service.Credential;
 import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlService;
-import tecgraf.openbus.util.Log;
 
 /**
  * Implementa a política de validação de credenciais interceptadas em um
@@ -52,26 +53,18 @@ final class CredentialValidatorServerInterceptor extends LocalObject implements
    * {@inheritDoc}
    */
   public void receive_request(ServerRequestInfo ri) throws ForwardRequest {
+    Logger logger = LoggerFactory.getLogger(ServerInterceptor.class);
+
+    String interceptedServant = ri.target_most_derived_interface();
+    String interceptedOperation = ri.operation();
+
     Openbus bus = Openbus.getInstance();
-
-    String repID = ri.target_most_derived_interface();
-    String method = ri.operation();
-
-    boolean isInterceptable = bus.isInterceptable(repID, method);
-    if (!isInterceptable) {
-      Log.INTERCEPTORS.info(String.format(
-        "Operação '%s' não interceptada no servidor.", method));
+    if (!bus.isInterceptable(interceptedServant, interceptedOperation)) {
       return;
     }
 
     Credential interceptedCredential = bus.getInterceptedCredential();
-    if (interceptedCredential == null) {
-      Log.INTERCEPTORS.warning("Nenhuma credencial foi interceptada.");
-      throw new NO_PERMISSION(0, CompletionStatus.COMPLETED_NO);
-    }
-
     CredentialWrapper wrapper = new CredentialWrapper(interceptedCredential);
-    Log.INTERCEPTORS.info("Credencial interceptada: " + wrapper);
 
     IAccessControlService acs = bus.getAccessControlService();
     boolean isValid;
@@ -79,17 +72,15 @@ final class CredentialValidatorServerInterceptor extends LocalObject implements
       isValid = acs.isValid(interceptedCredential);
     }
     catch (SystemException e) {
-      Log.INTERCEPTORS.severe("Erro ao tentar validar uma credencial.", e);
+      logger.error("Erro ao tentar validar a credencial " + wrapper + ".", e);
       throw new NO_PERMISSION(0, CompletionStatus.COMPLETED_NO);
     }
 
     if (isValid) {
-      Log.INTERCEPTORS.info("A credencial interceptada " + wrapper
-        + " é válida.");
+      logger.info("A credencial {} é válida.", wrapper);
     }
     else {
-      Log.INTERCEPTORS.warning("A credencial interceptada " + wrapper
-        + " não é válida.");
+      logger.warn("A credencial {} não é válida.", wrapper);
       throw new NO_PERMISSION(0, CompletionStatus.COMPLETED_NO);
     }
   }

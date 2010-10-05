@@ -11,9 +11,11 @@
   
   <properties>
     <java.version>1.5</java.version>
-    <junit.version>4.6</junit.version>
     <scs.version>1.1.0</scs.version>
+    <junit.version>4.6</junit.version>
     <jacorb.version>2.3.0</jacorb.version>
+    <slf4j.version>1.5.6</slf4j.version>
+    <logback.version>0.9.15</logback.version>
     <source.encoding>ISO-8859-1</source.encoding>
   </properties>
 
@@ -51,6 +53,7 @@
           <encoding>${source.encoding}</encoding>
         </configuration>
       </plugin>
+
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>idlj-maven-plugin</artifactId>
@@ -107,6 +110,18 @@
     </dependency>
 
     <dependency>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
+      <version>1.3</version>
+    </dependency>
+
+    <dependency>
+    	<groupId>org.slf4j</groupId>
+    	<artifactId>slf4j-api</artifactId>
+    	<version>${slf4j.version}</version>
+    </dependency>
+
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>${junit.version}</version>
@@ -114,9 +129,17 @@
     </dependency>
 
     <dependency>
-      <groupId>commons-codec</groupId>
-      <artifactId>commons-codec</artifactId>
-      <version>1.3</version>
+    	<groupId>ch.qos.logback</groupId>
+    	<artifactId>logback-classic</artifactId>
+    	<version>${logback.version}</version>
+    	<scope>test</scope>
+    </dependency>
+
+    <dependency>
+    	<groupId>ch.qos.logback</groupId>
+    	<artifactId>logback-core</artifactId>
+    	<version>${logback.version}</version>
+    	<scope>test</scope>
     </dependency>
   </dependencies>
 </project>

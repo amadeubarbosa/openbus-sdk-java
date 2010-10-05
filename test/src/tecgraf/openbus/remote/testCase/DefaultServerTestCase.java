@@ -3,7 +3,6 @@ package tecgraf.openbus.remote.testCase;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.Properties;
-import java.util.logging.Level;
 
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.UserException;
@@ -24,7 +23,6 @@ import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.remote.launcher.HelloServant;
 import tecgraf.openbus.remote.launcher.ServerTestContext;
 import tecgraf.openbus.util.CryptoUtils;
-import tecgraf.openbus.util.Log;
 import testidl.hello.IHelloHelper;
 
 /**
@@ -51,7 +49,6 @@ public class DefaultServerTestCase implements ServerTestCase {
     String portString = props.getProperty("host.port");
     int port = Integer.valueOf(portString);
 
-    Log.setLogsLevel(Level.FINEST);
     Properties orbProps = new Properties();
     orbProps.setProperty("org.omg.CORBA.ORBClass", "org.jacorb.orb.ORB");
     orbProps.setProperty("org.omg.CORBA.ORBSingletonClass",

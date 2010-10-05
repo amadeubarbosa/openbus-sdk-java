@@ -1,7 +1,6 @@
 package tecgraf.openbus.remote.testCase;
 
 import java.util.Properties;
-import java.util.logging.Level;
 
 import org.omg.CORBA.UserException;
 
@@ -11,7 +10,6 @@ import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
 import tecgraf.openbus.core.v1_05.registry_service.ServiceOffer;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.remote.launcher.ClientTestContext;
-import tecgraf.openbus.util.Log;
 import testidl.hello.IHello;
 import testidl.hello.IHelloHelper;
 
@@ -43,7 +41,6 @@ public class DefaultClientTestCase implements ClientTestCase {
 
     Openbus openbus = Openbus.getInstance();
 
-    Log.setLogsLevel(Level.FINEST);
     Properties orbProps = new Properties();
     orbProps.setProperty("org.omg.CORBA.ORBClass", "org.jacorb.orb.ORB");
     orbProps.setProperty("org.omg.CORBA.ORBSingletonClass",

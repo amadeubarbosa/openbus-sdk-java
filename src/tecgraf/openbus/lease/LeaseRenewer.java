@@ -6,10 +6,11 @@ package tecgraf.openbus.lease;
 import org.omg.CORBA.IntHolder;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.SystemException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import tecgraf.openbus.core.v1_05.access_control_service.Credential;
 import tecgraf.openbus.core.v1_05.access_control_service.ILeaseProvider;
-import tecgraf.openbus.util.Log;
 
 /**
  * Responsável por renovar um lease junto a um provedor.
@@ -142,6 +143,8 @@ public final class LeaseRenewer {
      * {@inheritDoc}
      */
     public void run() {
+      Logger logger = LoggerFactory.getLogger(LeaseRenewer.class);
+
       int lease = DEFAULT_LEASE;
 
       while (this.mustContinue) {
@@ -157,24 +160,22 @@ public final class LeaseRenewer {
           }
 
           if (expired) {
-            Log.LEASE.warning("Falha na renovação da credencial.");
+            logger.warn("Falha na renovação da credencial.");
             this.mustContinue = false;
             if (this.expiredCallback != null) {
-              Log.LEASE.info("Chamando a callback de expiração do lease.");
+              logger.debug("Chamando a callback de expiração da credencial.");
               this.expiredCallback.expired();
             }
           }
           else {
-            StringBuilder msg = new StringBuilder();
-            msg.append("Lease renovado. Próxima renovação em ");
-            msg.append(newLease.value);
-            msg.append(" segundos.");
-            Log.LEASE.fine(msg.toString());
+            logger.debug(
+              "Credencial renovada. Próxima renovação em {} segundos.",
+              newLease.value);
             lease = newLease.value;
           }
         }
         catch (SystemException e) {
-          Log.LEASE.severe(e.getMessage(), e);
+          logger.error("Falha na renovação da credencial", e);
         }
 
         if (this.mustContinue) {
@@ -187,7 +188,7 @@ public final class LeaseRenewer {
         }
       }
 
-      Log.LEASE.info("Finalizando a renovação do lease.");
+      logger.info("Finalizando a renovação do lease.");
     }
 
     /**

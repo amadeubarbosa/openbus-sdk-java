@@ -10,12 +10,13 @@ import org.omg.IOP.ServiceContext;
 import org.omg.PortableInterceptor.ClientRequestInfo;
 import org.omg.PortableInterceptor.ClientRequestInterceptor;
 import org.omg.PortableInterceptor.ForwardRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import tecgraf.openbus.Openbus;
 import tecgraf.openbus.access_control_service.CredentialWrapper;
 import tecgraf.openbus.core.v1_05.access_control_service.Credential;
 import tecgraf.openbus.core.v1_05.access_control_service.CredentialHelper;
-import tecgraf.openbus.util.Log;
 
 /**
  * Implementa um interceptador "cliente", para inserção de informações no
@@ -39,27 +40,26 @@ class ClientInterceptor extends InterceptorImpl implements
    * Intercepta o request para inserção de informação de contexto.
    */
   public void send_request(ClientRequestInfo ri) {
-    Log.INTERCEPTORS.info("Operação {" + ri.operation()
-      + "} interceptada no cliente.");
-    
+    Logger logger = LoggerFactory.getLogger(ClientInterceptor.class);
+
+    logger.info("A operação {} foi interceptada no cliente.", ri.operation());
+
     //operacoes do ORB nao precisam de credencial
     for (java.lang.reflect.Method op : ClientInterceptor.class.getMethods()) {
-		if (ri.operation().equals(op.getName()) ) return;
-	} 
-    
+      if (ri.operation().equals(op.getName()))
+        return;
+    }
+
     Openbus bus = Openbus.getInstance();
 
     /* Verifica se existe uma credencial para envio */
     Credential credential = bus.getCredential();
     if ((credential == null) || (credential.identifier.equals(""))) {
-      Log.INTERCEPTORS.info("Operação {" + ri.operation()
-      + "} SEM CREDENCIAL!");
+      logger.info("O cliente não possui credencial para envio.");
       return;
     }
 
     CredentialWrapper wrapper = new CredentialWrapper(credential);
-    Log.INTERCEPTORS.info("Operação {" + ri.operation()
-    	      + "} Credencial: " + wrapper);
 
     /* Insere a credencial no contexto do serviço */
     byte[] value = null;
@@ -70,14 +70,14 @@ class ClientInterceptor extends InterceptorImpl implements
       value = this.getCodec().encode_value(credentialValue);
     }
     catch (Exception e) {
-      Log.INTERCEPTORS.severe("Operação {" + ri.operation()
-    	      + "} ERRO NA CODIFICAÇÂO DA CREDENCIAL!", e);
+      logger.error("Erro na codificação da credencial", e);
       return;
     }
     ri
       .add_request_service_context(new ServiceContext(CONTEXT_ID, value), false);
-    Log.INTERCEPTORS.fine("Operação {" + ri.operation()
-      + "} INSERI CREDENCIAL!");
+
+    logger.debug("A credencial {} foi enviada para a operação {}",
+      new Object[] { wrapper, ri.operation() });
   }
 
   /**
@@ -96,8 +96,6 @@ class ClientInterceptor extends InterceptorImpl implements
 
   /**
    * {@inheritDoc}
-   * 
-   * @throws ForwardRequest
    */
   public void receive_exception(ClientRequestInfo ri) throws ForwardRequest {
     // Nada a ser feito.

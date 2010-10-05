@@ -5,7 +5,6 @@ import java.io.InputStream;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.Properties;
-import java.util.logging.Level;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -24,7 +23,6 @@ import tecgraf.openbus.exception.InvalidCredentialException;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.lease.LeaseExpiredCallback;
 import tecgraf.openbus.util.CryptoUtils;
-import tecgraf.openbus.util.Log;
 
 public class OpenbusTest {
   protected static Properties props;
@@ -70,8 +68,6 @@ public class OpenbusTest {
     props.setProperty("org.omg.CORBA.ORBClass", "org.jacorb.orb.ORB");
     props.setProperty("org.omg.CORBA.ORBSingletonClass",
       "org.jacorb.orb.ORBSingleton");
-
-    Log.setLogsLevel(Level.FINEST);
   }
 
   /**

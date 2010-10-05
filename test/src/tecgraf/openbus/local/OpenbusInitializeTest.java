@@ -13,7 +13,6 @@ import tecgraf.openbus.Openbus;
 import tecgraf.openbus.exception.ACSUnavailableException;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.OpenbusAlreadyInitializedException;
-import tecgraf.openbus.util.Log;
 
 public class OpenbusInitializeTest {
 
@@ -52,8 +51,6 @@ public class OpenbusInitializeTest {
     props.setProperty("org.omg.CORBA.ORBClass", "org.jacorb.orb.ORB");
     props.setProperty("org.omg.CORBA.ORBSingletonClass",
       "org.jacorb.orb.ORBSingleton");
-
-    Log.setLogsLevel(Level.WARNING);
   }
 
   /**

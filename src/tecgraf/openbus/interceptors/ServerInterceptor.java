@@ -10,12 +10,13 @@ import org.omg.IOP.Codec;
 import org.omg.IOP.ServiceContext;
 import org.omg.PortableInterceptor.ServerRequestInfo;
 import org.omg.PortableInterceptor.ServerRequestInterceptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import tecgraf.openbus.Openbus;
 import tecgraf.openbus.access_control_service.CredentialWrapper;
 import tecgraf.openbus.core.v1_05.access_control_service.Credential;
 import tecgraf.openbus.core.v1_05.access_control_service.CredentialHelper;
-import tecgraf.openbus.util.Log;
 
 /**
  * Implementa um interceptador "servidor", para obtenção de informações no
@@ -25,6 +26,7 @@ import tecgraf.openbus.util.Log;
  */
 class ServerInterceptor extends InterceptorImpl implements
   ServerRequestInterceptor {
+
   /**
    * O slot para transporte da credencial.
    */
@@ -45,11 +47,19 @@ class ServerInterceptor extends InterceptorImpl implements
    * {@inheritDoc}
    */
   public void receive_request_service_contexts(ServerRequestInfo ri) {
-    String interceptedOperation = ri.operation();
-    Log.INTERCEPTORS.info(String.format(
-      "Operação {%s} interceptada no servidor.", interceptedOperation));
+    Logger logger = LoggerFactory.getLogger(ServerInterceptor.class);
 
+    String interceptedServant = ri.target_most_derived_interface();
+    String interceptedOperation = ri.operation();
+
+    logger.info("A operação {} foi interceptada no servidor.",
+      interceptedOperation);
     Openbus bus = Openbus.getInstance();
+    if (!bus.isInterceptable(interceptedOperation, interceptedServant)) {
+      logger.info("A operação {} não deve ser interceptada pelo servidor.",
+        interceptedOperation);
+    }
+
     bus.setInterceptedCredentialSlot(credentialSlot);
 
     ServiceContext serviceContext = null;
@@ -57,23 +67,25 @@ class ServerInterceptor extends InterceptorImpl implements
       serviceContext = ri.get_request_service_context(CONTEXT_ID);
     }
     catch (BAD_PARAM e) {
-      Log.INTERCEPTORS.info(String.format(
-        "Operação '%s' não possui credencial", interceptedOperation));
+      logger.error(String.format(
+        "A chamada à operação '%s' não possui credencial.",
+        interceptedOperation), e);
+      return;
+    }
+    if (serviceContext == null) {
+      logger.error("A chamada à operação {} não possui credencial.",
+        interceptedOperation);
       return;
     }
 
-    if (serviceContext == null) {
-      Log.INTERCEPTORS
-        .severe("Não há informação de contexto (transporte de credencial)");
-      return;
-    }
     try {
       byte[] value = serviceContext.context_data;
       Credential credential =
         CredentialHelper.extract(this.getCodec().decode_value(value,
           CredentialHelper.type()));
       CredentialWrapper wrapper = new CredentialWrapper(credential);
-      Log.INTERCEPTORS.info("Credencial: " + wrapper);
+      logger.debug("A credencial {} foi interceptada para a operação {}",
+        new Object[] { wrapper, interceptedOperation });
 
       /*
        * Insere o valor da credencial no slot alocado para seu transporte ao
@@ -85,7 +97,7 @@ class ServerInterceptor extends InterceptorImpl implements
       ri.set_slot(this.credentialSlot, credentialValue);
     }
     catch (Exception e) {
-      Log.INTERCEPTORS.severe("Falha na validação da credencial", e);
+      logger.error("Falha na validação da credencial", e);
     }
   }
 

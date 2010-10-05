@@ -2,8 +2,10 @@ package tecgraf.openbus;
 
 import java.util.ArrayList;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import tecgraf.openbus.util.Host;
-import tecgraf.openbus.util.Log;
 import tecgraf.openbus.util.PropertiesLoaderImpl;
 
 public class FaultToleranceManager {
@@ -84,7 +86,8 @@ public class FaultToleranceManager {
    * atualizar a máquina a ser obtida uma réplica.
    */
   public boolean updateACSHostInUse() {
-    Log.COMMON.finest("currTrial: " + currTrial);
+    Logger logger = LoggerFactory.getLogger(FaultToleranceManager.class);
+    logger.debug("currTrial: {}", currTrial);
     if (currTrial == trials) {
       return false;
     }
@@ -103,13 +106,14 @@ public class FaultToleranceManager {
   }
 
   /**
-  * Quando uma replica for encontrada antes de acabar um trial, é necessário resetar esta variável.
-  * Caso contrário, o Manager poderá nunca encontrar réplicas válidas se estiver no último trial
-  * e tiver havia uma falha e o index for maior que 0 e todas as replicas de hosts indexadas
-  * acima da corrente não estiverem disponíveis
-  */
+   * Quando uma replica for encontrada antes de acabar um trial, é necessário
+   * resetar esta variável. Caso contrário, o Manager poderá nunca encontrar
+   * réplicas válidas se estiver no último trial e tiver havia uma falha e o
+   * index for maior que 0 e todas as replicas de hosts indexadas acima da
+   * corrente não estiverem disponíveis
+   */
   public void resetCurrTrial() {
-		this.currTrial = 0;
+    this.currTrial = 0;
   }
 
 }

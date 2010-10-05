@@ -27,6 +27,8 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import javax.crypto.Cipher;
 
 import org.apache.commons.codec.binary.Base64;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Métodos utilitários para uso de criptografia.
@@ -82,7 +84,8 @@ public final class CryptoUtils {
         inputStream.close();
       }
       catch (IOException e) {
-        Log.COMMON.warning(e.getLocalizedMessage());
+        Logger logger = LoggerFactory.getLogger(CryptoUtils.class);
+        logger.warn("Falha ao fechar o stream de um arquivo de certificado", e);
       }
     }
   }

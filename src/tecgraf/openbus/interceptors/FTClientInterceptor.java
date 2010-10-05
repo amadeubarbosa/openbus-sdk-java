@@ -9,14 +9,14 @@ import org.omg.CORBA.ORB;
 import org.omg.IOP.Codec;
 import org.omg.PortableInterceptor.ClientRequestInfo;
 import org.omg.PortableInterceptor.ForwardRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import tecgraf.openbus.FaultToleranceManager;
 import tecgraf.openbus.Openbus;
 import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
 import tecgraf.openbus.exception.ACSUnavailableException;
 import tecgraf.openbus.exception.CORBAException;
-import tecgraf.openbus.util.LoadLog;
-import tecgraf.openbus.util.Log;
 import tecgraf.openbus.util.Utils;
 
 /**
@@ -30,15 +30,10 @@ class FTClientInterceptor extends ClientInterceptor {
   private static final String FAULT_TOLERANT_ACS_KEY = "FTACS_v1_05";
   private static final String REGISTRY_SERVICE_KEY = "RS_v1_05";
 
-  /**
-   * O log dos testes de carga.
-   */
-  public static final LoadLog LOAD_TEST = new LoadLog("openbus.loadtest");
-
   private long start;
 
   /**
-   *Gerencia a lista de replicas.
+   * Gerencia a lista de replicas.
    */
   private FaultToleranceManager ftManager;
 
@@ -50,16 +45,20 @@ class FTClientInterceptor extends ClientInterceptor {
   FTClientInterceptor(Codec codec) {
     super(codec);
     this.ftManager = FaultToleranceManager.getInstance();
-    Log.INTERCEPTORS.info("[FTClientInterceptor] INTERCEPTADOR CRIADO!");
+    Logger logger = LoggerFactory.getLogger(ClientInterceptor.class);
+    logger.debug("Interceptador criado");
   }
 
   @Override
   public void receive_reply(ClientRequestInfo ri) {
-    String key = getObjectKey(ri);
-    String loadMsg =
-      "receive_reply; --; ; " + (System.currentTimeMillis() - start) + "; "
-        + key + "; " + ri.operation();
-    LOAD_TEST.info(loadMsg);
+    Logger loadTestLogger =
+      LoggerFactory
+        .getLogger("LoadTest." + FTClientInterceptor.class.getName());
+
+    loadTestLogger.info(
+      "--; {}; {}; {}",
+      new Object[] { (System.currentTimeMillis() - start), getObjectKey(ri),
+          ri.operation() });
 
     //se entrou aqui é porque a chamada remota retornou sem erro, 
     //logo deve reiniciar a variável de controle de tentativas de 
@@ -69,18 +68,20 @@ class FTClientInterceptor extends ClientInterceptor {
 
   @Override
   public void send_request(ClientRequestInfo ri) {
+    Logger loadTestLogger =
+      LoggerFactory.getLogger("LoadTest." + ClientInterceptor.class.getName());
+
     String key = getObjectKey(ri);
 
     start = System.currentTimeMillis();
-    String loadMsg = "send_request; inicio; 0; " + key + "; " + ri.operation();
-    LOAD_TEST.info(loadMsg);
+    loadTestLogger.info("inicio; 0; {}; {}",
+      new Object[] { key, ri.operation() });
 
     super.send_request(ri);
 
-    loadMsg =
-      "send_request; fim; ; " + (System.currentTimeMillis() - start) + "; "
-        + key + "; " + ri.operation();
-    LOAD_TEST.info(loadMsg);
+    loadTestLogger
+      .info("fim; {}; {}; {}", new Object[] {
+          (System.currentTimeMillis() - start), key, ri.operation() });
   }
 
   /**
@@ -88,35 +89,40 @@ class FTClientInterceptor extends ClientInterceptor {
    */
   @Override
   public void receive_exception(ClientRequestInfo ri) throws ForwardRequest {
-    Log.INTERCEPTORS
-      .fine("[receive_exception] TRATANDO EXCECAO ENVIADA DO SERVIDOR: "
-        + ri.received_exception_id());
+    Logger logger = LoggerFactory.getLogger(ClientInterceptor.class);
+    logger.debug("Tratando exceção enviada do servidor: {}",
+      ri.received_exception_id());
+
+    Logger loadTestLogger =
+      LoggerFactory.getLogger("LoadTest." + ClientInterceptor.class.getName());
 
     String key = getObjectKey(ri);
-    String loadMsg =
-      "receive_exception; inicio; ; " + (System.currentTimeMillis() - start)
-        + "; " + key + "; " + ri.operation() + "; "
-        + ri.received_exception_id();
-    LOAD_TEST.severe(loadMsg);
+    loadTestLogger.error("inicio; {}; {}; {}; {}",
+      new Object[] { (System.currentTimeMillis() - start), key, ri.operation(),
+          ri.received_exception_id() });
 
-    String msg = "";
     boolean fetch =
-      ri.received_exception_id().equals("IDL:omg.org/CORBA/TRANSIENT:1.0") ||
-      ri.received_exception_id().equals("IDL:omg.org/CORBA/OBJECT_NOT_EXIST:1.0") ||
-      ri.received_exception_id().equals("IDL:omg.org/CORBA/COMM_FAILURE:1.0")  ||
-      ri.received_exception_id().equals("IDL:omg.org/CORBA/TIMEOUT:1.0")||
-      ri.received_exception_id().equals("IDL:omg.org/CORBA/NO_RESPONSE:1.0")||
-      ri.received_exception_id().equals("IDL:omg.org/CORBA/NO_RESOURCES:1.0")||
-      ri.received_exception_id().equals("IDL:omg.org/CORBA/NO_MEMORY:1.0")||
-      ri.received_exception_id().equals("IDL:omg.org/CORBA/INTERNAL:1.0");
+      ri.received_exception_id().equals("IDL:omg.org/CORBA/TRANSIENT:1.0")
+        || ri.received_exception_id().equals(
+          "IDL:omg.org/CORBA/OBJECT_NOT_EXIST:1.0")
+        || ri.received_exception_id().equals(
+          "IDL:omg.org/CORBA/COMM_FAILURE:1.0")
+        || ri.received_exception_id().equals("IDL:omg.org/CORBA/TIMEOUT:1.0")
+        || ri.received_exception_id().equals(
+          "IDL:omg.org/CORBA/NO_RESPONSE:1.0")
+        || ri.received_exception_id().equals(
+          "IDL:omg.org/CORBA/NO_RESOURCES:1.0")
+        || ri.received_exception_id().equals("IDL:omg.org/CORBA/NO_MEMORY:1.0")
+        || ri.received_exception_id().equals("IDL:omg.org/CORBA/INTERNAL:1.0");
 
     if (!fetch) {
-      Log.INTERCEPTORS.severe(ri.received_exception_id());
+      logger.error(ri.received_exception_id());
       return;
     }
 
     Openbus bus = Openbus.getInstance();
 
+    String msg = "";
     if (key.equals(Utils.OPENBUS_KEY) || key.equals(ACCESS_CONTROL_SERVICE_KEY)
       || key.equals(LEASE_PROVIDER_KEY) || key.equals(FAULT_TOLERANT_ACS_KEY)) {
       while (fetch) {
@@ -126,11 +132,10 @@ class FTClientInterceptor extends ClientInterceptor {
           try {
             bus.fetchACS();
 
-            loadMsg =
-              "receive_exception; fim; ; "
-                + (System.currentTimeMillis() - start) + "; " + key + "; "
-                + ri.operation() + "; " + ri.received_exception_id();
-            LOAD_TEST.severe(loadMsg);
+            loadTestLogger.error(
+              "fim; {}; {}; {}; {}",
+              new Object[] { (System.currentTimeMillis() - start), key,
+                  ri.operation(), ri.received_exception_id() });
 
             if (key.equals(ACCESS_CONTROL_SERVICE_KEY)) {
               throw new ForwardRequest(bus.getAccessControlService());
@@ -158,23 +163,20 @@ class FTClientInterceptor extends ClientInterceptor {
           fetch = false;
         }
       }
-      loadMsg =
-        "receive_exception; fim; ; " + (System.currentTimeMillis() - start)
-          + "; " + key + "; " + ri.operation() + "; "
-          + ri.received_exception_id();
-      LOAD_TEST.severe(loadMsg);
+      loadTestLogger.error(
+        "fim; {}; {}; {}; {}",
+        new Object[] { (System.currentTimeMillis() - start), key,
+            ri.operation(), ri.received_exception_id() });
 
-      Log.INTERCEPTORS.info("[receive_exception][ACSUnavailableException] "
-        + msg);
+      logger.debug("[ACSUnavailableException] {}", msg);
     }
     else if (key.equals(REGISTRY_SERVICE_KEY)) {
       IRegistryService rs = bus.getRegistryService();
 
-      loadMsg =
-        "receive_exception; fim; ; " + (System.currentTimeMillis() - start)
-          + "; " + key + "; " + ri.operation() + "; "
-          + ri.received_exception_id();
-      LOAD_TEST.severe(loadMsg);
+      loadTestLogger.error(
+        "fim; {}; {}; {}; {}",
+        new Object[] { (System.currentTimeMillis() - start), key,
+            ri.operation(), ri.received_exception_id() });
 
       throw new ForwardRequest(rs);
     }
@@ -185,13 +187,16 @@ class FTClientInterceptor extends ClientInterceptor {
    */
   @Override
   public void receive_other(ClientRequestInfo ri) {
-    Log.INTERCEPTORS.fine("[receive_other] TRATANDO OUTRA RESPOSTA!");
+    Logger logger = LoggerFactory.getLogger(ClientInterceptor.class);
+    logger.debug("Tratando outra resposta.");
 
-    String key = getObjectKey(ri);
-    String loadMsg =
-      "receive_other; --; ; " + (System.currentTimeMillis() - start) + "; "
-        + key + "; " + ri.operation();
-    LOAD_TEST.severe(loadMsg);
+    Logger loadTestLogger =
+      LoggerFactory.getLogger("LoadTest." + ClientInterceptor.class.getName());
+
+    loadTestLogger.error(
+      "--; {}; {}; {}",
+      new Object[] { (System.currentTimeMillis() - start), getObjectKey(ri),
+          ri.operation() });
   }
 
   public String getObjectKey(ClientRequestInfo ri) {
