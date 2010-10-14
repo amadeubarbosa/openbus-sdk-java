@@ -125,7 +125,7 @@ public class HelloServer {
   private static class ShutdownThread extends Thread {
     @Override
     public void run() {
-    	Openbus bus = Openbus.getInstance();
+      Openbus bus = Openbus.getInstance();
       IRegistryService registryService = bus.getRegistryService();
       registryService.unregister(registrationId);
       bus.disconnect();

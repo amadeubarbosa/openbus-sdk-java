@@ -121,9 +121,10 @@ public class HelloFTServer {
         System.out.println("Faceta '" + facet + "' não autorizada");
       }
       System.exit(1);
-    } catch (InterruptedException e) {
-		e.printStackTrace();
-	}
+    }
+    catch (InterruptedException e) {
+      e.printStackTrace();
+    }
 
     Runtime.getRuntime().addShutdownHook(new ShutdownThread());
 
@@ -133,7 +134,7 @@ public class HelloFTServer {
   private static class ShutdownThread extends Thread {
     @Override
     public void run() {
-    	Openbus bus = Openbus.getInstance();
+      Openbus bus = Openbus.getInstance();
       IRegistryService registryService = bus.getRegistryService();
       registryService.unregister(registrationId);
       bus.disconnect();
