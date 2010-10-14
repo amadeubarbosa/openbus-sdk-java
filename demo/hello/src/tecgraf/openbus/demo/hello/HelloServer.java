@@ -99,12 +99,8 @@ public class HelloServer {
 
     org.omg.CORBA.Object obj = context.getIComponent();
     IComponent component = IComponentHelper.narrow(obj);
-    Property registrationProps[] = new Property[1];
-    registrationProps[0] = new Property();
-    registrationProps[0].name = "facets";
-    registrationProps[0].value = new String[1];
-    registrationProps[0].value[0] = "IDL:demoidl/hello/IHello:1.0";
-    ServiceOffer serviceOffer = new ServiceOffer(registrationProps, component);
+    Property[] properties = new Property[0];
+    ServiceOffer serviceOffer = new ServiceOffer(properties, component);
     try {
       registrationId = registryService.register(serviceOffer);
       System.out.println("Hello Server registrado.");
