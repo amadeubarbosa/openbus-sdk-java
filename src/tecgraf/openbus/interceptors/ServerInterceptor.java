@@ -49,16 +49,11 @@ class ServerInterceptor extends InterceptorImpl implements
   public void receive_request_service_contexts(ServerRequestInfo ri) {
     Logger logger = LoggerFactory.getLogger(ServerInterceptor.class);
 
-    String interceptedServant = ri.target_most_derived_interface();
     String interceptedOperation = ri.operation();
 
     logger.info("A operação {} foi interceptada no servidor.",
       interceptedOperation);
     Openbus bus = Openbus.getInstance();
-    if (!bus.isInterceptable(interceptedOperation, interceptedServant)) {
-      logger.info("A operação {} não deve ser interceptada pelo servidor.",
-        interceptedOperation);
-    }
 
     bus.setInterceptedCredentialSlot(credentialSlot);
 
@@ -105,7 +100,17 @@ class ServerInterceptor extends InterceptorImpl implements
    * {@inheritDoc}
    */
   public void receive_request(ServerRequestInfo ri) {
-    // Nada a ser feito.
+    Logger logger = LoggerFactory.getLogger(ServerInterceptor.class);
+
+    Openbus bus = Openbus.getInstance();
+
+    String interceptedServant = ri.target_most_derived_interface();
+    String interceptedOperation = ri.operation();
+
+    if (!bus.isInterceptable(interceptedOperation, interceptedServant)) {
+      logger.info("A operação {} não deve ser interceptada pelo servidor.",
+        interceptedOperation);
+    }
   }
 
   /**
