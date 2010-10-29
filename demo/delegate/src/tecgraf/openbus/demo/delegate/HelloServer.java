@@ -26,7 +26,6 @@ import tecgraf.openbus.core.v1_05.registry_service.UnathorizedFacets;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.RSUnavailableException;
 import tecgraf.openbus.util.CryptoUtils;
-import tecgraf.openbus.util.Log;
 import demoidl.demoDelegate.IHelloHelper;
 
 public class HelloServer {
@@ -53,7 +52,7 @@ public class HelloServer {
     }
     else {
       System.out
-        .println("Erro ao abrir o arquivo de configuração Hello.properties.");
+        .println("Erro ao abrir o arquivo de configuração Delegate.properties.");
       System.exit(1);
     }
 
@@ -61,7 +60,6 @@ public class HelloServer {
     String portString = props.getProperty("host.port");
     int port = Integer.valueOf(portString);
 
-    Log.setLogsLevel(Level.WARNING);
     Properties orbProps = new Properties();
     orbProps.setProperty("org.omg.CORBA.ORBClass", "org.jacorb.orb.ORB");
     orbProps.setProperty("org.omg.CORBA.ORBSingletonClass",
