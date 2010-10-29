@@ -32,7 +32,6 @@ import tecgraf.openbus.session_service.v1_05.ISessionServiceHelper;
 import tecgraf.openbus.session_service.v1_05.SessionEvent;
 import tecgraf.openbus.session_service.v1_05.SessionEventSink;
 import tecgraf.openbus.session_service.v1_05.SessionEventSinkHelper;
-import tecgraf.openbus.util.Log;
 
 /**
  * Demo que exercita callbacks de Sessão.
@@ -70,7 +69,6 @@ public class EventSinkDemo {
     String portString = props.getProperty("host.port");
     int port = Integer.valueOf(portString);
 
-    Log.setLogsLevel(Level.WARNING);
     Properties orbProps = new Properties();
     orbProps.setProperty("org.omg.CORBA.ORBClass", "org.jacorb.orb.ORB");
     orbProps.setProperty("org.omg.CORBA.ORBSingletonClass",
