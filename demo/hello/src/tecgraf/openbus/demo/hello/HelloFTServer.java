@@ -26,7 +26,6 @@ import tecgraf.openbus.core.v1_05.registry_service.UnathorizedFacets;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.RSUnavailableException;
 import tecgraf.openbus.util.CryptoUtils;
-import tecgraf.openbus.util.Log;
 import demoidl.hello.IHelloHelper;
 
 public class HelloFTServer {
@@ -60,7 +59,6 @@ public class HelloFTServer {
     String portString = props.getProperty("host.port");
     int port = Integer.valueOf(portString);
 
-    Log.setLogsLevel(Level.WARNING);
     Properties orbProps = new Properties();
     orbProps.setProperty("org.omg.CORBA.ORBClass", "org.jacorb.orb.ORB");
     orbProps.setProperty("org.omg.CORBA.ORBSingletonClass",
