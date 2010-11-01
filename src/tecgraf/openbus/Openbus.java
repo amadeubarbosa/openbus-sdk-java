@@ -627,8 +627,16 @@ public final class Openbus {
   }
 
   /**
-   * Realiza uma tentativa de conexão com o barramento (serviço de controle de
-   * acesso e o serviço de registro).
+   * <p>
+   * Realiza uma tentativa de conexão com o barramento(serviço de controle de
+   * acesso), a partir de uma credencial.
+   * </p>
+   * 
+   * <p>
+   * Este processo utiliza a conexão do dono da credencial. Logo ele não é
+   * responsável por manter a conexão ativa - não renova o <i>lease</i>. Se o
+   * processo dono da credencial se desconectar, este será desconectado.
+   * </p>
    * 
    * @param authenticator O responsável por efetuar a autenticação.
    * 
