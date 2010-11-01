@@ -703,21 +703,19 @@ public final class Openbus {
    *         nenhuma conexão estiver ativa.
    */
   public synchronized boolean disconnect() {
-    if (this.credential != null) {
-      try {
-        if (this.leaseRenewer != null)
-          this.leaseRenewer.stop();
+    if (this.credential == null)
+      return false;
+
+    try {
+      if (this.leaseRenewer != null) {
+        this.leaseRenewer.stop();
         this.acs.logout(this.credential);
       }
-      finally {
-        this.leaseRenewer = null;
-        this.credential = null;
-      }
-      return true;
     }
-    else {
-      return false;
+    finally {
+      reset();
     }
+    return true;
   }
 
   /**
