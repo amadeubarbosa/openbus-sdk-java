@@ -5,14 +5,14 @@
   <groupId>tecgraf.openbus</groupId>
   <artifactId>openbus-demo-eventsink</artifactId>
   <packaging>jar</packaging>
-  <version>1.5.0</version>
+  <version>1.5-SNAPSHOT</version>
 
   <name>OpenBus Demo EventSink</name>
-  <url>https://subversion.tecgraf.puc-rio.br/engdist/openbus/sdk/java/tags/OB_SDK_JAVA_v1_05_2010_06_23/demo/eventsink</url>
+  <url>https://subversion.tecgraf.puc-rio.br/engdist/openbus/sdk/java/branches/OB_SDK_JAVA_v1_05_2010_05_13/demo/eventsink</url>
 
   <properties>
     <java.version>1.5</java.version>
-    <scs.version>1.1.0</scs.version>
+    <scs.version>1.2.0</scs.version>
     <jacorb.version>2.3.0</jacorb.version>
     <source.encoding>ISO-8859-1</source.encoding>
   </properties>
