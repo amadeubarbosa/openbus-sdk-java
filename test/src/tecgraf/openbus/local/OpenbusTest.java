@@ -49,14 +49,14 @@ public class OpenbusTest {
     props.load(in);
     in.close();
 
-    this.userLogin = props.getProperty("userLogin");
-    this.userPassword = props.getProperty("userPassword");
-    this.hostName = props.getProperty("hostName");
-    this.hostPort = Integer.valueOf(props.getProperty("hostPort"));
+    this.userLogin = props.getProperty("User.Login");
+    this.userPassword = props.getProperty("User.Password");
+    this.hostName = props.getProperty("Host.Name");
+    this.hostPort = Integer.valueOf(props.getProperty("Host.Port"));
 
-    this.testKey = props.getProperty("testKey");
-    this.acsCertificate = props.getProperty("ACServiceCert");
-    this.testCertificateName = props.getProperty("testCertificateName");
+    this.testKey = props.getProperty("Server.Key");
+    this.acsCertificate = props.getProperty("Acs.Certificate");
+    this.testCertificateName = props.getProperty("Server.EntityName");
   }
 
   /**

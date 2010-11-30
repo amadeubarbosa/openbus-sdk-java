@@ -51,7 +51,7 @@ public class ServerLaucher {
     Openbus openbus = Openbus.getInstance();
     Properties props = new Properties();
     InputStream in =
-      ServerLaucher.class.getResourceAsStream("/RemoteTest.properties");
+      ServerLaucher.class.getResourceAsStream("/AllTests.properties");
     if (in != null) {
       try {
         props.load(in);

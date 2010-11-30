@@ -45,8 +45,8 @@ public class DefaultServerTestCase implements ServerTestCase {
     UserException {
     Openbus openbus = Openbus.getInstance();
     Properties props = context.properties;
-    String host = props.getProperty("host.name");
-    String portString = props.getProperty("host.port");
+    String host = props.getProperty("Host.Name");
+    String portString = props.getProperty("Host.Port");
     int port = Integer.valueOf(portString);
 
     Properties orbProps = new Properties();
@@ -63,9 +63,9 @@ public class DefaultServerTestCase implements ServerTestCase {
   public void connect(ServerTestContext context) throws OpenBusException {
     Openbus openbus = Openbus.getInstance();
     Properties props = context.properties;
-    String entityName = props.getProperty("server.entityName");
-    String privateKeyFile = props.getProperty("test.key");
-    String acsCertificateFile = props.getProperty("acs.certificate");
+    String entityName = props.getProperty("Server.EntityName");
+    String privateKeyFile = props.getProperty("Server.Key");
+    String acsCertificateFile = props.getProperty("Acs.Certificate");
 
     RSAPrivateKey privateKey = null;
     X509Certificate acsCertificate = null;

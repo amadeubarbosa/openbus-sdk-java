@@ -3,7 +3,6 @@ package tecgraf.openbus.local;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
-import java.util.logging.Level;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -36,10 +35,10 @@ public class OpenbusInitializeTest {
     defaultProps.load(in);
     in.close();
 
-    this.hostName = defaultProps.getProperty("hostName");
-    this.hostPort = Integer.valueOf(defaultProps.getProperty("hostPort"));
-    this.userLogin = defaultProps.getProperty("userLogin");
-    this.userPassword = defaultProps.getProperty("userPassword");
+    this.userLogin = defaultProps.getProperty("User.Login");
+    this.userPassword = defaultProps.getProperty("User.Password");
+    this.hostName = defaultProps.getProperty("Host.Name");
+    this.hostPort = Integer.valueOf(defaultProps.getProperty("Host.Port"));
   }
 
   /**

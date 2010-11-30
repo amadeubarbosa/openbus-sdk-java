@@ -35,8 +35,8 @@ public class DefaultClientTestCase implements ClientTestCase {
     UserException {
 
     Properties props = context.properties;
-    String host = props.getProperty("host.name");
-    String portString = props.getProperty("host.port");
+    String host = props.getProperty("Host.Name");
+    String portString = props.getProperty("Host.Port");
     int port = Integer.valueOf(portString);
 
     Openbus openbus = Openbus.getInstance();
@@ -55,8 +55,8 @@ public class DefaultClientTestCase implements ClientTestCase {
   public void connect(ClientTestContext context) throws OpenBusException {
     Openbus openbus = Openbus.getInstance();
     Properties props = context.properties;
-    String userLogin = props.getProperty("user.login");
-    String userPassword = props.getProperty("user.password");
+    String userLogin = props.getProperty("User.Login");
+    String userPassword = props.getProperty("User.Password");
 
     openbus.connect(userLogin, userPassword);
   }
