@@ -4,8 +4,8 @@
 module testidl {
   module hello {
     interface IHello {
-      void sayHello();
-      void sayHelloName(in string name);
+      boolean sayHello();
+      boolean sayHelloName(in string name);
     };
   };
 };

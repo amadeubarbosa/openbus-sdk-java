@@ -34,16 +34,15 @@ public class HelloServant extends IHelloPOA {
   /**
    * {@inheritDoc}
    */
-  public void sayHello() {
-    operations.sayHello();
-
+  public boolean sayHello() {
+    return operations.sayHello();
   }
 
   /**
    * {@inheritDoc}
    */
-  public void sayHelloName(String name) {
-    operations.sayHelloName(name);
+  public boolean sayHelloName(String name) {
+    return operations.sayHelloName(name);
   }
 
 }
