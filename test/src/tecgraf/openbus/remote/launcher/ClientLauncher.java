@@ -89,6 +89,9 @@ public class ClientLauncher {
       e.printStackTrace();
       return -1;
     }
+    catch (Exception e) {
+      return -1;
+    }
     finally {
       clientTestCase.destroy(context);
     }

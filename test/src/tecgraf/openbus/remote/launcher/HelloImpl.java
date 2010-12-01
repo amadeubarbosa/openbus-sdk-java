@@ -12,15 +12,17 @@ public final class HelloImpl implements IHelloOperations {
   /**
    * {@inheritDoc}
    */
-  public void sayHello() {
+  public boolean sayHello() {
     System.out.println("Hello World !!");
+    return true;
   }
 
   /**
    * {@inheritDoc}
    */
-  public void sayHelloName(String name) {
+  public boolean sayHelloName(String name) {
     System.out.println(String.format("Hello %s !!", name));
+    return true;
   }
 
 }

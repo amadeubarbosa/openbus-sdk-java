@@ -62,13 +62,12 @@ class ServerInterceptor extends InterceptorImpl implements
       serviceContext = ri.get_request_service_context(CONTEXT_ID);
     }
     catch (BAD_PARAM e) {
-      logger.error(String.format(
-        "A chamada à operação '%s' não possui credencial.",
-        interceptedOperation), e);
+      logger.warn("A chamada à operação '{}' não possui credencial.",
+        interceptedOperation);
       return;
     }
     if (serviceContext == null) {
-      logger.error("A chamada à operação {} não possui credencial.",
+      logger.error("A chamada à operação '{}' não possui credencial.",
         interceptedOperation);
       return;
     }

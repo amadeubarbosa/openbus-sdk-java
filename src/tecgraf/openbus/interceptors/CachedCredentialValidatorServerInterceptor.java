@@ -107,6 +107,9 @@ final class CachedCredentialValidatorServerInterceptor extends LocalObject
     }
 
     Credential interceptedCredential = bus.getInterceptedCredential();
+    if (interceptedCredential == null) {
+      throw new NO_PERMISSION(100, CompletionStatus.COMPLETED_NO);
+    }
 
     CredentialWrapper interceptedWrapper =
       new CredentialWrapper(interceptedCredential);

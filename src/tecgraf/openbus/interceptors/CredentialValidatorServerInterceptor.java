@@ -65,6 +65,9 @@ final class CredentialValidatorServerInterceptor extends LocalObject implements
 
     Credential interceptedCredential = bus.getInterceptedCredential();
     CredentialWrapper wrapper = new CredentialWrapper(interceptedCredential);
+    if (interceptedCredential == null) {
+      throw new NO_PERMISSION(100, CompletionStatus.COMPLETED_NO);
+    }
 
     IAccessControlService acs = bus.getAccessControlService();
     boolean isValid;
