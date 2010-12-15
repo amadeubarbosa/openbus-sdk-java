@@ -6,7 +6,7 @@ import java.util.Properties;
 import org.omg.CORBA.ORB;
 
 import tecgraf.openbus.Openbus;
-import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
+import tecgraf.openbus.core.v1_06.registry_service.IRegistryService;
 import tecgraf.openbus.exception.RSUnavailableException;
 import tecgraf.openbus.remote.testCase.ServerTestCase;
 

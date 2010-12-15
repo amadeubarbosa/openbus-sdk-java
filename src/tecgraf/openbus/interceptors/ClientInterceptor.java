@@ -15,8 +15,8 @@ import org.slf4j.LoggerFactory;
 
 import tecgraf.openbus.Openbus;
 import tecgraf.openbus.access_control_service.CredentialWrapper;
-import tecgraf.openbus.core.v1_05.access_control_service.Credential;
-import tecgraf.openbus.core.v1_05.access_control_service.CredentialHelper;
+import tecgraf.openbus.core.v1_06.access_control_service.Credential;
+import tecgraf.openbus.core.v1_06.access_control_service.CredentialHelper;
 
 /**
  * Implementa um interceptador "cliente", para inserção de informações no
@@ -73,8 +73,7 @@ class ClientInterceptor extends InterceptorImpl implements
       logger.error("Erro na codificação da credencial", e);
       return;
     }
-    ri
-      .add_request_service_context(new ServiceContext(CONTEXT_ID, value), false);
+    ri.add_request_service_context(new ServiceContext(CONTEXT_ID, value), false);
 
     logger.debug("A credencial {} foi enviada para a operação {}",
       new Object[] { wrapper, ri.operation() });

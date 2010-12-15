@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import tecgraf.openbus.FaultToleranceManager;
 import tecgraf.openbus.Openbus;
-import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
+import tecgraf.openbus.core.v1_06.registry_service.IRegistryService;
 import tecgraf.openbus.exception.ACSUnavailableException;
 import tecgraf.openbus.exception.CORBAException;
 import tecgraf.openbus.util.Utils;
