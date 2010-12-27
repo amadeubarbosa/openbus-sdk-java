@@ -27,17 +27,17 @@ public final class Utils {
   /**
    * Representam a chave para obtenção do barramento.
    */
-  public static final String OPENBUS_KEY = "openbus_v1_05";
+  public static final String OPENBUS_KEY = "openbus_v1_06";
 
   /**
    * Versao atual do OpenBus.
    */
-  public static final String OB_VERSION = "1_05";
+  public static final String OB_VERSION = "1_06";
 
   /**
    * Versao anterior do OpenBus.
    */
-  public static final String OB_PREV = "1_04";
+  public static final String OB_PREV = "1_05";
 
   /**
    * Nome da faceta IReceptacles.
