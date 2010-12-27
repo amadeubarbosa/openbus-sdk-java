@@ -563,4 +563,14 @@ public class OpenbusTest {
     Credential newCredential = openbus.getCredential();
     Assert.assertFalse(credential.identifier.equals(newCredential.identifier));
   }
+
+  /**
+   * Verifica se uma credencial nula é retornada como credencial interceptada
+   * quando não estamos na thread de uma chamada remota.
+   */
+  @Test
+  public void getInterceptedCredential() {
+    Openbus openbus = Openbus.getInstance();
+    Assert.assertNull(openbus.getInterceptedCredential());
+  }
 }
