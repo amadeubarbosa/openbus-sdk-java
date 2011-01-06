@@ -96,12 +96,6 @@
 
   <dependencies>
     <dependency>
-      <groupId>tecgraf.openbus</groupId>
-      <artifactId>openbus-idl-jacorb</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-
-    <dependency>
     	<groupId>tecgraf.scs</groupId>
     	<artifactId>scs-idl-jacorb</artifactId>
       <version>${scs.version}</version>
