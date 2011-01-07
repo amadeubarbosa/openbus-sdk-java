@@ -3,11 +3,11 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>tecgraf.openbus</groupId>
-  <artifactId>openbus-api</artifactId>
-  <packaging>jar</packaging>
+  <artifactId>openbus-sdk</artifactId>
+  <packaging>pom</packaging>
   <version>1.6-SNAPSHOT</version>
 
-  <name>OpenBus - API</name>
+  <name>OpenBus - SDK</name>
   <url>http://www.tecgraf.puc-rio.br/openbus</url>
   
   <properties>
@@ -19,6 +19,10 @@
     <logback.version>0.9.15</logback.version>
     <source.encoding>ISO-8859-1</source.encoding>
   </properties>
+
+  <modules>
+    <module>core</module>
+  </modules>
 
   <build>
     <sourceDirectory>src</sourceDirectory>
@@ -79,71 +83,60 @@
 
         <configuration>
           <compiler>jacorb</compiler>
-
-          <sourceDirectory>${env.OPENBUS_HOME}/idlpath/v1_06</sourceDirectory>
-
-          <sources>
-            <source>
-              <excludes>
-                <exclude>scs.idl</exclude>
-              </excludes>
-            </source>
-          </sources>
         </configuration>
       </plugin>
     </plugins>
   </build>
 
-  <dependencies>
-    <dependency>
-    	<groupId>tecgraf.scs</groupId>
-    	<artifactId>scs-idl-jacorb</artifactId>
-      <version>${scs.version}</version>
-    </dependency>
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+      	<groupId>tecgraf.scs</groupId>
+      	<artifactId>scs-idl-jacorb</artifactId>
+        <version>${scs.version}</version>
+      </dependency>
 
-    <dependency>
-      <groupId>tecgraf.scs</groupId>
-      <artifactId>scs-core</artifactId>
-      <version>${scs.version}</version>
-    </dependency>
+      <dependency>
+        <groupId>tecgraf.scs</groupId>
+        <artifactId>scs-core</artifactId>
+        <version>${scs.version}</version>
+      </dependency>
 
-    <dependency>
-      <groupId>org.jacorb</groupId>
-      <artifactId>jacorb</artifactId>
-      <version>${jacorb.version}</version>
-    </dependency>
+      <dependency>
+        <groupId>org.jacorb</groupId>
+        <artifactId>jacorb</artifactId>
+        <version>${jacorb.version}</version>
+      </dependency>
 
-    <dependency>
-      <groupId>commons-codec</groupId>
-      <artifactId>commons-codec</artifactId>
-      <version>1.3</version>
-    </dependency>
+      <dependency>
+        <groupId>commons-codec</groupId>
+        <artifactId>commons-codec</artifactId>
+        <version>1.3</version>
+      </dependency>
 
-    <dependency>
+      <dependency>
     	<groupId>org.slf4j</groupId>
-    	<artifactId>slf4j-api</artifactId>
-    	<version>${slf4j.version}</version>
-    </dependency>
+        <artifactId>slf4j-api</artifactId>
+        <version>${slf4j.version}</version>
+      </dependency>
 
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>${junit.version}</version>
-      <scope>test</scope>
-    </dependency>
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>${junit.version}</version>
+      </dependency>
 
-    <dependency>
-    	<groupId>ch.qos.logback</groupId>
-    	<artifactId>logback-classic</artifactId>
-    	<version>${logback.version}</version>
-    	<scope>test</scope>
-    </dependency>
+      <dependency>
+        <groupId>ch.qos.logback</groupId>
+        <artifactId>logback-classic</artifactId>
+        <version>${logback.version}</version>
+      </dependency>
 
-    <dependency>
-    	<groupId>ch.qos.logback</groupId>
-    	<artifactId>logback-core</artifactId>
-    	<version>${logback.version}</version>
-    	<scope>test</scope>
-    </dependency>
-  </dependencies>
+      <dependency>
+      	<groupId>ch.qos.logback</groupId>
+      	<artifactId>logback-core</artifactId>
+      	<version>${logback.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 </project>
