@@ -22,6 +22,7 @@
 
   <modules>
     <module>core</module>
+    <module>integration_test</module>
   </modules>
 
   <build>

@@ -1,0 +1,29 @@
+System {
+  id = "sdk_java",
+  description = "O SDK Java",
+}
+
+SystemDeployment {
+  id = "sdk_java_core",
+  system = "sdk_java",
+  description = "Os testes unitários do SDK Java",
+  certificate = "core/test/resources/sdk_java_core.crt",
+}
+
+SystemDeployment {
+  id = "sdk_java_integration",
+  system = "sdk_java",
+  description = "Os testes de integração do SDK Java",
+  certificate = "integration_test/test/resources/sdk_java_integration.crt",
+}
+
+Interface {
+  id = "IDL:testidl/hello/IHello:1.0",
+}
+
+Grant {
+  id = "sdk_java_integration",
+  interfaces = {
+    "IDL:testidl/hello/IHello:1.0",
+  }
+}

@@ -51,7 +51,7 @@ public class ServerLaucher {
     Openbus openbus = Openbus.getInstance();
     Properties props = new Properties();
     InputStream in =
-      ServerLaucher.class.getResourceAsStream("/AllTests.properties");
+      ServerLaucher.class.getResourceAsStream("/Test.properties");
     if (in != null) {
       try {
         props.load(in);
@@ -62,7 +62,7 @@ public class ServerLaucher {
     }
     else {
       System.out
-        .println("Erro ao abrir o arquivo de configuração AllTests.properties.");
+        .println("Erro ao abrir o arquivo de configuração Test.properties.");
       System.exit(-1);
     }
 

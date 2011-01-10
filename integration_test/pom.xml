@@ -2,138 +2,68 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>tecgraf.openbus</groupId>
+  <parent>
+    <groupId>tecgraf.openbus</groupId>
+    <artifactId>openbus-sdk</artifactId>
+    <version>1.6-SNAPSHOT</version>
+  </parent>
+
   <artifactId>openbus-integration_test</artifactId>
   <packaging>jar</packaging>
-  <version>1.6-SNAPSHOT</version>
- 
-  <name>OpenBus - Teste de Integração</name>
+  <name>OpenBus -SDK - Testes de Integração</name>
   <url>http://www.tecgraf.puc-rio.br/openbus</url>
 
-  <properties>
-    <java.version>1.5</java.version>
-    <scs.version>1.2-SNAPSHOT</scs.version>
-    <junit.version>4.6</junit.version>
-    <jacorb.version>2.3.0</jacorb.version>
-    <slf4j.version>1.5.6</slf4j.version>
-    <logback.version>0.9.15</logback.version>
-    <source.encoding>ISO-8859-1</source.encoding>
-  </properties>
-
   <build>
-    <sourceDirectory>src</sourceDirectory>
-    <resources>
-      <resource>
-        <directory>resources</directory>
-      </resource>
-    </resources>
-
-    <testSourceDirectory>test/src</testSourceDirectory>
-    <testResources>
-      <testResource>
-        <directory>test/resources</directory>
-      </testResource>
-    </testResources>
-
     <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <source>${java.version}</source>
-          <target>${java.version}</target>
-          <encoding>${source.encoding}</encoding>
-          <compilerArgument>-Xbootclasspath/p:${settings.localRepository}/org/jacorb/jacorb/${jacorb.version}/jacorb-${jacorb.version}.jar</compilerArgument>
-        </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-resources-plugin</artifactId>
-        <configuration>
-          <encoding>${source.encoding}</encoding>
-        </configuration>
-      </plugin>
-
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>idlj-maven-plugin</artifactId>
         <version>1.1</version>
 
-        <dependencies>
-          <dependency>
-            <groupId>org.jacorb</groupId>
-            <artifactId>jacorb-idl-compiler</artifactId>
-            <version>${jacorb.version}</version>
-          </dependency>
-        </dependencies>
-
-        <executions>
-          <execution>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-          </execution>
-        </executions>
-
         <configuration>
-          <compiler>jacorb</compiler>
           <sourceDirectory>idl</sourceDirectory>
-       </configuration>
-     </plugin>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 
   <dependencies>
     <dependency>
       <groupId>tecgraf.openbus</groupId>
-      <artifactId>openbus-idl-jacorb</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>tecgraf.openbus</groupId>
-      <artifactId>openbus-api</artifactId>
+      <artifactId>openbus-sdk-core</artifactId>
       <version>${project.version}</version>
     </dependency>
 
     <dependency>
     	<groupId>tecgraf.scs</groupId>
     	<artifactId>scs-idl-jacorb</artifactId>
-      <version>${scs.version}</version>
     </dependency>
 
     <dependency>
       <groupId>tecgraf.scs</groupId>
       <artifactId>scs-core</artifactId>
-      <version>${scs.version}</version>
     </dependency>
 
     <dependency>
       <groupId>org.jacorb</groupId>
       <artifactId>jacorb</artifactId>
-      <version>${jacorb.version}</version>
     </dependency>
 
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
 
     <dependency>
     	<groupId>ch.qos.logback</groupId>
     	<artifactId>logback-classic</artifactId>
-    	<version>${logback.version}</version>
     	<scope>test</scope>
     </dependency>
 
     <dependency>
     	<groupId>ch.qos.logback</groupId>
     	<artifactId>logback-core</artifactId>
-    	<version>${logback.version}</version>
     	<scope>test</scope>
     </dependency>
   </dependencies>

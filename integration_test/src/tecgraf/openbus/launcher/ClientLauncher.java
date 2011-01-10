@@ -56,7 +56,7 @@ public class ClientLauncher {
 
     Properties props = new Properties();
     InputStream in =
-      ClientLauncher.class.getResourceAsStream("/AllTests.properties");
+      ClientLauncher.class.getResourceAsStream("/Test.properties");
     try {
       props.load(in);
     }
