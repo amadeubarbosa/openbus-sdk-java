@@ -95,7 +95,7 @@ public class EventSinkDemo {
     ComponentContext context = builder.newComponent(descriptions, null, id);
 
     ServiceOffer[] offers =
-      registryService.find(new String[] { "ISessionService_v1_05" });
+      registryService.find(new String[] { ISessionServiceHelper.id() });
     if (offers.length <= 0) {
       throw new SSUnavailableException();
     }
