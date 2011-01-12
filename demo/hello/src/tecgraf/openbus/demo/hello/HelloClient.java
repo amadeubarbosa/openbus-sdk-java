@@ -3,14 +3,13 @@ package tecgraf.openbus.demo.hello;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
-import java.util.logging.Level;
 
 import org.omg.CORBA.UserException;
 
 import scs.core.IComponent;
 import tecgraf.openbus.Openbus;
-import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
-import tecgraf.openbus.core.v1_05.registry_service.ServiceOffer;
+import tecgraf.openbus.core.v1_06.registry_service.IRegistryService;
+import tecgraf.openbus.core.v1_06.registry_service.ServiceOffer;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.RSUnavailableException;
 import demoidl.hello.IHello;

@@ -4,7 +4,7 @@ import org.omg.CORBA.Object;
 
 import scs.core.servant.ComponentContext;
 import tecgraf.openbus.Openbus;
-import tecgraf.openbus.core.v1_05.access_control_service.Credential;
+import tecgraf.openbus.core.v1_06.access_control_service.Credential;
 import demoidl.demoDelegate.IHelloPOA;
 
 public final class HelloImpl extends IHelloPOA {
