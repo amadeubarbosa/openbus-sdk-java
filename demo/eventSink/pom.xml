@@ -2,75 +2,26 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>tecgraf.openbus</groupId>
-  <artifactId>openbus-demo-eventsink</artifactId>
+  <parent>
+    <groupId>tecgraf.openbus</groupId>
+    <artifactId>openbus-sdk-demo</artifactId>
+    <version>1.6-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>openbus-sdk-demo-eventsink</artifactId>
   <packaging>jar</packaging>
-  <version>1.6-SNAPSHOT</version>
 
-  <name>OpenBus Demo EventSink</name>
-  <url>https://subversion.tecgraf.puc-rio.br/engdist/openbus/sdk/java/trunk/demo/eventsink</url>
-
-  <properties>
-    <java.version>1.5</java.version>
-    <scs.version>1.3-SNAPSHOT</scs.version>
-    <jacorb.version>2.3.0</jacorb.version>
-    <slf4j.version>1.5.6</slf4j.version>
-    <logback.version>0.9.15</logback.version>
-    <source.encoding>ISO-8859-1</source.encoding>
-  </properties>
+  <name>OpenBus - SDK - Demonstrações - Event Sink</name>
+  <url>http://www.tecgraf.puc-rio.br/openbus</url>
 
   <build>
-    <sourceDirectory>src</sourceDirectory>
-    <resources>
-      <resource>
-        <directory>resources</directory>
-      </resource>
-    </resources>
-
     <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <source>${java.version}</source>
-          <target>${java.version}</target>
-          <encoding>${source.encoding}</encoding>
-          <compilerArgument>-Xbootclasspath/p:${settings.localRepository}/org/jacorb/jacorb/${jacorb.version}/jacorb-${jacorb.version}.jar</compilerArgument>
-        </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-resources-plugin</artifactId>
-        <configuration>
-          <encoding>${source.encoding}</encoding>
-        </configuration>
-      </plugin>
-
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>idlj-maven-plugin</artifactId>
         <version>1.1</version>
 
-        <dependencies>
-          <dependency>
-            <groupId>org.jacorb</groupId>
-            <artifactId>jacorb-idl-compiler</artifactId>
-            <version>${jacorb.version}</version>
-          </dependency> 
-        </dependencies>
-        
-        <executions>
-          <execution>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-          </execution>
-        </executions>
-
         <configuration>
-          <compiler>jacorb</compiler>
           <sourceDirectory>idl</sourceDirectory>
         </configuration>
       </plugin>
@@ -80,13 +31,7 @@
   <dependencies>
     <dependency>
       <groupId>tecgraf.openbus</groupId>
-      <artifactId>openbus-idl-jacorb</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>tecgraf.openbus</groupId>
-      <artifactId>openbus-api</artifactId>
+      <artifactId>openbus-sdk-core</artifactId>
       <version>${project.version}</version>
     </dependency>
 

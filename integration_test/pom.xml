@@ -10,7 +10,7 @@
 
   <artifactId>openbus-integration_test</artifactId>
   <packaging>jar</packaging>
-  <name>OpenBus -SDK - Testes de Integração</name>
+  <name>OpenBus - SDK - Testes de Integração</name>
   <url>http://www.tecgraf.puc-rio.br/openbus</url>
 
   <build>
