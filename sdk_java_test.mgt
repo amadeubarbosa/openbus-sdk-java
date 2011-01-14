@@ -1,18 +1,18 @@
 System {
-  id = "sdk_java",
-  description = "O SDK Java",
+  id = "sdk_java_test",
+  description = "Os testes do SDK Java",
 }
 
 SystemDeployment {
   id = "sdk_java_core",
-  system = "sdk_java",
+  system = "sdk_java_test",
   description = "Os testes unitários do SDK Java",
   certificate = "core/test/resources/sdk_java_core.crt",
 }
 
 SystemDeployment {
   id = "sdk_java_integration",
-  system = "sdk_java",
+  system = "sdk_java_test",
   description = "Os testes de integração do SDK Java",
   certificate = "integration_test/test/resources/sdk_java_integration.crt",
 }

@@ -30,12 +30,14 @@ não foi encontrado."
   exit
 fi
 
-(cd core/test/resources;
+(cd hello/resources;
 cp ${OPENBUS_HOME}/data/certificates/AccessControlService.crt openbus.crt;
-${OPENBUS_HOME}/bin/openssl-generate.ksh -n sdk_java_core)
+${OPENBUS_HOME}/bin/openssl-generate.ksh -n sdk_java_demo_hello)
 
-(cd integration_test/test/resources;
+(cd delegate/resources;
 cp ${OPENBUS_HOME}/data/certificates/AccessControlService.crt openbus.crt;
-${OPENBUS_HOME}/bin/openssl-generate.ksh -n sdk_java_integration)
+${OPENBUS_HOME}/bin/openssl-generate.ksh -n sdk_java_demo_delegate_client;
+${OPENBUS_HOME}/bin/openssl-generate.ksh -n sdk_java_demo_delegate_server)
 
-${OPENBUS_HOME}/core/bin/run_management.sh --login=$1 --script=sdk_java_test.mgt
+${OPENBUS_HOME}/core/bin/run_management.sh --login=$1 --script=sdk_java_demo.mgt
+
