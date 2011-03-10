@@ -1,0 +1,372 @@
+\documentclass[a4paper, 11pt,dvipdfm]{article}
+\usepackage{a4}
+\usepackage[latin1]{inputenc}
+\usepackage{listings}
+\usepackage{verbatim}
+\usepackage{epsf}
+\usepackage[dvips]{graphicx}
+\usepackage{rotating}
+\usepackage[brazil]{babel}
+
+
+\title{Openbus SDK-Java 1.5.0 - Documentação}
+\author{Maíra Gatti\\
+        Pontifícia Universidade Católica do Rio de Janeiro 
+        (PUC-Rio)\\
+        openbus-dev@tecgraf.puc-rio.br}
+\date{Março 2011}
+
+\begin{document}
+\maketitle
+
+
+\section{Visão Geral}
+
+O OpenBus é um barramento de integração de serviços orientado \cite{Chappell} a componentes \cite{Szyperski1998} e baseado em CORBA \cite{OMG2004}\cite{pureCorba}. O objetivo deste documento é o de descrever a estrutura e dinâmica da API sdk-java 1.5.0 de acesso ao barramento para serviços desenvolvidos na linguagem Java. A API sdk-java 1.5.0 utiliza JacORB \cite{jacorb}, uma implementação do padrão ORB de CORBA em Java. Este documento não descreve o funcionamento interno do Openbus em si, também não descreve em detalhes o JacORB ou o modelo de componentes SCS \cite{SCS} no qual o Openbus foi desenvolvido. Para mais informações sobre como usar a API Java do SCS ou sobre informações básicas de uso e configuração da API sdk-java para usuários iniciantes, veja o tutorial. Enquanto o tutorial descreve como \textbf{usar} a API, este documento descreve como \textbf{funciona} a API, ou seja, sua dinâmica interna.
+
+Desta forma, considera-se como pré-requisito para um bom entendimento deste documento o conhecimento básico dos seguintes assuntos:
+
+\begin{itemize}
+	\item CORBA.
+   \item JacORB.
+	\item Modelo de Componentes SCS v1.2.
+	\item Conceitos básicos do Openbus.
+	\item Linguagem de programação Java.
+   \item Orientação a Objetos
+\end{itemize}
+
+\section{Entidades e Relacionamentos}
+
+A API é composta pela fachada \textit{openbus.Openbus}, pela classe \emph{stub} \textit{IRegistryService}, referente ao Serviço de Registro, pela classe \textit{openbus.FaultToleranceManager} e pelos pacotes \textit{authenticators}, \textit{lease}, \textit{interceptors}, \textit{util} e \textit{exception}.
+
+Para um melhor aproveitamento da API, o desenvolvedor deverá usar o máximo possível as operações oferecidas pela fachada \textit{openbus.Openbus}, uma vez que ela encapsula os mecanismos de validação e renovação de credencial, obrigatórios para o acesso ao barramento, e encapsula os mecanismos opcionais de cache e de tolerância a falhas que melhoram a qualidade do serviço do barramento. Por outro lado, é importante entender como usar as operações do Serviço de Registro, uma vez que a fachada \textit{openbus.Openbus} não disponibiliza facilitadores em seu uso.
+
+\begin{figure}[htb]
+     \centering
+\includegraphics[scale=0.68]{design/pngs/ClassDiagramConexao.png}
+     \caption{Entidades de conexão com o barramento. }
+     \label{ClassDiagramConexao}
+\end{figure}
+
+Na figura \ref{ClassDiagramConexao} são ilustradas as entidades utilizadas no processo de conexão com o barramento. Dependendo do tipo de conexão solicitada pelo cliente, a fachada \textit{Openbus} utilizará o autenticador por login e senha, ou o autenticador por certificado, cujas classes implementam a interface \textit{Authenticator}. Ambas dependem do proxy da faceta do Serviço de Controle de Acesso que implementa a interface \textit{IAccessControlService}. O mesmo para a faceta do Serviço de Registro, \textit{IRegistryService}. 
+
+A figura \ref{ClassDiagramInterceptador} ilustra as entidades envolvidas no processo de interceptação de uma requisição, e de validação de credencial do cliente.
+
+\begin{figure}
+     \centering
+\includegraphics[scale=0.64, angle=90]{design/pngs/ClassDiagramInterceptador.png}
+\hfill
+\begin{minipage}[b]{1in}
+     \rotcaption{Entidades relacionadas à interceptação e validação de credenciais.}
+\end{minipage}
+     \label{ClassDiagramInterceptador}
+\end{figure}
+
+Sempre que o barramento é inicializado, a fachada \textit{Openbus} inicializa o ORB, que no caso é o \textit{JacORB} com os interceptadores \textit{ClientInterceptor} e um dos interceptadores de servidor representados pelas classes \textit{ServerInterceptor}, \textit{CredentialValidatorServerInterceptor} e \textit{CachedCredentialValidatorServerInterceptor}, que é escolhido de acordo com a política de validação de credencial. 
+
+O interceptador \textit{ClientInterceptor} é responsável por pegar a credencial salva na fachada \textit{Openbus} após o login no Serviço de Controle de Acesso, e inserir no contexto da requisição. Do lado do servidor, o interceptador recupera a credencial do contexto da requisição e verifica se a credencial é válida. 
+
+O interceptador \textit{CachedCredentialValidatorServerInterceptor} quando inicializado na aplicação servidor cria uma \textit{task}, \textit{CredentialValidatorTask} que de tempos em tempos executa a ação de verificação das credenciais salvas e encapsuladas pela classe \textit{CredentialWrapper}. Quando a aplicação cliente inicializa a fachada \textit{Openbus}, ela pode definir a política de validação de credencial que decidirá se esta \textit{task} será ativada. 
+
+Finalmente a classe \textit{FTClientInterceptor} é responsável por tratar requisições que retornaram com exceção e, dependendo da exceção, acionar o gerenciador de tolerância a falhas, \textit{FaultToleranceManager}, que contém a lista de endereços para as réplicas do Serviço de Controle de Acesso. Tal mecanismo é ativado somente se os endereços das réplicas forem corretamente configurados.
+
+A figura \ref{ClassDiagramLease} por sua vez ilustra as entidades relacionadas com o processo de renovação da \textit{lease\footnote{\textit{Lease} é um termo originalmente usado para indicar uma locação. No contexto de credenciais, \textit{lease} significa o contrato de uso da credencial por um determinado período, período este definido pelo barramento.}}  de uma credencial. Se a credencial adquirida durante a conexão com o barramento não for renovada pela classe \textit{LeaseRenewer} em um tempo menor que o de sua expiração, ela não será mais válida no barramento e consequentemente a aplicação cliente do barramento não poderá nem ofertar nem consumir ofertas de serviços. Além disso, todas as ofertas já cadastradas no Serviço de Registro serão removidas.
+
+\begin{figure}[htb]
+     \centering
+\includegraphics[scale=0.65]{design/pngs/ClassDiagramLease.png}
+     \caption{Entidades relacionadas à renovação da lease da credencial. \textit{RenewerTask} é \textit{inner class} da classe \textit{LeaseRenewer} e implementa um \textit{Runnable} para que, de tempos em tepos, possa verificar junto ao provedor do \textit{lease} (\textit{ILeaseProvider}) se a credencial é válida.}
+     \label{ClassDiagramLease}
+\end{figure}
+
+A API sdk-java-1.5.0 fornece operações na fachada \textit{Openbus} para o cliente especificar a classe que implementa a interface \textit{LeaseExpiredCallBack}. A classe \textit{LeaseRenewer} chama operações desta interface no momento em que a credencial expira. A  fachada \textit{Openbus} por sua vez define a \textit{inner class OpenbusExpiredCallback} que implementa estas operações funcionando como um delegador.
+
+Além disso o Serviço de Controle de Acesso sendo provedor de \textit{leases} implementa a interface \textit{ILeaseProvider}.
+
+\begin{figure}
+     \centering
+\includegraphics[scale=0.55,angle=90]{design/pngs/OpenbusInitialization.png}
+     \caption{Inicialização do Openbus}
+     \label{OpenbusInitialization}
+\end{figure}
+
+\section{Inicialização do Openbus}
+
+A figura \ref{OpenbusInitialization} descreve o processo de inicialização do barramento a partir da instanciação da classe \textit{Openbus} seguida da chamada do método \textit{init} pela aplicação cliente. Em seguida a classe \textit{Openbus} define quais requisições são interceptáveis \cite{Interceptors} e inicializa o ORB enviando um arquivo de propriedades com os responsáveis por inicializar os interceptadores que serão por sua vez instanciados pelo ORB e criarão os interceptadores de fato. Se o cliente tiver definido a política de validação de credencial, ela será verificada pelo \textit{ServerInitializer} para saber qual interceptador será escolhido (além do \textit{ServerInterceptor}): \textit{CredentialValidatorServerInterceptor} ou \textit{CachedCredentialValidatorServerInterceptor}.
+
+
+\section{Mecanismo de Conexão e Desconexão}
+
+Após inicializar o barramento, a aplicação cliente pode se conectar. A conexão pode ser feita de duas formas: por \textit{login} e senha ou por certificado através das operações \textit{connect(user, password)} e \textit{connect(name, privateKey, acsCertificate)}, respectivamente.
+
+\begin{figure}[htb]
+     \centering
+     \includegraphics[scale=0.7]{design/pngs/OpenbusConnectionbyPassword.png}
+     \caption{Conexão por senha}
+     \label{Loginbypassword}
+\end{figure}
+
+A figura \ref{Loginbypassword} ilustra o processo de conexão através de \textit{login} e senha\footnote{Veja como é análogo o processo por certificado na figura \ref{Loginbycertificate}.}. Durante este processo, o autenticador \textit{LoginPasswordAuthenticator} é criado com as informações de \textit{login} e senha. De posse da instância do autenticador, a classe \textit{Openbus} pode então realizar o procedimento de conexão básico descrito no diagrama \textit{Core Connection} (figura \ref{CoreConnection}) que, em um dado momento, irá chamar a operação \textit{authenticate()} que, por sua vez, irá diferenciar o tipo de acesso ao Serviço de Controle de Acesso propriamente dito.
+
+\begin{figure}[htb]
+     \centering
+     \includegraphics[scale=0.7]{design/pngs/OpenbusConnectionbyCertificate.png}
+     \caption{Conexão por certificado}
+     \label{Loginbycertificate}
+\end{figure}
+
+\begin{figure}
+     \centering
+     \includegraphics[scale=0.55,angle=90]{design/pngs/OpenbusCoreConnection.png}
+     \caption{Processo de conexão básico}
+     \label{CoreConnection}
+\end{figure}
+
+O primeiro passo do processo de conexão básico (veja figura \ref{CoreConnection}) é verificar se o cliente já não está conectado. Para isto, a classe \textit{Openbus} verifica se possui alguma credencial salva em seu estado. Não está ilustrado no diagrama, mas se já estiver conectado, o barramento não deixa se conectar novamente e simplesmente retorna falso. Se nenhuma credencial foi encontrada e não existe uma referência para o proxy do Serviço de Controle de Acesso, a classe \textit{Openbus} primeiramente tenta encontrá-la. Isso sempre acontecerá na primeira conexão uma vez que esta referência é postergada até este momento. Depois a referência é salva e, se ela se tornar inválida ou inacessível, a classe \textit{Openbus} tentará obter uma nova (no caso de existirem réplicas do Serviço de Controle de Acesso e elas tiverem sido configuradas corretamente pelo cliente).
+
+De posse da referência para o proxy do Serviço de Controle de Acesso, a classe \textit{Openbus} chama a operação \textit{authenticate()} na instância do autenticador que, no caso do autenticador \textit{LoginPasswordAuthenticator}, simplesmente chama a operação \textit{loginbypassword()} no Serviço de Controle de Acesso. Para o caso do autenticador \textit{CertificateAuthenticator}, é preciso ler o certificado passado, entre outras operações, e esta interação está descrita no diagrama \textit{Certificate Authenticator Process}, figura \ref{CertificateEncryption}.
+
+Se a operação \textit{loginbypassword()} for executada com sucesso, a classe \textit{Openbus} receberá a credencial e a \textit{lease} da credencial. A conexão é finalizada com a instanciação da \textit{call back} responsável por ser notificada se a \textit{lease} expirar, que é então passada para a instância da classe \textit{LeaseRenewer} criada nesse momento que, por sua vez, inicia a \textit{task} de renovação através da mensagem \textit{start()} em \textit{RenewerTask}. Por fim, a referência para o Serviço de Registro é obtida a partir do Serviço de Controle de Acesso e retornada para o cliente.
+
+O processo de autenticação por certificado através da classe \textit{CertificateAuthenticator} por outro lado precisa ler o certificado por criptografia antes de efetuar o login no barramento. Este procedimento é feito a partir da classe fornecida \textit{CriptoUtils} e é ilustrado na figura \ref{CertificateEncryption}.
+
+Primeiro é obtido um desafio junto ao Serviço de Controle de Acesso, depois uma resposta é gerada a partir do desafio obtido e da chave privada criptografada (chave esta correspondente à chave pública utilizada). Com esta resposta, é possível chamar a operação \textit{loginByCertificate} no Serviço de Controle de Acesso, que, se bem sucedida, retorna a credencial e a \textit{lease}.
+
+\begin{figure}[htb]
+     \centering
+     \includegraphics[scale=0.50]{design/pngs/CertificateAuthenticator.png}
+     \caption{Leitura do Certificado}
+     \label{CertificateEncryption}
+\end{figure}
+
+\begin{figure}[htb]
+     \centering
+     \includegraphics[scale=0.6]{design/pngs/OpenbusDisconnection.png}
+     \caption{Desconexão}
+     \label{disconnect}
+\end{figure}
+
+O processo de desconexão é simples (figura \ref{disconnect}). Uma vez acionado pelo cliente, se existir credencial no estado da classe \textit{Openbus}, seu processo de renovação será parado, a credencial será deslogada do Serviço de Controle de Acesso (que por sua vez remove todas as ofertas associadas a ela), o estado do barramento será zerado, e o cliente receberá um retorno de sucesso. Se algo de errado acontecer durante esse processo, o cliente receberá uma mensagem de erro.
+
+\begin{figure}
+     \centering
+     \includegraphics[scale=0.54,angle=90]{design/pngs/OpenbusFetchACS.png}
+     \caption{Obtenção das referências das facetas do Serviço de Controle de Acesso}
+     \label{fetchACS}
+\end{figure}
+
+Para fins de registro, a figura \ref{fetchACS} ilustra como a referência para as facetas do Serviço de Controle de Acesso é recuperada a partir da API do SCS e dos esqueletos gerados pelo JacORB.
+
+\section{Mecanismo de Lease e Renovação da Credencial}
+
+Durante o processo de conexão, como descrito na seção anterior, após o \textit{login} no barramento, seja por senha, seja por certificado, a API recebe a \textit{lease} da credencial que é a sua validade. O processo então de renovação da credencial é iniciado com a inicialização de \textit{LeaseRenewer} através da operação \textit{start()} (vide figura \ref{StartLeaseRenewProcess}). Note que durante a inicialização, existe um controle em relação a \textit{RenewrTask} de forma que, se \textit{LeaseRenewer} tiver uma referência para a sua \textit{thread}, ou seja, ela já existia previamente, ela precisa antes ser parada corretamente. 
+
+A figura \ref{LeaseRenewProcess} ilustra o que acontece sempre que \textit{RenewerTask} é executada após seu início. Ela executa a operação \textit{renewLease(credential, lease)} no provedor da \textit{lease}, ou seja, faceta \textit{ILeaseProvider} implementada pelo Serviço de Controle de Acesso. Se a renovação for executada com sucesso, uma nova \textit{lease} é fornecida. O tempo da \textit{thread} da \textit{task} é atualizado com este valor.
+
+Caso o processo de renovação não seja autorizado, \textit{RenewerTask} irá enviar a mensagem \textit{expired()} para a instância da classe que implementa a interface \textit{LeaseExpiredCallback}, no caso fornecida pela API, a classe \textit{OpenbusExpiredCallback}. Como já explicado anteriormente, a API foi desenhada para que a fachada \textit{Openbus} implemente esta interface sendo um delegador para o objeto criado pela aplicação cliente. Antes de delegar, a fachada \textit{Openbus} tem seu estado reiniciado, ou seja, todas as referências para as facetas do Serviço de Controle de Acesso e Registro são invalidadas, assim como a credencial que estava sendo utilizada.
+
+É importante notar que a API não fornece uma implementação padrão de reconexão da \textit{callback} uma vez que poderia induzir o desenvolvedor de um servidor cliente do barramento a usá-la e não considerar que as ofertas registradas não foram registradas novamente com a re-conexão (e, lembrando, elas são removidas quando uma credencial expira ou é deslogada manualmente).
+
+\begin{figure}[p]
+     \centering
+     \includegraphics[scale=0.53]{design/pngs/CredentialLeaseRenewStartProcess.png}
+     \caption{Inicialização do Processo de Renovação de Lease de Credencial}
+     \label{StartLeaseRenewProcess}
+\end{figure}
+
+\begin{figure}[p]
+     \centering
+     \includegraphics[scale=0.53]{design/pngs/CredentialLeaseRenewProcess.png}
+     \caption{Processo de Renovação de Lease de Credencial}
+     \label{LeaseRenewProcess}
+\end{figure}
+
+\section{Mecanismo de Interceptação e Validação da Credencial}
+
+Como já visto, o JacORB é inicializado com interceptação de requisições. Desta forma, sempre que uma requisição para os serviços básicos for realizada, tal como pedir para cadastrar uma oferta, ou removê-la, ou uma requisição para um serviço registrado no barramento, tais requisições serão interceptadas para verificar se possuem credencial e se a credencial é válida no Serviço de Controle de Acesso.
+
+\begin{figure}[ht]
+     \centering
+     \includegraphics[scale=0.6]{design/pngs/InterceptionProcess.png}
+     \caption{Processo básico de interceptação}
+     \label{InterceptionProcess}
+\end{figure}
+
+
+A figura \ref{InterceptionProcess} ilustra as interações envolvidas desde o momento em que o cliente envia uma mensagem para o servidor alvo, que no caso é está sendo ilustrada pela mensagem \textit{register(offer)} para o Serviço de Registro até a sua resposta. Neste caso específico, como o Serviço de Registro foi desenvolvido na linguagem Lua, o mecanismo de interceptação utilizado está descrito no tutorial da API sdk-lua 1.5.2. O uso dos interceptadores servidores descritos neste tutorial será de servidores registrados no barramento e que foram desenvolvidos em Java.
+
+
+Independente da política de validação de credencial, o interceptador \textit{ServerInterceptor} sempre será instalado e executado uma vez que ele é responsável por recuperar a credencial do contexto da requisição e salvá-la na fachada \textit{Openbus} para ser utilizada posteriormente pelo interceptador específico de validação. Nesta seção descrevemos o interceptador \textit{CredentialValidatorServerInterceptor}, uma vez que ele é o interceptador padrão utilizado caso o cliente não defina nenhuma política.
+
+\begin{figure}
+     \centering
+     \includegraphics[scale=0.65,angle=90]{design/pngs/ClientInterceptionProcess.png}
+     \caption{Interceptação no Cliente}
+     \label{ClientInterceptionCredentialsValidation}
+\end{figure}
+
+\begin{figure}
+     \centering
+     \includegraphics[scale=0.6,angle=90]{design/pngs/ServerInterceptionProcess.png}
+     \caption{Interceptação no Servidor: Recuperação da Credencial}
+     \label{ServerInterceptionProcess}
+\end{figure}
+
+\begin{figure}
+     \centering
+     \includegraphics[scale=0.6,angle=90]{design/pngs/CredentialValidationProcess.png}
+     \caption{Interceptação no Servidor: Validação da Credencial}
+     \label{InterceptionCredentialsValidation}
+\end{figure}
+
+A figura \ref{ClientInterceptionCredentialsValidation} ilustra a interceptação no lado do cliente a partir do redirecionamente do ORB para o interceptador após a chamada de um operação em um \textit{stub}, que pode ser do Serviço de Registro ou de outro serviço cadastrado no barramento, e a requisição é interceptada por \textit{ClientInterceptor} através da mensagem \textit{send\_request()}. A credencial é então verificada e, caso exista, um invólucro é criado através da instanciação da classe \textit{CredentialWrapper}. O invólucro é inserido no contexto da requisição após codificação necessária através da operação \textit{add\_request\_service\_context()} em \textit{ClientRequestInfo}. 
+
+Durante a interceptação servidor iniciada com a mensagem \textit{receive\_request\_} \textit{service\_contexts()} em \textit{ServerInterceptor}, a credencial é recuperada do contexto através da troca de mensagens descrita na figura \ref{ServerInterceptionProcess}. A figura \ref{InterceptionCredentialsValidation} por sua vez, descreve como o interceptador \textit{CredentialValidatorServerInterceptor} valida a credencial interceptada, se for o caso, ou seja, se for uma operação interceptável, na faceta \textit{IAccessControlService}. Se a credencial foi recuperada do contexto e é válida, a requisição é processada normalmente no servidor alvo, senão o interceptador servidor lançará a exceção \textit{NO\_PERMISSION}.
+
+\section{Qualidade do Serviço}
+
+A API sdk-java 1.5.0 fornece dois mecanismos que melhoram a qualidade do serviço de acesso ao barramento: mecanismo de cache e mecanismo de tolerância a falhas. As seções a seguir descrevem como eles funcionam.
+
+\subsection{Mecanismo de Cache}
+
+Mecanismos de Cache são os relativos as diferentes políticas de validação de credencial. Atualmente, existem duas políticas que podem ser usadas:
+
+\begin{description}
+\item[ALWAYS] Indica que as credenciais interceptadas serão sempre validadas.
+\item[CACHED] Indica que as credenciais interceptadas serão validadas e armazenadas em uma \textit{cache};
+\end{description}
+
+O padrão é \textit{ALWAYS}, ou seja, sempre validadas. Porém o cliente pode inicializar o barramento com a política \textit{CACHED} para otimizar as requisições, uma vez que se a credencial estiver armazenada na \textit{cache} não será preciso enviar uma requisição de validação pela rede para o Serviço de Controle de Acesso.
+
+A figura \ref{CacheMechanism} ilustra a troca de mensagens durante o processo de validação de credencial usando o padrão \textit{CACHED}. Quando a requisição do cliente for interceptada, a \textit{cache} é bloqueada, a credencial é buscada na mesma através da tentativa de sua remoção, se encontrada e removida, ela é inserida novamente (porém no final da \textit{cache}, uma vez que é uma lista ordenada por último acesso decrescentemente), a \textit{cache} é então desbloqueada e redirecionada para o servidor alvo.
+
+Se não for encontrada, a \textit{cache} também é desbloqueada porém a credencial é verificada no Serviço de Controle de Acesso. Se a credencial foi validada, tenta-se adicioná-la na \textit{cache}. Se a \textit{cache} já tiver atingido o seu limite máximo permitido, a primeira credencial da lista é removida e a validada é adicionada por último. Se a credencial não for válida, o interceptador lança um exceção \textit{NO\_PERMISSION}.
+
+\begin{figure}[ht]
+     \centering
+ \includegraphics[scale=0.4]{design/pngs/CachedCredentialValidationProcess.png}
+     \caption{Mecanismo de Cache}
+     \label{CacheMechanism}
+\end{figure}
+
+Já a figura \ref{CacheTimerAction} ilustra a troca de mensagens relativa a criação da \textit{task} responsável pelo processo de validação das credenciais que estão na \textit{cache}, e ilustra o processo em si. Durante a criação, uma lista encadeada é criada, que conterá a lista de credenciais a serem armazenadas por ordem de acesso de forma que a última da lista foi a última a ser validada. O processo começa quando o \textit{Timer}, após o tempo definido, envia a mensagem \textit{run()} para \textit{CredentialValidatorTask}. Este por sua vez bloqueia a \textit{cache} e verifica todas as credenciais de uma só vez no Serviço de Controle de Acesso através da chamada \textit{areValid()} na faceta \textit{IAccessControlService}. Se alguma delas não for válida, é removida da \textit{cache}. A \textit{cache} é então desbloqueada.
+
+
+\begin{figure}
+     \centering
+     \includegraphics[scale=0.6,angle=90]{design/pngs/CacheTimerAction.png}
+     \caption{Validação no Serviço de Controle de Acesso}
+     \label{CacheTimerAction}
+\end{figure}
+
+
+\subsection{Mecanismo de Tolerância a Falhas}
+
+O barramento possui um mecanismo de tolerância a falhas baseado em replicação. Ou seja, ele assume que pode existir mais de uma réplica do componente do Serviço de Controle de Acesso ativa em um dado momento. Para que este mecanismo possa funcionar corretamente, é preciso configurar os endereços das réplicas do Serviço de Controle de Acesso acessíveis na propriedades \textit{hosts} no arquivo \textit{"/resources/FaultToleranceConfiguration.properties"}.
+
+Além disso, neste mesmo arquivo de configuração é preciso definir a propriedade \textit{trials}, que indica a quantidade de vezes que o gerenciador de tolerência a falhas \textit{FaultToleranceManager} vai iterar na lista de réplicas enquanto não encontra uma disponível. O objetivo é que a busca seja finita.
+
+Para habilitar o mecanismo de tolerância a falhas é preciso inicializar o barramento com a mensagem \textit{initWithFaultTolerance()} ao invés de \textit{init()} na fachada \textit{Openbus} (para analogia, vide figura \ref{OpenbusInitialization}). Neste momento, ao invés de instalar o interceptador \textit{ClientInterceptor}, será instalado o interceptador \textit{FTClientInterceptor} pelo \textit{FTClientInitializer}. Quando este interceptador é instânciado, uma única intância para o gerenciador de tolerância a falhas \textit{FaultToleranceManager} é criada.
+
+A figura \ref{FaultToleranceExceptionHandling} ilustra como a API trata a exceção através do interceptador \textit{FTClientInterceptor} e do gerenciador \textit{FaultToleranceManager}. Desta forma, suponha que o cliente tenha requisitado a operação \textit{logout}, se uma das  exceções abaixo for recebida, o interceptador \textit{FTClientInterceptor} lançará um \textit{ForwardRequest} enquanto o gerenciador \textit{FaultToleranceManager} iterar na lista de réplicas configuradas e a quantidade de iterações definida na propriedade \textit{trials} não for alcançada:
+
+\begin{verbatim}
+  IDL:omg.org/CORBA/NO_RESPONSE:1.0
+  IDL:omg.org/CORBA/COMM_FAILURE:1.0
+  IDL:omg.org/CORBA/OBJECT_NOT_EXIST:1.0
+  IDL:omg.org/CORBA/TRANSIENT:1.0
+  IDL:omg.org/CORBA/TIMEOUT:1.0
+  IDL:omg.org/CORBA/NO_RESOURCES:1.0
+  IDL:omg.org/CORBA/FREE_MEM:1.0
+  IDL:omg.org/CORBA/NO_MEMORY:1.0
+  IDL:omg.org/CORBA/INTERNAL:1.0
+\end{verbatim} 
+
+Antes da busca acontecer, o interceptador primeiro recupera a chave do objeto remoto através da classe facilitadora \textit{CorbaLoc} do JacORB. Isso é necessário uma vez que o interceptador é instalado por ORB, ou seja, todos os clientes compartilham do mesmo interceptador independente do objeto remoto alvo. Assim é preciso identificar tal objeto antes de tratar a exceção. Se for para uma das facetas do Serviço de Controle de Acesso \footnote{Para simplificar, o diagrama só ilustra a chave da faceta \textit{IAccessControlService}, logo abaixo da mensagem 1.2.4, antes de entrar no \textit{loop} com a condição de guarda \textit{fetch} que, na primeira exceção será sempre verdadeira}, pede-se para o gerenciador para atualizar a referência para a réplica, se atualizada com sucesso, busca através da mensagem \textit{1.2.1.2. fetchACS()} na fachada \textit{Openbus}. A referência obtida é então passada para o \textit{ForwardRequest}. Se a referência não tiver sido obtida e tiver acontecido alguma exceção, a busca é continuada. 
+
+\begin{figure}
+     \centering
+    \includegraphics[scale=0.4]{design/pngs/FaultToleranceExceptionHandling.png}
+     \caption{Mecanismo de Tratamento de Exceção do FT}
+     \label{FaultToleranceExceptionHandling}
+\end{figure}
+
+A mensagem \textit{1.2.1.4. getRegistryService()} na fachada \textit{Openbus} só 
+é executada se a chave obtida for a do Serviço de Registro, ou seja, a exceção foi pega após uma requisição na faceta \textit{IRegistryService}. Nesse caso, como quem gerencia as réplicas do Serviço de Registro é o Serviço de Controle de Acesso, elas não são configuradas pelo cliente e é preciso buscá-las com esta indireção.
+
+\section{Ofertando Serviços}
+
+O processo básico de cadastro de oferta de serviços é ilustrado no diagrama da figura \ref{ServiceOfferProcess}. O serviço a ser registrado no barramento deve ser descrito através de uma oferta de serviço, que é representada pela estrutura \textit{ServiceOffer}.
+
+\begin{figure}[htb]
+     \centering
+     \includegraphics[scale=0.38]{design/pngs/ServiceOfferProcess.png}
+     \caption{Processo básico de oferta de serviços}
+     \label{ServiceOfferProcess}
+\end{figure}
+
+Para que um servidor possa ofertar serviços no barramento através da API sdk-java v1.5.2 é preciso:
+
+\begin{enumerate}
+ \item Inicializar o barramento;
+ \item Carregar a chave privada e o certificado do ACS, caso a conexão seja por certificado (mensagens 1 e 2);
+ \item Conectar no barramento;
+ \item Utilizar a API do SCS para: (i) especificar a faceta a ser registrada através da classe \textit{ExtendedFacetDescription}, (ii) seguida da criação do componente com esta descrição;
+ \item Instanciar a classe \textit{Property} que contém informações da oferta a ser registrada, no caso, nome igual a \textit{facets} e valor igual a \textit{"IDL:demoidl/hel-} \textit{lo/IHello:1:0"} que representa o nome completo da interface da faceta;
+ \item Instanciar a classe \textit{ServiceOffer} com a propriedade definida e a faceta \textit{IComponent} do membro criado;
+ \item Cadastrar a oferta através da mensagem \textit{register(serviceOffer)} enviada para a faceta \textit{IRegistryService} do Serviço de Registro. Este, por sua vez, retorna o identificador da oferta registrada;
+ \item Habilitar o processo servidor a escutar as requisições CORBA que serão direcionadas para o serviço ofertado, o que pode ser feito através da mensagem \textit{run()};
+
+\end{enumerate}
+
+Após a chamada da operação \textit{register()}, a sequência de mensagens segue como descrito no diagrama de interceptação e validação de credenciais, veja figura \ref{InterceptionProcess}.
+
+\section{Consumindo Serviços}
+
+O processo básico de busca de ofertas de serviços é ilustrado no diagrama da figura \ref{FindingServicesOffers}. 
+
+\begin{figure}[htb]
+     \centering
+     \includegraphics[scale=0.56]{design/pngs/FindingServicesOffers.png}
+     \caption{Buscando por serviços no barramento}
+     \label{FindingServicesOffers}
+\end{figure}
+
+Para que uma aplicação cliente possa consumir serviços registrados no barramento através da API sdk-java v1.5.0 é preciso:
+
+\begin{enumerate}
+ \item Inicializar o barramento;
+ \item Conectar no barramento;
+ \item Buscar o serviço através da mensagem \textit{find(ifaceName)} e passando alguma informação sobre o serviço, tal como uma parte do nome da interface, como por exemplo \textit{IHello};
+ \item O cliente receberá uma lista com uma ou mais ofertas que implementam a faceta buscada, na qual deverá iterar e para cada uma delas recuperar a interface \textit{IComponent} no campo \textit{member} e mapeá-la usando a operação \textit{narrow} da API do SCS;
+ \item Buscar a faceta do componente desejada, como por exemplo '\textit{IDL:demoidl-} \textit{/hello/IHello:1:0}' através da mensagem \textit{3. getFacetByName(name)}; 
+ \item Mapear a faceta retornada para a interface desejada usando a operação \textit{narrow} da API do SCS; e finalmente
+ \item Executar o serviço desejado, como por exemplo \textit{sayHello()}.
+\end{enumerate}
+
+
+\begin{thebibliography}{50}
+\bibitem[1]{Chappell}
+Chappell, D. 2004 Enterprise Service Bus. O'Reilly Media, Inc.
+
+\bibitem[2]{Szyperski1998}
+Szyperski, C. Component Software: Beyond Object-Oriented Programming. ACM Press : Addison-Wesley Publishing Co. 1998.
+
+\bibitem[3]{OMG2004}
+OMG. CORBA Components. OMG Document formal/04-03-01 (CORBA, v3.0.3). 2004. http://www.omg.org
+
+\bibitem[4]{pureCorba}
+Bolton, F.; \textit{Pure} CORBA. Sams Publishing, 2002.
+
+\bibitem[5]{jacorb}
+JacORB. http://www.jacorb.org. 2004 - 2009.
+
+\bibitem[6]{SCS}
+The SCS Project. http://www.tecgraf.puc-rio.br/~scorrea/scs/
+
+\bibitem[7]{Interceptors}
+OMG. CORBA Interceptors. OMG Document formal/04-03-01 (CORBA, v3.0.3). 2004. http://www.omg.org
+
+\end{thebibliography}
+
+\end{document}
