@@ -44,7 +44,7 @@ class ClientInterceptor extends InterceptorImpl implements
 
     logger.info("A operação {} foi interceptada no cliente.", ri.operation());
 
-    //operacoes do ORB nao precisam de credencial
+    // operacoes do ORB nao precisam de credencial
     for (java.lang.reflect.Method op : ClientInterceptor.class.getMethods()) {
       if (ri.operation().equals(op.getName()))
         return;
@@ -73,7 +73,8 @@ class ClientInterceptor extends InterceptorImpl implements
       logger.error("Erro na codificação da credencial", e);
       return;
     }
-    ri.add_request_service_context(new ServiceContext(CONTEXT_ID, value), false);
+    ri
+      .add_request_service_context(new ServiceContext(CONTEXT_ID, value), false);
 
     logger.debug("A credencial {} foi enviada para a operação {}",
       new Object[] { wrapper, ri.operation() });
