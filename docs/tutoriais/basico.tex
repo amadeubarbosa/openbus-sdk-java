@@ -168,7 +168,7 @@ Os outros métodos da API Openbus serão explicados em mais detalhes a seguir:
 Os outros métodos do \emph{stub} do Serviço de Registro serão explicados em mais detalhes a seguir:
 
 \begin{itemize}
-  \item \code{void register(ServiceOffer serviceOffer, String registryId)}: Registra um serviço no barramento. O serviço é descrito através de uma oferta de	serviço. Caso o serviço seja registrado com sucesso, a identificação do mesmo é	armazenada no parâmetro de saída registryId.
+  \item \code{RegistryIdentifier register(in ServiceOffer aServiceOffer)}: Registra um serviço no barramento. O serviço é descrito através de uma oferta de	serviço. Caso o serviço seja registrado com sucesso, a identificação do mesmo é	retornada. O identificador é importante para desregistrar a oferta.
   \item \code{void unregister(String registryId)}: Remove uma oferta de serviço do barramento.
   \item \code{ServiceOfferList find(FacetList facets)}: Busca uma ou mais ofertas de serviço no barramento que implementem todas as facetas discriminadas em \emph{facets}.
   \item \code{ServiceOfferList findByCriteria(FacetList facets,	PropertyList properties)}: Busca uma ou mais ofertas de serviço no barramento que implementem todas as facetas discriminadas em \emph{facets} e que atendam aos critérios descritos no parâmetro \emph{criteria}, que é uma lista de propriedades descrita através de strings no	formato chave = {valor1, valor2, ..., valorN}.
