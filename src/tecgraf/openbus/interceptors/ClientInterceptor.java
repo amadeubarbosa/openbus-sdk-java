@@ -3,6 +3,8 @@
  */
 package tecgraf.openbus.interceptors;
 
+import java.lang.reflect.Method;
+
 import org.omg.CORBA.Any;
 import org.omg.CORBA.ORB;
 import org.omg.IOP.Codec;
@@ -25,6 +27,7 @@ import tecgraf.openbus.util.Log;
  */
 class ClientInterceptor extends InterceptorImpl implements
   ClientRequestInterceptor {
+
   /**
    * Constrói o interceptador.
    * 
@@ -42,10 +45,13 @@ class ClientInterceptor extends InterceptorImpl implements
     Log.INTERCEPTORS.info("Operação {" + ri.operation()
       + "} interceptada no cliente.");
 
-    // operacoes do ORB nao precisam de credencial
-    for (java.lang.reflect.Method op : ClientInterceptor.class.getMethods()) {
-      if (ri.operation().equals(op.getName()))
+    for (Method op : org.omg.CORBA.Object.class.getMethods()) {
+      if (ri.operation().equals(op.getName())) {
+        Log.INTERCEPTORS.fine(String.format(
+          "O método {} pertence a interface {} e não será interceptado", op
+            .getName(), org.omg.CORBA.Object.class.getCanonicalName()));
         return;
+      }
     }
 
     Openbus bus = Openbus.getInstance();
