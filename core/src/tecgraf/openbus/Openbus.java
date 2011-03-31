@@ -132,10 +132,6 @@ public final class Openbus {
    */
   private LeaseExpiredCallback leaseExpiredCallback;
   /**
-   * Serviço de registro.
-   */
-  private IRegistryService rgs;
-  /**
    * Credencial recebida ao se conectar ao barramento.
    */
   private Credential credential;
@@ -438,8 +434,6 @@ public final class Openbus {
    * @return O Serviço de Registro.
    */
   public IRegistryService getRegistryService() {
-    if (this.rgs != null)
-      return this.rgs;
     if (this.ic == null)
       return null;
 
@@ -447,6 +441,7 @@ public final class Openbus {
     Object objRecep = this.ic.getFacetByName(Utils.RECEPTACLES_NAME);
     IReceptacles ireceptacle = IReceptaclesHelper.narrow(objRecep);
 
+    IRegistryService registryService = null;
     try {
       ConnectionDescription[] connections =
         ireceptacle.getConnections(Utils.REGISTRY_SERVICE_RECEPTACLE_NAME);
@@ -455,11 +450,11 @@ public final class Openbus {
         IComponent registryComponent = IComponentHelper.narrow(objRef);
         Object objReg =
           registryComponent.getFacetByName(Utils.REGISTRY_SERVICE_FACET_NAME);
-        this.rgs = IRegistryServiceHelper.narrow(objReg);
+        registryService = IRegistryServiceHelper.narrow(objReg);
 
         if (this.isFaultToleranceEnable) {
-          this.rgs._set_policy_override(new Policy[] { this.timeOutPolicy },
-            SetOverrideType.ADD_OVERRIDE);
+          registryService._set_policy_override(
+            new Policy[] { this.timeOutPolicy }, SetOverrideType.ADD_OVERRIDE);
         }
       }
     }
@@ -467,7 +462,7 @@ public final class Openbus {
       logger.error("Não foi possível obter o serviço de registro.", e);
     }
 
-    return this.rgs;
+    return registryService;
   }
 
   /**
@@ -729,7 +724,6 @@ public final class Openbus {
    */
   private void reset() {
     this.acs = null;
-    this.rgs = null;
     this.lp = null;
     this.ft = null;
     this.ic = null;
