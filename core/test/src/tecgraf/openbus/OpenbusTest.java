@@ -33,6 +33,13 @@ public class OpenbusTest {
   private String acsCertificate;
   private String testCertificateName;
 
+  private String keyStorePath;
+  private String keyStorePassword;
+  private String keyStoreTestEntityName;
+  private String keyStoreTestAlias;
+  private String keyStoreTestPassword;
+  private String keyStoreOpenBusAlias;
+
   /**
    * Construtor
    * 
@@ -54,6 +61,14 @@ public class OpenbusTest {
     this.testKey = props.getProperty("Server.Key");
     this.acsCertificate = props.getProperty("Acs.Certificate");
     this.testCertificateName = props.getProperty("Server.EntityName");
+
+    this.keyStorePath = props.getProperty("KeyStore.Path");
+    this.keyStorePassword = props.getProperty("KeyStore.Password");
+    this.keyStoreTestEntityName =
+      props.getProperty("KeyStore.Server.EntityName");
+    this.keyStoreTestAlias = props.getProperty("KeyStore.Server.Alias");
+    this.keyStoreTestPassword = props.getProperty("KeyStore.Server.Password");
+    this.keyStoreOpenBusAlias = props.getProperty("KeyStore.OpenBus.Alias");
   }
 
   /**
@@ -259,6 +274,41 @@ public class OpenbusTest {
       Assert.assertNull(registryService);
       Assert.assertFalse(openbus.disconnect());
     }
+  }
+
+  /**
+   * Testa o connect utilizando um keystore.
+   * 
+   * @throws OpenBusException
+   */
+  @Test
+  public void connectByKeyStoreCertificate() throws OpenBusException {
+    InputStream keyStoreInputStream =
+      this.getClass().getResourceAsStream(this.keyStorePath);
+    Assert.assertNotNull(keyStoreInputStream);
+    Openbus openbus = Openbus.getInstance();
+    IRegistryService registryService =
+      openbus.connect(this.keyStoreTestEntityName, keyStoreInputStream,
+        this.keyStorePassword.toCharArray(), this.keyStoreTestAlias,
+        this.keyStoreTestPassword.toCharArray(), this.keyStoreOpenBusAlias);
+    Assert.assertNotNull(registryService);
+    Assert.assertTrue(openbus.disconnect());
+  }
+
+  /**
+   * Testa o connect utilizando um keystore.
+   * 
+   * @throws OpenBusException
+   */
+  @Test(expected = IllegalArgumentException.class)
+  public void connectByKeyStoreCertificatePathNull() throws OpenBusException {
+    Openbus openbus = Openbus.getInstance();
+    IRegistryService registryService =
+      openbus.connect(this.keyStoreTestEntityName, null, this.keyStorePassword
+        .toCharArray(), this.keyStoreTestAlias, this.keyStoreTestPassword
+        .toCharArray(), this.keyStoreOpenBusAlias);
+    Assert.assertNotNull(registryService);
+    Assert.assertTrue(openbus.disconnect());
   }
 
   /**

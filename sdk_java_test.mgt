@@ -11,6 +11,13 @@ SystemDeployment {
 }
 
 SystemDeployment {
+  id = "sdk_java_core_jks",
+  system = "sdk_java_test",
+  description = "Os testes unitários do SDK Java que usam um keystore",
+  certificate = "core/test/resources/sdk_java_core_jks.crt",
+}
+
+SystemDeployment {
   id = "sdk_java_integration",
   system = "sdk_java_test",
   description = "Os testes de integração do SDK Java",

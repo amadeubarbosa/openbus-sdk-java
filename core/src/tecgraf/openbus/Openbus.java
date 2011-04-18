@@ -3,6 +3,11 @@
  */
 package tecgraf.openbus;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.ArrayList;
@@ -592,6 +597,91 @@ public final class Openbus {
     Authenticator authenticator =
       new CertificateAuthenticator(name, privateKey, acsCertificate);
     return this.connect(authenticator);
+  }
+
+  /**
+   * Realiza uma tentativa de conexão com o barramento (serviço de controle de
+   * acesso e o serviço de registro), via certificado. A chave privada da
+   * entidade e o certificado do barramento são carregados a partir de um
+   * repositório {@link KeyStore}.
+   * 
+   * @param entityName O nome da entidade (system deployment) que deseja se
+   *        conectar
+   * @param keyStoreInputStream O repositório
+   * @param keyStorePassword A senha do repositório.
+   * @param entityKeyStoreAlias O apelido da entidade no repositório.
+   * @param entityKeyStorePassword A senha da entidade no repositório.
+   * @param openbusKeyStoreAlias O apelido do barramento no repositório.
+   * 
+   * @return O Serviço de Registro.
+   * 
+   * @throws OpenBusException
+   * 
+   * @see #connect(String, RSAPrivateKey, X509Certificate)
+   */
+  public IRegistryService connect(String entityName,
+    InputStream keyStoreInputStream, char[] keyStorePassword,
+    String entityKeyStoreAlias, char[] entityKeyStorePassword,
+    String openbusKeyStoreAlias) throws OpenBusException {
+    if (keyStoreInputStream == null) {
+      throw new IllegalArgumentException("O repositório não pode ser nulo.");
+    }
+
+    Logger logger = LoggerFactory.getLogger(Openbus.class);
+    KeyStore keyStore;
+    try {
+      keyStore = KeyStore.getInstance("JKS");
+    }
+    catch (GeneralSecurityException e) {
+      throw new OpenBusException(e);
+    }
+
+    try {
+      keyStore.load(keyStoreInputStream, keyStorePassword);
+    }
+    catch (IOException e) {
+      throw new OpenBusException(e);
+    }
+    catch (GeneralSecurityException e) {
+      throw new OpenBusException(e);
+    }
+
+    try {
+      if (!keyStore.containsAlias(entityKeyStoreAlias)) {
+        logger
+          .error("O alias da entidade ({}) não existe", entityKeyStoreAlias);
+        throw new OpenBusException("O alias da entidade não existe");
+      }
+      if (!keyStore.containsAlias(openbusKeyStoreAlias)) {
+        logger.error("O alias do barramento ({}) não existe",
+          openbusKeyStoreAlias);
+        throw new OpenBusException("O alias do barramento não existe");
+      }
+    }
+    catch (KeyStoreException e) {
+      throw new OpenBusException(e);
+    }
+
+    RSAPrivateKey entityPrivateKey;
+    try {
+      entityPrivateKey =
+        (RSAPrivateKey) keyStore.getKey(entityKeyStoreAlias,
+          entityKeyStorePassword);
+    }
+    catch (GeneralSecurityException e) {
+      throw new OpenBusException(e);
+    }
+
+    X509Certificate openBusCertificate;
+    try {
+      openBusCertificate =
+        (X509Certificate) keyStore.getCertificate(openbusKeyStoreAlias);
+    }
+    catch (KeyStoreException e) {
+      throw new OpenBusException(e);
+    }
+
+    return this.connect(entityName, entityPrivateKey, openBusCertificate);
   }
 
   /**
