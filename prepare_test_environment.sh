@@ -1,10 +1,13 @@
 #!/bin/bash
 
-if [ $# -ne 1 ]
+if [ $# -lt 1 ]
 then
-  echo "Use: `basename $0` <admin_user>"
+  echo "Use: `basename $0` <admin_user> [management_options]"
   exit
 fi
+
+admin_user=$1
+shift
 
 if [ ! -f ${OPENBUS_HOME}/data/certificates/AccessControlService.crt ]
 then
@@ -45,4 +48,4 @@ cp ${OPENBUS_HOME}/data/certificates/AccessControlService.crt openbus.crt;
 ${OPENBUS_HOME}/bin/openssl-generate.ksh -n sdk_java_integration
 )
 
-${OPENBUS_HOME}/core/bin/run_management.sh --login=$1 --script=sdk_java_test.mgt
+${OPENBUS_HOME}/core/bin/run_management.sh --login=$admin_user --script=sdk_java_test.mgt $@
