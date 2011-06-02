@@ -26,7 +26,6 @@
 
 \newcommand{\code}[1]{\texttt{#1}}
 
-
 % ===================
 % Inicio do documento
 % ===================
@@ -86,15 +85,17 @@ Antes de se começar a programação, é aconselhável que o usuário coloque em funci
 Naturalmente a execução da demo necessita de um barramento em operação. A demo pode ser executada seguindo os seguintes passos:
 
 \begin{itemize}
-  \item Entrar no diretório \linebreak
-    \$OPENBUS\_HOME/demo/hello/java/resources e configurar a localização do barramento no arquivo Hello.properties.
-  \item Executar o processo servidor da classe \linebreak
-    \$OPENBUS\_HOME/demo/hello/java/src/tecgraf/openbus/demo/hello/HelloServer.java.
-  \item Executar o processo cliente da classe \linebreak
-    \$OPENBUS\_HOME/demo/hello/java/src/tecgraf/openbus/demo/hello/HelloClient.java. Após a execução do cliente, no terminal do processo servidor a seguinte mensagem deve ser exibida: "Hello !!!"
+  \item Entrar no diretório \$OPENBUS\_HOME/demo/hello/java/resources e configurar a localização do barramento no arquivo Hello.properties.
+  \item Executar o processo servidor da classe
+% NOTA: incluindo um espaço no path para realizar uma quebra de linha no pdf
+\$OPENBUS\_HOME/demo/hello/java/src/ tecgraf/openbus/demo/hello/HelloServer.java.
+  \item Executar o processo cliente da classe 
+% NOTA: incluindo um espaço no path para realizar uma quebra de linha no pdf
+\$OPENBUS\_HOME/demo/hello/java/src/ tecgraf/openbus/demo/hello/HelloClient.java. Após a execução do cliente, no 
+terminal do processo servidor a seguinte mensagem deve ser exibida: ``Hello !!!"
 \end{itemize}
 
-Após a execução do cliente, no terminal a seguinte mensagem deve ser exibida pelo processo servidor, entre outras: "HELLO!"
+Após a execução do cliente, no terminal a seguinte mensagem deve ser exibida pelo processo servidor, entre outras: ``HELLO!"
 
 \section{Desenvolvimento}
 
@@ -146,21 +147,30 @@ Os outros métodos da API Openbus serão explicados em mais detalhes a seguir:
   \item \code{void setLeaseExpiredCallback(LeaseExpiredCallback lec)}: Registra uma callback para a notificação de que o lease da credencial	de identificação do usuário expirou.
   \item \code{void removeLeaseExpiredCallback(LeaseExpiredCallback lec)}: Remove uma callback previamente registrada para a notificação de lease expirado.
   \item \code{boolean isConnected()}: Informa o estado de conexão com o barramento.
-  \item \code{IRegistryService connect(String user, String password}: Realiza uma tentativa de conexão com o barramento. Se a tentativa for bem sucedida, um \emph{stub} do Serviço de Registro é retornado. Caso contrário, quatro exceções além das de CORBA podem ser lançadas:
+  \item \code{IRegistryService connect(String user, String password)}: Realiza uma tentativa de conexão com o barramento. Se a tentativa for bem sucedida, um \emph{stub} do Serviço de Registro é retornado. Caso contrário, as seguintes exceções além das de CORBA podem ser lançadas:
     \subitem \code{ACSLoginFailureException}: O par nome de usuário e senha não foram validados.
     \subitem \code{ACSUnavailableException}: Caso o Serviço de Controle de Acesso não consiga ser contactado.
+    \subitem \code{ServiceUnavailableException}: Caso algum serviço não seja contactado.
     \subitem \code{InvalidCredentialException}: Caso a credencial seja rejeitada ao tentar obter o Serviço de Registro.
     \subitem \code{IllegalArgumentException}: Caso o método receba argumentos inválidos.
-  \item \code{IRegistryService connect(String name, RSAPrivateKey privateKey, X509Certificate acsCertificate)}: Realiza uma tentativa de conexão com o barramento, utilizando o mecanismo de certificação para o processo de autenticação. Se a tentativa for bem sucedida, um \emph{stub} do Serviço de Registro é retornado. Caso contrário, cinco exceções além das de CORBA podem ser lançadas:
+    \subitem \code{CORBAException}: Representa uma exceção gerada pelo runtime de CORBA.
+    \subitem \code{OpenBusException}: Representa uma exceção genérica associada ao OpenBus.
+  \item \code{IRegistryService connect(String name, RSAPrivateKey privateKey, X509Certificate acsCertificate)}: Realiza uma tentativa de conexão com o barramento, utilizando o mecanismo de certificação para o processo de autenticação. Se a tentativa for bem sucedida, um \emph{stub} do Serviço de Registro é retornado. Caso contrário, as seguintes exceções além das de CORBA podem ser lançadas:
     \subitem \code{ACSLoginFailureException}: O certificado não foi validado.
+    \subitem \code{ServiceUnavailableException}: Caso algum serviço não seja contactado.
     \subitem \code{PKIException}: Os dados de certificado fornecidos não são válidos.
     \subitem \code{ACSUnavailableException}: Caso o Serviço de Controle de Acesso não consiga ser contactado.
     \subitem \code{InvalidCredentialException}: Caso a credencial seja rejeitada ao tentar obter o Serviço de Registro.
     \subitem \code{IllegalArgumentException}: Caso o método receba argumentos inválidos.
+    \subitem \code{CORBAException}: Representa uma exceção gerada pelo runtime de CORBA.
+    \subitem \code{OpenBusException}: Representa uma exceção genérica associada ao OpenBus.
   \item \code{IRegistryService connect(Credential credential)}: Realiza uma tentativa de conexão ao barramento, a partir de uma credencial já existente. Se a tentativa for bem sucedida, um \emph{stub} do Serviço de Registro é retornado. Caso contrário, cinco exceções além das de CORBA podem ser lançadas:
     \subitem \code{ACSUnavailableException}: Caso o Serviço de Controle de Acesso não consiga ser contactado.
+    \subitem \code{ServiceUnavailableException}: Caso algum serviço não seja contactado.
     \subitem \code{InvalidCredentialException}: Caso a credencial seja rejeitada ao tentar obter o Serviço de Registro.
     \subitem \code{IllegalArgumentException}: Caso o método receba argumentos inválidos.
+    \subitem \code{CORBAException}: Representa uma exceção gerada pelo runtime de CORBA.
+    \subitem \code{OpenBusException}: Representa uma exceção genérica associada ao OpenBus.
   \item \code{boolean disconnect()}: Desfaz a conexão atual.
 \end{itemize}
 
