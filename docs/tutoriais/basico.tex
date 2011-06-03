@@ -135,18 +135,36 @@ Se os endereços das réplicas do Serviço de Controle de Acesso acessíveis estiver
 Os outros métodos da API Openbus serão explicados em mais detalhes a seguir:
 
 \begin{itemize}
+  \item \code{Openbus getInstance()}: Fornece a única instância do barramento.
+  
   \item \code{ORB getORB()}: Retorna o ORB utilizado.
+  
   \item \code{POA getRootPOA()}: Retorna o RootPOA.
+  
   \item \code{void run()}: \emph{Loop} que processa requisições remotas. Execução de \emph{orb.run()}.
+  
   \item \code{void destroy()}: Finaliza a execução do barramento.
+  
+  \item \code{IComponent getACSIComponent()}: Retorna o \emph{stub} IComponent do Serviço de Controle de Acesso.
+  
   \item \code{IAccessControlService getAccessControlService()}: Retorna o \emph{stub} do Serviço de Controle de Acesso.
+  
   \item \code{IRegistryService getRegistryService()}: Retorna o \emph{stub} do Serviço de Registro.
+  
   \item \code{Credential getCredential()}: Retorna a credencial de identificação do usuário frente ao barramento.
+  
+  \item \code{CredentialValidationPolicy getCredentialValidationPolicy()}: Retorna a política de validação de credencial em uso.
+  
   \item \code{Credential getInterceptedCredential()}: Retorna a credencial interceptada pelo interceptador servidor. Esta operação somente deve ser chamada durante o tratamento de alguma requisição à aplicação do usuário.
+  
   \item \code{void setThreadCredential(Credential credential)}: Define uma credencial a ser utilizada no lugar da credencial corrente. Útil para fornecer uma credencial com o campo delegate preenchido.
+  
   \item \code{void setLeaseExpiredCallback(LeaseExpiredCallback lec)}: Registra uma callback para a notificação de que o lease da credencial	de identificação do usuário expirou.
+  
   \item \code{void removeLeaseExpiredCallback(LeaseExpiredCallback lec)}: Remove uma callback previamente registrada para a notificação de lease expirado.
+  
   \item \code{boolean isConnected()}: Informa o estado de conexão com o barramento.
+  
   \item \code{IRegistryService connect(String user, String password)}: Realiza uma tentativa de conexão com o barramento. Se a tentativa for bem sucedida, um \emph{stub} do Serviço de Registro é retornado. Caso contrário, as seguintes exceções além das de CORBA podem ser lançadas:
     \subitem \code{ACSLoginFailureException}: O par nome de usuário e senha não foram validados.
     \subitem \code{ACSUnavailableException}: Caso o Serviço de Controle de Acesso não consiga ser contactado.
@@ -155,6 +173,7 @@ Os outros métodos da API Openbus serão explicados em mais detalhes a seguir:
     \subitem \code{IllegalArgumentException}: Caso o método receba argumentos inválidos.
     \subitem \code{CORBAException}: Representa uma exceção gerada pelo runtime de CORBA.
     \subitem \code{OpenBusException}: Representa uma exceção genérica associada ao OpenBus.
+  
   \item \code{IRegistryService connect(String name, RSAPrivateKey privateKey, X509Certificate acsCertificate)}: Realiza uma tentativa de conexão com o barramento, utilizando o mecanismo de certificação para o processo de autenticação. Se a tentativa for bem sucedida, um \emph{stub} do Serviço de Registro é retornado. Caso contrário, as seguintes exceções além das de CORBA podem ser lançadas:
     \subitem \code{ACSLoginFailureException}: O certificado não foi validado.
     \subitem \code{ServiceUnavailableException}: Caso algum serviço não seja contactado.
@@ -164,6 +183,7 @@ Os outros métodos da API Openbus serão explicados em mais detalhes a seguir:
     \subitem \code{IllegalArgumentException}: Caso o método receba argumentos inválidos.
     \subitem \code{CORBAException}: Representa uma exceção gerada pelo runtime de CORBA.
     \subitem \code{OpenBusException}: Representa uma exceção genérica associada ao OpenBus.
+  
   \item \code{IRegistryService connect(Credential credential)}: Realiza uma tentativa de conexão ao barramento, a partir de uma credencial já existente. Se a tentativa for bem sucedida, um \emph{stub} do Serviço de Registro é retornado. Caso contrário, cinco exceções além das de CORBA podem ser lançadas:
     \subitem \code{ACSUnavailableException}: Caso o Serviço de Controle de Acesso não consiga ser contactado.
     \subitem \code{ServiceUnavailableException}: Caso algum serviço não seja contactado.
@@ -171,15 +191,26 @@ Os outros métodos da API Openbus serão explicados em mais detalhes a seguir:
     \subitem \code{IllegalArgumentException}: Caso o método receba argumentos inválidos.
     \subitem \code{CORBAException}: Representa uma exceção gerada pelo runtime de CORBA.
     \subitem \code{OpenBusException}: Representa uma exceção genérica associada ao OpenBus.
+  
   \item \code{boolean disconnect()}: Desfaz a conexão atual.
+  
+  \item \code{void setInterceptable(String iface, String method,
+    boolean interceptable)}: Define se os métodos de uma determinada interface devem ou não ser interceptados pelo interceptador servidor.
+  
+  \item \code{boolean isInterceptable(String iface, String method)}: Consulta se o método está sendo interceptado.
+  
+  \item \code{boolean isFaultToleranceEnable()}: Consulta se o mecanismo de tolerância a falhas esta ativado.
 \end{itemize}
 
 Os outros métodos do \emph{stub} do Serviço de Registro serão explicados em mais detalhes a seguir:
 
 \begin{itemize}
   \item \code{RegistryIdentifier register(in ServiceOffer aServiceOffer)}: Registra um serviço no barramento. O serviço é descrito através de uma oferta de	serviço. Caso o serviço seja registrado com sucesso, a identificação do mesmo é	retornada. O identificador é importante para desregistrar a oferta.
+  
   \item \code{void unregister(String registryId)}: Remove uma oferta de serviço do barramento.
+  
   \item \code{ServiceOfferList find(FacetList facets)}: Busca uma ou mais ofertas de serviço no barramento que implementem todas as facetas discriminadas em \emph{facets}.
+  
   \item \code{ServiceOfferList findByCriteria(FacetList facets,	PropertyList properties)}: Busca uma ou mais ofertas de serviço no barramento que implementem todas as facetas discriminadas em \emph{facets} e que atendam aos critérios descritos no parâmetro \emph{criteria}, que é uma lista de propriedades descrita através de strings no	formato chave = {valor1, valor2, ..., valorN}.
 \end{itemize}
 
