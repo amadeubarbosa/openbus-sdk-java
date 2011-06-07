@@ -184,12 +184,21 @@ Os outros métodos da API Openbus serão explicados em mais detalhes a seguir:
     \subitem \code{CORBAException}: Representa uma exceção gerada pelo runtime de CORBA.
     \subitem \code{OpenBusException}: Representa uma exceção genérica associada ao OpenBus.
   
-  \item \code{IRegistryService connect(Credential credential)}: Realiza uma tentativa de conexão ao barramento, a partir de uma credencial já existente. Se a tentativa for bem sucedida, um \emph{stub} do Serviço de Registro é retornado. Caso contrário, cinco exceções além das de CORBA podem ser lançadas:
+  \item \code{IRegistryService connect(Credential credential)}: Realiza uma tentativa de conexão ao barramento, a partir de uma credencial já existente. Se a tentativa for bem sucedida, um \emph{stub} do Serviço de Registro é retornado. Caso contrário, as seguintes exceções além das de CORBA podem ser lançadas:
     \subitem \code{ACSUnavailableException}: Caso o Serviço de Controle de Acesso não consiga ser contactado.
     \subitem \code{ServiceUnavailableException}: Caso algum serviço não seja contactado.
     \subitem \code{InvalidCredentialException}: Caso a credencial seja rejeitada ao tentar obter o Serviço de Registro.
     \subitem \code{IllegalArgumentException}: Caso o método receba argumentos inválidos.
     \subitem \code{CORBAException}: Representa uma exceção gerada pelo runtime de CORBA.
+    \subitem \code{OpenBusException}: Representa uma exceção genérica associada ao OpenBus.
+  
+  \item \code{IRegistryService connect(String entityName, InputStream 
+keyStoreInputStream, char[] keyStorePassword, \\String entityKeyStoreAlias, 
+char[] entityKeyStorePassword, String openbusKeyStoreAlias)}: Realiza uma 
+tentativa de conexão com o barramento, via certificado. A chave privada da 
+entidade e o certificado do barramento são carregados a partir de um repositório 
+\emph{KeyStore}. As seguintes exceções, além das de CORBA, podem ser lançadas:
+    \subitem \code{IllegalArgumentException}: Caso o método receba argumentos inválidos.
     \subitem \code{OpenBusException}: Representa uma exceção genérica associada ao OpenBus.
   
   \item \code{boolean disconnect()}: Desfaz a conexão atual.
@@ -306,8 +315,8 @@ struct ServiceOffer {
 };
 \end{labeledcode}
 
-Através da lista de propriedades, é possível caracterizar o serviço. 
-	
+A lista de propriedades pode ser utilizada para adicionar características para o serviço, a fim de facilitar a identificação por parte dos clientes.
+
 A arquitetura do Openbus é baseada no modelo de componentes SCS. Os serviços são de fato representados por componentes, que podem apresentar distintas facetas(interfaces). Sendo assim, o primeiro passo para o registro de um serviço é criar um componente que represente esse serviço. Maiores informações sobre a criação de componentes SCS podem ser obtidas nos tutoriais desse projeto, mas um exemplo pode ser conferido no Código~\ref{lst:component}. Nesse exemplo, \emph{HelloImpl} é o nome da classe que implementa a faceta \emph{IHello}.
 
 \begin{labeledcode}[java]{component}{Instanciação de um Componente SCS}
