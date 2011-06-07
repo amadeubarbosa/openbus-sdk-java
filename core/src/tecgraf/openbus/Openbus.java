@@ -937,14 +937,29 @@ public final class Openbus {
     this.port = hostPort;
   }
 
+  /**
+   * Fornece o Provedor de Lease do Serviço de Controle de Acesso.
+   * 
+   * @return O Provedor de Lease.
+   */
   public ILeaseProvider getLeaseProvider() {
     return lp;
   }
 
+  /**
+   * Fornece o Serviço de Tolerância a Falhas do Serviço de Controle de Acesso.
+   * 
+   * @return O Serviço de Tolerância a Falhas.
+   */
   public IFaultTolerantService getACSFaultTolerantService() {
     return ft;
   }
 
+  /**
+   * Fornece a faceta IComponent do Serviço de Controle de Acesso.
+   * 
+   * @return O IComponent.
+   */
   public IComponent getACSIComponent() {
     return ic;
   }
