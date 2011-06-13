@@ -76,17 +76,11 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
+        <version>2.3.2</version>
         <configuration>
           <source>${java.version}</source>
           <target>${java.version}</target>
           <compilerArgument>-Xbootclasspath/p:${settings.localRepository}/org/jacorb/jacorb/${jacorb.version}/jacorb-${jacorb.version}.jar</compilerArgument>
-        </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-resources-plugin</artifactId>
-        <configuration>
         </configuration>
       </plugin>
 
