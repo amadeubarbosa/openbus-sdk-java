@@ -66,8 +66,8 @@ public class HelloServer {
 
     bus.initWithFaultTolerance(args, orbProps, host, port);
 
-    String entityName = props.getProperty("entity.name");
-    String privateKeyFile = props.getProperty("private.key");
+    String entityName = props.getProperty("server.entity.name");
+    String privateKeyFile = props.getProperty("server.private.key");
     String acsCertificateFile = props.getProperty("acs.certificate");
 
     RSAPrivateKey privateKey = CryptoUtils.readPrivateKey(privateKeyFile);

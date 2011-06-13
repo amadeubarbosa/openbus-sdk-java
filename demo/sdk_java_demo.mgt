@@ -4,10 +4,17 @@ System {
 }
 
 SystemDeployment {
-  id = "sdk_java_demo_hello",
+  id = "sdk_java_demo_hello_server",
   system = "sdk_java_demo",
-  description = "A demonstração Hello do SDK Java",
-  certificate = "hello/resources/sdk_java_demo_hello.crt",
+  description = "O servidor da demonstração Hello do SDK Java",
+  certificate = "hello/resources/sdk_java_demo_hello_server.crt",
+}
+
+SystemDeployment {
+  id = "sdk_java_demo_hello_client_delegate",
+  system = "sdk_java_demo",
+  description = "O cliente da demonstração Hello do SDK Java",
+  certificate = "hello/resources/sdk_java_demo_hello_client_delegate.crt",
 }
 
 Interface {
@@ -15,34 +22,8 @@ Interface {
 }
 
 Grant {
-  id = "sdk_java_demo_hello",
+  id = "sdk_java_demo_hello_server",
   interfaces = {
     "IDL:demoidl/hello/IHello:1.0",
   }
 }
-
-SystemDeployment {
-  id = "sdk_java_demo_delegate_server",
-  system = "sdk_java_demo",
-  description = "A demonstração do servidor Delegate do SDK Java",
-  certificate = "delegate/resources/sdk_java_demo_delegate_server.crt",
-}
-
-SystemDeployment {
-  id = "sdk_java_demo_delegate_client",
-  system = "sdk_java_demo",
-  description = "A demonstração do cliente Delegate do SDK Java",
-  certificate = "delegate/resources/sdk_java_demo_delegate_client.crt",
-}
-
-Interface {
-  id = "IDL:demoidl/demoDelegate/IHello:1.0",
-}
-
-Grant {
-  id = "sdk_java_demo_delegate_server",
-  interfaces = {
-    "IDL:demoidl/demoDelegate/IHello:1.0",
-  }
-}
-

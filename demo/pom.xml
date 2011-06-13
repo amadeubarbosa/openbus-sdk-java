@@ -15,7 +15,6 @@
   <url>http://www.tecgraf.puc-rio.br/openbus</url>
 
   <modules>
-    <module>delegate</module>
     <module>eventSink</module>
     <module>hello</module>
   </modules>

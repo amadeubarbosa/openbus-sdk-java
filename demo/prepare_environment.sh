@@ -35,11 +35,7 @@ fi
 
 (cd hello/resources;
 cp ${OPENBUS_HOME}/data/certificates/AccessControlService.crt openbus.crt;
-${OPENBUS_HOME}/bin/openssl-generate.ksh -n sdk_java_demo_hello)
-
-(cd delegate/resources;
-cp ${OPENBUS_HOME}/data/certificates/AccessControlService.crt openbus.crt;
-${OPENBUS_HOME}/bin/openssl-generate.ksh -n sdk_java_demo_delegate_client;
-${OPENBUS_HOME}/bin/openssl-generate.ksh -n sdk_java_demo_delegate_server)
+${OPENBUS_HOME}/bin/openssl-generate.ksh -n sdk_java_demo_hello_server;
+${OPENBUS_HOME}/bin/openssl-generate.ksh -n sdk_java_demo_hello_client_delegate)
 
 ${OPENBUS_HOME}/core/bin/run_management.sh --login=$admin_user --script=sdk_java_demo.mgt $@

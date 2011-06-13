@@ -1,4 +1,4 @@
-package tecgraf.openbus.demo.delegate;
+package tecgraf.openbus.demo.hello;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,16 +21,21 @@ import tecgraf.openbus.core.v1_06.registry_service.ServiceOffer;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.RSUnavailableException;
 import tecgraf.openbus.util.CryptoUtils;
-import demoidl.demoDelegate.IHello;
-import demoidl.demoDelegate.IHelloHelper;
+import demoidl.hello.IHello;
+import demoidl.hello.IHelloHelper;
 
-public class HelloClient {
+public class HelloClientDelegate {
   public static void main(String[] args) throws OpenBusException,
     UserException, IOException, InvalidKeyException, NoSuchAlgorithmException,
     InvalidKeySpecException, CertificateException {
+    if (args.length != 1) {
+      System.out.println("Use: HelloClientDelegate [delegate]");
+      System.exit(1);
+    }
+    String delegate = args[0];
+
     Properties props = new Properties();
-    InputStream in =
-      HelloClient.class.getResourceAsStream("/Delegate.properties");
+    InputStream in = HelloClient.class.getResourceAsStream("/Hello.properties");
     try {
       props.load(in);
     }
@@ -49,8 +54,8 @@ public class HelloClient {
     Openbus bus = Openbus.getInstance();
     bus.init(args, orbProps, host, port);
 
-    String entityName = props.getProperty("client.entity.name");
-    String privateKeyFile = props.getProperty("client.private.key");
+    String entityName = props.getProperty("client.delegate.entity.name");
+    String privateKeyFile = props.getProperty("client.delegate.private.key");
     String acsCertificateFile = props.getProperty("acs.certificate");
 
     RSAPrivateKey privateKey = CryptoUtils.readPrivateKey(privateKeyFile);
@@ -63,10 +68,11 @@ public class HelloClient {
       throw new RSUnavailableException();
     }
 
-    String[] facets = new String[] { "IHello" };
-    String[] componentName = new String[] { "DelegateService:1.0.0" };
+    String registeredBy = props.getProperty("server.entity.name");
+    String[] facets = new String[] { IHelloHelper.id() };
     Property[] property =
-      new Property[] { new Property("component_id", componentName) };
+      new Property[] { new Property("registered_by",
+        new String[] { registeredBy }) };
     ServiceOffer[] servicesOffers =
       registryService.findByCriteria(facets, property);
 
@@ -82,53 +88,15 @@ public class HelloClient {
     org.omg.CORBA.Object helloObject = component.getFacetByName("IHello");
     IHello hello = IHelloHelper.narrow(helloObject);
 
-    DelegateThread delegateThreadA = new DelegateThread("A", hello);
-    DelegateThread delegateThreadB = new DelegateThread("B", hello);
-    Thread threadA = new Thread(delegateThreadA);
-    Thread threadB = new Thread(delegateThreadB);
+    Credential credential = bus.getCredential();
+    Credential newCredential =
+      new Credential(credential.identifier, credential.owner, delegate);
+    bus.setThreadCredential(newCredential);
 
-    threadA.start();
-    threadB.start();
-
-    try {
-      threadA.join();
-      threadB.join();
-    }
-    catch (InterruptedException e) {
-      e.printStackTrace();
-    }
+    hello.sayHello();
 
     bus.disconnect();
     bus.destroy();
     System.out.println("FIM");
-  }
-}
-
-class DelegateThread implements Runnable {
-
-  private String name;
-  private IHello hello;
-
-  public DelegateThread(String name, IHello hello) {
-    this.name = name;
-    this.hello = hello;
-  }
-
-  public void run() {
-    Openbus openbus = Openbus.getInstance();
-    Credential credential = openbus.getCredential();
-    Credential newCredential =
-      new Credential(credential.identifier, credential.owner, name);
-    openbus.setThreadCredential(newCredential);
-
-    try {
-      for (int i = 0; i < 10; i++) {
-        hello.sayHello(name);
-        Thread.sleep(1000);
-      }
-    }
-    catch (InterruptedException e) {
-      e.printStackTrace();
-    }
   }
 }
