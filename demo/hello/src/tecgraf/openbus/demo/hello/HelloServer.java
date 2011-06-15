@@ -21,7 +21,7 @@ import tecgraf.openbus.Openbus;
 import tecgraf.openbus.core.v1_06.registry_service.IRegistryService;
 import tecgraf.openbus.core.v1_06.registry_service.Property;
 import tecgraf.openbus.core.v1_06.registry_service.ServiceOffer;
-import tecgraf.openbus.core.v1_06.registry_service.UnathorizedFacets;
+import tecgraf.openbus.core.v1_06.registry_service.UnauthorizedFacets;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.RSUnavailableException;
 import tecgraf.openbus.util.CryptoUtils;
@@ -102,7 +102,7 @@ public class HelloServer {
       registrationId = registryService.register(serviceOffer);
       System.out.println("Hello Server registrado.");
     }
-    catch (UnathorizedFacets uf) {
+    catch (UnauthorizedFacets uf) {
       System.out.println("Não foi possível registrar Hello Server.");
       for (String facet : uf.facets) {
         System.out.println("Faceta '" + facet + "' não autorizada");
