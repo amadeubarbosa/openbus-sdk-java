@@ -17,7 +17,7 @@ import tecgraf.openbus.Openbus;
 import tecgraf.openbus.core.v1_06.registry_service.IRegistryService;
 import tecgraf.openbus.core.v1_06.registry_service.Property;
 import tecgraf.openbus.core.v1_06.registry_service.ServiceOffer;
-import tecgraf.openbus.core.v1_06.registry_service.UnauthorizedFacets;
+import tecgraf.openbus.core.v1_06.registry_service.UnathorizedFacets;
 import tecgraf.openbus.exception.ACSLoginFailureException;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.launcher.HelloServant;
@@ -107,7 +107,7 @@ public class DefaultServerTestCase implements ServerTestCase {
    * {@inheritDoc}
    */
   public String registerComponent(ServerTestContext context)
-    throws UnauthorizedFacets {
+    throws UnathorizedFacets {
     Openbus openbus = Openbus.getInstance();
     ComponentContext componentContext = context.componentContext;
     IRegistryService registryService = openbus.getRegistryService();

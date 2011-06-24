@@ -2,7 +2,7 @@ package tecgraf.openbus.test_case;
 
 import org.omg.CORBA.UserException;
 
-import tecgraf.openbus.core.v1_06.registry_service.UnauthorizedFacets;
+import tecgraf.openbus.core.v1_06.registry_service.UnathorizedFacets;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.launcher.ServerTestContext;
 
@@ -61,10 +61,10 @@ public interface ServerTestCase {
    * @param context O contexto.
    * @return O registrationId (resposta do método register do Serviço de
    *         Registro)
-   * @throws UnauthorizedFacets
+   * @throws UnathorizedFacets
    */
   public String registerComponent(ServerTestContext context)
-    throws UnauthorizedFacets;
+    throws UnathorizedFacets;
 
   /**
    * <p>
