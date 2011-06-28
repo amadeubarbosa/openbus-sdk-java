@@ -32,12 +32,12 @@ public final class Utils {
   /**
    * Versao atual do OpenBus.
    */
-  public static final String OB_VERSION = "1_06";
+  public static final String IDL_VERSION = "1_05";
 
   /**
    * Versao anterior do OpenBus.
    */
-  public static final String OB_PREV = "1_05";
+  public static final String IDL_PREV = "1_04";
 
   /**
    * Nome da faceta IReceptacles.
@@ -52,7 +52,7 @@ public final class Utils {
    * O nome da faceta do Serviço de Registro.
    */
   public static final String REGISTRY_SERVICE_FACET_NAME =
-    "IRegistryService_v" + OB_VERSION;
+    "IRegistryService_v" + IDL_VERSION;
   /**
    * O nome da propriedade que representa as facetas de um membro registrado.
    */
