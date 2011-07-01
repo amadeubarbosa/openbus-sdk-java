@@ -7,7 +7,7 @@ import java.util.Properties;
 import org.omg.CORBA.UserException;
 
 import tecgraf.openbus.Openbus;
-import tecgraf.openbus.core.v1_06.registry_service.IRegistryService;
+import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.RSUnavailableException;
 import tecgraf.openbus.test_case.ClientTestCase;

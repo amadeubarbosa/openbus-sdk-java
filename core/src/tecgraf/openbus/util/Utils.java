@@ -27,7 +27,7 @@ public final class Utils {
   /**
    * Representam a chave para obtenção do barramento.
    */
-  public static final String OPENBUS_KEY = "openbus_v1_06";
+  public static final String OPENBUS_KEY = "openbus_v1_05";
 
   /**
    * Versao atual do OpenBus.

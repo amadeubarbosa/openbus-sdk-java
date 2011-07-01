@@ -11,9 +11,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.omg.CORBA.UserException;
 
-import tecgraf.openbus.core.v1_06.access_control_service.Credential;
-import tecgraf.openbus.core.v1_06.access_control_service.IAccessControlService;
-import tecgraf.openbus.core.v1_06.registry_service.IRegistryService;
+import tecgraf.openbus.core.v1_05.access_control_service.Credential;
+import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlService;
+import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.lease.LeaseExpiredCallback;
 

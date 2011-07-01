@@ -9,8 +9,8 @@ import org.omg.CORBA.SystemException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import tecgraf.openbus.core.v1_06.access_control_service.Credential;
-import tecgraf.openbus.core.v1_06.access_control_service.ILeaseProvider;
+import tecgraf.openbus.core.v1_05.access_control_service.Credential;
+import tecgraf.openbus.core.v1_05.access_control_service.ILeaseProvider;
 
 /**
  * Responsável por renovar um lease junto a um provedor.

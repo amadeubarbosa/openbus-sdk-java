@@ -19,18 +19,18 @@ import scs.core.servant.ComponentBuilder;
 import scs.core.servant.ComponentContext;
 import scs.core.servant.ExtendedFacetDescription;
 import tecgraf.openbus.Openbus;
-import tecgraf.openbus.core.v1_06.registry_service.IRegistryService;
-import tecgraf.openbus.core.v1_06.registry_service.ServiceOffer;
+import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
+import tecgraf.openbus.core.v1_05.registry_service.ServiceOffer;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.RSUnavailableException;
 import tecgraf.openbus.exception.SSUnavailableException;
-import tecgraf.openbus.session_service.v1_06.ISession;
-import tecgraf.openbus.session_service.v1_06.ISessionHelper;
-import tecgraf.openbus.session_service.v1_06.ISessionService;
-import tecgraf.openbus.session_service.v1_06.ISessionServiceHelper;
-import tecgraf.openbus.session_service.v1_06.SessionEvent;
-import tecgraf.openbus.session_service.v1_06.SessionEventSink;
-import tecgraf.openbus.session_service.v1_06.SessionEventSinkHelper;
+import tecgraf.openbus.session_service.v1_05.ISession;
+import tecgraf.openbus.session_service.v1_05.ISessionHelper;
+import tecgraf.openbus.session_service.v1_05.ISessionService;
+import tecgraf.openbus.session_service.v1_05.ISessionServiceHelper;
+import tecgraf.openbus.session_service.v1_05.SessionEvent;
+import tecgraf.openbus.session_service.v1_05.SessionEventSink;
+import tecgraf.openbus.session_service.v1_05.SessionEventSinkHelper;
 
 /**
  * Demo que exercita callbacks de Sessão.

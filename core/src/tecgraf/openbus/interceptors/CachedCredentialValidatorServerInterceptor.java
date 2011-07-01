@@ -21,8 +21,8 @@ import org.slf4j.LoggerFactory;
 
 import tecgraf.openbus.Openbus;
 import tecgraf.openbus.access_control_service.CredentialWrapper;
-import tecgraf.openbus.core.v1_06.access_control_service.Credential;
-import tecgraf.openbus.core.v1_06.access_control_service.IAccessControlService;
+import tecgraf.openbus.core.v1_05.access_control_service.Credential;
+import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlService;
 
 /**
  * Implementa a política de validação de credenciais interceptadas em um

@@ -3,7 +3,7 @@
  */
 package tecgraf.openbus.access_control_service;
 
-import tecgraf.openbus.core.v1_06.access_control_service.Credential;
+import tecgraf.openbus.core.v1_05.access_control_service.Credential;
 
 /**
  * Representa um invólucro para uma credencial.

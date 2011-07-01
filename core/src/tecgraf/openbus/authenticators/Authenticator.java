@@ -3,8 +3,8 @@
  */
 package tecgraf.openbus.authenticators;
 
-import tecgraf.openbus.core.v1_06.access_control_service.Credential;
-import tecgraf.openbus.core.v1_06.access_control_service.IAccessControlService;
+import tecgraf.openbus.core.v1_05.access_control_service.Credential;
+import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlService;
 import tecgraf.openbus.exception.OpenBusException;
 
 /**

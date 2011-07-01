@@ -17,8 +17,8 @@ import org.slf4j.LoggerFactory;
 
 import tecgraf.openbus.Openbus;
 import tecgraf.openbus.access_control_service.CredentialWrapper;
-import tecgraf.openbus.core.v1_06.access_control_service.Credential;
-import tecgraf.openbus.core.v1_06.access_control_service.CredentialHelper;
+import tecgraf.openbus.core.v1_05.access_control_service.Credential;
+import tecgraf.openbus.core.v1_05.access_control_service.CredentialHelper;
 
 /**
  * Implementa um interceptador "cliente", para inserção de informações no

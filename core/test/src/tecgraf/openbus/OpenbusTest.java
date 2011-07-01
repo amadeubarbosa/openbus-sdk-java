@@ -14,8 +14,8 @@ import org.junit.Test;
 import org.omg.CORBA.UserException;
 
 import scs.core.IReceptaclesHelper;
-import tecgraf.openbus.core.v1_06.access_control_service.Credential;
-import tecgraf.openbus.core.v1_06.registry_service.IRegistryService;
+import tecgraf.openbus.core.v1_05.access_control_service.Credential;
+import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
 import tecgraf.openbus.exception.ACSLoginFailureException;
 import tecgraf.openbus.exception.InvalidCredentialException;
 import tecgraf.openbus.exception.OpenBusException;

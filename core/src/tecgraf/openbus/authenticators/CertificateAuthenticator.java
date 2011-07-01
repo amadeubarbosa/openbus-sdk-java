@@ -10,9 +10,9 @@ import java.text.MessageFormat;
 
 import org.omg.CORBA.IntHolder;
 
-import tecgraf.openbus.core.v1_06.access_control_service.Credential;
-import tecgraf.openbus.core.v1_06.access_control_service.CredentialHolder;
-import tecgraf.openbus.core.v1_06.access_control_service.IAccessControlService;
+import tecgraf.openbus.core.v1_05.access_control_service.Credential;
+import tecgraf.openbus.core.v1_05.access_control_service.CredentialHolder;
+import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlService;
 import tecgraf.openbus.exception.ACSLoginFailureException;
 import tecgraf.openbus.exception.PKIException;
 import tecgraf.openbus.util.Utils;

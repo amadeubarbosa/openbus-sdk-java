@@ -2,7 +2,7 @@ package tecgraf.openbus.test_case;
 
 import org.omg.CORBA.UserException;
 
-import tecgraf.openbus.core.v1_06.registry_service.UnathorizedFacets;
+import tecgraf.openbus.core.v1_05.registry_service.UnathorizedFacets;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.launcher.ServerTestContext;
 
