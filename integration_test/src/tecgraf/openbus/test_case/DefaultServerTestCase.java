@@ -7,12 +7,10 @@ import java.util.Properties;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.UserException;
 
+import scs.core.ComponentContext;
 import scs.core.ComponentId;
 import scs.core.IComponent;
 import scs.core.IComponentHelper;
-import scs.core.servant.ComponentBuilder;
-import scs.core.servant.ComponentContext;
-import scs.core.servant.ExtendedFacetDescription;
 import tecgraf.openbus.Openbus;
 import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
 import tecgraf.openbus.core.v1_05.registry_service.Property;
@@ -87,20 +85,11 @@ public class DefaultServerTestCase implements ServerTestCase {
     Openbus openbus = Openbus.getInstance();
     ORB orb = openbus.getORB();
 
-    ComponentBuilder builder = new ComponentBuilder(openbus.getRootPOA(), orb);
-    ExtendedFacetDescription[] descriptions = new ExtendedFacetDescription[1];
-    descriptions[0] =
-      new ExtendedFacetDescription("IHello", IHelloHelper.id(),
-        HelloServant.class.getCanonicalName());
-    try {
-      context.componentContext =
-        builder.newComponent(descriptions, new ComponentId("Hello", (byte) 1,
-          (byte) 0, (byte) 0, "Java"));
-    }
-    catch (Exception e) {
-      // TODO Criar execeção no SCS.
-      throw new Exception("Erro ao criar componente.");
-    }
+    context.componentContext =
+      new ComponentContext(orb, openbus.getRootPOA(), new ComponentId("Hello",
+        (byte) 1, (byte) 0, (byte) 0, "Java"));
+    context.componentContext.addFacet("IHello", IHelloHelper.id(),
+      new HelloServant());
   }
 
   /**

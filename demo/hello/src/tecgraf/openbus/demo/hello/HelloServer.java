@@ -2,7 +2,6 @@ package tecgraf.openbus.demo.hello;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.security.GeneralSecurityException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
@@ -11,12 +10,11 @@ import java.util.Properties;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.UserException;
 
+import scs.core.ComponentContext;
 import scs.core.ComponentId;
 import scs.core.IComponent;
 import scs.core.IComponentHelper;
-import scs.core.servant.ComponentBuilder;
-import scs.core.servant.ComponentContext;
-import scs.core.servant.ExtendedFacetDescription;
+import scs.core.exception.SCSException;
 import tecgraf.openbus.Openbus;
 import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
 import tecgraf.openbus.core.v1_05.registry_service.Property;
@@ -35,9 +33,7 @@ public class HelloServer {
   private static String registrationId;
 
   public static void main(String[] args) throws IOException, UserException,
-    GeneralSecurityException, SecurityException, InstantiationException,
-    IllegalAccessException, ClassNotFoundException, InvocationTargetException,
-    NoSuchMethodException, OpenBusException {
+    GeneralSecurityException, OpenBusException, SCSException {
     Properties props = new Properties();
     InputStream in = HelloClient.class.getResourceAsStream("/Hello.properties");
     if (in != null) {
@@ -77,14 +73,10 @@ public class HelloServer {
     ORB orb = bus.getORB();
 
     // Cria o componente.
-    ComponentBuilder builder = new ComponentBuilder(bus.getRootPOA(), orb);
-    ExtendedFacetDescription[] descriptions = new ExtendedFacetDescription[1];
-    descriptions[0] =
-      new ExtendedFacetDescription("IHello", IHelloHelper.id(), HelloImpl.class
-        .getCanonicalName());
     ComponentContext context =
-      builder.newComponent(descriptions, new ComponentId("Hello", (byte) 1,
-        (byte) 0, (byte) 0, "Java"));
+      new ComponentContext(orb, bus.getRootPOA(), new ComponentId("Hello",
+        (byte) 1, (byte) 0, (byte) 0, "Java"));
+    context.addFacet("IHello", IHelloHelper.id(), new HelloImpl());
 
     IRegistryService registryService =
       bus.connect(entityName, privateKey, acsCertificate);

@@ -2,7 +2,7 @@ package tecgraf.openbus.demo.eventSink;
 
 import org.omg.CORBA.Object;
 
-import scs.core.servant.ComponentContext;
+import scs.core.ComponentContext;
 import tecgraf.openbus.session_service.v1_05.SessionEvent;
 import tecgraf.openbus.session_service.v1_05.SessionEventSinkPOA;
 

@@ -1,6 +1,5 @@
 package tecgraf.openbus.launcher;
 
-import scs.core.servant.ComponentContext;
 import testidl.hello.IHelloOperations;
 import testidl.hello.IHelloPOA;
 
@@ -17,17 +16,9 @@ public class HelloServant extends IHelloPOA {
   private IHelloOperations operations;
 
   /**
-   * Referencia para o ComponentContext do componente.
+   * Contrutor.
    */
-  private ComponentContext context;
-
-  /**
-   * Contrutor obrigatório.
-   * 
-   * @param context
-   */
-  public HelloServant(ComponentContext context) {
-    this.context = context;
+  public HelloServant() {
     this.operations = new HelloImpl();
   }
 

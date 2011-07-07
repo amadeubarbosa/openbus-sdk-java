@@ -2,7 +2,7 @@ package tecgraf.openbus.launcher;
 
 import java.util.Properties;
 
-import scs.core.servant.ComponentContext;
+import scs.core.ComponentContext;
 
 /**
  * Contexto do cliente para os testes remotos.
