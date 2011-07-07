@@ -5,7 +5,7 @@
   <groupId>tecgraf.openbus</groupId>
   <artifactId>openbus-sdk</artifactId>
   <packaging>pom</packaging>
-  <version>1.6.0-SNAPSHOT</version>
+  <version>1.5.4-SNAPSHOT</version>
 
   <name>OpenBus - SDK</name>
   <url>http://www.tecgraf.puc-rio.br/openbus</url>
