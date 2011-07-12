@@ -93,7 +93,7 @@ public class EventSinkDemo {
       .getIComponent()), icholder, sholder);
     // cria e adiciona novo membro
     ComponentContext context2 = new ComponentContext(orb, bus.getRootPOA(), id);
-    context.addFacet("SessionEventSink", SessionEventSinkHelper.id(),
+    context2.addFacet("SessionEventSink", SessionEventSinkHelper.id(),
       new EventSinkImpl(context));
     IComponent ic2 = IComponentHelper.narrow(context2.getIComponent());
     IComponent sessionIC = icholder.value;
