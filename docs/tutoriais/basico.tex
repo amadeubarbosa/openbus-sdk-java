@@ -32,7 +32,7 @@
 
 \begin{document} 
 
-\title{OpenBus-Java - Tutorial - API}
+\title{Tutorial do SDK Java do OpenBus}
 \author{C. Augusto, R. Cosme, R. Cerqueira, M. Gatti \\
         Tecgraf \\
         Pontifícia Universidade Católica do Rio de Janeiro 
@@ -101,7 +101,7 @@ Após a execução do cliente, no terminal a seguinte mensagem deve ser exibida pel
 
 \subsection{API}\label{api}
 
-A API é composta pela classe Openbus e pela classe \emph{stub} IRegistryService, referente ao Serviço de Registro. A classe Openbus atualmente é implementada como o padrão \emph{singleton}, pois suporta apenas um barramento. Para obter-se a instância do barramento e (re)inicializá-la, deve-se utilizar o Código~\ref{lst:barramento}.
+A API é composta pela classe Openbus e pela classe \emph{stub} IRegistryService, referente ao Serviço de Registro. A classe Openbus atualmente é implementada como o padrão \emph{singleton}, pois suporta apenas um barramento. Para obter-se a instância do barramento e inicializá-la, deve-se utilizar o Código~\ref{lst:barramento}.
 
 \begin{labeledcode}[java]{barramento}{Obtenção da Instância do Barramento}
 import tecgraf.openbus.Openbus;
@@ -324,20 +324,11 @@ A lista de propriedades pode ser utilizada para adicionar características para o
 A arquitetura do Openbus é baseada no modelo de componentes SCS. Os serviços são de fato representados por componentes, que podem apresentar distintas facetas(interfaces). Sendo assim, o primeiro passo para o registro de um serviço é criar um componente que represente esse serviço. Maiores informações sobre a criação de componentes SCS podem ser obtidas nos tutoriais desse projeto, mas um exemplo pode ser conferido no Código~\ref{lst:component}. Nesse exemplo, \emph{HelloImpl} é o nome da classe que implementa a faceta \emph{IHello}.
 
 \begin{labeledcode}[java]{component}{Instanciação de um Componente SCS}
-// instanciação de um Construtor de Componentes, utilizando o ORB e POA
-// do barramento
-ComponentBuilder builder = new ComponentBuilder(bus.getRootPOA(), bus.getORB());
 
-// especificação das descrições de facetas e receptáculos do componente
-ExtendedFacetDescription[] descriptions = new ExtendedFacetDescription[1];
-descriptions[0] =
-  new ExtendedFacetDescription("IHello", IHelloHelper.id(),
-    HelloImpl.class.getCanonicalName());
+ComponentContext context = new ComponentContext(orb, bus.getRootPOA(),
+    new ComponentId("Hello", (byte) 1, (byte) 0, (byte) 0, "Java"));
+context.addFacet("IHello", IHelloHelper.id(), new HelloImpl());
 
-// instanciação do componente
-ComponentContext instance =
-  builder.newComponent(descriptions, null, new ComponentId("Hello",
-    (byte) 1, (byte) 0, (byte) 0, "Java"));
 \end{labeledcode}
 
 O serviço a ser registrado no barramento deve ser descrito através de uma oferta de serviço, que é representada pela estrutura \emph{ServiceOffer}. Pendura-se nessa estrutura o serviço em si, que é representado através de um componente SCS e, opcionalmente, uma lista de propriedades referentes ao serviço. As propriedades devem ser descritas numa estrutura que representa uma lista de propriedades. Um exemplo pode ser conferido no Código~\ref{lst:registering}.
