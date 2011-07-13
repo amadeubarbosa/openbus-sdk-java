@@ -237,7 +237,7 @@ Este método se encontra na classe \emph{tecgraf.openbus.util.Log}.
 \subsubsection{Habilitando a política de cache das credenciais}
 A API fornece uma forma de inicializar o barramento com a configuração desejada da política de validação de credenciais obtidas pelo interceptador servidor. Esta política permite que a API use um mecanismo de cache otimizando o desempenho do barramento.
 
-Para usar uma política, basta especificá-la na inicialização através do método \emph{init} ou emph{initWithFaultTolerance}. Para maiores informações sobre os tipos de política que podem ser definidos, vide a classe \emph{interceptors.CredentialValidationPolicy}. Por padrão, o barramento é inicializado com a política de sempre validar uma credencial interceptada no servidor.
+Para usar uma política, basta especificá-la na inicialização através do método \emph{init} ou \emph{initWithFaultTolerance}. Para maiores informações sobre os tipos de política que podem ser definidos, vide a classe \emph{interceptors.CredentialValidationPolicy}. Por padrão, o barramento é inicializado com a política de sempre validar uma credencial interceptada no servidor.
 
 \subsubsection{Definindo os \textit{timeouts} do mecanismo de tolerância a falhas}
 Ao iniciar o barramento com o mecanismo de tolerância a falhas ativado, a API configura um \textit{timeout} para as requisições de forma que, se uma réplica demorar muito para responder, o interceptador tentará redirecionar a requisição para outra réplica. A API configura esse tempo de duas formas: (i) alterando o arquivo de configuração do próprio JacORB (jacorb.properties), e (ii) definindo a política de \textit{timeout} para cada objeto remoto.
