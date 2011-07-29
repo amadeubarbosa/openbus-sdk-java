@@ -5,7 +5,7 @@
   <parent>
     <groupId>tecgraf.openbus</groupId>
     <artifactId>openbus-sdk-demo</artifactId>
-    <version>1.5.4-SNAPSHOT</version>
+    <version>1.5.2-SNAPSHOT</version>
   </parent>
 
   <artifactId>openbus-sdk-demo-eventsink</artifactId>
@@ -38,7 +38,7 @@
     <dependency>
       <groupId>tecgraf.scs</groupId>
       <artifactId>scs-idl-jacorb</artifactId>
-      <version>${scs.version}</version>
+      <version>${scsidl.version}</version>
     </dependency>
 
     <dependency>
