@@ -21,7 +21,7 @@
         <version>1.1</version>
 
         <configuration>
-          <sourceDirectory>${env.OPENBUS_HOME}/idl/openbus_v1_05</sourceDirectory>
+          <sourceDirectory>${env.OPENBUS_HOME}/idl/v1_05</sourceDirectory>
           <sources>
             <source>
               <excludes>
