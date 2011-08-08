@@ -60,7 +60,7 @@ public class HelloServer {
       "org.jacorb.orb.ORBSingleton");
     Openbus bus = Openbus.getInstance();
 
-    bus.initWithFaultTolerance(args, orbProps, host, port);
+    bus.init(args, orbProps, host, port);
 
     String entityName = props.getProperty("server.entity.name");
     String privateKeyFile = props.getProperty("server.private.key");

@@ -65,7 +65,6 @@ import tecgraf.openbus.fault_tolerance.v1_05.IFaultTolerantService;
 import tecgraf.openbus.fault_tolerance.v1_05.IFaultTolerantServiceHelper;
 import tecgraf.openbus.interceptors.ClientInitializer;
 import tecgraf.openbus.interceptors.CredentialValidationPolicy;
-import tecgraf.openbus.interceptors.FTClientInitializer;
 import tecgraf.openbus.interceptors.ServerInitializer;
 import tecgraf.openbus.lease.LeaseExpiredCallback;
 import tecgraf.openbus.lease.LeaseRenewer;
@@ -151,7 +150,7 @@ public final class Openbus {
   /**
    * Indica se o mecanismo de tolerancia a falhas esta ativado.
    */
-  private boolean isFaultToleranceEnable;
+  private boolean faultToleranceEnabled;
 
   /**
    * Mantém a lista de métodos a serem liberados por interface.
@@ -185,7 +184,7 @@ public final class Openbus {
     obj = ic.getFacet(ILeaseProviderHelper.id());
     this.lp = ILeaseProviderHelper.narrow(obj);
 
-    if (this.isFaultToleranceEnable) {
+    if (this.faultToleranceEnabled) {
       obj = ic.getFacet(IFaultTolerantServiceHelper.id());
       this.ft = IFaultTolerantServiceHelper.narrow(obj);
 
@@ -236,7 +235,32 @@ public final class Openbus {
    */
   public void init(String[] args, Properties props, String host, int port)
     throws UserException, AlreadyInitializedException {
-    this.init(args, props, host, port, CredentialValidationPolicy.ALWAYS);
+    this
+      .init(args, props, host, port, CredentialValidationPolicy.ALWAYS, false);
+  }
+
+  /**
+   * Retorna o barramento para o seu estado inicial, ou seja, desfaz as
+   * definições de atributos realizadas. Em seguida, inicializa o Orb.
+   * 
+   * @param args Conjunto de argumentos para a criação do ORB.
+   * @param props Conjunto de propriedades para a criação do ORB.
+   * @param host Endereço do Serviço de Controle de Acesso.
+   * @param port Porta do Serviço de Controle de Acesso.
+   * @param enableFaultTolerance Indica se o mecanismo de tolerância a falhas
+   *        deve ser habilitado
+   * 
+   * @throws UserException Caso ocorra algum erro ao obter o RootPOA.
+   * @throws AlreadyInitializedException Caso a classe <i>Openbus</i> já tenha
+   *         sido inicializada.
+   * @throws IllegalArgumentException Caso o método esteja com os argumentos
+   *         incorretos.
+   */
+  public void init(String[] args, Properties props, String host, int port,
+    boolean enableFaultTolerance) throws UserException,
+    AlreadyInitializedException {
+    this.init(args, props, host, port, CredentialValidationPolicy.ALWAYS,
+      enableFaultTolerance);
   }
 
   /**
@@ -249,6 +273,8 @@ public final class Openbus {
    * @param port Porta do Serviço de Controle de Acesso.
    * @param policy A política de validação de credenciais obtidas pelo
    *        interceptador servidor.
+   * @param enableFaultTolerance Indica se o mecanismo de tolerância a falhas
+   *        deve ser habilitado
    * 
    * @throws UserException Caso ocorra algum erro ao obter o RootPOA.
    * @throws AlreadyInitializedException Caso a classe <i>Openbus</i> já tenha
@@ -257,8 +283,8 @@ public final class Openbus {
    *         incorretos.
    */
   public void init(String[] args, Properties props, String host, int port,
-    CredentialValidationPolicy policy) throws UserException,
-    AlreadyInitializedException {
+    CredentialValidationPolicy policy, boolean enableFaultTolerance)
+    throws UserException, AlreadyInitializedException {
     if (orb != null) {
       throw new AlreadyInitializedException(
         "O acesso ao barramento já está inicializado.");
@@ -287,66 +313,8 @@ public final class Openbus {
     // ServerInitializer
     // utiliza esta propriedade.
     this.credentialValidationPolicy = policy;
+    this.faultToleranceEnabled = enableFaultTolerance;
     addInterceptedMethods();
-
-    this.orb = org.omg.CORBA.ORB.init(args, props);
-
-    org.omg.CORBA.Object obj = this.orb.resolve_initial_references("RootPOA");
-    this.rootPOA = POAHelper.narrow(obj);
-    POAManager manager = this.rootPOA.the_POAManager();
-    manager.activate();
-  }
-
-  /**
-   * Retorna o barramento para o seu estado inicial, ou seja, desfaz as
-   * definições de atributos realizadas. Em seguida, inicializa o Orb com
-   * mecanismo de tolerancia a falhas ativado
-   * 
-   * @param args Conjunto de argumentos para a criação do ORB.
-   * @param props Conjunto de propriedades para a criação do ORB.
-   * @param host Endereço do Serviço de Controle de Acesso.
-   * @param port Porta do Serviço de Controle de Acesso.
-   * @param policy A política de validação de credenciais obtidas pelo
-   *        interceptador servidor.
-   * 
-   * @throws UserException Caso ocorra algum erro ao obter o RootPOA.
-   * @throws AlreadyInitializedException Caso a classe <i>Openbus</i> já tenha
-   *         sido inicializada.
-   * @throws IllegalArgumentException Caso o método esteja com os argumentos
-   *         incorretos.
-   */
-  public void initWithFaultTolerance(String[] args, Properties props,
-    String host, int port, CredentialValidationPolicy policy)
-    throws UserException, AlreadyInitializedException {
-    if (orb != null) {
-      throw new AlreadyInitializedException(
-        "O acesso ao barramento já está inicializado.");
-    }
-
-    if (host == null)
-      throw new IllegalArgumentException("O campo 'host' não pode ser null");
-    if (port < 0)
-      throw new IllegalArgumentException(
-        "O campo 'port' não pode ser negativo.");
-    if (props == null)
-      throw new IllegalArgumentException("O campo 'props' não pode ser null");
-
-    this.host = host;
-    this.port = port;
-
-    this.isFaultToleranceEnable = true;
-    this.credentialValidationPolicy = policy;
-    addInterceptedMethods();
-
-    String clientInitializerClassName = FTClientInitializer.class.getName();
-    props.put(
-      ORB_INITIALIZER_PROPERTY_NAME_PREFIX + clientInitializerClassName,
-      clientInitializerClassName);
-
-    String serverInitializerClassName = ServerInitializer.class.getName();
-    props.put(
-      ORB_INITIALIZER_PROPERTY_NAME_PREFIX + serverInitializerClassName,
-      serverInitializerClassName);
 
     // TIMEOUT = 1000 * 36 * 5 = 180000 => 3 MINUTOS
     // TIMEOUT = 1000 * 12 * 1 = 12000 => 12 segundos
@@ -359,36 +327,15 @@ public final class Openbus {
     props.setProperty("jacorb.poa.check_reply_end_time", "on");
     int totalTimeOut = 180000;
 
+    // Set this policy's value in 100-nanosecond units
+    timeOutPolicy = new RelativeRoundtripTimeoutPolicy(totalTimeOut * 10000);
+
     this.orb = org.omg.CORBA.ORB.init(args, props);
+
     org.omg.CORBA.Object obj = this.orb.resolve_initial_references("RootPOA");
     this.rootPOA = POAHelper.narrow(obj);
     POAManager manager = this.rootPOA.the_POAManager();
     manager.activate();
-
-    // Set this policy's value in 100-nanosecond units
-    timeOutPolicy = new RelativeRoundtripTimeoutPolicy(totalTimeOut * 10000);
-  }
-
-  /**
-   * Retorna o barramento para o seu estado inicial, ou seja, desfaz as
-   * definições de atributos realizadas. Em seguida, inicializa o Orb com
-   * mecanismo de tolerancia a falhas ativado
-   * 
-   * @param args Conjunto de argumentos para a criação do ORB.
-   * @param props Conjunto de propriedades para a criação do ORB.
-   * @param host Endereço do Serviço de Controle de Acesso.
-   * @param port Porta do Serviço de Controle de Acesso.
-   * 
-   * @throws UserException Caso ocorra algum erro ao obter o RootPOA.
-   * @throws AlreadyInitializedException Caso a classe <i>Openbus</i> já tenha
-   *         sido inicializada.
-   * @throws IllegalArgumentException Caso o método esteja com os argumentos
-   *         incorretos.
-   */
-  public void initWithFaultTolerance(String[] args, Properties props,
-    String host, int port) throws UserException, AlreadyInitializedException {
-    initWithFaultTolerance(args, props, host, port,
-      CredentialValidationPolicy.ALWAYS);
   }
 
   /**
@@ -458,7 +405,7 @@ public final class Openbus {
           registryComponent.getFacetByName(Utils.REGISTRY_SERVICE_FACET_NAME);
         registryService = IRegistryServiceHelper.narrow(objReg);
 
-        if (this.isFaultToleranceEnable) {
+        if (this.faultToleranceEnabled) {
           registryService._set_policy_override(
             new Policy[] { this.timeOutPolicy }, SetOverrideType.ADD_OVERRIDE);
         }
@@ -805,7 +752,7 @@ public final class Openbus {
     this.port = INVALID_PORT;
     this.leaseExpiredCallback = null;
     this.ifaceMap = new HashMap<String, Set<String>>();
-    this.isFaultToleranceEnable = false;
+    this.faultToleranceEnabled = false;
 
     this.reset();
   }
@@ -916,8 +863,8 @@ public final class Openbus {
    *         caso contrário.
    * 
    */
-  public boolean isFaultToleranceEnable() {
-    return isFaultToleranceEnable;
+  public boolean isFaultToleranceEnabled() {
+    return faultToleranceEnabled;
   }
 
   /**

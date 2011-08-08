@@ -38,7 +38,7 @@ public class HelloFTClient {
     orbProps.setProperty("org.omg.CORBA.ORBSingletonClass",
       "org.jacorb.orb.ORBSingleton");
     Openbus bus = Openbus.getInstance();
-    bus.initWithFaultTolerance(args, orbProps, host, port);
+    bus.init(args, orbProps, host, port, true);
 
     String userLogin = props.getProperty("login");
     String userPassword = props.getProperty("password");

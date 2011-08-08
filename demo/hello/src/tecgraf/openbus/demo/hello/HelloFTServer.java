@@ -60,7 +60,7 @@ public class HelloFTServer {
       "org.jacorb.orb.ORBSingleton");
     Openbus bus = Openbus.getInstance();
 
-    bus.initWithFaultTolerance(args, orbProps, host, port);
+    bus.init(args, orbProps, host, port, true);
 
     String entityName = props.getProperty("entity.name");
     String privateKeyFile = props.getProperty("private.key");

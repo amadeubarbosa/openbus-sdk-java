@@ -26,8 +26,9 @@ public class OpenbusTest {
 
   private String userLogin;
   private String userPassword;
-  protected String hostName;
-  protected int hostPort;
+  private String hostName;
+  private int hostPort;
+  private boolean enableFaultTolerance;
 
   private String testKey;
   private String acsCertificate;
@@ -57,6 +58,9 @@ public class OpenbusTest {
     this.userPassword = props.getProperty("User.Password");
     this.hostName = props.getProperty("Host.Name");
     this.hostPort = Integer.valueOf(props.getProperty("Host.Port"));
+
+    this.enableFaultTolerance =
+      Boolean.valueOf(props.getProperty("Fault.Tolerance"));
 
     this.testKey = props.getProperty("Server.Key");
     this.acsCertificate = props.getProperty("Acs.Certificate");
@@ -91,7 +95,7 @@ public class OpenbusTest {
   @Before
   public void beforeTest() throws OpenBusException, UserException {
     Openbus openbus = Openbus.getInstance();
-    openbus.init(null, props, hostName, hostPort);
+    openbus.init(null, props, hostName, hostPort, this.enableFaultTolerance);
   }
 
   /**

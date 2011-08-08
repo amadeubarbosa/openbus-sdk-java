@@ -52,7 +52,7 @@ public class DefaultServerTestCase implements ServerTestCase {
     orbProps.setProperty("org.omg.CORBA.ORBSingletonClass",
       "org.jacorb.orb.ORBSingleton");
 
-    openbus.initWithFaultTolerance(null, orbProps, host, port);
+    openbus.init(null, orbProps, host, port, true);
   }
 
   /**
