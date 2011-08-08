@@ -26,13 +26,13 @@ import org.omg.CORBA.Object;
 import org.omg.CORBA.Policy;
 import org.omg.CORBA.SetOverrideType;
 import org.omg.CORBA.TCKind;
-import org.omg.CORBA.UserException;
 import org.omg.PortableInterceptor.Current;
 import org.omg.PortableInterceptor.CurrentHelper;
 import org.omg.PortableInterceptor.InvalidSlot;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 import org.omg.PortableServer.POAManager;
+import org.omg.PortableServer.POAManagerPackage.AdapterInactive;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -227,14 +227,12 @@ public final class Openbus {
    * @param host Endereço do Serviço de Controle de Acesso.
    * @param port Porta do Serviço de Controle de Acesso.
    * 
-   * @throws UserException Caso ocorra algum erro ao obter o RootPOA.
    * @throws AlreadyInitializedException Caso a classe <i>Openbus</i> já tenha
    *         sido inicializada.
-   * @throws IllegalArgumentException Caso o método esteja com os argumentos
-   *         incorretos.
+   * @throws CORBAException Caso ocorra algum erro ao obter o RootPOA.
    */
   public void init(String[] args, Properties props, String host, int port)
-    throws UserException, AlreadyInitializedException {
+    throws AlreadyInitializedException, CORBAException {
     this
       .init(args, props, host, port, CredentialValidationPolicy.ALWAYS, false);
   }
@@ -250,15 +248,13 @@ public final class Openbus {
    * @param enableFaultTolerance Indica se o mecanismo de tolerância a falhas
    *        deve ser habilitado
    * 
-   * @throws UserException Caso ocorra algum erro ao obter o RootPOA.
    * @throws AlreadyInitializedException Caso a classe <i>Openbus</i> já tenha
    *         sido inicializada.
-   * @throws IllegalArgumentException Caso o método esteja com os argumentos
-   *         incorretos.
+   * @throws CORBAException Caso ocorra algum erro ao obter o RootPOA.
    */
   public void init(String[] args, Properties props, String host, int port,
-    boolean enableFaultTolerance) throws UserException,
-    AlreadyInitializedException {
+    boolean enableFaultTolerance) throws AlreadyInitializedException,
+    CORBAException {
     this.init(args, props, host, port, CredentialValidationPolicy.ALWAYS,
       enableFaultTolerance);
   }
@@ -276,15 +272,13 @@ public final class Openbus {
    * @param enableFaultTolerance Indica se o mecanismo de tolerância a falhas
    *        deve ser habilitado
    * 
-   * @throws UserException Caso ocorra algum erro ao obter o RootPOA.
    * @throws AlreadyInitializedException Caso a classe <i>Openbus</i> já tenha
    *         sido inicializada.
-   * @throws IllegalArgumentException Caso o método esteja com os argumentos
-   *         incorretos.
+   * @throws CORBAException Caso ocorra algum erro ao obter o RootPOA.
    */
   public void init(String[] args, Properties props, String host, int port,
     CredentialValidationPolicy policy, boolean enableFaultTolerance)
-    throws UserException, AlreadyInitializedException {
+    throws AlreadyInitializedException, CORBAException {
     if (orb != null) {
       throw new AlreadyInitializedException(
         "O acesso ao barramento já está inicializado.");
@@ -332,10 +326,21 @@ public final class Openbus {
 
     this.orb = org.omg.CORBA.ORB.init(args, props);
 
-    org.omg.CORBA.Object obj = this.orb.resolve_initial_references("RootPOA");
+    org.omg.CORBA.Object obj;
+    try {
+      obj = this.orb.resolve_initial_references("RootPOA");
+    }
+    catch (org.omg.CORBA.ORBPackage.InvalidName e) {
+      throw new CORBAException("Falha na obtenção do RootPOA", e);
+    }
     this.rootPOA = POAHelper.narrow(obj);
     POAManager manager = this.rootPOA.the_POAManager();
-    manager.activate();
+    try {
+      manager.activate();
+    }
+    catch (AdapterInactive e) {
+      throw new CORBAException("Falha na ativação do POAManager", e);
+    }
   }
 
   /**

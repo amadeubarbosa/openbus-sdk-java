@@ -29,4 +29,14 @@ public final class CORBAException extends OpenBusException {
   public CORBAException(UserException cause) {
     super(cause);
   }
+
+  /**
+   * Cria a exceção com uma mensagem e uma causa associadas.
+   * 
+   * @param message A mensagem
+   * @param cause A causa.
+   */
+  public CORBAException(String message, UserException cause) {
+    super(message, cause);
+  }
 }

@@ -70,10 +70,9 @@ public final class OpenBusLeaseTest {
    * Este método é chamado depois de cada testCase.
    * 
    * @throws OpenBusException
-   * @throws UserException
    */
   @After
-  public void afterTest() throws OpenBusException, UserException {
+  public void afterTest() throws OpenBusException {
     Openbus openbus = Openbus.getInstance();
     openbus.destroy();
   }

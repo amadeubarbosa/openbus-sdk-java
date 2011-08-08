@@ -11,7 +11,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.omg.CORBA.UserException;
 
 import scs.core.IReceptaclesHelper;
 import tecgraf.openbus.core.v1_05.access_control_service.Credential;
@@ -90,10 +89,9 @@ public class OpenbusTest {
    * Este método é chamado antes de cada testCase.
    * 
    * @throws OpenBusException
-   * @throws UserException
    */
   @Before
-  public void beforeTest() throws OpenBusException, UserException {
+  public void beforeTest() throws OpenBusException {
     Openbus openbus = Openbus.getInstance();
     openbus.init(null, props, hostName, hostPort, this.enableFaultTolerance);
   }
@@ -102,10 +100,9 @@ public class OpenbusTest {
    * Este método é chamado depois de cada testCase.
    * 
    * @throws OpenBusException
-   * @throws UserException
    */
   @After
-  public void afterTest() throws OpenBusException, UserException {
+  public void afterTest() throws OpenBusException {
     Openbus openbus = Openbus.getInstance();
     openbus.destroy();
   }
@@ -424,10 +421,9 @@ public class OpenbusTest {
    * Testa se o método getRootPOA retorna um objeto
    * 
    * @throws OpenBusException
-   * @throws UserException
    */
   @Test
-  public void getRootPOA() throws OpenBusException, UserException {
+  public void getRootPOA() throws OpenBusException {
     Openbus openbus = Openbus.getInstance();
     IRegistryService registryService = openbus.connect(userLogin, userPassword);
     Assert.assertNotNull(registryService);
@@ -439,10 +435,9 @@ public class OpenbusTest {
    * Testa se o método getAccessControlService retorna um objeto
    * 
    * @throws OpenBusException
-   * @throws UserException
    */
   @Test
-  public void getAccessControlService() throws OpenBusException, UserException {
+  public void getAccessControlService() throws OpenBusException {
     Openbus openbus = Openbus.getInstance();
     IRegistryService registryService = openbus.connect(userLogin, userPassword);
     Assert.assertNotNull(registryService);
@@ -455,10 +450,9 @@ public class OpenbusTest {
    * Testa se o método getRegistryService retorna um objeto
    * 
    * @throws OpenBusException
-   * @throws UserException
    */
   @Test
-  public void getRegistryService() throws OpenBusException, UserException {
+  public void getRegistryService() throws OpenBusException {
     Openbus openbus = Openbus.getInstance();
     IRegistryService registryService = openbus.connect(userLogin, userPassword);
     Assert.assertNotNull(registryService);
@@ -471,10 +465,9 @@ public class OpenbusTest {
    * Testa se o método isInterceptable está funcionando corretamente.
    * 
    * @throws OpenBusException
-   * @throws UserException
    */
   @Test
-  public void isInterceptable() throws OpenBusException, UserException {
+  public void isInterceptable() throws OpenBusException {
     Openbus openbus = Openbus.getInstance();
     String repID = IReceptaclesHelper.id();
     String methodName = "getConnections";

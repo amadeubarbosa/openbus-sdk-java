@@ -6,7 +6,6 @@ import java.util.Properties;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.omg.CORBA.UserException;
 
 import tecgraf.openbus.exception.ACSUnavailableException;
 import tecgraf.openbus.exception.AlreadyInitializedException;
@@ -55,10 +54,9 @@ public class OpenbusInitializeTest {
    * Testa o init passando o Properties null.
    * 
    * @throws OpenBusException
-   * @throws UserException
    */
   @Test(expected = IllegalArgumentException.class)
-  public void initNullProps() throws OpenBusException, UserException {
+  public void initNullProps() throws OpenBusException {
     Openbus.getInstance().init(null, null, hostName, hostPort);
   }
 
@@ -66,10 +64,9 @@ public class OpenbusInitializeTest {
    * Testa o init passando ACSHost null.
    * 
    * @throws OpenBusException
-   * @throws UserException
    */
   @Test(expected = IllegalArgumentException.class)
-  public void initNullHost() throws OpenBusException, UserException {
+  public void initNullHost() throws OpenBusException {
     Openbus.getInstance().init(null, props, null, 0);
   }
 
@@ -77,10 +74,9 @@ public class OpenbusInitializeTest {
    * Testa o init passando ACSPort null.
    * 
    * @throws OpenBusException
-   * @throws UserException
    */
   @Test(expected = IllegalArgumentException.class)
-  public void initInvalidPort() throws OpenBusException, UserException {
+  public void initInvalidPort() throws OpenBusException {
     Openbus.getInstance().init(null, props, hostName, -1);
   }
 
@@ -88,10 +84,9 @@ public class OpenbusInitializeTest {
    * Testa o init sendo executado duas vezes.
    * 
    * @throws OpenBusException
-   * @throws UserException
    */
   @Test(expected = AlreadyInitializedException.class)
-  public void initTwice() throws OpenBusException, UserException {
+  public void initTwice() throws OpenBusException {
     Openbus openbus = Openbus.getInstance();
     try {
       openbus.init(null, props, hostName, hostPort);
@@ -106,10 +101,9 @@ public class OpenbusInitializeTest {
    * Testa o init passando um endereço inválido.
    * 
    * @throws OpenBusException
-   * @throws UserException
    */
   @Test(expected = ACSUnavailableException.class)
-  public void initInvalidAddress() throws OpenBusException, UserException {
+  public void initInvalidAddress() throws OpenBusException {
     Openbus openbus = Openbus.getInstance();
     openbus.init(null, props, "INVALID", hostPort);
     openbus.connect(userLogin, userPassword);
@@ -119,10 +113,9 @@ public class OpenbusInitializeTest {
    * Testa o destroy mesmo que o <i>Openbus</i> não tenha sido inicializado.
    * 
    * @throws OpenBusException
-   * @throws UserException
    */
   @Test
-  public void destroyWithoutInit() throws OpenBusException, UserException {
+  public void destroyWithoutInit() throws OpenBusException {
     Openbus openbus = Openbus.getInstance();
     openbus.destroy();
   }

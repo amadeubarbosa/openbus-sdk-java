@@ -32,7 +32,7 @@ public class HelloServer {
    */
   private static String registrationId;
 
-  public static void main(String[] args) throws IOException, UserException,
+  public static void main(String[] args) throws IOException,
     GeneralSecurityException, OpenBusException, SCSException {
     Properties props = new Properties();
     InputStream in = HelloClient.class.getResourceAsStream("/Hello.properties");
