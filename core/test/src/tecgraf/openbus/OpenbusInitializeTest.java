@@ -9,8 +9,8 @@ import org.junit.Test;
 import org.omg.CORBA.UserException;
 
 import tecgraf.openbus.exception.ACSUnavailableException;
+import tecgraf.openbus.exception.AlreadyInitializedException;
 import tecgraf.openbus.exception.OpenBusException;
-import tecgraf.openbus.exception.OpenbusAlreadyInitializedException;
 
 public class OpenbusInitializeTest {
 
@@ -90,7 +90,7 @@ public class OpenbusInitializeTest {
    * @throws OpenBusException
    * @throws UserException
    */
-  @Test(expected = OpenbusAlreadyInitializedException.class)
+  @Test(expected = AlreadyInitializedException.class)
   public void initTwice() throws OpenBusException, UserException {
     Openbus openbus = Openbus.getInstance();
     try {

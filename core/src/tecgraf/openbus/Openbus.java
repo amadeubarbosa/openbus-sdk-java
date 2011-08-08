@@ -55,10 +55,10 @@ import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
 import tecgraf.openbus.core.v1_05.registry_service.IRegistryServiceHelper;
 import tecgraf.openbus.exception.ACSLoginFailureException;
 import tecgraf.openbus.exception.ACSUnavailableException;
+import tecgraf.openbus.exception.AlreadyInitializedException;
 import tecgraf.openbus.exception.CORBAException;
 import tecgraf.openbus.exception.InvalidCredentialException;
 import tecgraf.openbus.exception.OpenBusException;
-import tecgraf.openbus.exception.OpenbusAlreadyInitializedException;
 import tecgraf.openbus.exception.PKIException;
 import tecgraf.openbus.exception.ServiceUnavailableException;
 import tecgraf.openbus.fault_tolerance.v1_05.IFaultTolerantService;
@@ -229,13 +229,13 @@ public final class Openbus {
    * @param port Porta do Serviço de Controle de Acesso.
    * 
    * @throws UserException Caso ocorra algum erro ao obter o RootPOA.
-   * @throws OpenbusAlreadyInitializedException Caso a classe <i>Openbus</i> já
-   *         tenha sido inicializada.
+   * @throws AlreadyInitializedException Caso a classe <i>Openbus</i> já tenha
+   *         sido inicializada.
    * @throws IllegalArgumentException Caso o método esteja com os argumentos
    *         incorretos.
    */
   public void init(String[] args, Properties props, String host, int port)
-    throws UserException, OpenbusAlreadyInitializedException {
+    throws UserException, AlreadyInitializedException {
     this.init(args, props, host, port, CredentialValidationPolicy.ALWAYS);
   }
 
@@ -251,16 +251,17 @@ public final class Openbus {
    *        interceptador servidor.
    * 
    * @throws UserException Caso ocorra algum erro ao obter o RootPOA.
-   * @throws OpenbusAlreadyInitializedException Caso a classe <i>Openbus</i> já
-   *         tenha sido inicializada.
+   * @throws AlreadyInitializedException Caso a classe <i>Openbus</i> já tenha
+   *         sido inicializada.
    * @throws IllegalArgumentException Caso o método esteja com os argumentos
    *         incorretos.
    */
   public void init(String[] args, Properties props, String host, int port,
     CredentialValidationPolicy policy) throws UserException,
-    OpenbusAlreadyInitializedException {
+    AlreadyInitializedException {
     if (orb != null) {
-      throw new OpenbusAlreadyInitializedException();
+      throw new AlreadyInitializedException(
+        "O acesso ao barramento já está inicializado.");
     }
 
     if (host == null)
@@ -309,16 +310,17 @@ public final class Openbus {
    *        interceptador servidor.
    * 
    * @throws UserException Caso ocorra algum erro ao obter o RootPOA.
-   * @throws OpenbusAlreadyInitializedException Caso a classe <i>Openbus</i> já
-   *         tenha sido inicializada.
+   * @throws AlreadyInitializedException Caso a classe <i>Openbus</i> já tenha
+   *         sido inicializada.
    * @throws IllegalArgumentException Caso o método esteja com os argumentos
    *         incorretos.
    */
   public void initWithFaultTolerance(String[] args, Properties props,
     String host, int port, CredentialValidationPolicy policy)
-    throws UserException, OpenbusAlreadyInitializedException {
+    throws UserException, AlreadyInitializedException {
     if (orb != null) {
-      throw new OpenbusAlreadyInitializedException();
+      throw new AlreadyInitializedException(
+        "O acesso ao barramento já está inicializado.");
     }
 
     if (host == null)
@@ -378,14 +380,13 @@ public final class Openbus {
    * @param port Porta do Serviço de Controle de Acesso.
    * 
    * @throws UserException Caso ocorra algum erro ao obter o RootPOA.
-   * @throws OpenbusAlreadyInitializedException Caso a classe <i>Openbus</i> já
-   *         tenha sido inicializada.
+   * @throws AlreadyInitializedException Caso a classe <i>Openbus</i> já tenha
+   *         sido inicializada.
    * @throws IllegalArgumentException Caso o método esteja com os argumentos
    *         incorretos.
    */
   public void initWithFaultTolerance(String[] args, Properties props,
-    String host, int port) throws UserException,
-    OpenbusAlreadyInitializedException {
+    String host, int port) throws UserException, AlreadyInitializedException {
     initWithFaultTolerance(args, props, host, port,
       CredentialValidationPolicy.ALWAYS);
   }
