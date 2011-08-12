@@ -35,7 +35,7 @@ cp $OPENBUS_HOME/data/certificates/AccessControlService.crt resources/
 
 3) Permitir que o serviço HelloService possa ser publicado no barramento:
 
-$OPENBUS_HOME/core/bin/run_management.sh --acs-host=<IP DO ACS> \
+$OPENBUS_HOME/bin/run_management.sh --acs-host=<IP DO ACS> \
 --acs-port=<PORTA DO ACS> --login=<login do admin> --script=management/demo.mgt
 
 4) Executar o servidor:

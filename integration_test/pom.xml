@@ -5,7 +5,7 @@
   <parent>
     <groupId>tecgraf.openbus</groupId>
     <artifactId>openbus-sdk</artifactId>
-    <version>1.5.4-SNAPSHOT</version>
+    <version>1.5.2-SNAPSHOT</version>
   </parent>
 
   <artifactId>openbus-integration_test</artifactId>
