@@ -84,7 +84,9 @@ public final class LeaseRenewer {
   public synchronized void stop() {
     if (this.renewerThread != null) {
       this.renewer.finish();
-      this.renewerThread.interrupt();
+      if (this.renewer.isSleeping()) {
+        this.renewerThread.interrupt();
+      }
       this.renewerThread = null;
     }
   }
@@ -102,7 +104,11 @@ public final class LeaseRenewer {
     /**
      * Indica se a <i>thread</i> deve continuar executando.
      */
-    private boolean mustContinue;
+    private volatile boolean mustContinue;
+    /**
+     * Indica se a <i>thread</i> está dormindo.
+     */
+    private volatile boolean isSleeping;
     /**
      * O provedor do <i>lease</i>.
      */
@@ -123,6 +129,7 @@ public final class LeaseRenewer {
       this.credential = credential;
       this.provider = provider;
       this.mustContinue = true;
+      this.isSleeping = false;
     }
 
     /**
@@ -180,10 +187,14 @@ public final class LeaseRenewer {
 
         if (this.mustContinue) {
           try {
+            this.isSleeping = true;
             Thread.sleep(lease * 1000);
+            this.isSleeping = false;
           }
           catch (InterruptedException e) {
-            // Nada a ser feito.
+            this.mustContinue = false;
+            this.isSleeping = false;
+            logger.debug("Thread interrompida!");
           }
         }
       }
@@ -196,6 +207,16 @@ public final class LeaseRenewer {
      */
     public void finish() {
       this.mustContinue = false;
+    }
+
+    /**
+     * Verifica se a thread está dormindo no loop de renovação de credencial.
+     * 
+     * @return <code>true</code> se a thread estiver dormindo, e
+     *         <code>false</code> caso contrário.
+     */
+    public boolean isSleeping() {
+      return this.isSleeping;
     }
   }
 }

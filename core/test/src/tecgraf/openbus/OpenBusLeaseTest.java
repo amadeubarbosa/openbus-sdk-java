@@ -75,6 +75,7 @@ public final class OpenBusLeaseTest {
   @After
   public void afterTest() throws OpenBusException, UserException {
     Openbus openbus = Openbus.getInstance();
+    openbus.disconnect();
     openbus.destroy();
   }
 
