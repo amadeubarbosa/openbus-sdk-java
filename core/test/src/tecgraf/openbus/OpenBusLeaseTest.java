@@ -83,7 +83,7 @@ public final class OpenBusLeaseTest {
    * 
    * @throws OpenBusException
    */
-  @Test(timeout = 4 * 60 * 1000)
+  @Test(timeout = 6 * 60 * 1000)
   public void credentialExpired() throws OpenBusException {
     Openbus openbus = Openbus.getInstance();
     class LeaseExpiredCallbackImpl implements LeaseExpiredCallback {
@@ -119,7 +119,7 @@ public final class OpenBusLeaseTest {
    * 
    * @throws OpenBusException
    */
-  @Test(timeout = 4 * 60 * 1000)
+  @Test(timeout = 6 * 60 * 1000)
   public void addLeaseExpiredCbBeforeConnect() throws OpenBusException {
     Openbus openbus = Openbus.getInstance();
     class LeaseExpiredCallbackImpl implements LeaseExpiredCallback {
@@ -166,7 +166,7 @@ public final class OpenBusLeaseTest {
    * 
    * @throws OpenBusException
    */
-  @Test(timeout = 4 * 60 * 1000)
+  @Test(timeout = 6 * 60 * 1000)
   public void addLeaseExpiredCbAfterConnect() throws OpenBusException {
     Openbus openbus = Openbus.getInstance();
     class LeaseExpiredCallbackImpl implements LeaseExpiredCallback {
