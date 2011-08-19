@@ -34,6 +34,8 @@ import scs.core.IComponentHelper;
 import scs.core.IReceptacles;
 import scs.core.IReceptaclesHelper;
 import scs.core.InvalidName;
+import scs.instrumentation.interceptor.StatsServiceInterceptor;
+import scs.instrumentation.interceptor.InstrLogger;
 import tecgraf.openbus.authenticators.Authenticator;
 import tecgraf.openbus.authenticators.CertificateAuthenticator;
 import tecgraf.openbus.authenticators.LoginPasswordAuthenticator;
@@ -65,6 +67,7 @@ import tecgraf.openbus.lease.LeaseRenewer;
 import tecgraf.openbus.session_service.v1_05.ISessionService;
 import tecgraf.openbus.session_service.v1_05.ISessionServiceHelper;
 import tecgraf.openbus.util.Log;
+import tecgraf.openbus.util.TestLogger;
 import tecgraf.openbus.util.Utils;
 
 /**
@@ -132,6 +135,10 @@ public final class Openbus {
    * <i>Callback</i> para a notificação de que um <i>lease</i> expirou.
    */
   private LeaseExpiredCallback leaseExpiredCallback;
+  /**
+   * Serviço de registro.
+   */
+  private IRegistryService rgs;
   /**
    * Serviço de sessão.
    */
@@ -259,6 +266,7 @@ public final class Openbus {
   public void init(String[] args, Properties props, String host, int port,
     CredentialValidationPolicy policy) throws UserException,
     OpenbusAlreadyInitializedException {
+    System.out.println("*-----------------------------------------------------------------");
     if (orb != null) {
       throw new OpenbusAlreadyInitializedException();
     }
@@ -270,7 +278,6 @@ public final class Openbus {
         "O campo 'port' não pode ser negativo.");
     this.host = host;
     this.port = port;
-
     if (props == null)
       throw new IllegalArgumentException("O campo 'props' não pode ser null");
     String clientInitializerClassName = ClientInitializer.class.getName();
@@ -281,19 +288,46 @@ public final class Openbus {
     props.put(
       ORB_INITIALIZER_PROPERTY_NAME_PREFIX + serverInitializerClassName,
       serverInitializerClassName);
+    if (Boolean.parseBoolean(props.getProperty("instrumentation"))) {
+      String statsServiceORBInitializerClass = 
+        "scs.instrumentation.interceptor.StatsServiceORBInitializer";
+      props.setProperty(ORB_INITIALIZER_PROPERTY_NAME_PREFIX +
+        statsServiceORBInitializerClass, statsServiceORBInitializerClass);
+        //props.remove("instrumentation");
+    }
 
+    String serviceName = null;
+    String componentName = null;
+    if (props.containsKey("serviceName")) {
+      serviceName = props.getProperty("serviceName");
+      componentName = props.getProperty("componentname",serviceName);
+    }
+    new TestLogger(this.getClass().getSimpleName()+(serviceName!=null?serviceName:"") + Thread.currentThread().getId());
     // A política deve ser definida antes do ORB.init pois o
     // ServerInitializer
     // utiliza esta propriedade.
     this.credentialValidationPolicy = policy;
     addInterceptedMethods();
-
+    for(String str:args) System.out.println(str);
+    for(String str:props.stringPropertyNames()) System.out.println(str + "  "+props.getProperty(str));
+    
     this.orb = org.omg.CORBA.ORB.init(args, props);
 
+    if (StatsServiceInterceptor.isInstanced()){
+      System.out.printf("Setando o nome do serviço: %s", serviceName);
+      StatsServiceInterceptor.getInstance(null,0,null,null).
+          setServiceInfo(serviceName, componentName);
+    }
+
+    System.out.println("obtendo referencia do ROOTPOA");
     org.omg.CORBA.Object obj = this.orb.resolve_initial_references("RootPOA");
+System.out.println("narrow");
     this.rootPOA = POAHelper.narrow(obj);
+System.out.println("get manager");
     POAManager manager = this.rootPOA.the_POAManager();
+System.out.println("manager.activate");
     manager.activate();
+System.out.println("saindo init");
   }
 
   /**
@@ -439,13 +473,14 @@ public final class Openbus {
    * @return O Serviço de Registro.
    */
   public IRegistryService getRegistryService() {
+    if (this.rgs != null)
+      return this.rgs;
     if (this.ic == null)
       return null;
 
     Object objRecep = this.ic.getFacetByName(Utils.RECEPTACLES_NAME);
     IReceptacles ireceptacle = IReceptaclesHelper.narrow(objRecep);
 
-    IRegistryService registryService = null;
     try {
       ConnectionDescription[] connections =
         ireceptacle.getConnections(Utils.REGISTRY_SERVICE_RECEPTACLE_NAME);
@@ -454,11 +489,11 @@ public final class Openbus {
         IComponent registryComponent = IComponentHelper.narrow(objRef);
         Object objReg =
           registryComponent.getFacetByName(Utils.REGISTRY_SERVICE_FACET_NAME);
-        registryService = IRegistryServiceHelper.narrow(objReg);
+        this.rgs = IRegistryServiceHelper.narrow(objReg);
 
         if (this.isFaultToleranceEnable) {
-          registryService._set_policy_override(
-            new Policy[] { this.timeOutPolicy }, SetOverrideType.ADD_OVERRIDE);
+          this.rgs._set_policy_override(new Policy[] { this.timeOutPolicy },
+            SetOverrideType.ADD_OVERRIDE);
         }
       }
     }
@@ -466,7 +501,7 @@ public final class Openbus {
       Log.COMMON.severe("Não foi possível obter o serviço de registro.", e);
     }
 
-    return registryService;
+    return this.rgs;
   }
 
   /**
@@ -706,6 +741,11 @@ public final class Openbus {
    *         nenhuma conexão estiver ativa.
    */
   public synchronized boolean disconnect() {
+    TestLogger.getInstance().close();
+    if (StatsServiceInterceptor.isInstanced()) {
+      InstrLogger log = InstrLogger.getInstance("");
+      log.close();
+    }
     if (this.credential == null)
       return false;
 
@@ -743,6 +783,7 @@ public final class Openbus {
    */
   private void reset() {
     this.acs = null;
+    this.rgs = null;
     this.lp = null;
     this.ft = null;
     this.ic = null;

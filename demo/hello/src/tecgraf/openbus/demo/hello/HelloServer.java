@@ -18,6 +18,7 @@ import scs.core.IComponentHelper;
 import scs.core.servant.ComponentBuilder;
 import scs.core.servant.ComponentContext;
 import scs.core.servant.ExtendedFacetDescription;
+import scs.instrumentation.interceptor.StatsServiceInterceptor;
 import tecgraf.openbus.Openbus;
 import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
 import tecgraf.openbus.core.v1_05.registry_service.Property;
@@ -40,6 +41,14 @@ public class HelloServer {
     GeneralSecurityException, SecurityException, InstantiationException,
     IllegalAccessException, ClassNotFoundException, InvocationTargetException,
     NoSuchMethodException, OpenBusException {
+    
+    boolean instrumentationActive = true;
+    //Arguments checking
+    for (String arg:args) {
+      System.out.println(arg);
+      if (arg.equalsIgnoreCase("-di")) instrumentationActive = false; 
+    }
+    System.out.printf("WORKING DIR: %s \n",System.getProperty("user.dir"));
     Properties props = new Properties();
     InputStream in = HelloClient.class.getResourceAsStream("/Hello.properties");
     if (in != null) {
@@ -66,9 +75,16 @@ public class HelloServer {
     orbProps.setProperty("org.omg.CORBA.ORBSingletonClass",
       "org.jacorb.orb.ORBSingleton");
     Openbus bus = Openbus.getInstance();
-
-    bus.initWithFaultTolerance(args, orbProps, host, port);
-
+    
+    if (instrumentationActive) {
+      orbProps.put("instrumentation", true);
+      orbProps.put("serviceName", "HelloService");
+      orbProps.put("componentName", "HelloServer");
+    }
+    //bus.initWithFaultTolerance(args, orbProps, host, port);
+System.out.println("instr ="+instrumentationActive);
+    bus.init(args, orbProps, host, port);
+System.out.println("Saiu do init");
     String entityName = props.getProperty("entity.name");
     String privateKeyFile = props.getProperty("private.key");
     String acsCertificateFile = props.getProperty("acs.certificate");
@@ -87,7 +103,7 @@ public class HelloServer {
         .getCanonicalName());
     ComponentContext context =
       builder.newComponent(descriptions, new ComponentId("Hello", (byte) 1,
-        (byte) 0, (byte) 0, "Java"));
+        (byte) 0, (byte) 0/*, "Java"*/));
 
     IRegistryService registryService =
       bus.connect(entityName, privateKey, acsCertificate);
@@ -99,15 +115,23 @@ public class HelloServer {
 
     org.omg.CORBA.Object obj = context.getIComponent();
     IComponent component = IComponentHelper.narrow(obj);
-    Property registrationProps[] = new Property[1];
+    int propsLen = instrumentationActive?2:1;
+    Property registrationProps[] = new Property[propsLen];
     registrationProps[0] = new Property();
     registrationProps[0].name = "facets";
     registrationProps[0].value = new String[1];
     registrationProps[0].value[0] = "IDL:demoidl/hello/IHello:1.0";
+    
+    if (instrumentationActive) {
+      registrationProps[1] = new Property();
+      registrationProps[1].name = "instrumentation";
+      registrationProps[1].value = new String[]{"active"};
+    }
+    
     ServiceOffer serviceOffer = new ServiceOffer(registrationProps, component);
     try {
       registrationId = registryService.register(serviceOffer);
-      System.out.println("Hello Server registrado.");
+      System.out.printf("Hello Server registrado. id = %s \n",registrationId);
     }
     catch (UnathorizedFacets uf) {
       System.out.println("Não foi possível registrar Hello Server.");

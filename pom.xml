@@ -5,7 +5,7 @@
   <groupId>tecgraf.openbus</groupId>
   <artifactId>openbus-api</artifactId>
   <packaging>jar</packaging>
-  <version>1.5.1</version>
+  <version>1.5-INSTR08</version>
 
   <name>OpenBus API</name>
   
@@ -13,7 +13,10 @@
     <java.version>1.5</java.version>
     <junit.version>4.6</junit.version>
     <scs.version>1.2.0</scs.version>
+    <scsinstr.version>0.8.0</scsinstr.version>
+    <scsidl.version>0.8-INSTR</scsidl.version>
     <jacorb.version>2.3.0</jacorb.version>
+    <openbusidl.version>1.5-INSTR08</openbusidl.version>
     <source.encoding>ISO-8859-1</source.encoding>
   </properties>
 
@@ -33,28 +36,6 @@
     </testResources>
 
     <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <version>1.0</version>
-        <executions>
-          <execution>
-            <id>enforce-versions</id>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-            <configuration>
-              <rules>
-                <requireJavaVersion>
-                  <version>[1.5,1.6)</version>
-                </requireJavaVersion>
-              </rules>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
-
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -85,7 +66,7 @@
             <version>${jacorb.version}</version>
           </dependency>
         </dependencies>
-
+        
         <executions>
           <execution>
             <phase>generate-sources</phase>
@@ -117,19 +98,25 @@
     <dependency>
       <groupId>tecgraf.openbus</groupId>
       <artifactId>openbus-idl-jacorb</artifactId>
-      <version>${project.version}</version>
+      <version>${openbusidl.version}</version>
     </dependency>
 
     <dependency>
-    	<groupId>tecgraf.scs</groupId>
-    	<artifactId>scs-idl-jacorb</artifactId>
-      <version>${scs.version}</version>
+    	<groupId>tecgraf.scs.instrumentation</groupId>
+    	<artifactId>scs-instr-idl-jacorb</artifactId>
+      <version>${scsidl.version}</version>
     </dependency>
-
+    
     <dependency>
       <groupId>tecgraf.scs</groupId>
       <artifactId>scs-core</artifactId>
       <version>${scs.version}</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>tecgraf.scs.instrumentation</groupId>
+      <artifactId>scs-instrumentation</artifactId>
+      <version>${scsinstr.version}</version>
     </dependency>
 
     <dependency>

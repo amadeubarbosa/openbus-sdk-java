@@ -87,7 +87,7 @@ public class HelloFTServer {
         .getCanonicalName());
     ComponentContext context =
       builder.newComponent(descriptions, new ComponentId("Hello", (byte) 1,
-        (byte) 0, (byte) 0, "Java"));
+        (byte) 0, (byte) 0/*, "Java"*/));
 
     IRegistryService registryService =
       bus.connect(entityName, privateKey, acsCertificate);

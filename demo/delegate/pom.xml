@@ -5,10 +5,10 @@
   <groupId>tecgraf.openbus</groupId>
   <artifactId>openbus-demo-delegate</artifactId>
   <packaging>jar</packaging>
-  <version>1.5.1</version>
+  <version>1.5-SNAPSHOT</version>
 
   <name>OpenBus Demo Delegate</name>
-  <url>https://subversion.tecgraf.puc-rio.br/engdist/openbus/sdk/java/tags/OB_SDK_JAVA_v1_05_01_2011_03_23/demo/delegate</url>
+  <url>https://subversion.tecgraf.puc-rio.br/engdist/openbus/sdk/java/branches/OB_SDK_JAVA_v1_05_2010_05_13/demo/delegate</url>
 
   <properties>
     <java.version>1.5</java.version>
