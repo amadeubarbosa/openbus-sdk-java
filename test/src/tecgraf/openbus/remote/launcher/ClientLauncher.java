@@ -93,6 +93,7 @@ public class ClientLauncher {
       return -1;
     }
     catch (Exception e) {
+      e.printStackTrace();
       return -1;
     }
     finally {

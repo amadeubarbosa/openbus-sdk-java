@@ -263,16 +263,19 @@ public final class Openbus {
       throw new OpenbusAlreadyInitializedException();
     }
 
-    if (host == null)
+    if (host == null) {
       throw new IllegalArgumentException("O campo 'host' não pode ser null");
-    if (port < 0)
+    }
+    if (port < 0) {
       throw new IllegalArgumentException(
         "O campo 'port' não pode ser negativo.");
+    }
     this.host = host;
     this.port = port;
 
-    if (props == null)
+    if (props == null) {
       throw new IllegalArgumentException("O campo 'props' não pode ser null");
+    }
     String clientInitializerClassName = ClientInitializer.class.getName();
     props.put(
       ORB_INITIALIZER_PROPERTY_NAME_PREFIX + clientInitializerClassName,
@@ -321,13 +324,16 @@ public final class Openbus {
       throw new OpenbusAlreadyInitializedException();
     }
 
-    if (host == null)
+    if (host == null) {
       throw new IllegalArgumentException("O campo 'host' não pode ser null");
-    if (port < 0)
+    }
+    if (port < 0) {
       throw new IllegalArgumentException(
         "O campo 'port' não pode ser negativo.");
-    if (props == null)
+    }
+    if (props == null) {
       throw new IllegalArgumentException("O campo 'props' não pode ser null");
+    }
 
     this.host = host;
     this.port = port;
@@ -439,8 +445,9 @@ public final class Openbus {
    * @return O Serviço de Registro.
    */
   public IRegistryService getRegistryService() {
-    if (this.ic == null)
+    if (this.ic == null) {
       return null;
+    }
 
     Object objRecep = this.ic.getFacetByName(Utils.RECEPTACLES_NAME);
     IReceptacles ireceptacle = IReceptaclesHelper.narrow(objRecep);
@@ -505,8 +512,9 @@ public final class Openbus {
    */
   public Credential getCredential() {
     Credential threadCredential = this.threadLocalCredential.get();
-    if (threadCredential != null)
+    if (threadCredential != null) {
       return threadCredential;
+    }
     return this.credential;
   }
 
@@ -578,9 +586,10 @@ public final class Openbus {
     throws ACSLoginFailureException, ACSUnavailableException,
     ServiceUnavailableException, InvalidCredentialException, CORBAException,
     OpenBusException {
-    if ((user == null) || (password == null))
+    if ((user == null) || (password == null)) {
       throw new IllegalArgumentException(
         "Os parâmetros 'user' e 'password' não podem ser nulos.");
+    }
     Authenticator authenticator =
       new LoginPasswordAuthenticator(user, password);
     return this.connect(authenticator);
@@ -614,8 +623,9 @@ public final class Openbus {
     throws ACSLoginFailureException, ServiceUnavailableException, PKIException,
     ACSUnavailableException, InvalidCredentialException, OpenBusException,
     CORBAException {
-    if ((name == null) || (privateKey == null) || (acsCertificate == null))
+    if ((name == null) || (privateKey == null) || (acsCertificate == null)) {
       throw new IllegalArgumentException("Nenhum parâmetro pode ser nulo.");
+    }
     Authenticator authenticator =
       new CertificateAuthenticator(name, privateKey, acsCertificate);
     return this.connect(authenticator);
@@ -640,6 +650,9 @@ public final class Openbus {
       }
       this.credential = authenticator.authenticate(this.acs);
       if (this.credential != null) {
+        if (this.leaseRenewer != null) {
+          this.leaseRenewer.stop();
+        }
         this.leaseRenewer =
           new LeaseRenewer(this.credential, this.lp,
             new OpenbusExpiredCallback());
@@ -686,11 +699,13 @@ public final class Openbus {
     throws InvalidCredentialException, OpenBusException,
     ServiceUnavailableException, ACSUnavailableException, CORBAException {
 
-    if (credential == null)
+    if (credential == null) {
       throw new IllegalArgumentException(
         "O parâmetro 'credential' não pode ser nulo.");
-    if (this.acs == null)
+    }
+    if (this.acs == null) {
       fetchACS();
+    }
     this.credential = credential;
     if (this.acs.isValid(this.credential)) {
       return this.getRegistryService();
@@ -706,19 +721,20 @@ public final class Openbus {
    *         nenhuma conexão estiver ativa.
    */
   public synchronized boolean disconnect() {
-    if (this.credential == null)
-      return false;
-
+    boolean ret = false;
     try {
       if (this.leaseRenewer != null) {
         this.leaseRenewer.stop();
-        this.acs.logout(this.credential);
+        this.leaseRenewer = null;
+      }
+      if (this.credential != null) {
+        ret = this.acs.logout(this.credential);
       }
     }
     finally {
       reset();
     }
-    return true;
+    return ret;
   }
 
   /**
@@ -796,8 +812,9 @@ public final class Openbus {
     if (interceptable) {
       if (methods != null) {
         methods.remove(method);
-        if (methods.size() == 0)
+        if (methods.size() == 0) {
           ifaceMap.remove(iface);
+        }
       }
     }
     else {
@@ -822,19 +839,23 @@ public final class Openbus {
   public boolean isInterceptable(String iface, String method) {
     List<Set<String>> methodsList = new ArrayList<Set<String>>();
     Set<String> methods = ifaceMap.get(iface);
-    if (methods != null)
+    if (methods != null) {
       methodsList.add(methods);
+    }
 
     // TODO: Verificar se é necessário procurar o "method" em todas as
     // superinterfaces de "iface".
     String corbaObjRepID = "org.omg.CORBA.Object";
     methods = ifaceMap.get(corbaObjRepID);
-    if (methods != null)
+    if (methods != null) {
       methodsList.add(methods);
+    }
 
-    for (Set<String> methodSet : methodsList)
-      if (methodSet.contains(method))
+    for (Set<String> methodSet : methodsList) {
+      if (methodSet.contains(method)) {
         return false;
+      }
+    }
 
     return true;
   }
