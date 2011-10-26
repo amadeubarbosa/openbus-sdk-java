@@ -47,15 +47,6 @@ class ClientInterceptor extends InterceptorImpl implements
 
     logger.info("A operação {} foi interceptada no cliente.", ri.operation());
 
-    for (Method op : org.omg.CORBA.Object.class.getMethods()) {
-      if (ri.operation().equals(op.getName())) {
-        logger.debug(
-          "O método {} pertence a interface {} e não será interceptado", op
-            .getName(), org.omg.CORBA.Object.class.getCanonicalName());
-        return;
-      }
-    }
-
     Openbus bus = Openbus.getInstance();
 
     /* Verifica se existe uma credencial para envio */
