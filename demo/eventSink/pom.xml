@@ -5,7 +5,7 @@
   <parent>
     <groupId>tecgraf.openbus</groupId>
     <artifactId>openbus-sdk-demo</artifactId>
-    <version>1.5.2-SNAPSHOT</version>
+    <version>1.5.2_1</version>
   </parent>
 
   <artifactId>openbus-sdk-demo-eventsink</artifactId>
