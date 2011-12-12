@@ -42,12 +42,6 @@ public final class ClientRequestInterceptorImpl extends InterceptorImpl
               operation));
         return;
       }
-      if (isCORBAObjectOperation(ri)) {
-        logger.finest(String.format(
-          "A operação %s não terá uma credencial, pois é uma operação de %s",
-          operation, org.omg.CORBA.Object.class.getName()));
-        return;
-      }
       Credential credential = this.generateCredential();
       Any any = orb.getORB().create_any();
       CredentialHelper.insert(any, credential);
@@ -91,13 +85,6 @@ public final class ClientRequestInterceptorImpl extends InterceptorImpl
     }
     loginInfoSeq[loginInfoSeq.length - 1] = currentConnection.getLogin();
     return new Credential(currentConnection.getBus().getId(), loginInfoSeq);
-  }
-
-  private boolean isCORBAObjectOperation(ClientRequestInfo ri) {
-    if (ri.operation().startsWith("_")) {
-      return true;
-    }
-    return false;
   }
 
   @Override
