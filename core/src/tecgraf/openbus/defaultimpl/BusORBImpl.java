@@ -13,6 +13,7 @@ import java.util.logging.Logger;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.ORBPackage.InvalidName;
+import org.omg.IOP.Codec;
 import org.omg.PortableInterceptor.Current;
 import org.omg.PortableInterceptor.CurrentHelper;
 import org.omg.PortableInterceptor.InvalidSlot;
@@ -26,13 +27,13 @@ import tecgraf.openbus.BusORB;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionObserver;
+import tecgraf.openbus.CryptographyException;
 import tecgraf.openbus.InternalException;
+import tecgraf.openbus.core.v2_00.BusObjectKey;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfoSeqHelper;
 
 public final class BusORBImpl implements BusORB, ConnectionObserver {
-  private static final String BUS_OBJECT_KEY = "OpenBus";
-
   private static final Logger logger = Logger.getLogger(BusORBImpl.class
     .getName());
 
@@ -78,16 +79,17 @@ public final class BusORBImpl implements BusORB, ConnectionObserver {
     return (ORBMediator) obj;
   }
 
-  public Bus getBus(String host, int port) {
+  public Bus getBus(String host, int port) throws CryptographyException {
     this.ignoreCurrentThread();
     try {
-      org.omg.CORBA.Object obj = this.fetchObject(host, port, BUS_OBJECT_KEY);
+      org.omg.CORBA.Object obj =
+        this.fetchObject(host, port, BusObjectKey.value);
       if (obj == null) {
         return null;
       }
       IComponent component = IComponentHelper.narrow(obj);
       Bus bus = new BusImpl(this, component);
-      this.buses.put("", bus);
+      this.buses.put(bus.getId(), bus);
       return bus;
     }
     finally {
@@ -110,6 +112,7 @@ public final class BusORBImpl implements BusORB, ConnectionObserver {
     if (connection != null) {
       return connection;
     }
+    logger.fine("Sem conexão definida na thread corrente");
 
     // Caso exista uma única conexão com o barramento, esta é retornada.
     if (this.buses.size() == 1) {
@@ -118,6 +121,14 @@ public final class BusORBImpl implements BusORB, ConnectionObserver {
       if (connections.size() == 1) {
         return connections.iterator().next();
       }
+      else {
+        logger
+          .fine("Não foi possível obter a conexão, pois não há uma única conexão");
+      }
+    }
+    else {
+      logger
+        .fine("Não foi possível obter a conexão, pois não há um único barramento");
     }
 
     return null;
@@ -221,6 +232,10 @@ public final class BusORBImpl implements BusORB, ConnectionObserver {
       throw new InternalException(message, e);
     }
     return POAHelper.narrow(obj);
+  }
+
+  public Codec getCodec() {
+    return this.mediator.getCodec();
   }
 
   public void connectionClosed(Connection connection) {

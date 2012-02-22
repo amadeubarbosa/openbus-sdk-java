@@ -1,19 +1,21 @@
 package tecgraf.openbus.defaultimpl;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
 import org.omg.CORBA.LocalObject;
-import org.omg.IOP.Codec;
 import org.omg.PortableInterceptor.Interceptor;
 
 abstract class InterceptorImpl extends LocalObject implements Interceptor {
-  protected static final int CONTEXT_ID = 0x42555300;
+  protected static final byte BUS_MAJOR_VERSION = 2;
+  protected static final byte BUS_MINOR_VERSION = 0;
+
   private String name;
   private ORBMediator mediator;
-  private Codec codec;
 
-  protected InterceptorImpl(String name, ORBMediator mediator, Codec codec) {
+  protected InterceptorImpl(String name, ORBMediator mediator) {
     this.name = name;
     this.mediator = mediator;
-    this.codec = codec;
   }
 
   @Override
@@ -23,10 +25,6 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
 
   protected final ORBMediator getMediator() {
     return this.mediator;
-  }
-
-  protected final Codec getCodec() {
-    return this.codec;
   }
 
   @Override

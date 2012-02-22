@@ -1,5 +1,6 @@
 package tecgraf.openbus.defaultimpl;
 
+import java.security.interfaces.RSAPublicKey;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -26,6 +27,8 @@ public final class BusImpl implements Bus, ConnectionObserver {
     .getLogger(BusImpl.class.getName());
 
   private String id;
+  private RSAPublicKey publicKey;
+
   private BusORB orb;
   private IComponent bus;
 
@@ -36,14 +39,18 @@ public final class BusImpl implements Bus, ConnectionObserver {
 
   private Set<Connection> connections;
 
-  public BusImpl(BusORB orb, IComponent bus) {
+  public BusImpl(BusORB orb, IComponent bus) throws CryptographyException {
     this.orb = orb;
     this.bus = bus;
     this.connections = new HashSet<Connection>();
 
     org.omg.CORBA.Object obj = this.bus.getFacet(AccessControlHelper.id());
     this.accessControl = AccessControlHelper.narrow(obj);
+
     this.id = this.accessControl.busid();
+    this.publicKey =
+      Cryptography.getInstance().generateRSAPublicKeyFromX509EncodedKey(
+        this.accessControl.buskey());
 
     obj = bus.getFacet(LoginRegistryHelper.id());
     this.loginRegistry = LoginRegistryHelper.narrow(obj);
@@ -63,6 +70,11 @@ public final class BusImpl implements Bus, ConnectionObserver {
   @Override
   public String getId() {
     return this.id;
+  }
+
+  @Override
+  public RSAPublicKey getPublicKey() {
+    return this.publicKey;
   }
 
   public Connection createConnection() throws CryptographyException {

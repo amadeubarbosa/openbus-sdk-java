@@ -5,7 +5,6 @@ import java.util.logging.Logger;
 
 import org.omg.CORBA.Any;
 import org.omg.CORBA.INTERNAL;
-import org.omg.IOP.Codec;
 import org.omg.IOP.ServiceContext;
 import org.omg.IOP.CodecPackage.FormatMismatch;
 import org.omg.IOP.CodecPackage.TypeMismatch;
@@ -13,6 +12,7 @@ import org.omg.PortableInterceptor.InvalidSlot;
 import org.omg.PortableInterceptor.ServerRequestInfo;
 import org.omg.PortableInterceptor.ServerRequestInterceptor;
 
+import tecgraf.openbus.core.v2_00.credential.CredentialContextId;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfoSeqHelper;
 
 public final class ServerRequestInterceptorImpl extends InterceptorImpl
@@ -22,21 +22,21 @@ public final class ServerRequestInterceptorImpl extends InterceptorImpl
 
   private int credentialSlotId;
 
-  ServerRequestInterceptorImpl(String name, ORBMediator mediator, Codec codec,
+  ServerRequestInterceptorImpl(String name, ORBMediator mediator,
     int credentialSlotId) {
-    super(name, mediator, codec);
+    super(name, mediator);
     this.credentialSlotId = credentialSlotId;
   }
 
   @Override
   public void receive_request_service_contexts(ServerRequestInfo ri) {
     ServiceContext requestServiceContext =
-      ri.get_request_service_context(CONTEXT_ID);
+      ri.get_request_service_context(CredentialContextId.value);
     byte[] encodedCredential = requestServiceContext.context_data;
     Any any;
     try {
       any =
-        this.getCodec().decode_value(encodedCredential,
+        this.getMediator().getCodec().decode_value(encodedCredential,
           LoginInfoSeqHelper.type());
     }
     catch (TypeMismatch e) {

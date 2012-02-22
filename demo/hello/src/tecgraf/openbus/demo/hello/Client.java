@@ -49,14 +49,20 @@ public final class Client {
     ServiceOfferDesc[] services =
       connection.getOffers().findServices(serviceProperties);
 
-    if (services.length == 0) {
-      System.out.println("O servidor do demo Hello não foi encontrado");
-    }
-    else {
+    if (services.length == 1) {
       org.omg.CORBA.Object obj =
         services[0].service_ref.getFacetByName("hello");
+
       IHello hello = IHelloHelper.narrow(obj);
       hello.sayHello();
+    }
+    else {
+      if (services.length == 0) {
+        System.err.println("O servidor do demo Hello não foi encontrado");
+      }
+      else {
+        System.err.println("Foram encontrados vários servidores do demo Hello");
+      }
     }
 
     connection.logout();

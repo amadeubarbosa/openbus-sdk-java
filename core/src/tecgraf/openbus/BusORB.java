@@ -1,10 +1,11 @@
 package tecgraf.openbus;
 
 import org.omg.CORBA.ORB;
+import org.omg.IOP.Codec;
 import org.omg.PortableServer.POA;
 
 public interface BusORB {
-  Bus getBus(String host, int port);
+  Bus getBus(String host, int port) throws CryptographyException;
 
   Connection getCurrentConnection();
 
@@ -21,4 +22,6 @@ public interface BusORB {
   ORB getORB();
 
   POA getRootPOA() throws InternalException;
+
+  Codec getCodec();
 }

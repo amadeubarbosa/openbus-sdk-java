@@ -3,6 +3,7 @@ package tecgraf.openbus.defaultimpl;
 import java.util.logging.Logger;
 
 import org.omg.CORBA.LocalObject;
+import org.omg.IOP.Codec;
 
 import tecgraf.openbus.BusORB;
 
@@ -11,10 +12,12 @@ final class ORBMediator extends LocalObject {
     .getName());
   public static final String INITIAL_REFERENCE_ID = "openbus.ORBManager";
 
-  private BusORB orb;
+  private Codec codec;
   private int credentialSlotId;
+  private BusORB orb;
 
-  ORBMediator(int credentialSlotId) {
+  ORBMediator(Codec codec, int credentialSlotId) {
+    this.codec = codec;
     this.credentialSlotId = credentialSlotId;
   }
 
@@ -24,6 +27,10 @@ final class ORBMediator extends LocalObject {
 
   void setORB(BusORB orb) {
     this.orb = orb;
+  }
+
+  Codec getCodec() {
+    return this.codec;
   }
 
   int getCredentialSlotId() {

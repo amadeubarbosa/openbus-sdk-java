@@ -26,8 +26,9 @@ public final class ORBInitializerImpl extends LocalObject implements
 
   @Override
   public void pre_init(ORBInitInfo info) {
+    Codec codec = this.createCodec(info);
     this.credentialSlotId = info.allocate_slot_id();
-    ORBMediator mediator = new ORBMediator(this.credentialSlotId);
+    ORBMediator mediator = new ORBMediator(codec, this.credentialSlotId);
     try {
       info.register_initial_reference(ORBMediator.INITIAL_REFERENCE_ID,
         mediator);
@@ -42,18 +43,14 @@ public final class ORBInitializerImpl extends LocalObject implements
   @Override
   public void post_init(ORBInitInfo info) {
     ORBMediator mediator = this.getMediator(info);
-
-    Codec codec = this.createCodec(info);
-
-    this.addClientInterceptor(info, mediator, codec);
-    this.addServerInterceptors(info, mediator, codec);
+    this.addClientInterceptor(info, mediator);
+    this.addServerInterceptors(info, mediator);
   }
 
-  private void addClientInterceptor(ORBInitInfo info, ORBMediator mediator,
-    Codec codec) {
+  private void addClientInterceptor(ORBInitInfo info, ORBMediator mediator) {
     try {
       info.add_client_request_interceptor(new ClientRequestInterceptorImpl(
-        "ClientRequestInterceptor", mediator, codec));
+        "ClientRequestInterceptor", mediator));
     }
     catch (DuplicateName e) {
       String message = "Falha inesperada ao registrar o interceptador cliente";
@@ -62,11 +59,10 @@ public final class ORBInitializerImpl extends LocalObject implements
     }
   }
 
-  private void addServerInterceptors(ORBInitInfo info, ORBMediator mediator,
-    Codec codec) {
+  private void addServerInterceptors(ORBInitInfo info, ORBMediator mediator) {
     try {
       info.add_server_request_interceptor(new ServerRequestInterceptorImpl(
-        "ServerRequestInterceptor", mediator, codec, this.credentialSlotId));
+        "ServerRequestInterceptor", mediator, this.credentialSlotId));
     }
     catch (DuplicateName e) {
       String message = "Falha inesperada ao registrar o interceptador servidor";
@@ -118,5 +114,4 @@ public final class ORBInitializerImpl extends LocalObject implements
       throw new INITIALIZE(message);
     }
   }
-
 }

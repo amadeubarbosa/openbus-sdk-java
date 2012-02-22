@@ -3,6 +3,7 @@ package tecgraf.openbus;
 import java.security.interfaces.RSAPrivateKey;
 
 import tecgraf.openbus.core.v2_00.services.ServiceFailure;
+import tecgraf.openbus.core.v2_00.services.access_control.AccessControl;
 import tecgraf.openbus.core.v2_00.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_00.services.access_control.CertificateRegistry;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
@@ -23,12 +24,12 @@ public interface Connection {
   Bus getBus();
 
   void loginByPassword(String entity, char[] password)
-    throws AlreadyLoggedException, CryptographyException, AccessDenied,
-    WrongEncoding, ServiceFailure;
+    throws AlreadyLoggedException, CryptographyException, InternalException,
+    AccessDenied, WrongEncoding, ServiceFailure;
 
   void loginByCertificate(String entity, RSAPrivateKey privateKey)
-    throws AlreadyLoggedException, CryptographyException, AccessDenied,
-    MissingCertificate, WrongEncoding, ServiceFailure;
+    throws AlreadyLoggedException, CryptographyException, InternalException,
+    AccessDenied, MissingCertificate, WrongEncoding, ServiceFailure;
 
   void shareLogin(byte[] encodedlogin) throws CorruptedLoginException,
     InvalidLoginException, AlreadyLoggedException;
@@ -36,6 +37,8 @@ public interface Connection {
   LoginInfo getLogin();
 
   void logout() throws ServiceFailure;
+
+  RSAPrivateKey getPrivateKey();
 
   void setAccessExpirationCallback(AccessExpirationCallback aec);
 
@@ -46,6 +49,8 @@ public interface Connection {
   void exitChain();
 
   CallerChain getJoinedChain();
+
+  AccessControl getAccessControl();
 
   LoginRegistry getLogins();
 
