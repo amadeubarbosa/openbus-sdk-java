@@ -15,7 +15,7 @@ module demo {
 
 module hello {
 
-interface IHello {
+interface Hello {
   void sayHello();
 };
 

@@ -1,6 +1,6 @@
 package tecgraf.openbus.demo.hello;
 
-public final class HelloServant extends IHelloPOA {
+public final class HelloServant extends HelloPOA {
   @Override
   public void sayHello() {
     String entity = "";

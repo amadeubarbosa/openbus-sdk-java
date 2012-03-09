@@ -8,18 +8,18 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import tecgraf.openbus.AlreadyLoggedException;
 import tecgraf.openbus.Bus;
 import tecgraf.openbus.BusORB;
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.CryptographyException;
-import tecgraf.openbus.InternalException;
+import tecgraf.openbus.core.BusORBImpl;
 import tecgraf.openbus.core.v2_00.services.ServiceFailure;
 import tecgraf.openbus.core.v2_00.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_00.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.defaultimpl.BusORBImpl;
+import tecgraf.openbus.exception.AlreadyLoggedException;
+import tecgraf.openbus.exception.CryptographyException;
+import tecgraf.openbus.exception.InternalException;
 
 public final class Client {
   public static void main(String[] args) throws IOException, InternalException,
@@ -42,7 +42,8 @@ public final class Client {
       .getEntityPassword());
 
     ServiceProperty[] serviceProperties = new ServiceProperty[3];
-    serviceProperties[0] = new ServiceProperty("openbus.offer.entity", "demo");
+    serviceProperties[0] =
+      new ServiceProperty("openbus.offer.entity", properties.getServerEntity());
     serviceProperties[1] =
       new ServiceProperty("openbus.component.facet", "hello");
     serviceProperties[2] = new ServiceProperty("offer.domain", "OpenBus Demos");
@@ -53,7 +54,7 @@ public final class Client {
       org.omg.CORBA.Object obj =
         services[0].service_ref.getFacetByName("hello");
 
-      IHello hello = IHelloHelper.narrow(obj);
+      Hello hello = HelloHelper.narrow(obj);
       hello.sayHello();
     }
     else {
@@ -108,6 +109,10 @@ public final class Client {
 
     String getEntity() {
       return this.properties.getProperty("entity.name");
+    }
+
+    String getServerEntity() {
+      return this.properties.getProperty("server.entity.name");
     }
 
     char[] getEntityPassword() {
