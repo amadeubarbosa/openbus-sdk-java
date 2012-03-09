@@ -4,8 +4,13 @@ import org.omg.CORBA.ORB;
 import org.omg.IOP.Codec;
 import org.omg.PortableServer.POA;
 
+import tecgraf.openbus.exception.CryptographyException;
+import tecgraf.openbus.exception.InternalException;
+
 public interface BusORB {
   Bus getBus(String host, int port) throws CryptographyException;
+
+  Bus hasBus(String busid);
 
   Connection getCurrentConnection();
 

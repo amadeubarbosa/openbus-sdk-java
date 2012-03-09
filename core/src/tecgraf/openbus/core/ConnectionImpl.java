@@ -1,4 +1,4 @@
-package tecgraf.openbus.defaultimpl;
+package tecgraf.openbus.core;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -17,16 +17,10 @@ import org.omg.CORBA.IntHolder;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
 
 import tecgraf.openbus.AccessExpirationCallback;
-import tecgraf.openbus.AlreadyLoggedException;
 import tecgraf.openbus.Bus;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionObserver;
-import tecgraf.openbus.CorruptedLoginException;
-import tecgraf.openbus.CryptographyException;
-import tecgraf.openbus.InternalException;
-import tecgraf.openbus.InvalidLoginException;
-import tecgraf.openbus.OpenBus;
 import tecgraf.openbus.core.v2_00.EncryptedBlockHolder;
 import tecgraf.openbus.core.v2_00.services.ServiceFailure;
 import tecgraf.openbus.core.v2_00.services.access_control.AccessControl;
@@ -40,7 +34,18 @@ import tecgraf.openbus.core.v2_00.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_00.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_00.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_00.services.offer_registry.OfferRegistry;
+import tecgraf.openbus.exception.AlreadyLoggedException;
+import tecgraf.openbus.exception.CorruptedLoginException;
+import tecgraf.openbus.exception.CryptographyException;
+import tecgraf.openbus.exception.InternalException;
+import tecgraf.openbus.exception.InvalidLoginException;
+import tecgraf.openbus.util.Cryptography;
 
+/**
+ * Implementação da Interface {@link Connection}
+ * 
+ * @author Tecgraf
+ */
 public final class ConnectionImpl implements Connection {
   private static final Logger logger = Logger.getLogger(ConnectionImpl.class
     .getName());
@@ -54,6 +59,12 @@ public final class ConnectionImpl implements Connection {
   private Set<ConnectionObserver> observers;
   private LoginInfo login;
 
+  /**
+   * Construtor.
+   * 
+   * @param bus
+   * @throws CryptographyException
+   */
   ConnectionImpl(Bus bus) throws CryptographyException {
     this.bus = (BusImpl) bus;
     KeyPair keyPair = Cryptography.getInstance().generateRSAKeyPair();
@@ -64,15 +75,22 @@ public final class ConnectionImpl implements Connection {
     this.observers = new HashSet<ConnectionObserver>();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean isClosed() {
     return this.closed;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void close() {
     this.closed = true;
     Thread notificationThread = new Thread() {
+      @Override
       public void run() {
         for (ConnectionObserver observer : ConnectionImpl.this.observers) {
           observer.connectionClosed(ConnectionImpl.this);
@@ -81,29 +99,35 @@ public final class ConnectionImpl implements Connection {
     };
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Bus getBus() {
     return this.bus;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
-  public void loginByPassword(String entity, char[] password)
+  public LoginInfo loginByPassword(String entity, char[] password)
     throws AlreadyLoggedException, CryptographyException, InternalException,
     AccessDenied, WrongEncoding, ServiceFailure {
     logger.info(String.format(
       "Iniciando a autenticação através de senha para a entidade %s", entity));
 
     CharBuffer passwordCharBuffer = CharBuffer.wrap(password);
-    ByteBuffer passwordByteBuffer = OpenBus.CHARSET.encode(passwordCharBuffer);
+    ByteBuffer passwordByteBuffer =
+      Cryptography.CHARSET.encode(passwordCharBuffer);
     byte[] passwordByteArray = passwordByteBuffer.array();
 
     byte[] encryptedLoginAuthenticationInfo =
       this.generateEncryptedLoginAuthenticationInfo(passwordByteArray);
     IntHolder validityHolder = new IntHolder();
-    String loginId;
     this.bus.getORB().ignoreCurrentThread();
     try {
-      loginId =
+      this.login =
         this.bus.getAccessControl().loginByPassword(entity,
           this.publicKey.getEncoded(), encryptedLoginAuthenticationInfo,
           validityHolder);
@@ -114,9 +138,18 @@ public final class ConnectionImpl implements Connection {
     logger.info(String.format(
       "Autenticação através de senha efetuada com sucesso para a entidade %s",
       entity));
-    this.login = new LoginInfo(loginId, entity);
+    return this.login;
   }
 
+  /**
+   * Cria a estrutura {@link LoginAuthenticationInfo} encriptada com a pública
+   * do barramento.
+   * 
+   * @param data Dado para autenticação.
+   * @return O {@link LoginAuthenticationInfo} encriptado.
+   * @throws CryptographyException
+   * @throws InternalException
+   */
   private byte[] generateEncryptedLoginAuthenticationInfo(byte[] data)
     throws CryptographyException, InternalException {
     Cryptography crypto = Cryptography.getInstance();
@@ -124,7 +157,6 @@ public final class ConnectionImpl implements Connection {
 
     LoginAuthenticationInfo authenticationInfo =
       new LoginAuthenticationInfo(publicKeyHash, data);
-
     Any authenticationInfoAny = this.bus.getORB().getORB().create_any();
     LoginAuthenticationInfoHelper.insert(authenticationInfoAny,
       authenticationInfo);
@@ -140,16 +172,17 @@ public final class ConnectionImpl implements Connection {
       logger.log(Level.SEVERE, message, e);
       throw new InternalException(message, e);
     }
-
     return crypto.encrypt(encodedLoginAuthenticationInfo, this.bus
       .getPublicKey());
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
-  public void loginByCertificate(String entity, RSAPrivateKey privateKey)
+  public LoginInfo loginByCertificate(String entity, RSAPrivateKey privateKey)
     throws AlreadyLoggedException, CryptographyException, InternalException,
     AccessDenied, MissingCertificate, WrongEncoding, ServiceFailure {
-    String loginId;
     this.bus.getORB().ignoreCurrentThread();
     try {
       EncryptedBlockHolder challengeHolder = new EncryptedBlockHolder();
@@ -163,43 +196,62 @@ public final class ConnectionImpl implements Connection {
         this.generateEncryptedLoginAuthenticationInfo(decryptedChallenge);
 
       IntHolder validityHolder = new IntHolder();
-      loginId =
+      this.login =
         loginProcess.login(this.publicKey.getEncoded(),
           encryptedLoginAuthenticationInfo, validityHolder);
     }
     finally {
       this.bus.getORB().unignoreCurrentThread();
     }
-    this.login = new LoginInfo(loginId, entity);
+    return this.login;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
-  public void shareLogin(byte[] encodedlogin) throws CorruptedLoginException,
-    InvalidLoginException, AlreadyLoggedException {
+  public LoginProcess shareLogin(byte[] encodedlogin)
+    throws CorruptedLoginException, InvalidLoginException,
+    AlreadyLoggedException {
     // TODO Auto-generated method stub
-
+    return null;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public LoginInfo getLogin() {
     return this.login;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void logout() throws ServiceFailure {
     this.bus.getAccessControl().logout();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public RSAPrivateKey getPrivateKey() {
     return this.privateKey;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void setAccessExpirationCallback(AccessExpirationCallback aec) {
     // TODO Auto-generated method stub
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void joinChain() throws InternalException {
     CallerChain currentChain = this.bus.getORB().getCallerChain();
@@ -210,48 +262,80 @@ public final class ConnectionImpl implements Connection {
     this.joinedChains.put(currentThread, currentChain);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void joinChain(CallerChain chain) {
     Thread currentThread = Thread.currentThread();
     this.joinedChains.put(currentThread, chain);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void exitChain() {
     Thread currentThread = Thread.currentThread();
     this.joinedChains.remove(currentThread);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public CallerChain getJoinedChain() {
     Thread currentThread = Thread.currentThread();
     return this.joinedChains.get(currentThread);
   }
 
-  @Override
-  public AccessControl getAccessControl() {
+  /**
+   * Recupera o serviço de controle de acesso.
+   * 
+   * @return o serviço de controle de acesso.
+   */
+  AccessControl getAccessControl() {
     return this.bus.getAccessControl();
   }
 
-  @Override
-  public LoginRegistry getLogins() {
+  /**
+   * Recupera o serviço de registro de logins.
+   * 
+   * @return o serviço de registro de logins.
+   */
+  LoginRegistry getLogins() {
     return this.bus.getLoginRegistry();
   }
 
-  @Override
-  public CertificateRegistry getCertificates() {
+  /**
+   * Recupera o serviço de registro de certificados.
+   * 
+   * @return o serviço de registro de certificados.
+   */
+  CertificateRegistry getCertificates() {
     return this.bus.getCertificateRegistry();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public OfferRegistry getOffers() {
     return this.bus.getOfferRegistry();
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public void addObserver(ConnectionObserver observer) {
     this.observers.add(observer);
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public void removeObserver(ConnectionObserver observer) {
     this.observers.remove(observer);
   }

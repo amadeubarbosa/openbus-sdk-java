@@ -1,10 +1,10 @@
-package tecgraf.openbus.defaultimpl;
+package tecgraf.openbus.core;
 
 import java.util.Properties;
 
 import org.junit.Test;
 
-import tecgraf.openbus.defaultimpl.ORBBuilder;
+import tecgraf.openbus.core.ORBBuilder;
 
 public final class ORBBuilderTest {
   @Test

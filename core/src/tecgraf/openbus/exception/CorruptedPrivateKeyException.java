@@ -1,4 +1,4 @@
-package tecgraf.openbus;
+package tecgraf.openbus.exception;
 
 public final class CorruptedPrivateKeyException extends OpenBusException {
   public CorruptedPrivateKeyException(String message) {

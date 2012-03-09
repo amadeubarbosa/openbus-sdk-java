@@ -1,4 +1,4 @@
-package tecgraf.openbus;
+package tecgraf.openbus.exception;
 
 public abstract class OpenBusException extends Exception {
   protected OpenBusException(String message) {

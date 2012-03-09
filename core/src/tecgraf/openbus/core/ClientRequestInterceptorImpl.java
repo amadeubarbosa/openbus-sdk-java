@@ -1,9 +1,6 @@
-package tecgraf.openbus.defaultimpl;
+package tecgraf.openbus.core;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.security.MessageDigest;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -23,8 +20,8 @@ import org.omg.PortableInterceptor.ForwardRequest;
 
 import tecgraf.openbus.BusORB;
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.CryptographyException;
-import tecgraf.openbus.OpenBus;
+import tecgraf.openbus.core.interceptor.CredentialSession;
+import tecgraf.openbus.core.interceptor.EffectiveProfile;
 import tecgraf.openbus.core.v2_00.credential.CredentialContextId;
 import tecgraf.openbus.core.v2_00.credential.CredentialData;
 import tecgraf.openbus.core.v2_00.credential.CredentialDataHelper;
@@ -33,22 +30,51 @@ import tecgraf.openbus.core.v2_00.credential.CredentialResetHelper;
 import tecgraf.openbus.core.v2_00.services.ServiceFailure;
 import tecgraf.openbus.core.v2_00.services.access_control.InvalidCredentialCode;
 import tecgraf.openbus.core.v2_00.services.access_control.SignedCallChain;
+import tecgraf.openbus.exception.CryptographyException;
+import tecgraf.openbus.util.Cryptography;
+import tecgraf.openbus.util.LRUCache;
 
+/**
+ * Implementação do interceptador cliente.
+ * 
+ * @author Tecgraf
+ */
 public final class ClientRequestInterceptorImpl extends InterceptorImpl
   implements ClientRequestInterceptor {
+
+  /** Instância de logging. */
   private static final Logger logger = Logger
     .getLogger(ClientRequestInterceptorImpl.class.getName());
+
+  /** Mapa de profile do interceptador para o cliente alvo da chamanha */
   private Map<EffectiveProfile, String> entities;
+  /** Mapa de cliente alvo da chamada para estrutura de reset */
   private Map<String, CredentialReset> resets;
+  /** Cache de sessão: mapa de cliente alvo da chamada para sessão */
   private Map<String, CredentialSession> sessions;
 
+  /**
+   * Construtor.
+   * 
+   * @param name nome do interceptador
+   * @param mediator o mediador do ORB
+   */
   ClientRequestInterceptorImpl(String name, ORBMediator mediator) {
     super(name, mediator);
-    this.entities = new HashMap<EffectiveProfile, String>();
-    this.resets = new HashMap<String, CredentialReset>();
-    this.sessions = new HashMap<String, CredentialSession>();
+    this.entities =
+      Collections.synchronizedMap(new LRUCache<EffectiveProfile, String>(
+        CACHE_SIZE));
+    this.resets =
+      Collections.synchronizedMap(new LRUCache<String, CredentialReset>(
+        CACHE_SIZE));
+    this.sessions =
+      Collections.synchronizedMap(new LRUCache<String, CredentialSession>(
+        CACHE_SIZE));
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void send_request(ClientRequestInfo ri) {
     String operation = ri.operation();
@@ -79,6 +105,13 @@ public final class ClientRequestInterceptorImpl extends InterceptorImpl
     ri.add_request_service_context(requestServiceContext, false);
   }
 
+  /**
+   * Gera uma credencial para a chamada.
+   * 
+   * @param ri Informação do request
+   * @return A credencial válida para a sessão, ou uma credencial para forçar o
+   *         reset da sessão.
+   */
   private CredentialData generateCredentialData(ClientRequestInfo ri) {
     BusORB orb = this.getMediator().getORB();
     Connection currentConnection = orb.getCurrentConnection();
@@ -92,6 +125,8 @@ public final class ClientRequestInterceptorImpl extends InterceptorImpl
       CredentialSession session =
         this.getCredentialSession(callee, currentConnection);
       if (session != null) {
+        logger.info(String.format("reusando sessão: id = %d ticket = %d",
+          session.getSession(), session.getTicket()));
         session.generateNextTicket();
         byte[] credentialDataHash =
           this.generateCredentialDataHash(ri, session);
@@ -104,6 +139,14 @@ public final class ClientRequestInterceptorImpl extends InterceptorImpl
       Cryptography.NULL_HASH_VALUE, Cryptography.NULL_SIGNED_CALL_CHAIN);
   }
 
+  /**
+   * Recupera a credencial da sessão. Se a sessão ainda não existe, realiza a
+   * negociação para a geração de uma nova sessão.
+   * 
+   * @param callee o cliente alvo da chamada.
+   * @param currentConnection a conexão pela qual a chamada será realizada.
+   * @return A credencial da sessão com este cliente.
+   */
   private CredentialSession getCredentialSession(String callee,
     Connection currentConnection) {
     CredentialSession session = this.sessions.get(callee);
@@ -135,7 +178,9 @@ public final class ClientRequestInterceptorImpl extends InterceptorImpl
     }
     else {
       try {
-        callChain = currentConnection.getAccessControl().signChainFor(callee);
+        callChain =
+          ((ConnectionImpl) currentConnection).getAccessControl().signChainFor(
+            callee);
       }
       catch (ServiceFailure e) {
         String message =
@@ -152,55 +197,26 @@ public final class ClientRequestInterceptorImpl extends InterceptorImpl
     return session;
   }
 
-  private byte[] generateCredentialDataHash(ClientRequestInfo ri,
-    CredentialSession credentialSession) {
-    Cryptography crypto = Cryptography.getInstance();
-
-    MessageDigest hashAlgorithm;
-    try {
-      hashAlgorithm = crypto.getHashAlgorithm();
-    }
-    catch (CryptographyException e) {
-      String message = "Falha inesperada ao obter o algoritmo de hash";
-      logger.log(Level.SEVERE, message, e);
-      throw new INTERNAL(message);
-    }
-
-    hashAlgorithm.update(BUS_MAJOR_VERSION);
-    hashAlgorithm.update(BUS_MINOR_VERSION);
-    hashAlgorithm.update(credentialSession.getSecret());
-
-    ByteBuffer ticketBuffer = ByteBuffer.allocate(Integer.SIZE / 8);
-    ticketBuffer.order(ByteOrder.LITTLE_ENDIAN);
-    ticketBuffer.putInt(credentialSession.getTicket());
-    ticketBuffer.flip();
-    hashAlgorithm.update(ticketBuffer);
-
-    ByteBuffer requestIdBuffer = ByteBuffer.allocate(Integer.SIZE / 8);
-    requestIdBuffer.order(ByteOrder.LITTLE_ENDIAN);
-    requestIdBuffer.putInt(ri.request_id());
-    requestIdBuffer.flip();
-    hashAlgorithm.update(requestIdBuffer);
-
-    byte[] operationBytes = ri.operation().getBytes(OpenBus.CHARSET);
-    hashAlgorithm.update(operationBytes);
-
-    return hashAlgorithm.digest();
-  }
-
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void send_poll(ClientRequestInfo ri) {
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void receive_reply(ClientRequestInfo ri) {
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void receive_exception(ClientRequestInfo ri) throws ForwardRequest {
     logger.finest("Uma exceção foi recebida");
-    Cryptography crypto = Cryptography.getInstance();
-
     if (!ri.received_exception_id().equals(NO_PERMISSIONHelper.id())) {
       logger.fine("A exceção recebida não é do tipo NO_PERMISSION");
       return;
@@ -246,6 +262,9 @@ public final class ClientRequestInterceptorImpl extends InterceptorImpl
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void receive_other(ClientRequestInfo ri) {
   }

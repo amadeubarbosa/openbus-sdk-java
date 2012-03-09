@@ -1,4 +1,4 @@
-package tecgraf.openbus;
+package tecgraf.openbus.exception;
 
 import java.security.GeneralSecurityException;
 

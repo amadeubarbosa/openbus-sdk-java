@@ -1,4 +1,4 @@
-package tecgraf.openbus.defaultimpl;
+package tecgraf.openbus.core;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -62,7 +62,7 @@ public final class ORBInitializerImpl extends LocalObject implements
   private void addServerInterceptors(ORBInitInfo info, ORBMediator mediator) {
     try {
       info.add_server_request_interceptor(new ServerRequestInterceptorImpl(
-        "ServerRequestInterceptor", mediator, this.credentialSlotId));
+        "ServerRequestInterceptor", mediator));
     }
     catch (DuplicateName e) {
       String message = "Falha inesperada ao registrar o interceptador servidor";

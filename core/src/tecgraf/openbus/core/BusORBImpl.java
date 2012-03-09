@@ -1,4 +1,4 @@
-package tecgraf.openbus.defaultimpl;
+package tecgraf.openbus.core;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -27,11 +27,11 @@ import tecgraf.openbus.BusORB;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionObserver;
-import tecgraf.openbus.CryptographyException;
-import tecgraf.openbus.InternalException;
 import tecgraf.openbus.core.v2_00.BusObjectKey;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfoSeqHelper;
+import tecgraf.openbus.exception.CryptographyException;
+import tecgraf.openbus.exception.InternalException;
 
 public final class BusORBImpl implements BusORB, ConnectionObserver {
   private static final Logger logger = Logger.getLogger(BusORBImpl.class
@@ -95,6 +95,10 @@ public final class BusORBImpl implements BusORB, ConnectionObserver {
     finally {
       this.unignoreCurrentThread();
     }
+  }
+  
+  public Bus hasBus(String busid) {
+    return this.buses.get(busid);
   }
 
   public org.omg.CORBA.Object fetchObject(String host, int port, String key) {

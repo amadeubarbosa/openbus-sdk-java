@@ -1,4 +1,5 @@
-package tecgraf.openbus;
+package tecgraf.openbus.exception;
+
 
 public final class AlreadyLoggedException extends OpenBusException {
   public AlreadyLoggedException() {

@@ -1,11 +1,11 @@
-package tecgraf.openbus.defaultimpl;
+package tecgraf.openbus.core;
 
 import junit.framework.Assert;
 
 import org.junit.Test;
 import org.omg.PortableInterceptor.ORBInitializer;
 
-import tecgraf.openbus.defaultimpl.ORBInitializerInfo;
+import tecgraf.openbus.core.ORBInitializerInfo;
 
 public final class ORBInitializerInfoTest {
   @Test(expected = NullPointerException.class)

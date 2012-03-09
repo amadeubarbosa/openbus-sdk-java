@@ -1,4 +1,4 @@
-package tecgraf.openbus.defaultimpl;
+package tecgraf.openbus.core;
 
 import java.security.interfaces.RSAPublicKey;
 import java.util.Collection;
@@ -12,7 +12,6 @@ import tecgraf.openbus.Bus;
 import tecgraf.openbus.BusORB;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionObserver;
-import tecgraf.openbus.CryptographyException;
 import tecgraf.openbus.core.v2_00.services.access_control.AccessControl;
 import tecgraf.openbus.core.v2_00.services.access_control.AccessControlHelper;
 import tecgraf.openbus.core.v2_00.services.access_control.CertificateRegistry;
@@ -21,6 +20,8 @@ import tecgraf.openbus.core.v2_00.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginRegistryHelper;
 import tecgraf.openbus.core.v2_00.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.core.v2_00.services.offer_registry.OfferRegistryHelper;
+import tecgraf.openbus.exception.CryptographyException;
+import tecgraf.openbus.util.Cryptography;
 
 public final class BusImpl implements Bus, ConnectionObserver {
   private static final Logger logger = Logger
@@ -39,7 +40,7 @@ public final class BusImpl implements Bus, ConnectionObserver {
 
   private Set<Connection> connections;
 
-  public BusImpl(BusORB orb, IComponent bus) throws CryptographyException {
+  protected BusImpl(BusORB orb, IComponent bus) throws CryptographyException {
     this.orb = orb;
     this.bus = bus;
     this.connections = new HashSet<Connection>();
@@ -77,6 +78,7 @@ public final class BusImpl implements Bus, ConnectionObserver {
     return this.publicKey;
   }
 
+  @Override
   public Connection createConnection() throws CryptographyException {
     Connection connection = new ConnectionImpl(this);
     connection.addObserver(this);

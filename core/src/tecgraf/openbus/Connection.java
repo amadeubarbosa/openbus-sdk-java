@@ -3,14 +3,17 @@ package tecgraf.openbus;
 import java.security.interfaces.RSAPrivateKey;
 
 import tecgraf.openbus.core.v2_00.services.ServiceFailure;
-import tecgraf.openbus.core.v2_00.services.access_control.AccessControl;
 import tecgraf.openbus.core.v2_00.services.access_control.AccessDenied;
-import tecgraf.openbus.core.v2_00.services.access_control.CertificateRegistry;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_00.services.access_control.LoginRegistry;
+import tecgraf.openbus.core.v2_00.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_00.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_00.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_00.services.offer_registry.OfferRegistry;
+import tecgraf.openbus.exception.AlreadyLoggedException;
+import tecgraf.openbus.exception.CorruptedLoginException;
+import tecgraf.openbus.exception.CryptographyException;
+import tecgraf.openbus.exception.InternalException;
+import tecgraf.openbus.exception.InvalidLoginException;
 
 public interface Connection {
   void addObserver(ConnectionObserver observer);
@@ -21,40 +24,75 @@ public interface Connection {
 
   void close();
 
-  Bus getBus();
+  public Bus getBus();
 
-  void loginByPassword(String entity, char[] password)
+  /**
+   * Autentica uma entidade através de uma senha.
+   * 
+   * @param entity Identificador da entidade a ser autenticada.
+   * @param password Senha
+   * @return A informação do login.
+   * @throws AlreadyLoggedException
+   * @throws CryptographyException
+   * @throws InternalException
+   * @throws AccessDenied
+   * @throws WrongEncoding
+   * @throws ServiceFailure
+   */
+  public LoginInfo loginByPassword(String entity, char[] password)
     throws AlreadyLoggedException, CryptographyException, InternalException,
     AccessDenied, WrongEncoding, ServiceFailure;
 
-  void loginByCertificate(String entity, RSAPrivateKey privateKey)
+  /**
+   * Autentica uma entidade através de um certificado.
+   * 
+   * @param entity Identificador da entidade a ser autenticada.
+   * @param privateKey A chave privada da entidade.
+   * @return A informação do login.
+   * @throws AlreadyLoggedException
+   * @throws CryptographyException
+   * @throws InternalException
+   * @throws AccessDenied
+   * @throws MissingCertificate
+   * @throws WrongEncoding
+   * @throws ServiceFailure
+   */
+  public LoginInfo loginByCertificate(String entity, RSAPrivateKey privateKey)
     throws AlreadyLoggedException, CryptographyException, InternalException,
     AccessDenied, MissingCertificate, WrongEncoding, ServiceFailure;
 
-  void shareLogin(byte[] encodedlogin) throws CorruptedLoginException,
-    InvalidLoginException, AlreadyLoggedException;
+  public LoginProcess shareLogin(byte[] encodedlogin)
+    throws CorruptedLoginException, InvalidLoginException,
+    AlreadyLoggedException;
 
-  LoginInfo getLogin();
+  /**
+   * Obtém a informação do login desta conexão.
+   * 
+   * @return A informação do login.
+   */
+  public LoginInfo getLogin();
 
-  void logout() throws ServiceFailure;
+  /**
+   * Encerra o login.
+   * 
+   * @throws ServiceFailure
+   */
+  public void logout() throws ServiceFailure;
 
+  /**
+   * @return
+   */
   RSAPrivateKey getPrivateKey();
 
   void setAccessExpirationCallback(AccessExpirationCallback aec);
 
-  void joinChain() throws InternalException;
+  public void joinChain() throws InternalException;
 
-  void joinChain(CallerChain chain);
+  public void joinChain(CallerChain chain);
 
-  void exitChain();
+  public void exitChain();
 
-  CallerChain getJoinedChain();
+  public CallerChain getJoinedChain();
 
-  AccessControl getAccessControl();
-
-  LoginRegistry getLogins();
-
-  CertificateRegistry getCertificates();
-
-  OfferRegistry getOffers();
+  public OfferRegistry getOffers();
 }

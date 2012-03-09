@@ -1,4 +1,4 @@
-package tecgraf.openbus.defaultimpl;
+package tecgraf.openbus.core;
 
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Bus;
