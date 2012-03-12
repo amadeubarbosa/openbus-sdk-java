@@ -59,6 +59,9 @@ public final class ConnectionImpl implements Connection {
   private Set<ConnectionObserver> observers;
   private LoginInfo login;
 
+  /** Thread de renovação de login */
+  private LeaseRenewer renewer;
+
   /**
    * Construtor.
    * 
@@ -138,6 +141,7 @@ public final class ConnectionImpl implements Connection {
     logger.info(String.format(
       "Autenticação através de senha efetuada com sucesso para a entidade %s",
       entity));
+    fireRenewerThread();
     return this.login;
   }
 
@@ -203,7 +207,23 @@ public final class ConnectionImpl implements Connection {
     finally {
       this.bus.getORB().unignoreCurrentThread();
     }
+    fireRenewerThread();
     return this.login;
+  }
+
+  private void fireRenewerThread() {
+    if (this.renewer != null) {
+      this.renewer.stop();
+    }
+    this.renewer = new LeaseRenewer(this);
+    this.renewer.start();
+  }
+
+  private void stopRenewerThread() {
+    if (this.renewer != null) {
+      this.renewer.stop();
+    }
+    this.renewer = null;
   }
 
   /**
@@ -231,6 +251,7 @@ public final class ConnectionImpl implements Connection {
   @Override
   public void logout() throws ServiceFailure {
     this.bus.getAccessControl().logout();
+    stopRenewerThread();
   }
 
   /**
