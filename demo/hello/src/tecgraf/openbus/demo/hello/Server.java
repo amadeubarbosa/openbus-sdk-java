@@ -15,68 +15,69 @@ import java.util.logging.Logger;
 import org.omg.CORBA.ORB;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAManager;
-import org.omg.PortableServer.POAManagerPackage.AdapterInactive;
 
 import scs.core.ComponentContext;
 import scs.core.ComponentId;
-import scs.core.exception.SCSException;
 import tecgraf.openbus.Bus;
 import tecgraf.openbus.BusORB;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.core.BusORBImpl;
-import tecgraf.openbus.core.v2_00.services.ServiceFailure;
-import tecgraf.openbus.core.v2_00.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_00.services.access_control.MissingCertificate;
-import tecgraf.openbus.core.v2_00.services.access_control.WrongEncoding;
-import tecgraf.openbus.core.v2_00.services.offer_registry.InvalidProperties;
-import tecgraf.openbus.core.v2_00.services.offer_registry.InvalidService;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.core.v2_00.services.offer_registry.UnauthorizedFacets;
-import tecgraf.openbus.exception.AlreadyLoggedException;
-import tecgraf.openbus.exception.CryptographyException;
-import tecgraf.openbus.exception.InternalException;
 import tecgraf.openbus.util.Cryptography;
 
+/**
+ * Parte servidora do demo Hello
+ * 
+ * @author Tecgraf
+ */
 public final class Server {
-  public static void main(String[] args) throws IOException, InternalException,
-    CryptographyException, AlreadyLoggedException, AccessDenied,
-    MissingCertificate, WrongEncoding, ServiceFailure, SCSException,
-    InvalidService, UnauthorizedFacets, InvalidProperties, InvalidKeyException,
-    NoSuchAlgorithmException, InvalidKeySpecException, AdapterInactive {
-    Logger logger = Logger.getLogger("tecgraf.openbus");
-    logger.setLevel(Level.FINEST);
-    logger.setUseParentHandlers(false);
-    ConsoleHandler handler = new ConsoleHandler();
-    handler.setLevel(Level.FINEST);
-    logger.addHandler(handler);
 
-    ServerProperties props = new ServerProperties();
+  /**
+   * Função principal.
+   * 
+   * @param args argumentos.
+   */
+  public static void main(String[] args) {
+    try {
+      Logger logger = Logger.getLogger("tecgraf.openbus");
+      logger.setLevel(Level.FINEST);
+      logger.setUseParentHandlers(false);
+      ConsoleHandler handler = new ConsoleHandler();
+      handler.setLevel(Level.FINEST);
+      logger.addHandler(handler);
 
-    BusORB orb = new BusORBImpl(args);
+      ServerProperties props = new ServerProperties();
 
-    new ORBRunThread(orb.getORB()).start();
-    Runtime.getRuntime().addShutdownHook(new ORBDestroyThread(orb.getORB()));
+      BusORB orb = new BusORBImpl(args);
 
-    Bus bus = orb.getBus(props.getHost(), props.getPort());
-    Connection conn = bus.createConnection();
-    LoginInfo info =
-      conn.loginByCertificate(props.getEntity(), props.getPrivateKey());
-    System.out.println(info.id);
-    ComponentId id =
-      new ComponentId("Hello", (byte) 1, (byte) 0, (byte) 0, "java");
+      new ORBRunThread(orb.getORB()).start();
+      Runtime.getRuntime().addShutdownHook(new ORBDestroyThread(orb.getORB()));
 
-    POA poa = orb.getRootPOA();
-    POAManager manager = poa.the_POAManager();
-    manager.activate();
+      Bus bus = orb.getBus(props.getHost(), props.getPort());
+      Connection conn = bus.createConnection();
+      LoginInfo info =
+        conn.loginByCertificate(props.getEntity(), props.getPrivateKey());
+      System.out.println(info.id);
+      ComponentId id =
+        new ComponentId("Hello", (byte) 1, (byte) 0, (byte) 0, "java");
 
-    ComponentContext context = new ComponentContext(orb.getORB(), poa, id);
-    context.addFacet("hello", HelloHelper.id(), new HelloServant());
+      POA poa = orb.getRootPOA();
+      POAManager manager = poa.the_POAManager();
+      manager.activate();
 
-    ServiceProperty[] serviceProperties = new ServiceProperty[1];
-    serviceProperties[0] = new ServiceProperty("offer.domain", "OpenBus Demos");
-    conn.getOffers()
-      .registerService(context.getIComponent(), serviceProperties);
+      ComponentContext context = new ComponentContext(orb.getORB(), poa, id);
+      context.addFacet("hello", HelloHelper.id(), new HelloServant(conn));
+
+      ServiceProperty[] serviceProperties = new ServiceProperty[1];
+      serviceProperties[0] =
+        new ServiceProperty("offer.domain", "OpenBus Demos");
+      conn.getOffers().registerService(context.getIComponent(),
+        serviceProperties);
+    }
+    catch (Exception e) {
+      e.printStackTrace();
+    }
   }
 
   private static class ORBRunThread extends Thread {
