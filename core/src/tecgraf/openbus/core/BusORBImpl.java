@@ -12,6 +12,7 @@ import java.util.logging.Logger;
 
 import org.omg.CORBA.Any;
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.UserException;
 import org.omg.CORBA.ORBPackage.InvalidName;
 import org.omg.IOP.Codec;
 import org.omg.PortableInterceptor.Current;
@@ -28,8 +29,11 @@ import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionObserver;
 import tecgraf.openbus.core.v2_00.BusObjectKey;
+import tecgraf.openbus.core.v2_00.credential.CredentialData;
+import tecgraf.openbus.core.v2_00.credential.CredentialDataHelper;
+import tecgraf.openbus.core.v2_00.services.access_control.CallChain;
+import tecgraf.openbus.core.v2_00.services.access_control.CallChainHelper;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_00.services.access_control.LoginInfoSeqHelper;
 import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.exception.InternalException;
 
@@ -79,6 +83,7 @@ public final class BusORBImpl implements BusORB, ConnectionObserver {
     return (ORBMediator) obj;
   }
 
+  @Override
   public Bus getBus(String host, int port) throws CryptographyException {
     this.ignoreCurrentThread();
     try {
@@ -96,7 +101,8 @@ public final class BusORBImpl implements BusORB, ConnectionObserver {
       this.unignoreCurrentThread();
     }
   }
-  
+
+  @Override
   public Bus hasBus(String busid) {
     return this.buses.get(busid);
   }
@@ -151,20 +157,31 @@ public final class BusORBImpl implements BusORB, ConnectionObserver {
     }
   }
 
+  @Override
   public CallerChain getCallerChain() throws InternalException {
     Current current = getPICurrent(this.orb);
-    Any credential;
+    String busId;
+    CallChain callChain;
     try {
-      credential = current.get_slot(this.mediator.getCredentialSlotId());
+      Any any = current.get_slot(this.mediator.getCredentialSlotId());
+      CredentialData credential = CredentialDataHelper.extract(any);
+      busId = credential.bus;
+      Any anyChain =
+        this.getCodec().decode_value(credential.chain.encoded,
+          CallChainHelper.type());
+      callChain = CallChainHelper.extract(anyChain);
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao obter o slot no PICurrent";
       logger.log(Level.SEVERE, message, e);
       throw new InternalException(message, e);
     }
-    LoginInfo[] callers = LoginInfoSeqHelper.extract(credential);
-
-    String busId = "";
+    catch (UserException e) {
+      String message = "Falha inesperada ao decodificar a cadeia de chamadas.";
+      logger.log(Level.SEVERE, message, e);
+      throw new InternalException(message, e);
+    }
+    LoginInfo[] callers = callChain.callers;
     Bus bus = this.buses.get(busId);
     if (bus == null) {
       String message =
@@ -221,10 +238,12 @@ public final class BusORBImpl implements BusORB, ConnectionObserver {
     return this.ignoredThreads.contains(currentThread);
   }
 
+  @Override
   public ORB getORB() {
     return this.orb;
   }
 
+  @Override
   public POA getRootPOA() throws InternalException {
     org.omg.CORBA.Object obj;
     try {
@@ -238,10 +257,12 @@ public final class BusORBImpl implements BusORB, ConnectionObserver {
     return POAHelper.narrow(obj);
   }
 
+  @Override
   public Codec getCodec() {
     return this.mediator.getCodec();
   }
 
+  @Override
   public void connectionClosed(Connection connection) {
     for (Thread thread : this.connectedThreads.keySet()) {
       Connection mappedConnection = this.connectedThreads.get(thread);
