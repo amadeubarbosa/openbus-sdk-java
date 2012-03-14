@@ -81,7 +81,7 @@ public final class BusImpl implements Bus, ConnectionObserver {
   @Override
   public Connection createConnection() throws CryptographyException {
     Connection connection = new ConnectionImpl(this);
-    connection.addObserver(this);
+    //connection.addObserver(this);
     this.connections.add(connection);
     return connection;
   }

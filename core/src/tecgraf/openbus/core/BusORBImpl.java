@@ -27,7 +27,6 @@ import tecgraf.openbus.Bus;
 import tecgraf.openbus.BusORB;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.ConnectionObserver;
 import tecgraf.openbus.core.v2_00.BusObjectKey;
 import tecgraf.openbus.core.v2_00.credential.CredentialData;
 import tecgraf.openbus.core.v2_00.credential.CredentialDataHelper;
@@ -35,9 +34,11 @@ import tecgraf.openbus.core.v2_00.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_00.services.access_control.CallChainHelper;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.exception.CryptographyException;
-import tecgraf.openbus.exception.InternalException;
+import tecgraf.openbus.exception.OpenBusInternalException;
 
-public final class BusORBImpl implements BusORB, ConnectionObserver {
+import com.sun.jdi.InternalException;
+
+public final class BusORBImpl implements BusORB {
   private static final Logger logger = Logger.getLogger(BusORBImpl.class
     .getName());
 
@@ -47,15 +48,16 @@ public final class BusORBImpl implements BusORB, ConnectionObserver {
   private Set<Thread> ignoredThreads;
   private Map<Thread, Connection> connectedThreads;
 
-  public BusORBImpl() throws InternalException {
+  public BusORBImpl() throws OpenBusInternalException {
     this(null, null);
   }
 
-  public BusORBImpl(String[] args) throws InternalException {
+  public BusORBImpl(String[] args) throws OpenBusInternalException {
     this(args, null);
   }
 
-  public BusORBImpl(String[] args, Properties props) throws InternalException {
+  public BusORBImpl(String[] args, Properties props)
+    throws OpenBusInternalException {
     this.orb = createORB(args, props);
     this.mediator = getMediator(this.orb);
     this.mediator.setORB(this);
@@ -70,7 +72,8 @@ public final class BusORBImpl implements BusORB, ConnectionObserver {
     return orbBuilder.build();
   }
 
-  private static ORBMediator getMediator(ORB orb) throws InternalException {
+  private static ORBMediator getMediator(ORB orb)
+    throws OpenBusInternalException {
     org.omg.CORBA.Object obj;
     try {
       obj = orb.resolve_initial_references(ORBMediator.INITIAL_REFERENCE_ID);
@@ -78,7 +81,7 @@ public final class BusORBImpl implements BusORB, ConnectionObserver {
     catch (InvalidName e) {
       String message = "Falha inesperada ao obter o mediador";
       logger.log(Level.SEVERE, message, e);
-      throw new InternalException(message, e);
+      throw new OpenBusInternalException(message, e);
     }
     return (ORBMediator) obj;
   }
@@ -148,11 +151,11 @@ public final class BusORBImpl implements BusORB, ConnectionObserver {
   public void setCurrentConnection(Connection connection) {
     Connection currentConnection =
       this.connectedThreads.remove(Thread.currentThread());
-    if (currentConnection != null) {
-      currentConnection.removeObserver(this);
-    }
+    //    if (currentConnection != null) {
+    //      currentConnection.removeObserver(this);
+    //    }
     if (connection != null) {
-      connection.addObserver(this);
+      //      connection.addObserver(this);
       this.connectedThreads.put(Thread.currentThread(), connection);
     }
   }
@@ -174,14 +177,15 @@ public final class BusORBImpl implements BusORB, ConnectionObserver {
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao obter o slot no PICurrent";
       logger.log(Level.SEVERE, message, e);
-      throw new InternalException(message, e);
+      throw new OpenBusInternalException(message, e);
     }
     catch (UserException e) {
       String message = "Falha inesperada ao decodificar a cadeia de chamadas.";
       logger.log(Level.SEVERE, message, e);
-      throw new InternalException(message, e);
+      throw new OpenBusInternalException(message, e);
     }
     LoginInfo[] callers = callChain.callers;
+    // TODO: não parece necessário reverificar o busID
     Bus bus = this.buses.get(busId);
     if (bus == null) {
       String message =
@@ -195,7 +199,7 @@ public final class BusORBImpl implements BusORB, ConnectionObserver {
     return new CallerChainImpl(bus, callers);
   }
 
-  private static Current getPICurrent(ORB orb) throws InternalException {
+  private static Current getPICurrent(ORB orb) throws OpenBusInternalException {
     org.omg.CORBA.Object obj;
     try {
       obj = orb.resolve_initial_references("PICurrent");
@@ -203,12 +207,12 @@ public final class BusORBImpl implements BusORB, ConnectionObserver {
     catch (InvalidName e) {
       String message = "Falha inesperada ao obter o PICurrent";
       logger.log(Level.SEVERE, message, e);
-      throw new InternalException(message, e);
+      throw new OpenBusInternalException(message, e);
     }
     return CurrentHelper.narrow(obj);
   }
 
-  CallerChain getCallerChain(String id) throws InternalException {
+  CallerChain getCallerChain(String id) throws OpenBusInternalException {
     CallerChain chain = this.getCallerChain();
     if (chain == null) {
       return null;
@@ -244,7 +248,7 @@ public final class BusORBImpl implements BusORB, ConnectionObserver {
   }
 
   @Override
-  public POA getRootPOA() throws InternalException {
+  public POA getRootPOA() throws OpenBusInternalException {
     org.omg.CORBA.Object obj;
     try {
       obj = this.orb.resolve_initial_references("RootPOA");
@@ -252,7 +256,7 @@ public final class BusORBImpl implements BusORB, ConnectionObserver {
     catch (InvalidName e) {
       String message = "Falha inesperada ao obter o RootPOA";
       logger.log(Level.SEVERE, message, e);
-      throw new InternalException(message, e);
+      throw new OpenBusInternalException(message, e);
     }
     return POAHelper.narrow(obj);
   }
@@ -260,15 +264,5 @@ public final class BusORBImpl implements BusORB, ConnectionObserver {
   @Override
   public Codec getCodec() {
     return this.mediator.getCodec();
-  }
-
-  @Override
-  public void connectionClosed(Connection connection) {
-    for (Thread thread : this.connectedThreads.keySet()) {
-      Connection mappedConnection = this.connectedThreads.get(thread);
-      if (connection.equals(mappedConnection)) {
-        this.connectedThreads.remove(thread);
-      }
-    }
   }
 }

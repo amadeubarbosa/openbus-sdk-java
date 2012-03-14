@@ -92,8 +92,8 @@ public final class LeaseRenewer {
     RenewerTask(Connection conn) {
       this.mustContinue = true;
       this.isSleeping = false;
-      this.login = conn.getLogin();
-      this.manager = ((ConnectionImpl) conn).getAccessControl();
+      this.login = conn.login();
+      this.manager = ((ConnectionImpl) conn).access();
       this.conn = conn;
     }
 
@@ -109,7 +109,7 @@ public final class LeaseRenewer {
           try {
             lease = this.manager.renew();
             expired = !(lease > 0);
-            LoginInfo info = this.conn.getLogin();
+            LoginInfo info = this.conn.login();
             logger.info(String.format(
               "Renovando o login '%s' da entidade '%s' por %d segs.", info.id,
               info.entity, lease));

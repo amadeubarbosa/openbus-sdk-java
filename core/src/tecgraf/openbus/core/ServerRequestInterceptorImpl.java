@@ -119,7 +119,7 @@ public final class ServerRequestInterceptorImpl extends InterceptorImpl
   @Override
   public void receive_request(ServerRequestInfo ri) {
     String operation = ri.operation();
-    logger.finest(String.format("A operação %s é requisitada", operation));
+    logger.fine(String.format("A operação %s é requisitada", operation));
     BusORB orb = this.getMediator().getORB();
     ConnectionImpl conn = (ConnectionImpl) orb.getCurrentConnection();
     try {
@@ -137,8 +137,7 @@ public final class ServerRequestInterceptorImpl extends InterceptorImpl
             CompletionStatus.COMPLETED_NO);
         }
         OctetSeqHolder pubkey = new OctetSeqHolder();
-        LoginInfo caller =
-          conn.getLogins().getLoginInfo(credential.login, pubkey);
+        LoginInfo caller = conn.logins().getLoginInfo(credential.login, pubkey);
         if (validateCredential(credential, ri)) {
           if (validateChain(credential.chain, caller, orb)) {
             String msg =
@@ -209,7 +208,7 @@ public final class ServerRequestInterceptorImpl extends InterceptorImpl
       new CredentialSession(sessionId, newSecret, null);
     sessions.put(newSession.getSession(), newSession);
     CredentialReset reset =
-      new CredentialReset(conn.getLogin().id, sessionId, encriptedSecret);
+      new CredentialReset(conn.login().id, sessionId, encriptedSecret);
     Any any = orb.getORB().create_any();
     CredentialResetHelper.insert(any, reset);
     byte[] encodedCredential;
@@ -241,7 +240,7 @@ public final class ServerRequestInterceptorImpl extends InterceptorImpl
     loginIds[0] = credential.login;
 
     try {
-      int[] validity = conn.getLogins().getValidity(loginIds);
+      int[] validity = conn.logins().getValidity(loginIds);
       if (validity.length == 1 && validity[0] > 0) {
         return true;
       }
@@ -277,7 +276,7 @@ public final class ServerRequestInterceptorImpl extends InterceptorImpl
       byte[] hash = this.generateCredentialDataHash(ri, session);
       // TODO: incluir o check do ticket 
       if (Arrays.equals(hash, credential.hash)) {
-        logger.info(String.format("sessão utilizada: id = %d ticket = %d",
+        logger.fine(String.format("sessão utilizada: id = %d ticket = %d",
           session.getSession(), session.getTicket()));
         session.generateNextTicket();
         return true;
@@ -299,7 +298,7 @@ public final class ServerRequestInterceptorImpl extends InterceptorImpl
     BusORB orb) {
     Cryptography crypto = Cryptography.getInstance();
     ConnectionImpl conn = (ConnectionImpl) orb.getCurrentConnection();
-    RSAPublicKey busPubKey = conn.getBus().getPublicKey();
+    RSAPublicKey busPubKey = conn.getBusPublicKey();
     if (chain != null) {
       if (chain.signature != null) {
         try {
@@ -308,7 +307,7 @@ public final class ServerRequestInterceptorImpl extends InterceptorImpl
           CallChain callChain = CallChainHelper.extract(any);
           boolean verified =
             crypto.verifySignature(busPubKey, chain.encoded, chain.signature);
-          if (verified && callChain.target.equals(conn.getLogin().id)) {
+          if (verified && callChain.target.equals(conn.login().id)) {
             LoginInfo[] callers = callChain.callers;
             if (callers[callers.length - 1].id.equals(caller.id)) {
               logger.finest("Cadeia é valida.");

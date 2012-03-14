@@ -29,6 +29,7 @@ import tecgraf.openbus.core.v2_00.credential.CredentialReset;
 import tecgraf.openbus.core.v2_00.credential.CredentialResetHelper;
 import tecgraf.openbus.core.v2_00.services.ServiceFailure;
 import tecgraf.openbus.core.v2_00.services.access_control.InvalidCredentialCode;
+import tecgraf.openbus.core.v2_00.services.access_control.InvalidLoginCode;
 import tecgraf.openbus.core.v2_00.services.access_control.SignedCallChain;
 import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.util.Cryptography;
@@ -78,11 +79,11 @@ public final class ClientRequestInterceptorImpl extends InterceptorImpl
   @Override
   public void send_request(ClientRequestInfo ri) {
     String operation = ri.operation();
-    logger.finest(String.format("A operação %s será requisitada", operation));
+    logger.fine(String.format("A operação %s será requisitada", operation));
     BusORB orb = this.getMediator().getORB();
     if (orb.isCurrentThreadIgnored()) {
       logger
-        .finest(String
+        .fine(String
           .format(
             "A operação %s não terá uma credencial, pois a thread atual está ignorada",
             operation));
@@ -116,8 +117,8 @@ public final class ClientRequestInterceptorImpl extends InterceptorImpl
     BusORB orb = this.getMediator().getORB();
     Connection currentConnection = orb.getCurrentConnection();
 
-    String busId = currentConnection.getBus().getId();
-    String loginId = currentConnection.getLogin().id;
+    String busId = currentConnection.busid();
+    String loginId = currentConnection.login().id;
 
     EffectiveProfile ep = new EffectiveProfile(ri.effective_profile());
     if (this.entities.containsKey(ep)) {
@@ -125,7 +126,7 @@ public final class ClientRequestInterceptorImpl extends InterceptorImpl
       CredentialSession session =
         this.getCredentialSession(callee, currentConnection);
       if (session != null) {
-        logger.info(String.format("reusando sessão: id = %d ticket = %d",
+        logger.fine(String.format("reusando sessão: id = %d ticket = %d",
           session.getSession(), session.getTicket()));
         session.generateNextTicket();
         byte[] credentialDataHash =
@@ -162,7 +163,8 @@ public final class ClientRequestInterceptorImpl extends InterceptorImpl
     byte[] secret;
     try {
       secret =
-        crypto.decrypt(reset.challenge, currentConnection.getPrivateKey());
+        crypto.decrypt(reset.challenge, ((ConnectionImpl) currentConnection)
+          .getPrivateKey());
     }
     catch (CryptographyException e) {
       String message =
@@ -173,14 +175,13 @@ public final class ClientRequestInterceptorImpl extends InterceptorImpl
     }
 
     SignedCallChain callChain;
-    if (callee.equals(currentConnection.getBus().getId())) {
+    if (callee.equals(currentConnection.busid())) {
       callChain = Cryptography.NULL_SIGNED_CALL_CHAIN;
     }
     else {
       try {
         callChain =
-          ((ConnectionImpl) currentConnection).getAccessControl().signChainFor(
-            callee);
+          ((ConnectionImpl) currentConnection).access().signChainFor(callee);
       }
       catch (ServiceFailure e) {
         String message =
@@ -218,10 +219,10 @@ public final class ClientRequestInterceptorImpl extends InterceptorImpl
   public void receive_exception(ClientRequestInfo ri) throws ForwardRequest {
     logger.finest("Uma exceção foi recebida");
     if (!ri.received_exception_id().equals(NO_PERMISSIONHelper.id())) {
-      logger.fine("A exceção recebida não é do tipo NO_PERMISSION");
+      logger.finest("A exceção recebida não é do tipo NO_PERMISSION");
       return;
     }
-    logger.fine("A exceção recebida é do tipo NO_PERMISSION");
+    logger.finest("A exceção recebida é do tipo NO_PERMISSION");
 
     Any exceptionAny = ri.received_exception();
     NO_PERMISSION exception = NO_PERMISSIONHelper.extract(exceptionAny);
@@ -229,7 +230,7 @@ public final class ClientRequestInterceptorImpl extends InterceptorImpl
       return;
     }
     logger
-      .fine("A exceção indica que a operação solicitada não foi completada");
+      .finest("A exceção indica que a operação solicitada não foi completada");
 
     if (exception.minor == InvalidCredentialCode.value) {
       logger.fine("Obtendo o CredentialReset");
@@ -259,6 +260,11 @@ public final class ClientRequestInterceptorImpl extends InterceptorImpl
       this.resets.put(callee, reset);
       logger.fine("Solicitando que a chamada seja refeita.");
       throw new ForwardRequest(ri.target());
+    }
+    else if (exception.minor == InvalidLoginCode.value) {
+      logger.info(String.format(
+        "Recebeu uma exceção InvalidLogin. operação: %s", ri.operation()));
+      // TODO: se tiver callback de onInvalidLogin, e ela executar ok, então refaz a chamada.
     }
   }
 

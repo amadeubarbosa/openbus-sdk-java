@@ -5,7 +5,7 @@ import org.omg.IOP.Codec;
 import org.omg.PortableServer.POA;
 
 import tecgraf.openbus.exception.CryptographyException;
-import tecgraf.openbus.exception.InternalException;
+import tecgraf.openbus.exception.OpenBusInternalException;
 
 public interface BusORB {
   Bus getBus(String host, int port) throws CryptographyException;
@@ -16,7 +16,7 @@ public interface BusORB {
 
   void setCurrentConnection(Connection connection);
 
-  CallerChain getCallerChain() throws InternalException;
+  CallerChain getCallerChain() throws OpenBusInternalException;
 
   void ignoreCurrentThread();
 
@@ -26,7 +26,7 @@ public interface BusORB {
 
   ORB getORB();
 
-  POA getRootPOA() throws InternalException;
+  POA getRootPOA() throws OpenBusInternalException;
 
   Codec getCodec();
 }

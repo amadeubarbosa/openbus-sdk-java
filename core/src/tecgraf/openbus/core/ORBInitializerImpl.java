@@ -16,6 +16,7 @@ import org.omg.PortableInterceptor.ORBInitializer;
 import org.omg.PortableInterceptor.ORBInitInfoPackage.DuplicateName;
 import org.omg.PortableInterceptor.ORBInitInfoPackage.InvalidName;
 
+
 public final class ORBInitializerImpl extends LocalObject implements
   ORBInitializer {
   private static final byte ENCODING_CDR_ENCAPS_MAJOR_VERSION = 1;

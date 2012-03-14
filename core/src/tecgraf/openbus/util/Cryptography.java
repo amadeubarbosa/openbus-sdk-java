@@ -70,6 +70,7 @@ public final class Cryptography {
   /**
    * Codificação charset padrão.
    */
+  // TODO: colocar charset ASCI
   public static Charset CHARSET = Charset.forName("ISO-8859-1");
   /**
    * A instância.

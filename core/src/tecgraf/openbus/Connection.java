@@ -2,97 +2,190 @@ package tecgraf.openbus;
 
 import java.security.interfaces.RSAPrivateKey;
 
+import tecgraf.openbus.core.v2_00.OctetSeqHolder;
 import tecgraf.openbus.core.v2_00.services.ServiceFailure;
 import tecgraf.openbus.core.v2_00.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_00.services.access_control.MissingCertificate;
-import tecgraf.openbus.core.v2_00.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_00.services.offer_registry.OfferRegistry;
-import tecgraf.openbus.exception.AlreadyLoggedException;
-import tecgraf.openbus.exception.CorruptedLoginException;
-import tecgraf.openbus.exception.CryptographyException;
-import tecgraf.openbus.exception.InternalException;
-import tecgraf.openbus.exception.InvalidLoginException;
+import tecgraf.openbus.exception.AlreadyLoggedIn;
+import tecgraf.openbus.exception.CorruptedPrivateKey;
+import tecgraf.openbus.exception.WrongPrivateKey;
+import tecgraf.openbus.exception.WrongSecret;
 
+/**
+ * Conexão com um barramento.
+ * 
+ * @author Tecgraf
+ */
 public interface Connection {
-  void addObserver(ConnectionObserver observer);
-
-  void removeObserver(ConnectionObserver observer);
-
-  boolean isClosed();
-
-  void close();
-
-  public Bus getBus();
 
   /**
-   * Autentica uma entidade através de uma senha.
+   * Recupera o ORB utilizado pela conexão.
    * 
-   * @param entity Identificador da entidade a ser autenticada.
-   * @param password Senha
-   * @return A informação do login.
-   * @throws AlreadyLoggedException
-   * @throws CryptographyException
-   * @throws InternalException
-   * @throws AccessDenied
-   * @throws WrongEncoding
+   * @return o ORB
+   */
+  public org.omg.CORBA.ORB orb();
+
+  /**
+   * Recupera o serviço de registro de ofertas.
+   * 
+   * @return o serviço de registro de ofertas.
+   */
+  public OfferRegistry offers();
+
+  /**
+   * Recupera a identificação do barramento ao qual essa conexão se refere.
+   * 
+   * @return a identificação do barramento.
+   */
+  public String busid();
+
+  /**
+   * Recupera as informações sobre o login da entidade que autenticou essa
+   * conexão.
+   * 
+   * @return as informações do login.
+   */
+  public LoginInfo login();
+
+  /**
+   * Efetua login no barramento como uma entidade usando autenticação por senha.
+   * 
+   * @param entity Identificador da entidade a ser conectada.
+   * @param password Senha de autenticação da entidade no barramento.
+   * 
+   * @exception AccessDenied Senha fornecida para autenticação da entidade não
+   *            foi validada pelo barramento.
+   * @exception AlreadyLoggedIn A conexão já está logada.
+   * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
+   *            barramento que impediu o estabelecimento da conexão.
+   */
+  public void loginByPassword(String entity, byte[] password)
+    throws AccessDenied, AlreadyLoggedIn, ServiceFailure;
+
+  /**
+   * Efetua login no barramento como uma entidade usando autenticação por
+   * certificado.
+   * 
+   * @param entity Identificador da entidade a ser conectada.
+   * @param privateKey Chave privada da entidade utilizada na autenticação.
+   * 
+   * @exception MissingCertificate Não há certificado para essa entidade
+   *            registrado no barramento indicado.
+   * @exception CorruptedPrivateKey A chave privada fornecida está corrompida.
+   * @exception WrongPrivateKey A chave privada fornecida não corresponde ao
+   *            certificado da entidade registrado no barramento indicado.
+   * @exception AlreadyLoggedIn A conexão já está logada.
+   * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
+   *            barramento que impediu o estabelecimento da conexão.
+   */
+  public void loginByCertificate(String entity, RSAPrivateKey privateKey)
+    throws CorruptedPrivateKey, WrongPrivateKey, AlreadyLoggedIn,
+    MissingCertificate, ServiceFailure;
+
+  /**
+   * Inicia o processo de login por single sign-on.
+   * 
+   * @param secret Segredo a ser fornecido na conclusão do processo de login.
+   * 
+   * @return Objeto que represeta o processo de login iniciado.
+   */
+  public LoginProcess startSingleSignOn(OctetSeqHolder secret);
+
+  /**
+   * Efetua login no barramento como uma entidade usando autenticação por single
+   * sign-on.
+   * 
+   * @param process Objeto que represeta o processo de login iniciado.
+   * @param secret Segredo a ser fornecido na conclusão do processo de login.
+   * 
+   * @exception WrongSecret O segredo fornecido não corresponde ao esperado pelo
+   *            barramento.
+   * @exception AlreadyLoggedIn A conexão já está logada.
+   * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
+   *            barramento que impediu o estabelecimento da conexão.
+   */
+  public void loginBySingleSignOn(LoginProcess process, byte[] secret)
+    throws WrongSecret, AlreadyLoggedIn, ServiceFailure;
+
+  /**
+   * Efetua logout no barramento.
+   * 
+   * @return <code>true</code> se o processo de logout for concluído com êxito e
+   *         <code>false</code> se a conexão já estiver deslogada (login
+   *         inválido).
    * @throws ServiceFailure
    */
-  public LoginInfo loginByPassword(String entity, char[] password)
-    throws AlreadyLoggedException, CryptographyException, InternalException,
-    AccessDenied, WrongEncoding, ServiceFailure;
+  public boolean logout() throws ServiceFailure;
 
   /**
-   * Autentica uma entidade através de um certificado.
+   * Define a callback a ser chamada sempre que o login se torna inválido.
    * 
-   * @param entity Identificador da entidade a ser autenticada.
-   * @param privateKey A chave privada da entidade.
-   * @return A informação do login.
-   * @throws AlreadyLoggedException
-   * @throws CryptographyException
-   * @throws InternalException
-   * @throws AccessDenied
-   * @throws MissingCertificate
-   * @throws WrongEncoding
-   * @throws ServiceFailure
+   * @param callback Objeto que implementa a interface de callback a ser chamada
+   *        ou <code>null</code> caso nenhum objeto deva ser chamado na
+   *        ocorrência desse evento.
    */
-  public LoginInfo loginByCertificate(String entity, RSAPrivateKey privateKey)
-    throws AlreadyLoggedException, CryptographyException, InternalException,
-    AccessDenied, MissingCertificate, WrongEncoding, ServiceFailure;
-
-  public LoginProcess shareLogin(byte[] encodedlogin)
-    throws CorruptedLoginException, InvalidLoginException,
-    AlreadyLoggedException;
+  public void onInvalidLoginCallback(InvalidLoginCallback callback);
 
   /**
-   * Obtém a informação do login desta conexão.
+   * Recupera a callback a ser chamada sempre que o login se torna inválido.
    * 
-   * @return A informação do login.
+   * @return a callback ou <code>null</code> caso ela não exista.
    */
-  public LoginInfo getLogin();
+  public InvalidLoginCallback onInvalidLoginCallback();
 
   /**
-   * Encerra o login.
+   * Caso a thread corrente seja a thread de execução de uma chamada remota
+   * oriunda do barramento dessa conexão, essa operação devolve um objeto que
+   * representa a cadeia de chamadas do barramento que esta chamada faz parte.
+   * Caso contrário devolve 'null'.
    * 
-   * @throws ServiceFailure
+   * @return Cadeia da chamada em execução.
    */
-  public void logout() throws ServiceFailure;
+  public CallerChain getCallerChain();
 
   /**
-   * @return
+   * Associa uma cadeia de chamadas do barramento a thread corrente, de forma
+   * que todas as chamadas remotas seguintes dessa thread através dessa conexão
+   * sejam feitas como parte dessa cadeia de chamadas.
+   * 
+   * @param chain a cadeia de chamadas.
    */
-  RSAPrivateKey getPrivateKey();
-
-  void setAccessExpirationCallback(AccessExpirationCallback aec);
-
-  public void joinChain() throws InternalException;
-
   public void joinChain(CallerChain chain);
 
+  /**
+   * Associa a cadeia de chamadas do barramento retornada pelo getCallerChain a
+   * thread corrente, de forma que todas as chamadas remotas seguintes dessa
+   * thread através dessa conexão sejam feitas como parte dessa cadeia de
+   * chamadas.
+   */
+  public void joinChain();
+
+  /**
+   * Remove a associação da cadeia de chamadas com a thread corrente, fazendo
+   * com que todas as chamadas seguintes da thread corrente feitas através dessa
+   * conexão deixem de fazer parte da cadeia de chamadas associada previamente.
+   * Ou seja, todas as chamadas passam a iniciar novas cadeias de chamada.
+   */
   public void exitChain();
 
+  /**
+   * Devolve um objeto que representa a cadeia de chamadas associada a thread
+   * atual nessa conexão. A cadeia de chamadas informada foi associada
+   * previamente pela operação 'joinChain'. Caso a thread corrente não tenha
+   * nenhuma cadeia associada, essa operação devolve 'null'.
+   * 
+   * @return Cadeia de chamadas associada.
+   */
   public CallerChain getJoinedChain();
 
-  public OfferRegistry getOffers();
+  /**
+   * Encerra essa conexão, tornando-a inválida daqui em diante.
+   * 
+   * @throws ServiceFailure
+   */
+  public void close() throws ServiceFailure;
+
 }

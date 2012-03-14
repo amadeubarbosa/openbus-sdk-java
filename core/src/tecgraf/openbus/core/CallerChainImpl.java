@@ -19,7 +19,7 @@ public final class CallerChainImpl implements CallerChain {
   }
 
   @Override
-  public LoginInfo[] getCallers() {
+  public LoginInfo[] callers() {
     return this.callers;
   }
 }
