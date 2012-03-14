@@ -30,8 +30,8 @@ public final class HelloServant extends HelloPOA {
   @Override
   public void sayHello() {
     try {
-      CallerChain callerChain = conn.getBus().getORB().getCallerChain();
-      LoginInfo[] callers = callerChain.getCallers();
+      CallerChain callerChain = conn.getCallerChain();
+      LoginInfo[] callers = callerChain.callers();
       String entity = callers[callers.length - 1].entity;
       System.out.println(String.format("Hello from %s!", entity));
     }

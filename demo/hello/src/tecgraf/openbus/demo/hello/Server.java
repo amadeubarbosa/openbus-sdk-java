@@ -41,10 +41,10 @@ public final class Server {
   public static void main(String[] args) {
     try {
       Logger logger = Logger.getLogger("tecgraf.openbus");
-      logger.setLevel(Level.FINEST);
+      logger.setLevel(Level.INFO);
       logger.setUseParentHandlers(false);
       ConsoleHandler handler = new ConsoleHandler();
-      handler.setLevel(Level.FINEST);
+      handler.setLevel(Level.INFO);
       logger.addHandler(handler);
 
       ServerProperties props = new ServerProperties();
@@ -56,9 +56,8 @@ public final class Server {
 
       Bus bus = orb.getBus(props.getHost(), props.getPort());
       Connection conn = bus.createConnection();
-      LoginInfo info =
-        conn.loginByCertificate(props.getEntity(), props.getPrivateKey());
-      System.out.println(info.id);
+      conn.loginByCertificate(props.getEntity(), props.getPrivateKey());
+      LoginInfo info = conn.login();
       ComponentId id =
         new ComponentId("Hello", (byte) 1, (byte) 0, (byte) 0, "java");
 
@@ -72,8 +71,7 @@ public final class Server {
       ServiceProperty[] serviceProperties = new ServiceProperty[1];
       serviceProperties[0] =
         new ServiceProperty("offer.domain", "OpenBus Demos");
-      conn.getOffers().registerService(context.getIComponent(),
-        serviceProperties);
+      conn.offers().registerService(context.getIComponent(), serviceProperties);
     }
     catch (Exception e) {
       e.printStackTrace();
