@@ -20,6 +20,7 @@ import org.omg.PortableInterceptor.ForwardRequest;
 
 import tecgraf.openbus.BusORB;
 import tecgraf.openbus.Connection;
+import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.core.interceptor.CredentialSession;
 import tecgraf.openbus.core.interceptor.EffectiveProfile;
 import tecgraf.openbus.core.v2_00.credential.CredentialContextId;
@@ -30,6 +31,7 @@ import tecgraf.openbus.core.v2_00.credential.CredentialResetHelper;
 import tecgraf.openbus.core.v2_00.services.ServiceFailure;
 import tecgraf.openbus.core.v2_00.services.access_control.InvalidCredentialCode;
 import tecgraf.openbus.core.v2_00.services.access_control.InvalidLoginCode;
+import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.access_control.SignedCallChain;
 import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.util.Cryptography;
@@ -262,9 +264,17 @@ public final class ClientRequestInterceptorImpl extends InterceptorImpl
       throw new ForwardRequest(ri.target());
     }
     else if (exception.minor == InvalidLoginCode.value) {
-      logger.info(String.format(
+      logger.fine(String.format(
         "Recebeu uma exceção InvalidLogin. operação: %s", ri.operation()));
-      // TODO: se tiver callback de onInvalidLogin, e ela executar ok, então refaz a chamada.
+      ConnectionImpl conn =
+        (ConnectionImpl) this.getMediator().getORB().getCurrentConnection();
+      InvalidLoginCallback callback = conn.onInvalidLoginCallback();
+      LoginInfo login = conn.login();
+      conn.localLogout();
+      if (callback != null && callback.invalidLogin(login)) {
+        logger.fine("Solicitando que a chamada seja refeita.");
+        throw new ForwardRequest(ri.target());
+      }
     }
   }
 

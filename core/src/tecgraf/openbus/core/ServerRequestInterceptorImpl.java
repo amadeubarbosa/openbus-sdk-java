@@ -35,6 +35,7 @@ import tecgraf.openbus.core.v2_00.services.access_control.InvalidChainCode;
 import tecgraf.openbus.core.v2_00.services.access_control.InvalidCredentialCode;
 import tecgraf.openbus.core.v2_00.services.access_control.InvalidLoginCode;
 import tecgraf.openbus.core.v2_00.services.access_control.InvalidLogins;
+import tecgraf.openbus.core.v2_00.services.access_control.InvalidPublicKeyCode;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.access_control.SignedCallChain;
 import tecgraf.openbus.core.v2_00.services.access_control.UnknownBusCode;
@@ -56,6 +57,7 @@ public final class ServerRequestInterceptorImpl extends InterceptorImpl
     .getLogger(ServerRequestInterceptorImpl.class.getName());
 
   /** Mapa de cliente alvo da chamada para estrutura de reset */
+  // TODO: necessário utilizar uma cache de resets?
   private Map<String, CredentialReset> resets;
   /** Cache de sessão: mapa de cliente alvo da chamada para sessão */
   private Map<Integer, CredentialSession> sessions;
@@ -176,12 +178,8 @@ public final class ServerRequestInterceptorImpl extends InterceptorImpl
         CompletionStatus.COMPLETED_NO);
     }
     catch (CryptographyException e) {
-      //throw new NO_PERMISSION(InvalidPublicKeyCode.value,
-      //  CompletionStatus.COMPLETED_NO);
-      String message =
-        "Falha inesperada ao criptografar segredo com chave pública";
-      logger.log(Level.SEVERE, message, e);
-      throw new INTERNAL(message);
+      throw new NO_PERMISSION(InvalidPublicKeyCode.value,
+        CompletionStatus.COMPLETED_NO);
     }
 
   }

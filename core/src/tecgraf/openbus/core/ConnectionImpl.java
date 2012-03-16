@@ -47,8 +47,11 @@ import tecgraf.openbus.util.Cryptography;
  * @author Tecgraf
  */
 public final class ConnectionImpl implements Connection {
+  /** Instância do logger */
   private static final Logger logger = Logger.getLogger(ConnectionImpl.class
     .getName());
+  /** Instância auxiliar para tratar de criptografia */
+  private Cryptography crypto;
 
   /** Informações sobre o barramento ao qual a conexão pertence */
   private BusImpl bus;
@@ -64,6 +67,8 @@ public final class ConnectionImpl implements Connection {
   private Map<Thread, CallerChain> joinedChains;
   /** Thread de renovação de login */
   private LeaseRenewer renewer;
+  /** Callback a ser disparada caso o login se encontre inválido */
+  private InvalidLoginCallback invalidLoginCallback;
 
   /**
    * Construtor.
@@ -73,7 +78,8 @@ public final class ConnectionImpl implements Connection {
    */
   ConnectionImpl(Bus bus) throws CryptographyException {
     this.bus = (BusImpl) bus;
-    KeyPair keyPair = Cryptography.getInstance().generateRSAKeyPair();
+    this.crypto = Cryptography.getInstance();
+    KeyPair keyPair = crypto.generateRSAKeyPair();
     this.publicKey = (RSAPublicKey) keyPair.getPublic();
     this.privateKey = (RSAPrivateKey) keyPair.getPrivate();
     this.closed = false;
@@ -96,20 +102,45 @@ public final class ConnectionImpl implements Connection {
     return this.bus.getId();
   }
 
+  /**
+   * Recupera a chave pública do barramento.
+   * 
+   * @return a chave pública.
+   */
   RSAPublicKey getBusPublicKey() {
     return this.bus.getPublicKey();
   }
 
+  /**
+   * Recupera a chave privada da conexão.
+   * 
+   * @return a chave privada.
+   */
   RSAPrivateKey getPrivateKey() {
     return this.privateKey;
   }
 
   /**
-   * {@inheritDoc}
+   * Verifica se a conexão já está loggada, e lança a exceção
+   * {@link AlreadyLoggedIn} caso positivo.
+   * 
+   * @throws AlreadyLoggedIn
    */
-  // TODO inserir na interface
-  public boolean isClosed() {
-    return this.closed;
+  private void checkLoggedIn() throws AlreadyLoggedIn {
+    if (this.login != null) {
+      throw new AlreadyLoggedIn();
+    }
+  }
+
+  /**
+   * Verifica se a conexão esta fechada, e lança uma exceção
+   * {@link OpenBusInternalException} caso esteja.
+   */
+  private void checkClosed() {
+    // TODO: confirmar os locais onde devem existir a verificação checkClosed
+    if (this.closed) {
+      throw new OpenBusInternalException("Conexão fechada!");
+    }
   }
 
   /**
@@ -131,8 +162,8 @@ public final class ConnectionImpl implements Connection {
   @Override
   public void loginByPassword(String entity, byte[] password)
     throws AccessDenied, AlreadyLoggedIn, ServiceFailure {
-    logger.fine(String.format(
-      "Iniciando a autenticação através de senha para a entidade %s", entity));
+    checkClosed();
+    checkLoggedIn();
     try {
       byte[] encryptedLoginAuthenticationInfo =
         this.generateEncryptedLoginAuthenticationInfo(password);
@@ -150,9 +181,11 @@ public final class ConnectionImpl implements Connection {
     finally {
       this.bus.getORB().unignoreCurrentThread();
     }
-    logger.info(String.format(
-      "Autenticação através de senha efetuada com sucesso para a entidade %s",
-      entity));
+    logger
+      .info(String
+        .format(
+          "Login por senha efetuado com sucesso: busid (%s) login (%s) entidade (%s)",
+          busid(), login.id, login.entity));
     fireRenewerThread();
   }
 
@@ -166,7 +199,6 @@ public final class ConnectionImpl implements Connection {
    */
   private byte[] generateEncryptedLoginAuthenticationInfo(byte[] data) {
     try {
-      Cryptography crypto = Cryptography.getInstance();
       byte[] publicKeyHash = crypto.generateHash(this.publicKey.getEncoded());
 
       LoginAuthenticationInfo authenticationInfo =
@@ -197,6 +229,8 @@ public final class ConnectionImpl implements Connection {
   public void loginByCertificate(String entity, RSAPrivateKey privateKey)
     throws CorruptedPrivateKey, WrongPrivateKey, AlreadyLoggedIn,
     MissingCertificate, ServiceFailure {
+    checkClosed();
+    checkLoggedIn();
     this.bus.getORB().ignoreCurrentThread();
     try {
       EncryptedBlockHolder challengeHolder = new EncryptedBlockHolder();
@@ -204,7 +238,7 @@ public final class ConnectionImpl implements Connection {
         this.bus.getAccessControl().startLoginByCertificate(entity,
           challengeHolder);
       byte[] decryptedChallenge =
-        Cryptography.getInstance().decrypt(challengeHolder.value, privateKey);
+        crypto.decrypt(challengeHolder.value, privateKey);
 
       byte[] encryptedLoginAuthenticationInfo =
         this.generateEncryptedLoginAuthenticationInfo(decryptedChallenge);
@@ -215,7 +249,7 @@ public final class ConnectionImpl implements Connection {
           encryptedLoginAuthenticationInfo, validityHolder);
     }
     catch (CryptographyException e) {
-      throw new OpenBusInternalException("Erro ao descriptografar desafio.", e);
+      throw new CorruptedPrivateKey("Erro ao descriptografar desafio.", e);
     }
     catch (AccessDenied e) {
       throw new OpenBusInternalException("Desafio enviado difere do esperado.",
@@ -228,18 +262,34 @@ public final class ConnectionImpl implements Connection {
     finally {
       this.bus.getORB().unignoreCurrentThread();
     }
-    logger.info(String.format(
-      "Autenticação por certificado a efetuada com sucesso para a entidade %s",
-      entity));
+    logger
+      .info(String
+        .format(
+          "Login por certificado efetuada com sucesso: busid (%s) login (%s) entidade (%s)",
+          busid(), login.id, login.entity));
     fireRenewerThread();
   }
 
   /**
    * {@inheritDoc}
+   * 
+   * @throws ServiceFailure
    */
   @Override
-  public LoginProcess startSingleSignOn(OctetSeqHolder secret) {
-    return null;
+  public LoginProcess startSingleSignOn(OctetSeqHolder secret)
+    throws ServiceFailure {
+    checkClosed();
+    EncryptedBlockHolder challenge = new EncryptedBlockHolder();
+    LoginProcess process = this.access().startLoginBySingleSignOn(challenge);
+    try {
+      secret.value = crypto.decrypt(challenge.value, this.privateKey);
+    }
+    catch (CryptographyException e) {
+      process.cancel();
+      throw new OpenBusInternalException(
+        "Erro ao descriptografar segredo com chave privada.", e);
+    }
+    return process;
   }
 
   /**
@@ -248,7 +298,28 @@ public final class ConnectionImpl implements Connection {
   @Override
   public void loginBySingleSignOn(LoginProcess process, byte[] secret)
     throws WrongSecret, AlreadyLoggedIn, ServiceFailure {
-    return;
+    checkClosed();
+    checkLoggedIn();
+    byte[] encryptedLoginAuthenticationInfo =
+      this.generateEncryptedLoginAuthenticationInfo(secret);
+    IntHolder validity = new IntHolder();
+    try {
+      this.login =
+        process.login(this.publicKey.getEncoded(),
+          encryptedLoginAuthenticationInfo, validity);
+    }
+    catch (AccessDenied e) {
+      throw new WrongSecret("Erro durante tentativa de login.", e);
+    }
+    catch (WrongEncoding e) {
+      throw new WrongSecret("Erro durante tentativa de login.", e);
+    }
+    logger
+      .info(String
+        .format(
+          "Login por singleSignOn efetuado com sucesso: busid (%s) login (%s) entidade (%s)",
+          busid(), login.id, login.entity));
+    fireRenewerThread();
   }
 
   /**
@@ -285,6 +356,7 @@ public final class ConnectionImpl implements Connection {
    */
   @Override
   public boolean logout() throws ServiceFailure {
+    checkClosed();
     if (this.login != null) {
       try {
         this.bus.getAccessControl().logout();
@@ -294,7 +366,10 @@ public final class ConnectionImpl implements Connection {
       catch (NO_PERMISSION e) {
         if (e.minor == InvalidLoginCode.value
           && e.completed.equals(CompletionStatus.COMPLETED_NO)) {
-          // chamada de logout não foi realizada. Retorna false.
+          return false;
+        }
+        else {
+          throw e;
         }
       }
     }
@@ -315,6 +390,7 @@ public final class ConnectionImpl implements Connection {
    */
   @Override
   public CallerChain getCallerChain() {
+    checkClosed();
     return this.bus.getORB().getCallerChain();
   }
 
@@ -323,6 +399,7 @@ public final class ConnectionImpl implements Connection {
    */
   @Override
   public void joinChain() throws OpenBusInternalException {
+    checkClosed();
     CallerChain currentChain = this.bus.getORB().getCallerChain();
     if (currentChain == null) {
       return;
@@ -336,6 +413,7 @@ public final class ConnectionImpl implements Connection {
    */
   @Override
   public void joinChain(CallerChain chain) {
+    checkClosed();
     Thread currentThread = Thread.currentThread();
     this.joinedChains.put(currentThread, chain);
   }
@@ -345,6 +423,7 @@ public final class ConnectionImpl implements Connection {
    */
   @Override
   public void exitChain() {
+    checkClosed();
     Thread currentThread = Thread.currentThread();
     this.joinedChains.remove(currentThread);
   }
@@ -354,6 +433,7 @@ public final class ConnectionImpl implements Connection {
    */
   @Override
   public CallerChain getJoinedChain() {
+    checkClosed();
     Thread currentThread = Thread.currentThread();
     return this.joinedChains.get(currentThread);
   }
@@ -390,19 +470,24 @@ public final class ConnectionImpl implements Connection {
    */
   @Override
   public OfferRegistry offers() {
+    checkClosed();
     return this.bus.getOfferRegistry();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void onInvalidLoginCallback(InvalidLoginCallback callback) {
-    // TODO Auto-generated method stub
-
+    this.invalidLoginCallback = callback;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public InvalidLoginCallback onInvalidLoginCallback() {
-    // TODO Auto-generated method stub
-    return null;
+    return this.invalidLoginCallback;
   }
 
 }

@@ -212,18 +212,6 @@ public final class BusORBImpl implements BusORB {
     return CurrentHelper.narrow(obj);
   }
 
-  CallerChain getCallerChain(String id) throws OpenBusInternalException {
-    CallerChain chain = this.getCallerChain();
-    if (chain == null) {
-      return null;
-    }
-
-    if (chain.getBus().getId().equals(id)) {
-      return chain;
-    }
-    return null;
-  }
-
   @Override
   public void ignoreCurrentThread() {
     Thread currentThread = Thread.currentThread();

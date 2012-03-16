@@ -91,8 +91,10 @@ public interface Connection {
    * @param secret Segredo a ser fornecido na conclusão do processo de login.
    * 
    * @return Objeto que represeta o processo de login iniciado.
+   * @throws ServiceFailure
    */
-  public LoginProcess startSingleSignOn(OctetSeqHolder secret);
+  public LoginProcess startSingleSignOn(OctetSeqHolder secret)
+    throws ServiceFailure;
 
   /**
    * Efetua login no barramento como uma entidade usando autenticação por single

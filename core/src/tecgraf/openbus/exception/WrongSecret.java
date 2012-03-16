@@ -6,4 +6,8 @@ public class WrongSecret extends OpenBusException {
     super(message);
   }
 
+  public WrongSecret(String message, Throwable exception) {
+    super(message, exception);
+  }
+
 }
