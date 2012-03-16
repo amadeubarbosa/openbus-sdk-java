@@ -382,6 +382,8 @@ public final class ConnectionImpl implements Connection {
   void localLogout() {
     // TODO: reset caches
     stopRenewerThread();
+    logger.info(String.format("Logout efetuado: id (%s) entidade (%s)",
+      login.id, login.entity));
     this.login = null;
   }
 

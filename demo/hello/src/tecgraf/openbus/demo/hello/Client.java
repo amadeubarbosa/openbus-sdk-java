@@ -1,8 +1,5 @@
 package tecgraf.openbus.demo.hello;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Properties;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
@@ -14,6 +11,7 @@ import tecgraf.openbus.Connection;
 import tecgraf.openbus.core.BusORBImpl;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
+import tecgraf.openbus.demo.util.Utils;
 import tecgraf.openbus.util.Cryptography;
 
 public final class Client {
@@ -26,19 +24,23 @@ public final class Client {
       handler.setLevel(Level.INFO);
       logger.addHandler(handler);
 
-      ClientProperties properties = new ClientProperties();
+      Properties properties = Utils.readPropertyFile("/Hello.properties");
+      String host = properties.getProperty("openbus.host.name");
+      int port = Integer.valueOf(properties.getProperty("openbus.host.port"));
+      String entity = properties.getProperty("entity.name");
+      String serverEntity = properties.getProperty("server.entity.name");
+      String password = properties.getProperty("entity.password");
 
       BusORB orb = new BusORBImpl();
-      Bus bus = orb.getBus(properties.getHost(), properties.getPort());
+      Bus bus = orb.getBus(host, port);
       Connection connection = bus.createConnection();
 
-      connection.loginByPassword(properties.getEntity(), properties
-        .getEntityPassword());
+      connection.loginByPassword(entity, password
+        .getBytes(Cryptography.CHARSET));
 
       ServiceProperty[] serviceProperties = new ServiceProperty[3];
       serviceProperties[0] =
-        new ServiceProperty("openbus.offer.entity", properties
-          .getServerEntity());
+        new ServiceProperty("openbus.offer.entity", serverEntity);
       serviceProperties[1] =
         new ServiceProperty("openbus.component.facet", "hello");
       serviceProperties[2] =
@@ -69,56 +71,6 @@ public final class Client {
     }
     catch (Exception e) {
       e.printStackTrace();
-    }
-  }
-
-  private static class ClientProperties {
-    private Properties properties;
-
-    ClientProperties() throws IOException {
-      this.properties = new Properties();
-      String propertiesFile = "/Hello.properties";
-      InputStream propertiesStream =
-        Client.class.getResourceAsStream(propertiesFile);
-      if (propertiesStream == null) {
-        throw new FileNotFoundException(String.format(
-          "O arquivo de propriedades %s não foi encontrado", propertiesFile));
-      }
-      try {
-        this.properties.load(propertiesStream);
-      }
-      finally {
-        try {
-          propertiesStream.close();
-        }
-        catch (IOException e) {
-          System.err
-            .println("Ocorreu um erro ao fechar o arquivo de propriedades");
-          e.printStackTrace();
-        }
-      }
-    }
-
-    String getHost() {
-      return this.properties.getProperty("openbus.host.name");
-    }
-
-    int getPort() {
-      String port = this.properties.getProperty("openbus.host.port");
-      return Integer.valueOf(port);
-    }
-
-    String getEntity() {
-      return this.properties.getProperty("entity.name");
-    }
-
-    String getServerEntity() {
-      return this.properties.getProperty("server.entity.name");
-    }
-
-    byte[] getEntityPassword() {
-      String password = this.properties.getProperty("entity.password");
-      return password.getBytes(Cryptography.CHARSET);
     }
   }
 }

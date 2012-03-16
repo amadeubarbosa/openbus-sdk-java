@@ -1,12 +1,6 @@
 package tecgraf.openbus.demo.hello;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
-import java.security.spec.InvalidKeySpecException;
 import java.util.Properties;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
@@ -24,6 +18,7 @@ import tecgraf.openbus.Connection;
 import tecgraf.openbus.core.BusORBImpl;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
+import tecgraf.openbus.demo.util.Utils;
 import tecgraf.openbus.util.Cryptography;
 
 /**
@@ -47,16 +42,22 @@ public final class Server {
       handler.setLevel(Level.INFO);
       logger.addHandler(handler);
 
-      ServerProperties props = new ServerProperties();
+      Properties props = Utils.readPropertyFile("/Hello.properties");
+      String host = props.getProperty("openbus.host.name");
+      int port = Integer.valueOf(props.getProperty("openbus.host.port"));
+      String entity = props.getProperty("server.entity.name");
+      String privateKeyFile = props.getProperty("server.private.key");
+      RSAPrivateKey privateKey =
+        Cryptography.getInstance().readPrivateKey(privateKeyFile);
 
       BusORB orb = new BusORBImpl(args);
 
       new ORBRunThread(orb.getORB()).start();
       Runtime.getRuntime().addShutdownHook(new ORBDestroyThread(orb.getORB()));
 
-      Bus bus = orb.getBus(props.getHost(), props.getPort());
+      Bus bus = orb.getBus(host, port);
       Connection conn = bus.createConnection();
-      conn.loginByCertificate(props.getEntity(), props.getPrivateKey());
+      conn.loginByCertificate(entity, privateKey);
       LoginInfo info = conn.login();
       ComponentId id =
         new ComponentId("Hello", (byte) 1, (byte) 0, (byte) 0, "java");
@@ -102,53 +103,6 @@ public final class Server {
     public void run() {
       this.orb.shutdown(true);
       this.orb.destroy();
-    }
-  }
-
-  private static class ServerProperties {
-    private Properties properties;
-
-    ServerProperties() throws IOException {
-      this.properties = new Properties();
-      String propertiesFile = "/Hello.properties";
-      InputStream propertiesStream =
-        Client.class.getResourceAsStream(propertiesFile);
-      if (propertiesStream == null) {
-        throw new FileNotFoundException(String.format(
-          "O arquivo de propriedades %s não foi encontrado", propertiesFile));
-      }
-      try {
-        this.properties.load(propertiesStream);
-      }
-      finally {
-        try {
-          propertiesStream.close();
-        }
-        catch (IOException e) {
-          System.err
-            .println("Ocorreu um erro ao fechar o arquivo de propriedades");
-          e.printStackTrace();
-        }
-      }
-    }
-
-    String getHost() {
-      return this.properties.getProperty("openbus.host.name");
-    }
-
-    int getPort() {
-      String port = this.properties.getProperty("openbus.host.port");
-      return Integer.valueOf(port);
-    }
-
-    String getEntity() {
-      return this.properties.getProperty("server.entity.name");
-    }
-
-    RSAPrivateKey getPrivateKey() throws InvalidKeyException,
-      NoSuchAlgorithmException, InvalidKeySpecException, IOException {
-      String privateKeyFile = this.properties.getProperty("server.private.key");
-      return Cryptography.getInstance().readPrivateKey(privateKeyFile);
     }
   }
 }
