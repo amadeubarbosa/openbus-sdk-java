@@ -26,21 +26,21 @@ public interface Connection {
    * 
    * @return o ORB
    */
-  public org.omg.CORBA.ORB orb();
+  org.omg.CORBA.ORB orb();
 
   /**
    * Recupera o serviço de registro de ofertas.
    * 
    * @return o serviço de registro de ofertas.
    */
-  public OfferRegistry offers();
+  OfferRegistry offers();
 
   /**
    * Recupera a identificação do barramento ao qual essa conexão se refere.
    * 
    * @return a identificação do barramento.
    */
-  public String busid();
+  String busid();
 
   /**
    * Recupera as informações sobre o login da entidade que autenticou essa
@@ -48,7 +48,7 @@ public interface Connection {
    * 
    * @return as informações do login.
    */
-  public LoginInfo login();
+  LoginInfo login();
 
   /**
    * Efetua login no barramento como uma entidade usando autenticação por senha.
@@ -62,8 +62,8 @@ public interface Connection {
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu o estabelecimento da conexão.
    */
-  public void loginByPassword(String entity, byte[] password)
-    throws AccessDenied, AlreadyLoggedIn, ServiceFailure;
+  void loginByPassword(String entity, byte[] password) throws AccessDenied,
+    AlreadyLoggedIn, ServiceFailure;
 
   /**
    * Efetua login no barramento como uma entidade usando autenticação por
@@ -81,7 +81,7 @@ public interface Connection {
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu o estabelecimento da conexão.
    */
-  public void loginByCertificate(String entity, RSAPrivateKey privateKey)
+  void loginByCertificate(String entity, RSAPrivateKey privateKey)
     throws CorruptedPrivateKey, WrongPrivateKey, AlreadyLoggedIn,
     MissingCertificate, ServiceFailure;
 
@@ -93,8 +93,7 @@ public interface Connection {
    * @return Objeto que represeta o processo de login iniciado.
    * @throws ServiceFailure
    */
-  public LoginProcess startSingleSignOn(OctetSeqHolder secret)
-    throws ServiceFailure;
+  LoginProcess startSingleSignOn(OctetSeqHolder secret) throws ServiceFailure;
 
   /**
    * Efetua login no barramento como uma entidade usando autenticação por single
@@ -109,7 +108,7 @@ public interface Connection {
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu o estabelecimento da conexão.
    */
-  public void loginBySingleSignOn(LoginProcess process, byte[] secret)
+  void loginBySingleSignOn(LoginProcess process, byte[] secret)
     throws WrongSecret, AlreadyLoggedIn, ServiceFailure;
 
   /**
@@ -120,7 +119,7 @@ public interface Connection {
    *         inválido).
    * @throws ServiceFailure
    */
-  public boolean logout() throws ServiceFailure;
+  boolean logout() throws ServiceFailure;
 
   /**
    * Define a callback a ser chamada sempre que o login se torna inválido.
@@ -129,14 +128,14 @@ public interface Connection {
    *        ou <code>null</code> caso nenhum objeto deva ser chamado na
    *        ocorrência desse evento.
    */
-  public void onInvalidLoginCallback(InvalidLoginCallback callback);
+  void onInvalidLoginCallback(InvalidLoginCallback callback);
 
   /**
    * Recupera a callback a ser chamada sempre que o login se torna inválido.
    * 
    * @return a callback ou <code>null</code> caso ela não exista.
    */
-  public InvalidLoginCallback onInvalidLoginCallback();
+  InvalidLoginCallback onInvalidLoginCallback();
 
   /**
    * Caso a thread corrente seja a thread de execução de uma chamada remota
@@ -146,7 +145,7 @@ public interface Connection {
    * 
    * @return Cadeia da chamada em execução.
    */
-  public CallerChain getCallerChain();
+  CallerChain getCallerChain();
 
   /**
    * Associa uma cadeia de chamadas do barramento a thread corrente, de forma
@@ -155,7 +154,7 @@ public interface Connection {
    * 
    * @param chain a cadeia de chamadas.
    */
-  public void joinChain(CallerChain chain);
+  void joinChain(CallerChain chain);
 
   /**
    * Associa a cadeia de chamadas do barramento retornada pelo getCallerChain a
@@ -163,7 +162,7 @@ public interface Connection {
    * thread através dessa conexão sejam feitas como parte dessa cadeia de
    * chamadas.
    */
-  public void joinChain();
+  void joinChain();
 
   /**
    * Remove a associação da cadeia de chamadas com a thread corrente, fazendo
@@ -171,7 +170,7 @@ public interface Connection {
    * conexão deixem de fazer parte da cadeia de chamadas associada previamente.
    * Ou seja, todas as chamadas passam a iniciar novas cadeias de chamada.
    */
-  public void exitChain();
+  void exitChain();
 
   /**
    * Devolve um objeto que representa a cadeia de chamadas associada a thread
@@ -181,13 +180,13 @@ public interface Connection {
    * 
    * @return Cadeia de chamadas associada.
    */
-  public CallerChain getJoinedChain();
+  CallerChain getJoinedChain();
 
   /**
    * Encerra essa conexão, tornando-a inválida daqui em diante.
    * 
    * @throws ServiceFailure
    */
-  public void close() throws ServiceFailure;
+  void close() throws ServiceFailure;
 
 }

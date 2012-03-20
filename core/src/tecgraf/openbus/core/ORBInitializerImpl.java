@@ -16,9 +16,9 @@ import org.omg.PortableInterceptor.ORBInitializer;
 import org.omg.PortableInterceptor.ORBInitInfoPackage.DuplicateName;
 import org.omg.PortableInterceptor.ORBInitInfoPackage.InvalidName;
 
+import tecgraf.openbus.ConnectionMultiplexer;
 
-public final class ORBInitializerImpl extends LocalObject implements
-  ORBInitializer {
+final class ORBInitializerImpl extends LocalObject implements ORBInitializer {
   private static final byte ENCODING_CDR_ENCAPS_MAJOR_VERSION = 1;
   private static final byte ENCODING_CDR_ENCAPS_MINOR_VERSION = 2;
   private static final Logger logger = Logger
@@ -36,6 +36,16 @@ public final class ORBInitializerImpl extends LocalObject implements
     }
     catch (InvalidName e) {
       String message = "Falha inesperada ao registrar o mediador";
+      logger.log(Level.SEVERE, message, e);
+      throw new INITIALIZE(message);
+    }
+    ConnectionMultiplexerImpl multiplexer = new ConnectionMultiplexerImpl();
+    try {
+      info.register_initial_reference(
+        ConnectionMultiplexer.INITIAL_REFERENCE_ID, multiplexer);
+    }
+    catch (InvalidName e) {
+      String message = "Falha inesperada ao registrar o multiplexador";
       logger.log(Level.SEVERE, message, e);
       throw new INITIALIZE(message);
     }

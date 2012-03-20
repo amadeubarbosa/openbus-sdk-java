@@ -2,7 +2,7 @@ package tecgraf.openbus.core;
 
 import org.omg.PortableInterceptor.ORBInitializer;
 
-public final class ORBInitializerInfo {
+final class ORBInitializerInfo {
   private String id;
   private String className;
 

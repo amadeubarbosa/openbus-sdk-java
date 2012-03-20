@@ -42,8 +42,8 @@ import tecgraf.openbus.util.LRUCache;
  * 
  * @author Tecgraf
  */
-public final class ClientRequestInterceptorImpl extends InterceptorImpl
-  implements ClientRequestInterceptor {
+final class ClientRequestInterceptorImpl extends InterceptorImpl implements
+  ClientRequestInterceptor {
 
   /** Instância de logging. */
   private static final Logger logger = Logger
@@ -84,11 +84,8 @@ public final class ClientRequestInterceptorImpl extends InterceptorImpl
     logger.fine(String.format("A operação %s será requisitada", operation));
     BusORB orb = this.getMediator().getORB();
     if (orb.isCurrentThreadIgnored()) {
-      logger
-        .fine(String
-          .format(
-            "A operação %s não terá uma credencial, pois a thread atual está ignorada",
-            operation));
+      logger.fine(String.format("Realizando requisição sem credencial: %s",
+        operation));
       return;
     }
     CredentialData credential = this.generateCredentialData(ri);
@@ -117,7 +114,9 @@ public final class ClientRequestInterceptorImpl extends InterceptorImpl
    */
   private CredentialData generateCredentialData(ClientRequestInfo ri) {
     BusORB orb = this.getMediator().getORB();
-    Connection currentConnection = orb.getCurrentConnection();
+    ConnectionMultiplexerImpl multiplexer =
+      ((BusORBImpl) orb).getConnectionMultiplexer();
+    Connection currentConnection = multiplexer.getCurrentConnection();
 
     String busId = currentConnection.busid();
     String loginId = currentConnection.login().id;
@@ -266,11 +265,13 @@ public final class ClientRequestInterceptorImpl extends InterceptorImpl
     else if (exception.minor == InvalidLoginCode.value) {
       logger.fine(String.format(
         "Recebeu uma exceção InvalidLogin. operação: %s", ri.operation()));
-      ConnectionImpl conn =
-        (ConnectionImpl) this.getMediator().getORB().getCurrentConnection();
+      BusORB orb = this.getMediator().getORB();
+      ConnectionMultiplexerImpl multiplexer =
+        ((BusORBImpl) orb).getConnectionMultiplexer();
+      Connection conn = multiplexer.getCurrentConnection();
       InvalidLoginCallback callback = conn.onInvalidLoginCallback();
       LoginInfo login = conn.login();
-      conn.localLogout();
+      ((ConnectionImpl) conn).localLogout();
       if (callback != null && callback.invalidLogin(login)) {
         logger.fine("Solicitando que a chamada seja refeita.");
         throw new ForwardRequest(ri.target());

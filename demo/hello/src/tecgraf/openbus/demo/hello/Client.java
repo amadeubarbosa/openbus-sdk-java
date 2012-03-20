@@ -5,10 +5,8 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import tecgraf.openbus.Bus;
-import tecgraf.openbus.BusORB;
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.core.BusORBImpl;
+import tecgraf.openbus.OpenBus;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Utils;
@@ -31,9 +29,7 @@ public final class Client {
       String serverEntity = properties.getProperty("server.entity.name");
       String password = properties.getProperty("entity.password");
 
-      BusORB orb = new BusORBImpl();
-      Bus bus = orb.getBus(host, port);
-      Connection connection = bus.createConnection();
+      Connection connection = OpenBus.connect(host, port);
 
       connection.loginByPassword(entity, password
         .getBytes(Cryptography.CHARSET));
@@ -66,7 +62,6 @@ public final class Client {
       }
 
       connection.logout();
-
       connection.close();
     }
     catch (Exception e) {

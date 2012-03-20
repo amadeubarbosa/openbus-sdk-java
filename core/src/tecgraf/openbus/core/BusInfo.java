@@ -1,17 +1,9 @@
 package tecgraf.openbus.core;
 
 import java.security.interfaces.RSAPublicKey;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.logging.Logger;
 
 import scs.core.IComponent;
-import tecgraf.openbus.Bus;
-import tecgraf.openbus.BusORB;
-import tecgraf.openbus.Connection;
-import tecgraf.openbus.ConnectionObserver;
 import tecgraf.openbus.core.v2_00.services.access_control.AccessControl;
 import tecgraf.openbus.core.v2_00.services.access_control.AccessControlHelper;
 import tecgraf.openbus.core.v2_00.services.access_control.CertificateRegistry;
@@ -21,16 +13,15 @@ import tecgraf.openbus.core.v2_00.services.access_control.LoginRegistryHelper;
 import tecgraf.openbus.core.v2_00.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.core.v2_00.services.offer_registry.OfferRegistryHelper;
 import tecgraf.openbus.exception.CryptographyException;
+import tecgraf.openbus.exception.OpenBusInternalException;
 import tecgraf.openbus.util.Cryptography;
 
-public final class BusImpl implements Bus, ConnectionObserver {
+public final class BusInfo {
   private static final Logger logger = Logger
-    .getLogger(BusImpl.class.getName());
+    .getLogger(BusInfo.class.getName());
 
   private String id;
   private RSAPublicKey publicKey;
-
-  private BusORB orb;
   private IComponent bus;
 
   private AccessControl accessControl;
@@ -38,20 +29,22 @@ public final class BusImpl implements Bus, ConnectionObserver {
   private CertificateRegistry certificateRegistry;
   private OfferRegistry offerRegistry;
 
-  private Set<Connection> connections;
-
-  protected BusImpl(BusORB orb, IComponent bus) throws CryptographyException {
-    this.orb = orb;
+  public BusInfo(IComponent bus) {
     this.bus = bus;
-    this.connections = new HashSet<Connection>();
 
     org.omg.CORBA.Object obj = this.bus.getFacet(AccessControlHelper.id());
     this.accessControl = AccessControlHelper.narrow(obj);
 
     this.id = this.accessControl.busid();
-    this.publicKey =
-      Cryptography.getInstance().generateRSAPublicKeyFromX509EncodedKey(
-        this.accessControl.buskey());
+    try {
+      this.publicKey =
+        Cryptography.getInstance().generateRSAPublicKeyFromX509EncodedKey(
+          this.accessControl.buskey());
+    }
+    catch (CryptographyException e) {
+      throw new OpenBusInternalException(
+        "Erro ao construir chave pública do barramento.", e);
+    }
 
     obj = bus.getFacet(LoginRegistryHelper.id());
     this.loginRegistry = LoginRegistryHelper.narrow(obj);
@@ -63,52 +56,28 @@ public final class BusImpl implements Bus, ConnectionObserver {
     this.offerRegistry = OfferRegistryHelper.narrow(obj);
   }
 
-  @Override
-  public BusORB getORB() {
-    return this.orb;
-  }
-
-  @Override
   public String getId() {
-    return this.id;
+    return id;
   }
 
-  @Override
   public RSAPublicKey getPublicKey() {
-    return this.publicKey;
+    return publicKey;
   }
 
-  @Override
-  public Connection createConnection() throws CryptographyException {
-    Connection connection = new ConnectionImpl(this);
-    //connection.addObserver(this);
-    this.connections.add(connection);
-    return connection;
-  }
-
-  @Override
-  public void connectionClosed(Connection connection) {
-    this.connections.remove(connections);
-  }
-
-  @Override
-  public Collection<Connection> getConnections() {
-    return Collections.unmodifiableCollection(this.connections);
-  }
-
-  AccessControl getAccessControl() {
-    return this.accessControl;
+  public AccessControl getAccessControl() {
+    return accessControl;
   }
 
   LoginRegistry getLoginRegistry() {
-    return this.loginRegistry;
+    return loginRegistry;
   }
 
   CertificateRegistry getCertificateRegistry() {
-    return this.certificateRegistry;
-  };
+    return certificateRegistry;
+  }
 
   OfferRegistry getOfferRegistry() {
-    return this.offerRegistry;
+    return offerRegistry;
   }
+
 }

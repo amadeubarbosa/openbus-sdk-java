@@ -19,7 +19,10 @@ import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
  * @author Tecgraf
  */
 public final class LeaseRenewer {
-  private static final Logger logger = Logger.getLogger(ConnectionImpl.class
+  /**
+   * Instância de logging.
+   */
+  private static final Logger logger = Logger.getLogger(LeaseRenewer.class
     .getName());
   /**
    * O nome da <i>thread</i> onde a renovação do lease é efetuada.
@@ -36,6 +39,8 @@ public final class LeaseRenewer {
 
   /**
    * Cria um renovador de <i>lease</i> junto a um provedor.
+   * 
+   * @param conn a conexão.
    */
   public LeaseRenewer(Connection conn) {
     this.renewer = new RenewerTask(conn);
@@ -82,17 +87,23 @@ public final class LeaseRenewer {
      */
     private volatile boolean isSleeping;
 
+    /**
+     * Serviço de controle de acesso.
+     */
     private AccessControl manager;
-    private LoginInfo login;
+    /**
+     * A conexão.
+     */
     private Connection conn;
 
     /**
      * Cria uma tarefa para renovar um <i>lease</i>.
+     * 
+     * @param conn a conexão.
      */
     RenewerTask(Connection conn) {
       this.mustContinue = true;
       this.isSleeping = false;
-      this.login = conn.login();
       this.manager = ((ConnectionImpl) conn).access();
       this.conn = conn;
     }

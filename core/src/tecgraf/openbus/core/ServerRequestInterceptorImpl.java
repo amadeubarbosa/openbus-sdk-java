@@ -49,8 +49,8 @@ import tecgraf.openbus.util.LRUCache;
  * 
  * @author Tecgraf
  */
-public final class ServerRequestInterceptorImpl extends InterceptorImpl
-  implements ServerRequestInterceptor {
+final class ServerRequestInterceptorImpl extends InterceptorImpl implements
+  ServerRequestInterceptor {
 
   /** Instância de logging. */
   private static final Logger logger = Logger
@@ -123,14 +123,16 @@ public final class ServerRequestInterceptorImpl extends InterceptorImpl
     String operation = ri.operation();
     logger.fine(String.format("A operação %s é requisitada", operation));
     BusORB orb = this.getMediator().getORB();
-    ConnectionImpl conn = (ConnectionImpl) orb.getCurrentConnection();
+    ConnectionMultiplexerImpl multiplexer =
+      ((BusORBImpl) orb).getConnectionMultiplexer();
+    ConnectionImpl conn = (ConnectionImpl) multiplexer.getCurrentConnection();
     try {
       Any credentialDataAny =
         ri.get_slot(this.getMediator().getCredentialSlotId());
       CredentialData credential =
         CredentialDataHelper.extract(credentialDataAny);
       if (credential != null) {
-        if (orb.hasBus(credential.bus) == null) {
+        if (!multiplexer.hasBus(credential.bus)) {
           throw new NO_PERMISSION(UnknownBusCode.value,
             CompletionStatus.COMPLETED_NO);
         }
@@ -295,7 +297,9 @@ public final class ServerRequestInterceptorImpl extends InterceptorImpl
   private boolean validateChain(SignedCallChain chain, LoginInfo caller,
     BusORB orb) {
     Cryptography crypto = Cryptography.getInstance();
-    ConnectionImpl conn = (ConnectionImpl) orb.getCurrentConnection();
+    ConnectionMultiplexerImpl multiplexer =
+      ((BusORBImpl) orb).getConnectionMultiplexer();
+    ConnectionImpl conn = (ConnectionImpl) multiplexer.getCurrentConnection();
     RSAPublicKey busPubKey = conn.getBusPublicKey();
     if (chain != null) {
       if (chain.signature != null) {

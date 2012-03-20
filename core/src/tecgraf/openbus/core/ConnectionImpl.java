@@ -14,7 +14,7 @@ import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
 
-import tecgraf.openbus.Bus;
+import tecgraf.openbus.BusORB;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
@@ -53,8 +53,10 @@ public final class ConnectionImpl implements Connection {
   /** Instância auxiliar para tratar de criptografia */
   private Cryptography crypto;
 
+  /** ORB associado a esta conexão */
+  private BusORB orb;
   /** Informações sobre o barramento ao qual a conexão pertence */
-  private BusImpl bus;
+  private BusInfo bus;
   /** Chave pública do sdk */
   private RSAPublicKey publicKey;
   /** Chave privada do sdk */
@@ -74,16 +76,27 @@ public final class ConnectionImpl implements Connection {
    * Construtor.
    * 
    * @param bus
-   * @throws CryptographyException
+   * @param orb
    */
-  ConnectionImpl(Bus bus) throws CryptographyException {
-    this.bus = (BusImpl) bus;
+  public ConnectionImpl(BusInfo bus, BusORB orb) {
+    this.bus = bus;
+    this.orb = orb;
     this.crypto = Cryptography.getInstance();
-    KeyPair keyPair = crypto.generateRSAKeyPair();
+    KeyPair keyPair;
+    try {
+      keyPair = crypto.generateRSAKeyPair();
+    }
+    catch (CryptographyException e) {
+      throw new OpenBusInternalException(
+        "Erro inexperado na geração do par de chaves.", e);
+    }
     this.publicKey = (RSAPublicKey) keyPair.getPublic();
     this.privateKey = (RSAPrivateKey) keyPair.getPrivate();
     this.closed = false;
     this.joinedChains = new HashMap<Thread, CallerChain>();
+    ConnectionMultiplexerImpl multiplexer =
+      ((BusORBImpl) orb).getConnectionMultiplexer();
+    multiplexer.addConnection(this);
   }
 
   /**
@@ -91,7 +104,7 @@ public final class ConnectionImpl implements Connection {
    */
   @Override
   public ORB orb() {
-    return this.bus.getORB().getORB();
+    return this.orb.getORB();
   }
 
   /**
@@ -154,6 +167,7 @@ public final class ConnectionImpl implements Connection {
      */
     this.logout();
     this.closed = true;
+    ((BusORBImpl) this.orb).getConnectionMultiplexer().removeConnection(this);
   }
 
   /**
@@ -168,7 +182,7 @@ public final class ConnectionImpl implements Connection {
       byte[] encryptedLoginAuthenticationInfo =
         this.generateEncryptedLoginAuthenticationInfo(password);
       IntHolder validityHolder = new IntHolder();
-      this.bus.getORB().ignoreCurrentThread();
+      this.orb.ignoreCurrentThread();
       this.login =
         this.bus.getAccessControl().loginByPassword(entity,
           this.publicKey.getEncoded(), encryptedLoginAuthenticationInfo,
@@ -179,7 +193,7 @@ public final class ConnectionImpl implements Connection {
         "Falhou a codificação com a chave pública do barramento", e);
     }
     finally {
-      this.bus.getORB().unignoreCurrentThread();
+      this.orb.unignoreCurrentThread();
     }
     logger
       .info(String
@@ -203,11 +217,11 @@ public final class ConnectionImpl implements Connection {
 
       LoginAuthenticationInfo authenticationInfo =
         new LoginAuthenticationInfo(publicKeyHash, data);
-      Any authenticationInfoAny = this.bus.getORB().getORB().create_any();
+      Any authenticationInfoAny = this.orb.getORB().create_any();
       LoginAuthenticationInfoHelper.insert(authenticationInfoAny,
         authenticationInfo);
       byte[] encodedLoginAuthenticationInfo =
-        this.bus.getORB().getCodec().encode_value(authenticationInfoAny);
+        this.orb.getCodec().encode_value(authenticationInfoAny);
       return crypto.encrypt(encodedLoginAuthenticationInfo, this.bus
         .getPublicKey());
     }
@@ -231,7 +245,7 @@ public final class ConnectionImpl implements Connection {
     MissingCertificate, ServiceFailure {
     checkClosed();
     checkLoggedIn();
-    this.bus.getORB().ignoreCurrentThread();
+    this.orb.ignoreCurrentThread();
     try {
       EncryptedBlockHolder challengeHolder = new EncryptedBlockHolder();
       LoginProcess loginProcess =
@@ -260,7 +274,7 @@ public final class ConnectionImpl implements Connection {
         "Falhou a codificação com a chave pública do barramento", e);
     }
     finally {
-      this.bus.getORB().unignoreCurrentThread();
+      this.orb.unignoreCurrentThread();
     }
     logger
       .info(String
@@ -393,7 +407,7 @@ public final class ConnectionImpl implements Connection {
   @Override
   public CallerChain getCallerChain() {
     checkClosed();
-    return this.bus.getORB().getCallerChain();
+    return this.orb.getCallerChain();
   }
 
   /**
@@ -402,12 +416,11 @@ public final class ConnectionImpl implements Connection {
   @Override
   public void joinChain() throws OpenBusInternalException {
     checkClosed();
-    CallerChain currentChain = this.bus.getORB().getCallerChain();
+    CallerChain currentChain = this.orb.getCallerChain();
     if (currentChain == null) {
       return;
     }
-    Thread currentThread = Thread.currentThread();
-    this.joinedChains.put(currentThread, currentChain);
+    joinChain(currentChain);
   }
 
   /**

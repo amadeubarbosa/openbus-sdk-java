@@ -1,12 +1,8 @@
 package tecgraf.openbus.core;
 
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.WeakHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -20,20 +16,17 @@ import org.omg.PortableInterceptor.CurrentHelper;
 import org.omg.PortableInterceptor.InvalidSlot;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
+import org.omg.PortableServer.POAManager;
+import org.omg.PortableServer.POAManagerPackage.AdapterInactive;
 
-import scs.core.IComponent;
-import scs.core.IComponentHelper;
-import tecgraf.openbus.Bus;
 import tecgraf.openbus.BusORB;
 import tecgraf.openbus.CallerChain;
-import tecgraf.openbus.Connection;
-import tecgraf.openbus.core.v2_00.BusObjectKey;
+import tecgraf.openbus.ConnectionMultiplexer;
 import tecgraf.openbus.core.v2_00.credential.CredentialData;
 import tecgraf.openbus.core.v2_00.credential.CredentialDataHelper;
 import tecgraf.openbus.core.v2_00.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_00.services.access_control.CallChainHelper;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
-import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.exception.OpenBusInternalException;
 
 import com.sun.jdi.InternalException;
@@ -44,9 +37,7 @@ public final class BusORBImpl implements BusORB {
 
   private ORB orb;
   private ORBMediator mediator;
-  private Map<String, Bus> buses;
   private Set<Thread> ignoredThreads;
-  private Map<Thread, Connection> connectedThreads;
 
   public BusORBImpl() throws OpenBusInternalException {
     this(null, null);
@@ -61,19 +52,16 @@ public final class BusORBImpl implements BusORB {
     this.orb = createORB(args, props);
     this.mediator = getMediator(this.orb);
     this.mediator.setORB(this);
-    this.buses = new HashMap<String, Bus>();
     this.ignoredThreads = new HashSet<Thread>();
-    this.connectedThreads = new WeakHashMap<Thread, Connection>();
   }
 
-  private static ORB createORB(String[] args, Properties props) {
+  private ORB createORB(String[] args, Properties props) {
     ORBBuilder orbBuilder = new ORBBuilder(args, props);
     orbBuilder.addInitializer(new ORBInitializerInfo(ORBInitializerImpl.class));
     return orbBuilder.build();
   }
 
-  private static ORBMediator getMediator(ORB orb)
-    throws OpenBusInternalException {
+  private ORBMediator getMediator(ORB orb) throws OpenBusInternalException {
     org.omg.CORBA.Object obj;
     try {
       obj = orb.resolve_initial_references(ORBMediator.INITIAL_REFERENCE_ID);
@@ -86,78 +74,19 @@ public final class BusORBImpl implements BusORB {
     return (ORBMediator) obj;
   }
 
-  @Override
-  public Bus getBus(String host, int port) throws CryptographyException {
-    this.ignoreCurrentThread();
+  public ConnectionMultiplexerImpl getConnectionMultiplexer() {
+    org.omg.CORBA.Object obj;
     try {
-      org.omg.CORBA.Object obj =
-        this.fetchObject(host, port, BusObjectKey.value);
-      if (obj == null) {
-        return null;
-      }
-      IComponent component = IComponentHelper.narrow(obj);
-      Bus bus = new BusImpl(this, component);
-      this.buses.put(bus.getId(), bus);
-      return bus;
+      obj =
+        orb
+          .resolve_initial_references(ConnectionMultiplexer.INITIAL_REFERENCE_ID);
     }
-    finally {
-      this.unignoreCurrentThread();
+    catch (InvalidName e) {
+      String message = "Falha inesperada ao obter o multiplexador";
+      logger.log(Level.SEVERE, message, e);
+      throw new OpenBusInternalException(message, e);
     }
-  }
-
-  @Override
-  public Bus hasBus(String busid) {
-    return this.buses.get(busid);
-  }
-
-  public org.omg.CORBA.Object fetchObject(String host, int port, String key) {
-    String str = String.format("corbaloc::1.0@%s:%d/%s", host, port, key);
-    return this.orb.string_to_object(str);
-  }
-
-  public Bus getBus(String id) {
-    return this.buses.get(id);
-  }
-
-  @Override
-  public Connection getCurrentConnection() {
-    Connection connection = this.connectedThreads.get(Thread.currentThread());
-    if (connection != null) {
-      return connection;
-    }
-    logger.fine("Sem conexão definida na thread corrente");
-
-    // Caso exista uma única conexão com o barramento, esta é retornada.
-    if (this.buses.size() == 1) {
-      Bus bus = this.buses.values().iterator().next();
-      Collection<Connection> connections = bus.getConnections();
-      if (connections.size() == 1) {
-        return connections.iterator().next();
-      }
-      else {
-        logger
-          .fine("Não foi possível obter a conexão, pois não há uma única conexão");
-      }
-    }
-    else {
-      logger
-        .fine("Não foi possível obter a conexão, pois não há um único barramento");
-    }
-
-    return null;
-  }
-
-  @Override
-  public void setCurrentConnection(Connection connection) {
-    Connection currentConnection =
-      this.connectedThreads.remove(Thread.currentThread());
-    //    if (currentConnection != null) {
-    //      currentConnection.removeObserver(this);
-    //    }
-    if (connection != null) {
-      //      connection.addObserver(this);
-      this.connectedThreads.put(Thread.currentThread(), connection);
-    }
+    return (ConnectionMultiplexerImpl) obj;
   }
 
   @Override
@@ -185,21 +114,10 @@ public final class BusORBImpl implements BusORB {
       throw new OpenBusInternalException(message, e);
     }
     LoginInfo[] callers = callChain.callers;
-    // TODO: não parece necessário reverificar o busID
-    Bus bus = this.buses.get(busId);
-    if (bus == null) {
-      String message =
-        String.format(
-          "Uma credencial de um barramento desconhecido (%s) foi recebida",
-          busId);
-      logger.log(Level.SEVERE, message);
-      return null;
-    }
-
-    return new CallerChainImpl(bus, callers);
+    return new CallerChainImpl(busId, callers);
   }
 
-  private static Current getPICurrent(ORB orb) throws OpenBusInternalException {
+  private Current getPICurrent(ORB orb) throws OpenBusInternalException {
     org.omg.CORBA.Object obj;
     try {
       obj = orb.resolve_initial_references("PICurrent");
@@ -247,6 +165,13 @@ public final class BusORBImpl implements BusORB {
       throw new OpenBusInternalException(message, e);
     }
     return POAHelper.narrow(obj);
+  }
+
+  @Override
+  public void activateRootPOAManager() throws AdapterInactive {
+    POA poa = getRootPOA();
+    POAManager manager = poa.the_POAManager();
+    manager.activate();
   }
 
   @Override

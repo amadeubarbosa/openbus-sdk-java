@@ -7,10 +7,9 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import tecgraf.openbus.Bus;
 import tecgraf.openbus.BusORB;
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.core.BusORBImpl;
+import tecgraf.openbus.OpenBus;
 import tecgraf.openbus.core.v2_00.OctetSeqHolder;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceOfferDesc;
@@ -49,12 +48,10 @@ public final class Client {
       String password = properties.getProperty("entity.password");
       String serverEntity = properties.getProperty("server.entity.name");
 
-      BusORB orb1 = new BusORBImpl();
-      BusORB orb2 = new BusORBImpl();
-      Bus bus1 = orb1.getBus(host, port);
-      Bus bus2 = orb2.getBus(host, port);
-      Connection conn1 = bus1.createConnection();
-      Connection conn2 = bus2.createConnection();
+      BusORB orb1 = OpenBus.initORB();
+      BusORB orb2 = OpenBus.initORB();
+      Connection conn1 = OpenBus.connect(host, port, orb1);
+      Connection conn2 = OpenBus.connect(host, port, orb2);
 
       conn1.loginByPassword(entity, password.getBytes(Cryptography.CHARSET));
       OctetSeqHolder secret = new OctetSeqHolder();
@@ -100,5 +97,4 @@ public final class Client {
       e.printStackTrace();
     }
   }
-
 }
