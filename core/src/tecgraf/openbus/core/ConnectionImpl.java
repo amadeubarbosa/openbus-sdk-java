@@ -54,7 +54,7 @@ public final class ConnectionImpl implements Connection {
   private Cryptography crypto;
 
   /** ORB associado a esta conexão */
-  private BusORB orb;
+  private BusORBImpl orb;
   /** Informações sobre o barramento ao qual a conexão pertence */
   private BusInfo bus;
   /** Chave pública do sdk */
@@ -80,7 +80,7 @@ public final class ConnectionImpl implements Connection {
    */
   public ConnectionImpl(BusInfo bus, BusORB orb) {
     this.bus = bus;
-    this.orb = orb;
+    this.orb = (BusORBImpl) orb;
     this.crypto = Cryptography.getInstance();
     KeyPair keyPair;
     try {
@@ -94,8 +94,7 @@ public final class ConnectionImpl implements Connection {
     this.privateKey = (RSAPrivateKey) keyPair.getPrivate();
     this.closed = false;
     this.joinedChains = new HashMap<Thread, CallerChain>();
-    ConnectionMultiplexerImpl multiplexer =
-      ((BusORBImpl) orb).getConnectionMultiplexer();
+    ConnectionMultiplexerImpl multiplexer = this.orb.getConnectionMultiplexer();
     multiplexer.addConnection(this);
   }
 
@@ -161,13 +160,9 @@ public final class ConnectionImpl implements Connection {
    */
   @Override
   public void close() throws ServiceFailure {
-    /*
-     * TODO Quando a conexão fecha deve-se remover as threads que utilizam essa
-     * conexão do mapa threadedConnectios
-     */
     this.logout();
     this.closed = true;
-    ((BusORBImpl) this.orb).getConnectionMultiplexer().removeConnection(this);
+    this.orb.getConnectionMultiplexer().removeConnection(this);
   }
 
   /**
@@ -394,7 +389,7 @@ public final class ConnectionImpl implements Connection {
    * Realiza o logout localmente.
    */
   void localLogout() {
-    // TODO: reset caches
+    this.joinedChains.clear();
     stopRenewerThread();
     logger.info(String.format("Logout efetuado: id (%s) entidade (%s)",
       login.id, login.entity));

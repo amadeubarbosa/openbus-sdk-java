@@ -28,7 +28,7 @@ public class OpenBus {
   }
 
   static public Connection connect(String host, int port, BusORB orb) {
-    orb.ignoreCurrentThread();
+    ((BusORBImpl) orb).ignoreCurrentThread();
     try {
       String str =
         String.format("corbaloc::1.0@%s:%d/%s", host, port, BusObjectKey.value);
@@ -42,8 +42,7 @@ public class OpenBus {
       return conn;
     }
     finally {
-      orb.unignoreCurrentThread();
+      ((BusORBImpl) orb).unignoreCurrentThread();
     }
   }
-
 }

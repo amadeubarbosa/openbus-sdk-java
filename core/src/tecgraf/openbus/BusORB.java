@@ -19,10 +19,4 @@ public interface BusORB {
 
   Codec getCodec();
 
-  void ignoreCurrentThread();
-
-  void unignoreCurrentThread();
-
-  boolean isCurrentThreadIgnored();
-
 }

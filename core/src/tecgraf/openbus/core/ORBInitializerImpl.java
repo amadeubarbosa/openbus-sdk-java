@@ -18,7 +18,8 @@ import org.omg.PortableInterceptor.ORBInitInfoPackage.InvalidName;
 
 import tecgraf.openbus.ConnectionMultiplexer;
 
-final class ORBInitializerImpl extends LocalObject implements ORBInitializer {
+public final class ORBInitializerImpl extends LocalObject implements
+  ORBInitializer {
   private static final byte ENCODING_CDR_ENCAPS_MAJOR_VERSION = 1;
   private static final byte ENCODING_CDR_ENCAPS_MINOR_VERSION = 2;
   private static final Logger logger = Logger

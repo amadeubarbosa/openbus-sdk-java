@@ -51,6 +51,8 @@ import tecgraf.openbus.util.LRUCache;
  */
 final class ServerRequestInterceptorImpl extends InterceptorImpl implements
   ServerRequestInterceptor {
+  //TODO: não é necessário guardar o CredentialData inteiro no PICurrent
+  // a princípio só é necessário SignedCallChain
 
   /** Instância de logging. */
   private static final Logger logger = Logger

@@ -1,5 +1,6 @@
 package tecgraf.openbus.core;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
@@ -27,6 +28,7 @@ import tecgraf.openbus.core.v2_00.credential.CredentialDataHelper;
 import tecgraf.openbus.core.v2_00.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_00.services.access_control.CallChainHelper;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_00.services.access_control.SignedCallChain;
 import tecgraf.openbus.exception.OpenBusInternalException;
 
 import com.sun.jdi.InternalException;
@@ -52,7 +54,7 @@ public final class BusORBImpl implements BusORB {
     this.orb = createORB(args, props);
     this.mediator = getMediator(this.orb);
     this.mediator.setORB(this);
-    this.ignoredThreads = new HashSet<Thread>();
+    this.ignoredThreads = Collections.synchronizedSet(new HashSet<Thread>());
   }
 
   private ORB createORB(String[] args, Properties props) {
@@ -74,7 +76,7 @@ public final class BusORBImpl implements BusORB {
     return (ORBMediator) obj;
   }
 
-  public ConnectionMultiplexerImpl getConnectionMultiplexer() {
+  ConnectionMultiplexerImpl getConnectionMultiplexer() {
     org.omg.CORBA.Object obj;
     try {
       obj =
@@ -94,12 +96,14 @@ public final class BusORBImpl implements BusORB {
     Current current = getPICurrent(this.orb);
     String busId;
     CallChain callChain;
+    SignedCallChain signedChain;
     try {
       Any any = current.get_slot(this.mediator.getCredentialSlotId());
       CredentialData credential = CredentialDataHelper.extract(any);
       busId = credential.bus;
+      signedChain = credential.chain;
       Any anyChain =
-        this.getCodec().decode_value(credential.chain.encoded,
+        this.getCodec().decode_value(signedChain.encoded,
           CallChainHelper.type());
       callChain = CallChainHelper.extract(anyChain);
     }
@@ -114,10 +118,10 @@ public final class BusORBImpl implements BusORB {
       throw new OpenBusInternalException(message, e);
     }
     LoginInfo[] callers = callChain.callers;
-    return new CallerChainImpl(busId, callers);
+    return new CallerChainImpl(busId, callers, signedChain);
   }
 
-  private Current getPICurrent(ORB orb) throws OpenBusInternalException {
+  private static Current getPICurrent(ORB orb) throws OpenBusInternalException {
     org.omg.CORBA.Object obj;
     try {
       obj = orb.resolve_initial_references("PICurrent");
@@ -130,19 +134,16 @@ public final class BusORBImpl implements BusORB {
     return CurrentHelper.narrow(obj);
   }
 
-  @Override
   public void ignoreCurrentThread() {
     Thread currentThread = Thread.currentThread();
     this.ignoredThreads.add(currentThread);
   }
 
-  @Override
   public void unignoreCurrentThread() {
     Thread currentThread = Thread.currentThread();
     this.ignoredThreads.remove(currentThread);
   }
 
-  @Override
   public boolean isCurrentThreadIgnored() {
     Thread currentThread = Thread.currentThread();
     return this.ignoredThreads.contains(currentThread);

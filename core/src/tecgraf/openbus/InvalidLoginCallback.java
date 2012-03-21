@@ -20,5 +20,5 @@ public interface InvalidLoginCallback {
    *         se tornou inválido deve ser refeita, ou <code>false</code> caso a
    *         execção de {@link NO_PERMISSION} deve ser lançada.
    */
-  boolean invalidLogin(LoginInfo login);
+  boolean invalidLogin(Connection conn, LoginInfo login);
 }

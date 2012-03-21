@@ -18,15 +18,28 @@ import tecgraf.openbus.ConnectionMultiplexer;
 
 final class ConnectionMultiplexerImpl extends LocalObject implements
   ConnectionMultiplexer {
+
+  // TODO: devido a modificação semantica ente a API com ou sem multiplexação
+  // queremos que lance um erro quando tenta-se realizar mais de 1 conexão no
+  // modo sem multiplexação (AlreadyConnected)
+
+  // TODO: com multiplex uma thead não pode executar uma chamada caso não
+  // esteja associada a uma conexão, a não ser que só exista uma conexão.
+
+  // TODO: no interceptador, com multiplexação, temos que guardar a conexão 
+  // utilizada no receive e send request para utilizar a mesma no send e receive
+  // reply
+
+  // TODO: o setCurrentThread precisa definir no PICurrent qual a thread que foi
+  // setada.
+
   private static final Logger logger = Logger
-    .getLogger(BusInfo.class.getName());
+    .getLogger(ConnectionMultiplexerImpl.class.getName());
 
   /** Conexões por barramento */
   private Map<String, Set<Connection>> buses;
   /** Mapa de conexão default por barramento */
   private Map<String, Connection> busDefaultConn;
-  /** Lista de threads ignoradas */
-  private Set<Thread> ignoredThreads;
   /** Mapa de conexão por thread */
   private Map<Thread, Connection> connectedThreads;
 
@@ -38,7 +51,6 @@ final class ConnectionMultiplexerImpl extends LocalObject implements
       Collections.synchronizedMap(new HashMap<String, Set<Connection>>());
     this.busDefaultConn =
       Collections.synchronizedMap(new HashMap<String, Connection>());
-    this.ignoredThreads = Collections.synchronizedSet(new HashSet<Thread>());
     this.connectedThreads =
       Collections.synchronizedMap(new HashMap<Thread, Connection>());
   }

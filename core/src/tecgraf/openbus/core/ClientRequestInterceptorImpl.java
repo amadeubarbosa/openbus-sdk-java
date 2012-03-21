@@ -18,7 +18,7 @@ import org.omg.PortableInterceptor.ClientRequestInfo;
 import org.omg.PortableInterceptor.ClientRequestInterceptor;
 import org.omg.PortableInterceptor.ForwardRequest;
 
-import tecgraf.openbus.BusORB;
+import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.core.interceptor.CredentialSession;
@@ -82,7 +82,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
   public void send_request(ClientRequestInfo ri) {
     String operation = ri.operation();
     logger.fine(String.format("A operação %s será requisitada", operation));
-    BusORB orb = this.getMediator().getORB();
+    BusORBImpl orb = (BusORBImpl) this.getMediator().getORB();
     if (orb.isCurrentThreadIgnored()) {
       logger.fine(String.format("Realizando requisição sem credencial: %s",
         operation));
@@ -113,9 +113,8 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    *         reset da sessão.
    */
   private CredentialData generateCredentialData(ClientRequestInfo ri) {
-    BusORB orb = this.getMediator().getORB();
-    ConnectionMultiplexerImpl multiplexer =
-      ((BusORBImpl) orb).getConnectionMultiplexer();
+    BusORBImpl orb = (BusORBImpl) this.getMediator().getORB();
+    ConnectionMultiplexerImpl multiplexer = orb.getConnectionMultiplexer();
     Connection currentConnection = multiplexer.getCurrentConnection();
 
     String busId = currentConnection.busid();
@@ -177,7 +176,13 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
 
     SignedCallChain callChain;
     if (callee.equals(currentConnection.busid())) {
-      callChain = Cryptography.NULL_SIGNED_CALL_CHAIN;
+      CallerChain joinedChain = currentConnection.getJoinedChain();
+      if (joinedChain != null) {
+        callChain = ((CallerChainImpl) joinedChain).signedCallChain();
+      }
+      else {
+        callChain = Cryptography.NULL_SIGNED_CALL_CHAIN;
+      }
     }
     else {
       try {
@@ -265,14 +270,13 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     else if (exception.minor == InvalidLoginCode.value) {
       logger.fine(String.format(
         "Recebeu uma exceção InvalidLogin. operação: %s", ri.operation()));
-      BusORB orb = this.getMediator().getORB();
-      ConnectionMultiplexerImpl multiplexer =
-        ((BusORBImpl) orb).getConnectionMultiplexer();
+      BusORBImpl orb = (BusORBImpl) this.getMediator().getORB();
+      ConnectionMultiplexerImpl multiplexer = orb.getConnectionMultiplexer();
       Connection conn = multiplexer.getCurrentConnection();
       InvalidLoginCallback callback = conn.onInvalidLoginCallback();
       LoginInfo login = conn.login();
       ((ConnectionImpl) conn).localLogout();
-      if (callback != null && callback.invalidLogin(login)) {
+      if (callback != null && callback.invalidLogin(conn, login)) {
         logger.fine("Solicitando que a chamada seja refeita.");
         throw new ForwardRequest(ri.target());
       }

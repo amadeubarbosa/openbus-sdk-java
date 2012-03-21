@@ -74,7 +74,7 @@ public class Server {
     }
 
     @Override
-    public boolean invalidLogin(LoginInfo login) {
+    public boolean invalidLogin(Connection conn, LoginInfo login) {
       System.out.println("login terminated: " + name);
       try {
         conn.close();
