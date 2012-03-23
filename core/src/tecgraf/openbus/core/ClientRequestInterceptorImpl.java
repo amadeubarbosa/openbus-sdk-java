@@ -10,6 +10,7 @@ import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.NO_PERMISSIONHelper;
+import org.omg.CORBA.TCKind;
 import org.omg.IOP.ServiceContext;
 import org.omg.IOP.CodecPackage.FormatMismatch;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
@@ -17,9 +18,8 @@ import org.omg.IOP.CodecPackage.TypeMismatch;
 import org.omg.PortableInterceptor.ClientRequestInfo;
 import org.omg.PortableInterceptor.ClientRequestInterceptor;
 import org.omg.PortableInterceptor.ForwardRequest;
+import org.omg.PortableInterceptor.InvalidSlot;
 
-import tecgraf.openbus.CallerChain;
-import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.core.interceptor.CredentialSession;
 import tecgraf.openbus.core.interceptor.EffectiveProfile;
@@ -33,6 +33,7 @@ import tecgraf.openbus.core.v2_00.services.access_control.InvalidCredentialCode;
 import tecgraf.openbus.core.v2_00.services.access_control.InvalidLoginCode;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.access_control.SignedCallChain;
+import tecgraf.openbus.core.v2_00.services.access_control.SignedCallChainHelper;
 import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.util.Cryptography;
 import tecgraf.openbus.util.LRUCache;
@@ -113,9 +114,10 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    *         reset da sessão.
    */
   private CredentialData generateCredentialData(ClientRequestInfo ri) {
-    BusORBImpl orb = (BusORBImpl) this.getMediator().getORB();
-    ConnectionMultiplexerImpl multiplexer = orb.getConnectionMultiplexer();
-    Connection currentConnection = multiplexer.getCurrentConnection();
+    ConnectionMultiplexerImpl multiplexer =
+      this.getMediator().getConnectionMultiplexer();
+    ConnectionImpl currentConnection =
+      (ConnectionImpl) this.getCurrentConnection(ri);
 
     String busId = currentConnection.busid();
     String loginId = currentConnection.login().id;
@@ -124,7 +126,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     if (this.entities.containsKey(ep)) {
       String callee = this.entities.get(ep);
       CredentialSession session =
-        this.getCredentialSession(callee, currentConnection);
+        this.getCredentialSession(ri, callee, currentConnection);
       if (session != null) {
         logger.fine(String.format("reusando sessão: id = %d ticket = %d",
           session.getSession(), session.getTicket()));
@@ -144,12 +146,13 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    * Recupera a credencial da sessão. Se a sessão ainda não existe, realiza a
    * negociação para a geração de uma nova sessão.
    * 
+   * @param ri Informação do request
    * @param callee o cliente alvo da chamada.
    * @param currentConnection a conexão pela qual a chamada será realizada.
    * @return A credencial da sessão com este cliente.
    */
-  private CredentialSession getCredentialSession(String callee,
-    Connection currentConnection) {
+  private CredentialSession getCredentialSession(ClientRequestInfo ri,
+    String callee, ConnectionImpl currentConnection) {
     CredentialSession session = this.sessions.get(callee);
     if (session != null) {
       return session;
@@ -163,8 +166,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     byte[] secret;
     try {
       secret =
-        crypto.decrypt(reset.challenge, ((ConnectionImpl) currentConnection)
-          .getPrivateKey());
+        crypto.decrypt(reset.challenge, currentConnection.getPrivateKey());
     }
     catch (CryptographyException e) {
       String message =
@@ -176,18 +178,24 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
 
     SignedCallChain callChain;
     if (callee.equals(currentConnection.busid())) {
-      CallerChain joinedChain = currentConnection.getJoinedChain();
-      if (joinedChain != null) {
-        callChain = ((CallerChainImpl) joinedChain).signedCallChain();
+      try {
+        Any any = ri.get_slot(this.getMediator().getJoinedChainSlotId());
+        if (any.type().kind().value() != TCKind._tk_null) {
+          callChain = SignedCallChainHelper.extract(any);
+        }
+        else {
+          callChain = Cryptography.NULL_SIGNED_CALL_CHAIN;
+        }
       }
-      else {
-        callChain = Cryptography.NULL_SIGNED_CALL_CHAIN;
+      catch (InvalidSlot e) {
+        String message = "Falha inesperada ao obter o slot do JoinedChain";
+        logger.log(Level.SEVERE, message, e);
+        throw new INTERNAL(message);
       }
     }
     else {
       try {
-        callChain =
-          ((ConnectionImpl) currentConnection).access().signChainFor(callee);
+        callChain = currentConnection.access().signChainFor(callee);
       }
       catch (ServiceFailure e) {
         String message =
@@ -270,12 +278,12 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     else if (exception.minor == InvalidLoginCode.value) {
       logger.fine(String.format(
         "Recebeu uma exceção InvalidLogin. operação: %s", ri.operation()));
-      BusORBImpl orb = (BusORBImpl) this.getMediator().getORB();
-      ConnectionMultiplexerImpl multiplexer = orb.getConnectionMultiplexer();
-      Connection conn = multiplexer.getCurrentConnection();
+      ConnectionMultiplexerImpl multiplexer =
+        this.getMediator().getConnectionMultiplexer();
+      ConnectionImpl conn = (ConnectionImpl) this.getCurrentConnection(ri);
       InvalidLoginCallback callback = conn.onInvalidLoginCallback();
       LoginInfo login = conn.login();
-      ((ConnectionImpl) conn).localLogout();
+      conn.localLogout();
       if (callback != null && callback.invalidLogin(conn, login)) {
         logger.fine("Solicitando que a chamada seja refeita.");
         throw new ForwardRequest(ri.target());

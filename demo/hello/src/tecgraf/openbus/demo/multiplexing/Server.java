@@ -11,6 +11,7 @@ import tecgraf.openbus.BusORB;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.OpenBus;
+import tecgraf.openbus.core.MultiplexedOpenBus;
 import tecgraf.openbus.core.v2_00.services.ServiceFailure;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.demo.util.Utils;
@@ -32,15 +33,16 @@ public class Server {
       int port1 = Integer.valueOf(properties.getProperty("port1"));
       int port2 = Integer.valueOf(properties.getProperty("port2"));
 
-      BusORB orb1 = OpenBus.initORB(args);
+      OpenBus openbus = MultiplexedOpenBus.getInstance();
+      BusORB orb1 = openbus.initORB(args);
       orb1.activateRootPOAManager();
-      BusORB orb2 = OpenBus.initORB(args);
+      BusORB orb2 = openbus.initORB(args);
       orb2.activateRootPOAManager();
 
-      Connection conn1AtBus1WithOrb1 = OpenBus.connect(host, port1, orb1);
-      Connection conn2AtBus1WithOrb1 = OpenBus.connect(host, port1, orb1);
-      Connection connAtBus2WithOrb1 = OpenBus.connect(host, port2, orb1);
-      Connection connAtBus1WithOrb2 = OpenBus.connect(host, port1, orb2);
+      Connection conn1AtBus1WithOrb1 = openbus.connect(host, port1, orb1);
+      Connection conn2AtBus1WithOrb1 = openbus.connect(host, port1, orb1);
+      Connection connAtBus2WithOrb1 = openbus.connect(host, port2, orb1);
+      Connection connAtBus1WithOrb2 = openbus.connect(host, port1, orb2);
 
       conn1AtBus1WithOrb1.onInvalidLoginCallback(new Callback(
         conn1AtBus1WithOrb1, "conn1AtBus1WithOrb1"));

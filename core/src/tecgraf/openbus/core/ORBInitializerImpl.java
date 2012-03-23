@@ -25,28 +25,35 @@ public final class ORBInitializerImpl extends LocalObject implements
   private static final Logger logger = Logger
     .getLogger(ORBInitializerImpl.class.getName());
   private int credentialSlotId;
+  private int currentThreadSlotId;
+  private int joinedChainSlotId;
 
   @Override
   public void pre_init(ORBInitInfo info) {
     Codec codec = this.createCodec(info);
     this.credentialSlotId = info.allocate_slot_id();
-    ORBMediator mediator = new ORBMediator(codec, this.credentialSlotId);
-    try {
-      info.register_initial_reference(ORBMediator.INITIAL_REFERENCE_ID,
-        mediator);
-    }
-    catch (InvalidName e) {
-      String message = "Falha inesperada ao registrar o mediador";
-      logger.log(Level.SEVERE, message, e);
-      throw new INITIALIZE(message);
-    }
-    ConnectionMultiplexerImpl multiplexer = new ConnectionMultiplexerImpl();
+    this.currentThreadSlotId = info.allocate_slot_id();
+    this.joinedChainSlotId = info.allocate_slot_id();
+    ConnectionMultiplexerImpl multiplexer =
+      new ConnectionMultiplexerImpl(this.currentThreadSlotId);
     try {
       info.register_initial_reference(
         ConnectionMultiplexer.INITIAL_REFERENCE_ID, multiplexer);
     }
     catch (InvalidName e) {
       String message = "Falha inesperada ao registrar o multiplexador";
+      logger.log(Level.SEVERE, message, e);
+      throw new INITIALIZE(message);
+    }
+    ORBMediator mediator =
+      new ORBMediator(codec, this.credentialSlotId, this.joinedChainSlotId,
+        multiplexer);
+    try {
+      info.register_initial_reference(ORBMediator.INITIAL_REFERENCE_ID,
+        mediator);
+    }
+    catch (InvalidName e) {
+      String message = "Falha inesperada ao registrar o mediador";
       logger.log(Level.SEVERE, message, e);
       throw new INITIALIZE(message);
     }

@@ -14,6 +14,7 @@ public interface InvalidLoginCallback {
   /**
    * Callback de expiração de login.
    * 
+   * @param conn a conexão cujo login foi invalidado.
    * @param login o login inválido.
    * 
    * @return <code>true</code> se a chamada que recebeu a indicação que o login

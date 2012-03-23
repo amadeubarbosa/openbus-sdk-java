@@ -126,8 +126,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     logger.fine(String.format("A operação %s é requisitada", operation));
     BusORB orb = this.getMediator().getORB();
     ConnectionMultiplexerImpl multiplexer =
-      ((BusORBImpl) orb).getConnectionMultiplexer();
-    ConnectionImpl conn = (ConnectionImpl) multiplexer.getCurrentConnection();
+      this.getMediator().getConnectionMultiplexer();
     try {
       Any credentialDataAny =
         ri.get_slot(this.getMediator().getCredentialSlotId());
@@ -138,6 +137,15 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           throw new NO_PERMISSION(UnknownBusCode.value,
             CompletionStatus.COMPLETED_NO);
         }
+        ConnectionImpl conn = null;
+        if (multiplexer.isMultiplexed()) {
+          // se em modo Multiplexed, então deve buscar a conexão default. 
+          conn =
+            (ConnectionImpl) multiplexer.getIncommingConnection(credential.bus);
+        }
+        if (conn == null) {
+          conn = (ConnectionImpl) multiplexer.getCurrentConnection();
+        }
         if (!validateLogin(credential, conn)) {
           throw new NO_PERMISSION(InvalidLoginCode.value,
             CompletionStatus.COMPLETED_NO);
@@ -145,7 +153,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         OctetSeqHolder pubkey = new OctetSeqHolder();
         LoginInfo caller = conn.logins().getLoginInfo(credential.login, pubkey);
         if (validateCredential(credential, ri)) {
-          if (validateChain(credential.chain, caller, orb)) {
+          if (validateChain(credential.chain, caller, conn)) {
             String msg =
               "Recebendo chamada pelo barramento: login %s entidade %s operação %s";
             logger
@@ -276,7 +284,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     CredentialSession session = sessions.get(credential.session);
     if (session != null) {
       byte[] hash = this.generateCredentialDataHash(ri, session);
-      // TODO: incluir o check do ticket 
+      // FIXME: incluir o check do ticket 
       if (Arrays.equals(hash, credential.hash)) {
         logger.fine(String.format("sessão utilizada: id = %d ticket = %d",
           session.getSession(), session.getTicket()));
@@ -292,22 +300,20 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * 
    * @param chain a cadeia.
    * @param caller informação de login do requisitante da operação.
-   * @param orb o orb em uso.
+   * @param conn a conexão em uso.
    * @return <code>true</code> caso a cadeia seja válida, ou <code>false</code>
    *         caso contrário.
    */
   private boolean validateChain(SignedCallChain chain, LoginInfo caller,
-    BusORB orb) {
+    ConnectionImpl conn) {
     Cryptography crypto = Cryptography.getInstance();
-    ConnectionMultiplexerImpl multiplexer =
-      ((BusORBImpl) orb).getConnectionMultiplexer();
-    ConnectionImpl conn = (ConnectionImpl) multiplexer.getCurrentConnection();
     RSAPublicKey busPubKey = conn.getBusPublicKey();
     if (chain != null) {
       if (chain.signature != null) {
         try {
           Any any =
-            orb.getCodec().decode_value(chain.encoded, CallChainHelper.type());
+            this.getMediator().getCodec().decode_value(chain.encoded,
+              CallChainHelper.type());
           CallChain callChain = CallChainHelper.extract(any);
           boolean verified =
             crypto.verifySignature(busPubKey, chain.encoded, chain.signature);
@@ -381,6 +387,11 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     return CACHE_SIZE + 1;
   }
 
+  /**
+   * Gera um novo segredo.
+   * 
+   * @return o segredo.
+   */
   private byte[] newSecret() {
     int size = 16;
     byte[] secret = new byte[size];

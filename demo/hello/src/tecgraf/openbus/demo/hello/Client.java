@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBus;
+import tecgraf.openbus.core.StandardOpenBus;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Utils;
@@ -29,7 +30,8 @@ public final class Client {
       String serverEntity = properties.getProperty("server.entity.name");
       String password = properties.getProperty("entity.password");
 
-      Connection connection = OpenBus.connect(host, port);
+      OpenBus openbus = StandardOpenBus.getInstance();
+      Connection connection = openbus.connect(host, port);
 
       connection.loginByPassword(entity, password
         .getBytes(Cryptography.CHARSET));

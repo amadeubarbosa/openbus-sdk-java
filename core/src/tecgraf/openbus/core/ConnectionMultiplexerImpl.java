@@ -9,50 +9,69 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.omg.CORBA.Any;
+import org.omg.CORBA.CompletionStatus;
+import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.LocalObject;
+import org.omg.CORBA.NO_PERMISSION;
+import org.omg.CORBA.TCKind;
+import org.omg.PortableInterceptor.Current;
+import org.omg.PortableInterceptor.InvalidSlot;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionMultiplexer;
+import tecgraf.openbus.core.v2_00.services.access_control.NoLoginCode;
+import tecgraf.openbus.exception.OpenBusInternalException;
 
+/**
+ * Implementação do multiplexador de conexão.
+ * 
+ * @author Tecgraf
+ */
 final class ConnectionMultiplexerImpl extends LocalObject implements
   ConnectionMultiplexer {
 
-  // TODO: devido a modificação semantica ente a API com ou sem multiplexação
-  // queremos que lance um erro quando tenta-se realizar mais de 1 conexão no
-  // modo sem multiplexação (AlreadyConnected)
+  // FIXME: no interceptador, com multiplexação, temos que guardar a conexão 
+  // utilizada no receive_request para reutilizar no send_reply
 
-  // TODO: com multiplex uma thead não pode executar uma chamada caso não
-  // esteja associada a uma conexão, a não ser que só exista uma conexão.
-
-  // TODO: no interceptador, com multiplexação, temos que guardar a conexão 
-  // utilizada no receive e send request para utilizar a mesma no send e receive
-  // reply
-
-  // TODO: o setCurrentThread precisa definir no PICurrent qual a thread que foi
-  // setada.
-
+  /** Logger. */
   private static final Logger logger = Logger
     .getLogger(ConnectionMultiplexerImpl.class.getName());
 
+  /** Identificador do slot de thread corrente */
+  private final int CURRENT_THREAD_SLOT_ID;
   /** Conexões por barramento */
   private Map<String, Set<Connection>> buses;
   /** Mapa de conexão default por barramento */
   private Map<String, Connection> busDefaultConn;
   /** Mapa de conexão por thread */
-  private Map<Thread, Connection> connectedThreads;
+  private Map<Long, Connection> connectedThreads;
+
+  /** Flag que indica se a api utilizada é com multiplexação ou não. */
+  private boolean isMultiplexed = false;
+  /** Referência para o ORB ao qual pertence */
+  private BusORBImpl orb;
 
   /**
    * Construtor.
+   * 
+   * @param currentThreadSlotId identificador do slot da thread corrente
    */
-  public ConnectionMultiplexerImpl() {
+  public ConnectionMultiplexerImpl(int currentThreadSlotId) {
     this.buses =
       Collections.synchronizedMap(new HashMap<String, Set<Connection>>());
     this.busDefaultConn =
       Collections.synchronizedMap(new HashMap<String, Connection>());
     this.connectedThreads =
-      Collections.synchronizedMap(new HashMap<Thread, Connection>());
+      Collections.synchronizedMap(new HashMap<Long, Connection>());
+    this.CURRENT_THREAD_SLOT_ID = currentThreadSlotId;
+  }
+
+  int getCurrentThreadSlotId() {
+    return this.CURRENT_THREAD_SLOT_ID;
   }
 
   /**
@@ -72,9 +91,21 @@ final class ConnectionMultiplexerImpl extends LocalObject implements
    */
   @Override
   public void setCurrentConnection(Connection conn) {
-    this.connectedThreads.remove(Thread.currentThread());
+    long id = Thread.currentThread().getId();
+    Any any = this.orb.getORB().create_any();
+    any.insert_longlong(id);
+    Current current = this.orb.getPICurrent();
+    try {
+      current.set_slot(CURRENT_THREAD_SLOT_ID, any);
+    }
+    catch (InvalidSlot e) {
+      String message = "Falha inesperada ao acessar o slot da thread corrente";
+      logger.log(Level.SEVERE, message, e);
+      throw new OpenBusInternalException(message, e);
+    }
+    this.connectedThreads.remove(id);
     if (conn != null) {
-      this.connectedThreads.put(Thread.currentThread(), conn);
+      this.connectedThreads.put(id, conn);
     }
   }
 
@@ -83,11 +114,44 @@ final class ConnectionMultiplexerImpl extends LocalObject implements
    */
   @Override
   public Connection getCurrentConnection() {
-    Connection connection = this.connectedThreads.get(Thread.currentThread());
-    if (connection != null) {
+    if (isMultiplexed()) {
+      Current current = this.orb.getPICurrent();
+      Any any;
+      try {
+        any = current.get_slot(CURRENT_THREAD_SLOT_ID);
+      }
+      catch (InvalidSlot e) {
+        String message =
+          "Falha inesperada ao acessar o slot da thread corrente";
+        logger.log(Level.SEVERE, message, e);
+        throw new INTERNAL(message);
+      }
+
+      if (any.type().kind().value() != TCKind._tk_null) {
+        long id = any.extract_longlong();
+        Connection connection = this.connectedThreads.get(id);
+        if (connection != null) {
+          return connection;
+        }
+      }
+    }
+
+    // Caso exista uma única conexão com o barramento, esta é retornada.
+    Connection connection = hasOnlyOneConnection();
+    if (connection == null) {
+      throw new NO_PERMISSION(NoLoginCode.value, CompletionStatus.COMPLETED_NO);
+    }
+    else {
       return connection;
     }
-    // Caso exista uma única conexão com o barramento, esta é retornada.
+  }
+
+  /**
+   * Recupear a conexão, caso só exista uma.
+   * 
+   * @return a conexão.
+   */
+  Connection hasOnlyOneConnection() {
     if (this.buses.size() == 1) {
       Collection<Connection> connections =
         this.buses.values().iterator().next();
@@ -103,7 +167,6 @@ final class ConnectionMultiplexerImpl extends LocalObject implements
       logger
         .fine("Não foi possível obter a conexão, pois não se conhece nenhum barramento");
     }
-
     return null;
   }
 
@@ -140,6 +203,10 @@ final class ConnectionMultiplexerImpl extends LocalObject implements
     conns.add(conn);
   }
 
+  Connection getConnectionByThreadId(long threadId) {
+    return this.connectedThreads.get(threadId);
+  }
+
   /**
    * Método de controle para remover uma conexão.
    * 
@@ -160,18 +227,33 @@ final class ConnectionMultiplexerImpl extends LocalObject implements
       }
     }
     // mapa de conexão por thread
-    List<Thread> toRemove = new ArrayList<Thread>();
-    for (Entry<Thread, Connection> entry : this.connectedThreads.entrySet()) {
+    List<Long> toRemove = new ArrayList<Long>();
+    for (Entry<Long, Connection> entry : this.connectedThreads.entrySet()) {
       if (entry.getValue().equals(conn)) {
         toRemove.add(entry.getKey());
       }
     }
-    for (Thread thread : toRemove) {
-      this.connectedThreads.remove(thread);
+    for (Long id : toRemove) {
+      this.connectedThreads.remove(id);
     }
   }
 
   boolean hasBus(String busid) {
     return this.buses.containsKey(busid);
   }
+
+  // CHECK corrigir visibilidade ou mover especializações de OpenBus
+  void isMultiplexed(boolean isMultiplexed) {
+    this.isMultiplexed = isMultiplexed;
+  }
+
+  // CHECK corrigir visibilidade ou mover especializações de OpenBus
+  boolean isMultiplexed() {
+    return this.isMultiplexed;
+  }
+
+  void setORB(BusORBImpl orb) {
+    this.orb = orb;
+  }
+
 }

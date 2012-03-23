@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBus;
+import tecgraf.openbus.core.StandardOpenBus;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.hello.Hello;
@@ -41,7 +42,8 @@ public class Client {
       int ports[] = { port1, port2 };
 
       for (int port : ports) {
-        Connection conn = OpenBus.connect(host, port);
+        OpenBus openbus = StandardOpenBus.getInstance();
+        Connection conn = openbus.connect(host, port);
         String login = "demo@" + port;
         conn.loginByPassword(login, login.getBytes());
 

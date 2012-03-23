@@ -149,7 +149,7 @@ public final class ConnectionImpl implements Connection {
    * {@link OpenBusInternalException} caso esteja.
    */
   private void checkClosed() {
-    // TODO: confirmar os locais onde devem existir a verificação checkClosed
+    // CHECK confirmar os locais onde devem existir a verificação checkClosed
     if (this.closed) {
       throw new OpenBusInternalException("Conexão fechada!");
     }
@@ -426,6 +426,7 @@ public final class ConnectionImpl implements Connection {
     checkClosed();
     Thread currentThread = Thread.currentThread();
     this.joinedChains.put(currentThread, chain);
+    this.orb.joinChain(chain);
   }
 
   /**
@@ -436,6 +437,7 @@ public final class ConnectionImpl implements Connection {
     checkClosed();
     Thread currentThread = Thread.currentThread();
     this.joinedChains.remove(currentThread);
+    this.orb.exitChain();
   }
 
   /**

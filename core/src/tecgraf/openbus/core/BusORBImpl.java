@@ -29,6 +29,7 @@ import tecgraf.openbus.core.v2_00.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_00.services.access_control.CallChainHelper;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.access_control.SignedCallChain;
+import tecgraf.openbus.core.v2_00.services.access_control.SignedCallChainHelper;
 import tecgraf.openbus.exception.OpenBusInternalException;
 
 import com.sun.jdi.InternalException;
@@ -40,6 +41,7 @@ public final class BusORBImpl implements BusORB {
   private ORB orb;
   private ORBMediator mediator;
   private Set<Thread> ignoredThreads;
+  private ConnectionMultiplexerImpl multiplexer;
 
   public BusORBImpl() throws OpenBusInternalException {
     this(null, null);
@@ -54,6 +56,8 @@ public final class BusORBImpl implements BusORB {
     this.orb = createORB(args, props);
     this.mediator = getMediator(this.orb);
     this.mediator.setORB(this);
+    this.multiplexer = getConnectionMultiplexer(this.orb);
+    this.multiplexer.setORB(this);
     this.ignoredThreads = Collections.synchronizedSet(new HashSet<Thread>());
   }
 
@@ -76,7 +80,7 @@ public final class BusORBImpl implements BusORB {
     return (ORBMediator) obj;
   }
 
-  ConnectionMultiplexerImpl getConnectionMultiplexer() {
+  private ConnectionMultiplexerImpl getConnectionMultiplexer(ORB orb) {
     org.omg.CORBA.Object obj;
     try {
       obj =
@@ -91,9 +95,13 @@ public final class BusORBImpl implements BusORB {
     return (ConnectionMultiplexerImpl) obj;
   }
 
-  @Override
-  public CallerChain getCallerChain() throws InternalException {
-    Current current = getPICurrent(this.orb);
+  //CHECK corrigir visibilidade ou mover especializações de OpenBus
+  ConnectionMultiplexerImpl getConnectionMultiplexer() {
+    return this.multiplexer;
+  }
+
+  CallerChain getCallerChain() throws InternalException {
+    Current current = getPICurrent();
     String busId;
     CallChain callChain;
     SignedCallChain signedChain;
@@ -121,10 +129,10 @@ public final class BusORBImpl implements BusORB {
     return new CallerChainImpl(busId, callers, signedChain);
   }
 
-  private static Current getPICurrent(ORB orb) throws OpenBusInternalException {
+  Current getPICurrent() throws OpenBusInternalException {
     org.omg.CORBA.Object obj;
     try {
-      obj = orb.resolve_initial_references("PICurrent");
+      obj = this.orb.resolve_initial_references("PICurrent");
     }
     catch (InvalidName e) {
       String message = "Falha inesperada ao obter o PICurrent";
@@ -132,6 +140,43 @@ public final class BusORBImpl implements BusORB {
       throw new OpenBusInternalException(message, e);
     }
     return CurrentHelper.narrow(obj);
+  }
+
+  /**
+   * Guarda a {@link SignedCallChain} no PICurrent.
+   * 
+   * @param chain a cadeia.
+   */
+  void joinChain(CallerChain chain) {
+    try {
+      Current current = getPICurrent();
+      SignedCallChain signedChain = ((CallerChainImpl) chain).signedCallChain();
+      Any any = this.orb.create_any();
+      SignedCallChainHelper.insert(any, signedChain);
+      current.set_slot(this.mediator.getJoinedChainSlotId(), any);
+    }
+    catch (InvalidSlot e) {
+      String message = "Falha inesperada ao obter o slot no PICurrent";
+      logger.log(Level.SEVERE, message, e);
+      throw new OpenBusInternalException(message, e);
+    }
+  }
+
+  /**
+   * Remove a {@link SignedCallChain} do PICurrent, deixando um Any vazio no
+   * lugar.
+   */
+  void exitChain() {
+    try {
+      Current current = getPICurrent();
+      Any any = this.orb.create_any();
+      current.set_slot(this.mediator.getJoinedChainSlotId(), any);
+    }
+    catch (InvalidSlot e) {
+      String message = "Falha inesperada ao obter o slot no PICurrent";
+      logger.log(Level.SEVERE, message, e);
+      throw new OpenBusInternalException(message, e);
+    }
   }
 
   public void ignoreCurrentThread() {
@@ -144,7 +189,7 @@ public final class BusORBImpl implements BusORB {
     this.ignoredThreads.remove(currentThread);
   }
 
-  public boolean isCurrentThreadIgnored() {
+  boolean isCurrentThreadIgnored() {
     Thread currentThread = Thread.currentThread();
     return this.ignoredThreads.contains(currentThread);
   }
@@ -175,8 +220,7 @@ public final class BusORBImpl implements BusORB {
     manager.activate();
   }
 
-  @Override
-  public Codec getCodec() {
+  Codec getCodec() {
     return this.mediator.getCodec();
   }
 }

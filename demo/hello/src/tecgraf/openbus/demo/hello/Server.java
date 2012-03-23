@@ -14,6 +14,7 @@ import scs.core.ComponentId;
 import tecgraf.openbus.BusORB;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBus;
+import tecgraf.openbus.core.StandardOpenBus;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Utils;
 import tecgraf.openbus.util.Cryptography;
@@ -33,10 +34,10 @@ public final class Server {
   public static void main(String[] args) {
     try {
       Logger logger = Logger.getLogger("tecgraf.openbus");
-      logger.setLevel(Level.FINEST);
+      logger.setLevel(Level.INFO);
       logger.setUseParentHandlers(false);
       ConsoleHandler handler = new ConsoleHandler();
-      handler.setLevel(Level.FINEST);
+      handler.setLevel(Level.INFO);
       logger.addHandler(handler);
 
       Properties props = Utils.readPropertyFile("/Hello.properties");
@@ -47,13 +48,13 @@ public final class Server {
       RSAPrivateKey privateKey =
         Cryptography.getInstance().readPrivateKey(privateKeyFile);
 
-      //BusORB orb = new BusORBImpl(args);
-      BusORB orb = OpenBus.initORB(args);
+      OpenBus openbus = StandardOpenBus.getInstance();
+      BusORB orb = openbus.initORB(args);
 
       new ORBRunThread(orb.getORB()).start();
       Runtime.getRuntime().addShutdownHook(new ORBDestroyThread(orb.getORB()));
 
-      Connection conn = OpenBus.connect(host, port, orb);
+      Connection conn = openbus.connect(host, port, orb);
       conn.loginByCertificate(entity, privateKey);
       ComponentId id =
         new ComponentId("Hello", (byte) 1, (byte) 0, (byte) 0, "java");
