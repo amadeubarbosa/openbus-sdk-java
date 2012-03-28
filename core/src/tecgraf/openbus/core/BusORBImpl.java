@@ -9,6 +9,7 @@ import java.util.logging.Logger;
 
 import org.omg.CORBA.Any;
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.TCKind;
 import org.omg.CORBA.UserException;
 import org.omg.CORBA.ORBPackage.InvalidName;
 import org.omg.IOP.Codec;
@@ -107,6 +108,9 @@ public final class BusORBImpl implements BusORB {
     SignedCallChain signedChain;
     try {
       Any any = current.get_slot(this.mediator.getCredentialSlotId());
+      if (any.type().kind().value() == TCKind._tk_null) {
+        return null;
+      }
       CredentialData credential = CredentialDataHelper.extract(any);
       busId = credential.bus;
       signedChain = credential.chain;
@@ -194,11 +198,17 @@ public final class BusORBImpl implements BusORB {
     return this.ignoredThreads.contains(currentThread);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public ORB getORB() {
     return this.orb;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public POA getRootPOA() throws OpenBusInternalException {
     org.omg.CORBA.Object obj;
@@ -213,6 +223,9 @@ public final class BusORBImpl implements BusORB {
     return POAHelper.narrow(obj);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void activateRootPOAManager() throws AdapterInactive {
     POA poa = getRootPOA();
@@ -223,4 +236,5 @@ public final class BusORBImpl implements BusORB {
   Codec getCodec() {
     return this.mediator.getCodec();
   }
+
 }

@@ -34,9 +34,6 @@ import tecgraf.openbus.exception.OpenBusInternalException;
 final class ConnectionMultiplexerImpl extends LocalObject implements
   ConnectionMultiplexer {
 
-  // FIXME: no interceptador, com multiplexação, temos que guardar a conexão 
-  // utilizada no receive_request para reutilizar no send_reply
-
   /** Logger. */
   private static final Logger logger = Logger
     .getLogger(ConnectionMultiplexerImpl.class.getName());
@@ -80,8 +77,10 @@ final class ConnectionMultiplexerImpl extends LocalObject implements
   @Override
   public Connection[] getConnections() {
     List<Connection> all = new ArrayList<Connection>();
-    for (Entry<String, Set<Connection>> entry : buses.entrySet()) {
-      all.addAll(entry.getValue());
+    synchronized (buses) {
+      for (Entry<String, Set<Connection>> entry : buses.entrySet()) {
+        all.addAll(entry.getValue());
+      }
     }
     return all.toArray(new Connection[all.size()]);
   }
@@ -103,10 +102,7 @@ final class ConnectionMultiplexerImpl extends LocalObject implements
       logger.log(Level.SEVERE, message, e);
       throw new OpenBusInternalException(message, e);
     }
-    this.connectedThreads.remove(id);
-    if (conn != null) {
-      this.connectedThreads.put(id, conn);
-    }
+    setConnectionByThreadId(id, conn);
   }
 
   /**
@@ -152,20 +148,26 @@ final class ConnectionMultiplexerImpl extends LocalObject implements
    * @return a conexão.
    */
   Connection hasOnlyOneConnection() {
-    if (this.buses.size() == 1) {
-      Collection<Connection> connections =
-        this.buses.values().iterator().next();
-      if (connections.size() == 1) {
-        return connections.iterator().next();
+    synchronized (buses) {
+      if (this.buses.size() == 1) {
+        Collection<Connection> connections =
+          this.buses.values().iterator().next();
+        if (connections.size() == 1) {
+          return connections.iterator().next();
+        }
+        else {
+          logger
+            .fine("Não foi possível obter a conexão, pois não existe conexão para o barramento");
+        }
+      }
+      else if (this.buses.isEmpty()) {
+        logger
+          .fine("Não foi possível obter a conexão, pois não se conhece nenhum barramento");
       }
       else {
         logger
-          .fine("Não foi possível obter a conexão, pois não existe conexão para o barramento");
+          .fine("Não foi possível obter a conexão, pois existe conexão para mais de um barramento.");
       }
-    }
-    else {
-      logger
-        .fine("Não foi possível obter a conexão, pois não se conhece nenhum barramento");
     }
     return null;
   }
@@ -175,9 +177,11 @@ final class ConnectionMultiplexerImpl extends LocalObject implements
    */
   @Override
   public void setIncommingConnection(String busid, Connection conn) {
-    this.busDefaultConn.remove(busid);
-    if (conn != null) {
-      this.busDefaultConn.put(busid, conn);
+    synchronized (this.busDefaultConn) {
+      this.busDefaultConn.remove(busid);
+      if (conn != null) {
+        this.busDefaultConn.put(busid, conn);
+      }
     }
   }
 
@@ -195,16 +199,27 @@ final class ConnectionMultiplexerImpl extends LocalObject implements
    * @param conn a conexão a ser incluida.
    */
   void addConnection(Connection conn) {
-    Set<Connection> conns = this.buses.get(conn.busid());
-    if (conns == null) {
-      conns = Collections.synchronizedSet(new HashSet<Connection>());
-      this.buses.put(conn.busid(), conns);
+    synchronized (buses) {
+      Set<Connection> conns = this.buses.get(conn.busid());
+      if (conns == null) {
+        conns = Collections.synchronizedSet(new HashSet<Connection>());
+        this.buses.put(conn.busid(), conns);
+      }
+      conns.add(conn);
     }
-    conns.add(conn);
   }
 
   Connection getConnectionByThreadId(long threadId) {
     return this.connectedThreads.get(threadId);
+  }
+
+  void setConnectionByThreadId(long threadId, Connection conn) {
+    synchronized (this.connectedThreads) {
+      this.connectedThreads.remove(threadId);
+      if (conn != null) {
+        this.connectedThreads.put(threadId, conn);
+      }
+    }
   }
 
   /**
@@ -215,26 +230,32 @@ final class ConnectionMultiplexerImpl extends LocalObject implements
   void removeConnection(Connection conn) {
     String busid = conn.busid();
     // mapa de conexões por barramentos
-    if (this.buses.containsKey(busid)) {
+    synchronized (buses) {
       Set<Connection> set = this.buses.get(busid);
-      set.remove(conn);
+      if (set != null) {
+        set.remove(conn);
+      }
     }
     // mapa de conexão default por barramento
-    if (this.busDefaultConn.containsKey(busid)) {
+    synchronized (this.busDefaultConn) {
       Connection defconn = this.busDefaultConn.get(busid);
-      if (defconn.equals(conn)) {
-        this.busDefaultConn.remove(busid);
+      if (defconn != null) {
+        if (defconn.equals(conn)) {
+          this.busDefaultConn.remove(busid);
+        }
       }
     }
     // mapa de conexão por thread
     List<Long> toRemove = new ArrayList<Long>();
-    for (Entry<Long, Connection> entry : this.connectedThreads.entrySet()) {
-      if (entry.getValue().equals(conn)) {
-        toRemove.add(entry.getKey());
+    synchronized (this.connectedThreads) {
+      for (Entry<Long, Connection> entry : this.connectedThreads.entrySet()) {
+        if (entry.getValue().equals(conn)) {
+          toRemove.add(entry.getKey());
+        }
       }
-    }
-    for (Long id : toRemove) {
-      this.connectedThreads.remove(id);
+      for (Long id : toRemove) {
+        this.connectedThreads.remove(id);
+      }
     }
   }
 

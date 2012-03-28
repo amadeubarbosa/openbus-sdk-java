@@ -13,7 +13,6 @@ import org.omg.PortableInterceptor.InvalidSlot;
 import org.omg.PortableInterceptor.RequestInfo;
 
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.core.interceptor.CredentialSession;
 import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.util.Cryptography;
 
@@ -76,21 +75,23 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
    * 
    * @param ri o request da chamada.
    * @param credentialSession a sessão.
+   * @param ticket o ticket utilizado.
+   * @param conn a conexão em uso.
    * @return o hash
    */
-  protected byte[] generateCredentialDataHash(RequestInfo ri,
-    CredentialSession credentialSession) {
+  protected byte[] generateCredentialDataHash(RequestInfo ri, byte[] secret,
+    int ticket) {
     try {
       Cryptography crypto = Cryptography.getInstance();
 
       MessageDigest hashAlgorithm = crypto.getHashAlgorithm();
       hashAlgorithm.update(BUS_MAJOR_VERSION);
       hashAlgorithm.update(BUS_MINOR_VERSION);
-      hashAlgorithm.update(credentialSession.getSecret());
+      hashAlgorithm.update(secret);
 
       ByteBuffer ticketBuffer = ByteBuffer.allocate(Integer.SIZE / 8);
       ticketBuffer.order(ByteOrder.LITTLE_ENDIAN);
-      ticketBuffer.putInt(credentialSession.getTicket());
+      ticketBuffer.putInt(ticket);
       ticketBuffer.flip();
       hashAlgorithm.update(ticketBuffer);
 
@@ -100,9 +101,10 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
       return hashAlgorithm.digest();
     }
     catch (CryptographyException e) {
-      String message = "Falha inesperada ao obter o algoritmo de hash";
+      String message = "Falha inesperada ao calcular o hash da credencial";
       throw new INTERNAL(message);
     }
+
   }
 
   /**

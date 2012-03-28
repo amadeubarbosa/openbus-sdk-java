@@ -24,7 +24,7 @@ public abstract class OpenBus {
    * @return ORB iniciado.
    */
   public BusORB initORB() {
-    return new BusORBImpl();
+    return this.initORB(null, null);
   }
 
   /**
@@ -37,7 +37,7 @@ public abstract class OpenBus {
    * @return ORB iniciado.
    */
   public BusORB initORB(String[] args) {
-    return new BusORBImpl(args, null);
+    return this.initORB(args, null);
   }
 
   /**

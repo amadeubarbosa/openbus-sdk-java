@@ -1,10 +1,10 @@
-package tecgraf.openbus.core.interceptor;
+package tecgraf.openbus.core;
 
 import java.util.Arrays;
 
 import org.omg.IOP.TaggedProfile;
 
-public class EffectiveProfile {
+class EffectiveProfile {
 
   public byte[] profile_data;
 

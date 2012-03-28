@@ -21,7 +21,8 @@ import org.omg.PortableInterceptor.ServerRequestInfo;
 import org.omg.PortableInterceptor.ServerRequestInterceptor;
 
 import tecgraf.openbus.BusORB;
-import tecgraf.openbus.core.interceptor.CredentialSession;
+import tecgraf.openbus.Connection;
+import tecgraf.openbus.core.Session.ServerSideSession;
 import tecgraf.openbus.core.v2_00.OctetSeqHolder;
 import tecgraf.openbus.core.v2_00.credential.CredentialContextId;
 import tecgraf.openbus.core.v2_00.credential.CredentialData;
@@ -41,6 +42,7 @@ import tecgraf.openbus.core.v2_00.services.access_control.SignedCallChain;
 import tecgraf.openbus.core.v2_00.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_00.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.exception.CryptographyException;
+import tecgraf.openbus.exception.OpenBusInternalException;
 import tecgraf.openbus.util.Cryptography;
 import tecgraf.openbus.util.LRUCache;
 
@@ -51,18 +53,13 @@ import tecgraf.openbus.util.LRUCache;
  */
 final class ServerRequestInterceptorImpl extends InterceptorImpl implements
   ServerRequestInterceptor {
-  //TODO: não é necessário guardar o CredentialData inteiro no PICurrent
-  // a princípio só é necessário SignedCallChain
 
   /** Instância de logging. */
   private static final Logger logger = Logger
     .getLogger(ServerRequestInterceptorImpl.class.getName());
 
-  /** Mapa de cliente alvo da chamada para estrutura de reset */
-  // TODO: necessário utilizar uma cache de resets?
-  private Map<String, CredentialReset> resets;
   /** Cache de sessão: mapa de cliente alvo da chamada para sessão */
-  private Map<Integer, CredentialSession> sessions;
+  private Map<Integer, ServerSideSession> sessions;
 
   /**
    * Construtor.
@@ -72,11 +69,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   ServerRequestInterceptorImpl(String name, ORBMediator mediator) {
     super(name, mediator);
-    this.resets =
-      Collections.synchronizedMap(new LRUCache<String, CredentialReset>(
-        CACHE_SIZE));
     this.sessions =
-      Collections.synchronizedMap(new LRUCache<Integer, CredentialSession>(
+      Collections.synchronizedMap(new LRUCache<Integer, ServerSideSession>(
         CACHE_SIZE));
   }
 
@@ -85,9 +79,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void receive_request_service_contexts(ServerRequestInfo ri) {
-    String operation = ri.operation();
-    logger.finest(String.format("Extraindo a credencial da chamada %s",
-      operation));
     ServiceContext requestServiceContext =
       ri.get_request_service_context(CredentialContextId.value);
     byte[] encodedCredential = requestServiceContext.context_data;
@@ -123,7 +114,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
   @Override
   public void receive_request(ServerRequestInfo ri) {
     String operation = ri.operation();
-    logger.fine(String.format("A operação %s é requisitada", operation));
     BusORB orb = this.getMediator().getORB();
     ConnectionMultiplexerImpl multiplexer =
       this.getMediator().getConnectionMultiplexer();
@@ -142,9 +132,10 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           // se em modo Multiplexed, então deve buscar a conexão default. 
           conn =
             (ConnectionImpl) multiplexer.getIncommingConnection(credential.bus);
+          setCurrentConnection(ri, conn);
         }
         if (conn == null) {
-          conn = (ConnectionImpl) multiplexer.getCurrentConnection();
+          conn = (ConnectionImpl) this.getCurrentConnection(ri);
         }
         if (!validateLogin(credential, conn)) {
           throw new NO_PERMISSION(InvalidLoginCode.value,
@@ -155,16 +146,20 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         if (validateCredential(credential, ri)) {
           if (validateChain(credential.chain, caller, conn)) {
             String msg =
-              "Recebendo chamada pelo barramento: login %s entidade %s operação %s";
+              "Recebendo chamada pelo barramento: login (%s) entidade (%s) operação (%s)";
             logger
               .info(String.format(msg, caller.id, caller.entity, operation));
           }
           else {
+            logger.finest(String.format(
+              "Recebeu chamada com cadeia inválida: %s", operation));
             throw new NO_PERMISSION(InvalidChainCode.value,
               CompletionStatus.COMPLETED_NO);
           }
         }
         else {
+          logger.finest(String.format(
+            "Recebeu chamada sem sessão associda: %s", operation));
           // credencial não é válida. Resetando a credencial da sessão.
           doResetCredential(ri, orb, conn, pubkey.value);
           throw new NO_PERMISSION(InvalidCredentialCode.value,
@@ -172,8 +167,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         }
       }
       else {
-        logger.info(String.format(
-          "Recebeu chamada sem credencial: operação %s", operation));
+        logger.info(String.format("Recebeu chamada fora do barramento: %s",
+          operation));
       }
     }
     catch (InvalidSlot e) {
@@ -193,6 +188,11 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       throw new NO_PERMISSION(InvalidPublicKeyCode.value,
         CompletionStatus.COMPLETED_NO);
     }
+    finally {
+      if (multiplexer.isMultiplexed()) {
+        setCurrentConnection(ri, null);
+      }
+    }
 
   }
 
@@ -207,15 +207,14 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   private void doResetCredential(ServerRequestInfo ri, BusORB orb,
     ConnectionImpl conn, byte[] publicKey) throws CryptographyException {
-    logger.finest("Resetando a credencial.");
     byte[] newSecret = newSecret();
     Cryptography crypto = Cryptography.getInstance();
     byte[] encriptedSecret =
       crypto.encrypt(newSecret, crypto
         .generateRSAPublicKeyFromX509EncodedKey(publicKey));
     int sessionId = nextAvailableSessionId();
-    CredentialSession newSession =
-      new CredentialSession(sessionId, newSecret, null);
+    ServerSideSession newSession =
+      new ServerSideSession(sessionId, newSecret, conn.login().id);
     sessions.put(newSession.getSession(), newSession);
     CredentialReset reset =
       new CredentialReset(conn.login().id, sessionId, encriptedSecret);
@@ -230,11 +229,10 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       logger.log(Level.SEVERE, message, e);
       throw new INTERNAL(message);
     }
+    logger.finest("Resetando a credencial: " + ri.operation());
     ServiceContext requestServiceContext =
       new ServiceContext(CredentialContextId.value, encodedCredential);
     ri.add_reply_service_context(requestServiceContext, false);
-    // Prepara a sessão para receber o próximo ticket.
-    newSession.generateNextTicket();
   }
 
   /**
@@ -248,7 +246,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
   private boolean validateLogin(CredentialData credential, ConnectionImpl conn) {
     String[] loginIds = new String[1];
     loginIds[0] = credential.login;
-
     try {
       int[] validity = conn.logins().getValidity(loginIds);
       if (validity.length == 1 && validity[0] > 0) {
@@ -281,15 +278,19 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       logger.finest("Credencial OpenBus 1.5");
       return true;
     }
-    CredentialSession session = sessions.get(credential.session);
+    ServerSideSession session = sessions.get(credential.session);
     if (session != null) {
-      byte[] hash = this.generateCredentialDataHash(ri, session);
-      // FIXME: incluir o check do ticket 
-      if (Arrays.equals(hash, credential.hash)) {
-        logger.fine(String.format("sessão utilizada: id = %d ticket = %d",
-          session.getSession(), session.getTicket()));
-        session.generateNextTicket();
+      logger.finest(String.format("sessão utilizada: id = %d ticket = %d",
+        session.getSession(), credential.ticket));
+      byte[] hash =
+        this.generateCredentialDataHash(ri, session.getSecret(),
+          credential.ticket);
+      if (Arrays.equals(hash, credential.hash)
+        && session.getTicket().check(credential.ticket)) {
         return true;
+      }
+      else {
+        logger.finest("Falha na validação do hash da credencial");
       }
     }
     return false;
@@ -320,7 +321,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           if (verified && callChain.target.equals(conn.login().id)) {
             LoginInfo[] callers = callChain.callers;
             if (callers[callers.length - 1].id.equals(caller.id)) {
-              logger.finest("Cadeia é valida.");
               return true;
             }
           }
@@ -378,9 +378,11 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * @return o Identificador de sessão.
    */
   private int nextAvailableSessionId() {
-    for (int i = 1; i <= CACHE_SIZE + 1; i++) {
-      if (!sessions.containsKey(i)) {
-        return i;
+    synchronized (sessions) {
+      for (int i = 1; i <= CACHE_SIZE + 1; i++) {
+        if (!sessions.containsKey(i)) {
+          return i;
+        }
       }
     }
     // não deveria chegar neste ponto
@@ -398,5 +400,38 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     Random random = new Random();
     random.nextBytes(secret);
     return secret;
+  }
+
+  private void setCurrentConnection(ServerRequestInfo ri, Connection conn) {
+    long id = Thread.currentThread().getId();
+    ConnectionMultiplexerImpl multiplexer =
+      this.getMediator().getConnectionMultiplexer();
+    Any any = this.getMediator().getORB().getORB().create_any();
+    any.insert_longlong(id);
+    try {
+      ri.set_slot(multiplexer.getCurrentThreadSlotId(), any);
+    }
+    catch (InvalidSlot e) {
+      String message = "Falha inesperada ao acessar o slot da thread corrente";
+      logger.log(Level.SEVERE, message, e);
+      throw new OpenBusInternalException(message, e);
+    }
+    multiplexer.setConnectionByThreadId(id, conn);
+  }
+
+  private void removeCurrentConnection(ServerRequestInfo ri) {
+    long id = Thread.currentThread().getId();
+    ConnectionMultiplexerImpl multiplexer =
+      this.getMediator().getConnectionMultiplexer();
+    Any any = this.getMediator().getORB().getORB().create_any();
+    try {
+      ri.set_slot(multiplexer.getCurrentThreadSlotId(), any);
+    }
+    catch (InvalidSlot e) {
+      String message = "Falha inesperada ao acessar o slot da thread corrente";
+      logger.log(Level.SEVERE, message, e);
+      throw new OpenBusInternalException(message, e);
+    }
+    multiplexer.setConnectionByThreadId(id, null);
   }
 }

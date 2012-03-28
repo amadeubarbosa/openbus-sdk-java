@@ -7,8 +7,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.omg.CORBA.NO_PERMISSION;
+import org.omg.CORBA.ORBPackage.InvalidName;
 
 import tecgraf.openbus.Connection;
+import tecgraf.openbus.ConnectionMultiplexer;
 import tecgraf.openbus.core.v2_00.services.ServiceFailure;
 import tecgraf.openbus.core.v2_00.services.access_control.AccessControl;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
@@ -113,6 +115,19 @@ public final class LeaseRenewer {
      */
     @Override
     public void run() {
+      try {
+        ConnectionMultiplexerImpl multiplexer =
+          (ConnectionMultiplexerImpl) conn.orb().resolve_initial_references(
+            ConnectionMultiplexer.INITIAL_REFERENCE_ID);
+        if (multiplexer.isMultiplexed()) {
+          multiplexer.setCurrentConnection(this.conn);
+        }
+      }
+      catch (InvalidName e) {
+        String message = "Falha inesperada ao obter o multiplexador";
+        logger.log(Level.SEVERE, message, e);
+        this.mustContinue = false;
+      }
       while (this.mustContinue) {
         int lease = -1;
         try {
@@ -150,6 +165,10 @@ public final class LeaseRenewer {
         }
         lease = -1;
       }
+      LoginInfo info = this.conn.login();
+      logger.info(String.format(
+        "Finalizando thread de renovação: login (%s) entidade (%s)", info.id,
+        info.entity));
     }
 
     /**

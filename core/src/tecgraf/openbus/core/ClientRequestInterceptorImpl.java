@@ -21,8 +21,7 @@ import org.omg.PortableInterceptor.ForwardRequest;
 import org.omg.PortableInterceptor.InvalidSlot;
 
 import tecgraf.openbus.InvalidLoginCallback;
-import tecgraf.openbus.core.interceptor.CredentialSession;
-import tecgraf.openbus.core.interceptor.EffectiveProfile;
+import tecgraf.openbus.core.Session.ClientSideSession;
 import tecgraf.openbus.core.v2_00.credential.CredentialContextId;
 import tecgraf.openbus.core.v2_00.credential.CredentialData;
 import tecgraf.openbus.core.v2_00.credential.CredentialDataHelper;
@@ -52,10 +51,8 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
 
   /** Mapa de profile do interceptador para o cliente alvo da chamanha */
   private Map<EffectiveProfile, String> entities;
-  /** Mapa de cliente alvo da chamada para estrutura de reset */
-  private Map<String, CredentialReset> resets;
   /** Cache de sessão: mapa de cliente alvo da chamada para sessão */
-  private Map<String, CredentialSession> sessions;
+  private Map<String, ClientSideSession> sessions;
 
   /**
    * Construtor.
@@ -68,11 +65,8 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     this.entities =
       Collections.synchronizedMap(new LRUCache<EffectiveProfile, String>(
         CACHE_SIZE));
-    this.resets =
-      Collections.synchronizedMap(new LRUCache<String, CredentialReset>(
-        CACHE_SIZE));
     this.sessions =
-      Collections.synchronizedMap(new LRUCache<String, CredentialSession>(
+      Collections.synchronizedMap(new LRUCache<String, ClientSideSession>(
         CACHE_SIZE));
   }
 
@@ -82,10 +76,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
   @Override
   public void send_request(ClientRequestInfo ri) {
     String operation = ri.operation();
-    logger.fine(String.format("A operação %s será requisitada", operation));
     BusORBImpl orb = (BusORBImpl) this.getMediator().getORB();
     if (orb.isCurrentThreadIgnored()) {
-      logger.fine(String.format("Realizando requisição sem credencial: %s",
+      logger.fine(String.format("Realizando chamada fora do barramento: %s",
         operation));
       return;
     }
@@ -114,70 +107,54 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    *         reset da sessão.
    */
   private CredentialData generateCredentialData(ClientRequestInfo ri) {
-    ConnectionMultiplexerImpl multiplexer =
-      this.getMediator().getConnectionMultiplexer();
-    ConnectionImpl currentConnection =
-      (ConnectionImpl) this.getCurrentConnection(ri);
-
-    String busId = currentConnection.busid();
-    String loginId = currentConnection.login().id;
-
+    String operation = ri.operation();
+    ConnectionImpl conn = (ConnectionImpl) this.getCurrentConnection(ri);
+    String busId = conn.busid();
+    String loginId = conn.login().id;
     EffectiveProfile ep = new EffectiveProfile(ri.effective_profile());
-    if (this.entities.containsKey(ep)) {
-      String callee = this.entities.get(ep);
-      CredentialSession session =
-        this.getCredentialSession(ri, callee, currentConnection);
+    String callee = this.entities.get(ep);
+    if (callee != null) {
+      ClientSideSession session = this.sessions.get(callee);
       if (session != null) {
-        logger.fine(String.format("reusando sessão: id = %d ticket = %d",
-          session.getSession(), session.getTicket()));
-        session.generateNextTicket();
+        int ticket = session.nextTicket();
+        logger.finest(String.format("utilizando sessão: id = %d ticket = %d",
+          session.getSession(), ticket));
+        byte[] secret;
+        try {
+          secret = session.getDecryptedSecret(conn);
+        }
+        catch (CryptographyException e) {
+          String message = "Falha inesperada descriptografar segredo.";
+          logger.log(Level.SEVERE, message, e);
+          throw new INTERNAL(message);
+        }
         byte[] credentialDataHash =
-          this.generateCredentialDataHash(ri, session);
-        return new CredentialData(busId, loginId, session.getSession(), session
-          .getTicket(), credentialDataHash, session.getDefaultCallChain());
+          this.generateCredentialDataHash(ri, secret, ticket);
+        SignedCallChain chain = getCallChain(ri, conn, callee);
+        logger.info(String.format("Realizando chamada via barramento: %s",
+          operation));
+        return new CredentialData(busId, loginId, session.getSession(), ticket,
+          credentialDataHash, chain);
       }
     }
-
+    logger.fine(String.format("Realizando chamada sem credencial: %s",
+      operation));
     return new CredentialData(busId, loginId, 0, 0,
       Cryptography.NULL_HASH_VALUE, Cryptography.NULL_SIGNED_CALL_CHAIN);
   }
 
   /**
-   * Recupera a credencial da sessão. Se a sessão ainda não existe, realiza a
-   * negociação para a geração de uma nova sessão.
+   * Recupera a cadeia assinada que deve ser anexada a requisição.
    * 
-   * @param ri Informação do request
-   * @param callee o cliente alvo da chamada.
-   * @param currentConnection a conexão pela qual a chamada será realizada.
-   * @return A credencial da sessão com este cliente.
+   * @param ri informação do request
+   * @param conn a conexão em uso
+   * @param callee o alvo do request
+   * @return A cadeia assinada.
    */
-  private CredentialSession getCredentialSession(ClientRequestInfo ri,
-    String callee, ConnectionImpl currentConnection) {
-    CredentialSession session = this.sessions.get(callee);
-    if (session != null) {
-      return session;
-    }
-    CredentialReset reset = this.resets.remove(callee);
-    if (reset == null) {
-      return null;
-    }
-
-    Cryptography crypto = Cryptography.getInstance();
-    byte[] secret;
-    try {
-      secret =
-        crypto.decrypt(reset.challenge, currentConnection.getPrivateKey());
-    }
-    catch (CryptographyException e) {
-      String message =
-        String.format("Falha inesperada ao decifrar o segredo da entidade %s",
-          callee);
-      logger.log(Level.SEVERE, message, e);
-      throw new INTERNAL(message);
-    }
-
+  private SignedCallChain getCallChain(ClientRequestInfo ri,
+    ConnectionImpl conn, String callee) {
     SignedCallChain callChain;
-    if (callee.equals(currentConnection.busid())) {
+    if (callee.equals(conn.busid())) {
       try {
         Any any = ri.get_slot(this.getMediator().getJoinedChainSlotId());
         if (any.type().kind().value() != TCKind._tk_null) {
@@ -195,7 +172,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     }
     else {
       try {
-        callChain = currentConnection.access().signChainFor(callee);
+        callChain = conn.access().signChainFor(callee);
       }
       catch (ServiceFailure e) {
         String message =
@@ -207,9 +184,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         throw new INTERNAL(message);
       }
     }
-    session = new CredentialSession(reset.session, secret, callChain);
-    this.sessions.put(callee, session);
-    return session;
+    return callChain;
   }
 
   /**
@@ -231,23 +206,17 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void receive_exception(ClientRequestInfo ri) throws ForwardRequest {
-    logger.finest("Uma exceção foi recebida");
     if (!ri.received_exception_id().equals(NO_PERMISSIONHelper.id())) {
-      logger.finest("A exceção recebida não é do tipo NO_PERMISSION");
       return;
     }
-    logger.finest("A exceção recebida é do tipo NO_PERMISSION");
 
     Any exceptionAny = ri.received_exception();
     NO_PERMISSION exception = NO_PERMISSIONHelper.extract(exceptionAny);
     if (!exception.completed.equals(CompletionStatus.COMPLETED_NO)) {
       return;
     }
-    logger
-      .finest("A exceção indica que a operação solicitada não foi completada");
 
     if (exception.minor == InvalidCredentialCode.value) {
-      logger.fine("Obtendo o CredentialReset");
       EffectiveProfile ep = new EffectiveProfile(ri.effective_profile());
       ServiceContext context =
         ri.get_reply_service_context(CredentialContextId.value);
@@ -271,21 +240,20 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       CredentialReset reset = CredentialResetHelper.extract(credentialResetAny);
       String callee = reset.login;
       this.entities.put(ep, callee);
-      this.resets.put(callee, reset);
-      logger.fine("Solicitando que a chamada seja refeita.");
+      this.sessions.put(callee, new ClientSideSession(reset.session,
+        reset.challenge, reset.login));
+      logger.fine(String
+        .format("ForwardRequest após reset: %s", ri.operation()));
       throw new ForwardRequest(ri.target());
     }
     else if (exception.minor == InvalidLoginCode.value) {
-      logger.fine(String.format(
-        "Recebeu uma exceção InvalidLogin. operação: %s", ri.operation()));
-      ConnectionMultiplexerImpl multiplexer =
-        this.getMediator().getConnectionMultiplexer();
       ConnectionImpl conn = (ConnectionImpl) this.getCurrentConnection(ri);
       InvalidLoginCallback callback = conn.onInvalidLoginCallback();
       LoginInfo login = conn.login();
       conn.localLogout();
       if (callback != null && callback.invalidLogin(conn, login)) {
-        logger.fine("Solicitando que a chamada seja refeita.");
+        logger.fine(String.format("ForwardRequest após callback: %s", ri
+          .operation()));
         throw new ForwardRequest(ri.target());
       }
     }
