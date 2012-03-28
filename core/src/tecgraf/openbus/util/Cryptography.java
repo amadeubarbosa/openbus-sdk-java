@@ -70,7 +70,7 @@ public final class Cryptography {
   /**
    * Codificação charset padrão.
    */
-  public static Charset CHARSET = Charset.forName("US-ASCII");
+  public static final Charset CHARSET = Charset.forName("US-ASCII");
   /**
    * A instância.
    */
@@ -87,7 +87,7 @@ public final class Cryptography {
    * 
    * @return a instância
    */
-  public static Cryptography getInstance() {
+  public static synchronized Cryptography getInstance() {
     if (instance == null) {
       instance = new Cryptography();
     }

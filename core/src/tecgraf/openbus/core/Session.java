@@ -7,7 +7,7 @@ import tecgraf.openbus.util.TicketsHistory;
 abstract class Session {
 
   private int session;
-  private byte[] secret;
+  protected byte[] secret;
   private String callee;
 
   public Session(int session, byte[] secret, String callee) {
@@ -18,13 +18,6 @@ abstract class Session {
 
   public int getSession() {
     return this.session;
-  }
-
-  public byte[] getDecryptedSecret(ConnectionImpl conn)
-    throws CryptographyException {
-    Cryptography crypto = Cryptography.getInstance();
-    byte[] decrypted = crypto.decrypt(this.secret, conn.getPrivateKey());
-    return decrypted;
   }
 
   public byte[] getSecret() {
@@ -51,6 +44,7 @@ abstract class Session {
 
   static class ClientSideSession extends Session {
     private int ticket;
+    private boolean decrypted = false;
 
     public ClientSideSession(int session, byte[] secret, String callee) {
       super(session, secret, callee);
@@ -61,5 +55,15 @@ abstract class Session {
       return ++this.ticket;
     }
 
+    public byte[] getDecryptedSecret(ConnectionImpl conn)
+      throws CryptographyException {
+      if (!decrypted) {
+        Cryptography crypto = Cryptography.getInstance();
+        byte[] decrypted = crypto.decrypt(this.secret, conn.getPrivateKey());
+        this.secret = decrypted;
+        this.decrypted = true;
+      }
+      return this.secret;
+    }
   }
 }

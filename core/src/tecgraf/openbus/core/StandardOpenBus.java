@@ -23,7 +23,7 @@ public class StandardOpenBus extends OpenBus {
    * 
    * @return a instância do SDK.
    */
-  public static OpenBus getInstance() {
+  public static synchronized OpenBus getInstance() {
     if (instance == null) {
       instance = new StandardOpenBus();
     }

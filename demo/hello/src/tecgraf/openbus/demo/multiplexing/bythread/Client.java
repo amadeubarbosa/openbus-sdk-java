@@ -1,4 +1,4 @@
-package tecgraf.openbus.demo.multiplexing;
+package tecgraf.openbus.demo.multiplexing.bythread;
 
 import java.util.Properties;
 import java.util.logging.ConsoleHandler;

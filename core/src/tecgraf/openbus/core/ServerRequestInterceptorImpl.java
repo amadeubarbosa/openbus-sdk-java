@@ -42,7 +42,6 @@ import tecgraf.openbus.core.v2_00.services.access_control.SignedCallChain;
 import tecgraf.openbus.core.v2_00.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_00.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.exception.CryptographyException;
-import tecgraf.openbus.exception.OpenBusInternalException;
 import tecgraf.openbus.util.Cryptography;
 import tecgraf.openbus.util.LRUCache;
 
@@ -60,6 +59,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
 
   /** Cache de sessão: mapa de cliente alvo da chamada para sessão */
   private Map<Integer, ServerSideSession> sessions;
+  /** Cache de login */
+  private LoginCache validitys;
 
   /**
    * Construtor.
@@ -72,6 +73,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     this.sessions =
       Collections.synchronizedMap(new LRUCache<Integer, ServerSideSession>(
         CACHE_SIZE));
+    this.validitys = new LoginCache(CACHE_SIZE);
   }
 
   /**
@@ -137,7 +139,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         if (conn == null) {
           conn = (ConnectionImpl) this.getCurrentConnection(ri);
         }
-        if (!validateLogin(credential, conn)) {
+        if (!validitys.validateLogin(credential.login, conn)) {
           throw new NO_PERMISSION(InvalidLoginCode.value,
             CompletionStatus.COMPLETED_NO);
         }
@@ -190,7 +192,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     }
     finally {
       if (multiplexer.isMultiplexed()) {
-        setCurrentConnection(ri, null);
+        removeCurrentConnection(ri);
       }
     }
 
@@ -356,6 +358,15 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void send_reply(ServerRequestInfo ri) {
+    Any any = this.getMediator().getORB().getORB().create_any();
+    try {
+      ri.set_slot(this.getMediator().getCredentialSlotId(), any);
+    }
+    catch (InvalidSlot e) {
+      String message = "Falha inesperada ao acessar o slot da credencial";
+      logger.log(Level.SEVERE, message, e);
+      throw new INTERNAL(message);
+    }
   }
 
   /**
@@ -414,7 +425,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao acessar o slot da thread corrente";
       logger.log(Level.SEVERE, message, e);
-      throw new OpenBusInternalException(message, e);
+      throw new INTERNAL(message);
     }
     multiplexer.setConnectionByThreadId(id, conn);
   }
@@ -430,7 +441,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao acessar o slot da thread corrente";
       logger.log(Level.SEVERE, message, e);
-      throw new OpenBusInternalException(message, e);
+      throw new INTERNAL(message);
     }
     multiplexer.setConnectionByThreadId(id, null);
   }

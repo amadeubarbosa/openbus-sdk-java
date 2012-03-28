@@ -62,7 +62,7 @@ public final class ConnectionImpl implements Connection {
   /** Chave privada do sdk */
   private RSAPrivateKey privateKey;
   /** Indica se a conexão esta fechada (descartada para uso) */
-  private boolean closed;
+  private volatile boolean closed;
   /** Informação do login associado a esta conexão. */
   private LoginInfo login;
   /** Mapa de thread para cadeia de chamada */

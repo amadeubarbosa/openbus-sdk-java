@@ -1,4 +1,4 @@
-package tecgraf.openbus.demo.multiplexing;
+package tecgraf.openbus.demo.multiplexing.byorb;
 
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
@@ -34,8 +34,7 @@ public final class HelloServant extends HelloPOA {
       CallerChain callerChain = conn.getCallerChain();
       LoginInfo[] callers = callerChain.callers();
       String entity = callers[callers.length - 1].entity;
-      System.out.println(String.format("Hello from %s @ %s!", entity,
-        callerChain.busid()));
+      System.out.println(String.format("Hello from %s!", entity));
     }
     catch (Exception e) {
       e.printStackTrace();

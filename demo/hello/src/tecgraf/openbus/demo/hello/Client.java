@@ -13,7 +13,17 @@ import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Utils;
 import tecgraf.openbus.util.Cryptography;
 
+/**
+ * Cliente do demo Hello
+ * 
+ * @author Tecgraf
+ */
 public final class Client {
+  /**
+   * Função principal.
+   * 
+   * @param args argumentos.
+   */
   public static void main(String[] args) {
     try {
       Logger logger = Logger.getLogger("tecgraf.openbus");
