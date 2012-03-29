@@ -60,7 +60,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
   /** Cache de sessão: mapa de cliente alvo da chamada para sessão */
   private Map<Integer, ServerSideSession> sessions;
   /** Cache de login */
-  private LoginCache validitys;
+  private LoginCache loginsCache;
 
   /**
    * Construtor.
@@ -73,7 +73,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     this.sessions =
       Collections.synchronizedMap(new LRUCache<Integer, ServerSideSession>(
         CACHE_SIZE));
-    this.validitys = new LoginCache(CACHE_SIZE);
+    this.loginsCache = new LoginCache(CACHE_SIZE);
   }
 
   /**
@@ -139,18 +139,18 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         if (conn == null) {
           conn = (ConnectionImpl) this.getCurrentConnection(ri);
         }
-        if (!validitys.validateLogin(credential.login, conn)) {
+        String loginId = credential.login;
+        if (!loginsCache.validateLogin(loginId, conn)) {
           throw new NO_PERMISSION(InvalidLoginCode.value,
             CompletionStatus.COMPLETED_NO);
         }
         OctetSeqHolder pubkey = new OctetSeqHolder();
-        LoginInfo caller = conn.logins().getLoginInfo(credential.login, pubkey);
+        String entity = loginsCache.getLoginEntity(loginId, pubkey, conn);
         if (validateCredential(credential, ri)) {
-          if (validateChain(credential.chain, caller, conn)) {
+          if (validateChain(credential.chain, loginId, conn)) {
             String msg =
               "Recebendo chamada pelo barramento: login (%s) entidade (%s) operação (%s)";
-            logger
-              .info(String.format(msg, caller.id, caller.entity, operation));
+            logger.info(String.format(msg, loginId, entity, operation));
           }
           else {
             logger.finest(String.format(
@@ -238,34 +238,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
   }
 
   /**
-   * Verifica se o login da credencial é válido.
-   * 
-   * @param credential a credencial
-   * @param conn a conexão em uso.
-   * @return <code>true</code> caso o login seja válido, ou <code>false</code>
-   *         caso contrário.
-   */
-  private boolean validateLogin(CredentialData credential, ConnectionImpl conn) {
-    String[] loginIds = new String[1];
-    loginIds[0] = credential.login;
-    try {
-      int[] validity = conn.logins().getValidity(loginIds);
-      if (validity.length == 1 && validity[0] > 0) {
-        return true;
-      }
-      return false;
-    }
-    catch (ServiceFailure e) {
-      String message =
-        String.format("%s: Não foi possível validar login.",
-          UnverifiedLoginCode.class.getSimpleName());
-      logger.log(Level.SEVERE, message, e);
-      throw new NO_PERMISSION(UnverifiedLoginCode.value,
-        CompletionStatus.COMPLETED_NO);
-    }
-  }
-
-  /**
    * Verifica se a credencial é válida, recalculando o hash da mesma.
    * 
    * @param credential a credencial
@@ -302,12 +274,12 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * Valida a cadeia da credencial.
    * 
    * @param chain a cadeia.
-   * @param caller informação de login do requisitante da operação.
+   * @param caller identificador de login do requisitante da operação.
    * @param conn a conexão em uso.
    * @return <code>true</code> caso a cadeia seja válida, ou <code>false</code>
    *         caso contrário.
    */
-  private boolean validateChain(SignedCallChain chain, LoginInfo caller,
+  private boolean validateChain(SignedCallChain chain, String caller,
     ConnectionImpl conn) {
     Cryptography crypto = Cryptography.getInstance();
     RSAPublicKey busPubKey = conn.getBusPublicKey();
@@ -322,7 +294,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
             crypto.verifySignature(busPubKey, chain.encoded, chain.signature);
           if (verified && callChain.target.equals(conn.login().id)) {
             LoginInfo[] callers = callChain.callers;
-            if (callers[callers.length - 1].id.equals(caller.id)) {
+            if (callers[callers.length - 1].id.equals(caller)) {
               return true;
             }
           }
@@ -413,6 +385,12 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     return secret;
   }
 
+  /**
+   * Configura a conexão corrente desta requisição.
+   * 
+   * @param ri informação da requisição
+   * @param conn a conexão corrente.
+   */
   private void setCurrentConnection(ServerRequestInfo ri, Connection conn) {
     long id = Thread.currentThread().getId();
     ConnectionMultiplexerImpl multiplexer =
@@ -430,6 +408,11 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     multiplexer.setConnectionByThreadId(id, conn);
   }
 
+  /**
+   * Remove a conexão corrente do slot de ThreadId
+   * 
+   * @param ri a informação do request.
+   */
   private void removeCurrentConnection(ServerRequestInfo ri) {
     long id = Thread.currentThread().getId();
     ConnectionMultiplexerImpl multiplexer =
