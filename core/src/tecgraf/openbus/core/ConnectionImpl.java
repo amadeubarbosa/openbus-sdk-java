@@ -3,6 +3,7 @@ package tecgraf.openbus.core;
 import java.security.KeyPair;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -93,7 +94,8 @@ public final class ConnectionImpl implements Connection {
     this.publicKey = (RSAPublicKey) keyPair.getPublic();
     this.privateKey = (RSAPrivateKey) keyPair.getPrivate();
     this.closed = false;
-    this.joinedChains = new HashMap<Thread, CallerChain>();
+    this.joinedChains =
+      Collections.synchronizedMap(new HashMap<Thread, CallerChain>());
     ConnectionMultiplexerImpl multiplexer = this.orb.getConnectionMultiplexer();
     multiplexer.addConnection(this);
   }
@@ -402,7 +404,7 @@ public final class ConnectionImpl implements Connection {
   @Override
   public CallerChain getCallerChain() {
     checkClosed();
-    return this.orb.getCallerChain();
+    return this.orb.getCallerChain(this);
   }
 
   /**
@@ -411,7 +413,7 @@ public final class ConnectionImpl implements Connection {
   @Override
   public void joinChain() throws OpenBusInternalException {
     checkClosed();
-    CallerChain currentChain = this.orb.getCallerChain();
+    CallerChain currentChain = this.orb.getCallerChain(this);
     if (currentChain == null) {
       return;
     }

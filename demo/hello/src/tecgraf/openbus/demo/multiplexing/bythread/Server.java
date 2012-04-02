@@ -101,13 +101,6 @@ public class Server {
           .getIComponent());
       thread2.start();
 
-      //      multiplexer.setCurrentConnection(conn1AtBus1WithOrb1);
-      //      conn1AtBus1WithOrb1.offers().registerService(context1.getIComponent(),
-      //        getProps());
-      //      multiplexer.setCurrentConnection(conn2AtBus1WithOrb1);
-      //      conn2AtBus1WithOrb1.offers().registerService(context1.getIComponent(),
-      //        getProps());
-
       multiplexer.setCurrentConnection(connAtBus2WithOrb1);
       connAtBus2WithOrb1.offers().registerService(context1.getIComponent(),
         getProps());

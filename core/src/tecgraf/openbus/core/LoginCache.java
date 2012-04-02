@@ -43,7 +43,14 @@ class LoginCache {
       }
     }
 
-    List<String> ids = new ArrayList<String>(this.logins.keySet());
+    String busid = conn.busid();
+    List<String> ids = new ArrayList<String>();
+    List<LoginEntry> logins = new ArrayList<LoginEntry>(this.logins.values());
+    for (LoginEntry lEntry : logins) {
+      if (lEntry.busId.equals(busid)) {
+        ids.add(lEntry.loginId);
+      }
+    }
     if (!contains) {
       ids.add(loginId);
     }
@@ -58,6 +65,8 @@ class LoginCache {
         LoginEntry loginEntry = this.logins.get(id);
         if (loginEntry == null) {
           loginEntry = new LoginEntry();
+          loginEntry.loginId = id;
+          loginEntry.busId = busid;
           loginEntry.lastTime = time;
           loginEntry.validity = validity;
           this.logins.put(id, loginEntry);
@@ -106,6 +115,14 @@ class LoginCache {
    * @author Tecgraf
    */
   private class LoginEntry {
+    /**
+     * Identificação do login.
+     */
+    public String loginId;
+    /**
+     * Barramento ao qual o login pertence.
+     */
+    public String busId;
     /**
      * Tempo de validade.
      */

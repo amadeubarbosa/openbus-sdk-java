@@ -101,13 +101,21 @@ public final class BusORBImpl implements BusORB {
     return this.multiplexer;
   }
 
-  CallerChain getCallerChain() throws InternalException {
+  CallerChain getCallerChain(ConnectionImpl conn) throws InternalException {
     Current current = getPICurrent();
     String busId;
     CallChain callChain;
     SignedCallChain signedChain;
     try {
-      Any any = current.get_slot(this.mediator.getCredentialSlotId());
+      Any any = current.get_slot(this.mediator.getConnectionSlotId());
+      if (any.type().kind().value() == TCKind._tk_null) {
+        return null;
+      }
+      String loginid = any.extract_string();
+      if (!conn.login().id.equals(loginid)) {
+        return null;
+      }
+      any = current.get_slot(this.mediator.getCredentialSlotId());
       if (any.type().kind().value() == TCKind._tk_null) {
         return null;
       }

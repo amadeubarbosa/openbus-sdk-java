@@ -13,17 +13,21 @@ final class ORBMediator extends LocalObject {
   public static final String INITIAL_REFERENCE_ID = "openbus.ORBManager";
 
   private Codec codec;
+  /** Identificador do slot da credencial */
   private final int CREDENTIAL_SLOT_ID;
   /** Identificador do slot de joined chain */
   private final int JOINED_CHAIN_SLOT_ID;
+  /** Identificador do slot da caller chain */
+  private final int CONNECTION_SLOT_ID;
   private BusORB orb;
   private ConnectionMultiplexerImpl multiplexer;
 
   ORBMediator(Codec codec, int credentialSlotId, int chainSlotId,
-    ConnectionMultiplexerImpl multiplexer) {
+    int callerChainSlotId, ConnectionMultiplexerImpl multiplexer) {
     this.codec = codec;
     this.CREDENTIAL_SLOT_ID = credentialSlotId;
     this.JOINED_CHAIN_SLOT_ID = chainSlotId;
+    this.CONNECTION_SLOT_ID = callerChainSlotId;
     this.multiplexer = multiplexer;
   }
 
@@ -45,6 +49,10 @@ final class ORBMediator extends LocalObject {
 
   int getJoinedChainSlotId() {
     return this.JOINED_CHAIN_SLOT_ID;
+  }
+
+  int getConnectionSlotId() {
+    return this.CONNECTION_SLOT_ID;
   }
 
   public ConnectionMultiplexerImpl getConnectionMultiplexer() {

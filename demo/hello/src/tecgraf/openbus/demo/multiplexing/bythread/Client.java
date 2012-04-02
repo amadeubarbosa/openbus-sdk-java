@@ -56,9 +56,9 @@ public class Client {
           conn.offers().findServices(serviceProperties);
         for (ServiceOfferDesc offer : services) {
           for (ServiceProperty prop : offer.properties) {
-            if (prop.name == "openbus.offer.entity") {
+            if (prop.name.equals("openbus.offer.entity")) {
               System.out.println("found offer from " + prop.value
-                + "on bus at port " + port);
+                + " on bus at port " + port);
             }
           }
           org.omg.CORBA.Object obj = offer.service_ref.getFacetByName("hello");

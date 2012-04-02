@@ -29,10 +29,10 @@ public class Server {
   public static void main(String[] args) {
     try {
       Logger logger = Logger.getLogger("tecgraf.openbus");
-      logger.setLevel(Level.FINEST);
+      logger.setLevel(Level.INFO);
       logger.setUseParentHandlers(false);
       ConsoleHandler handler = new ConsoleHandler();
-      handler.setLevel(Level.FINEST);
+      handler.setLevel(Level.INFO);
       logger.addHandler(handler);
 
       Properties properties =
@@ -61,8 +61,8 @@ public class Server {
 
       List<Connection> conns = new ArrayList<Connection>();
       conns.add(conn1AtBus1WithOrb1);
-      conns.add(conn2AtBus1WithOrb1);
       conns.add(connAtBus2WithOrb1);
+      conns.add(connAtBus1WithOrb2);
 
       // setup action on login termination
       conn1AtBus1WithOrb1.onInvalidLoginCallback(new Callback(

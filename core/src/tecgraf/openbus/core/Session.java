@@ -44,7 +44,7 @@ abstract class Session {
 
   static class ClientSideSession extends Session {
     private int ticket;
-    private boolean decrypted = false;
+    private volatile boolean decrypted = false;
 
     public ClientSideSession(int session, byte[] secret, String callee) {
       super(session, secret, callee);
@@ -58,10 +58,15 @@ abstract class Session {
     public byte[] getDecryptedSecret(ConnectionImpl conn)
       throws CryptographyException {
       if (!decrypted) {
-        Cryptography crypto = Cryptography.getInstance();
-        byte[] decrypted = crypto.decrypt(this.secret, conn.getPrivateKey());
-        this.secret = decrypted;
-        this.decrypted = true;
+        synchronized (this) {
+          if (!decrypted) {
+            Cryptography crypto = Cryptography.getInstance();
+            byte[] decrypted =
+              crypto.decrypt(this.secret, conn.getPrivateKey());
+            this.secret = decrypted;
+            this.decrypted = true;
+          }
+        }
       }
       return this.secret;
     }

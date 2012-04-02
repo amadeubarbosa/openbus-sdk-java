@@ -148,6 +148,10 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         String entity = loginsCache.getLoginEntity(loginId, pubkey, conn);
         if (validateCredential(credential, ri)) {
           if (validateChain(credential.chain, loginId, conn)) {
+            // salvando informação da conexão que atendeu a requisição
+            Any any = orb.getORB().create_any();
+            any.insert_string(conn.login().id);
+            ri.set_slot(this.getMediator().getConnectionSlotId(), any);
             String msg =
               "Recebendo chamada pelo barramento: login (%s) entidade (%s) operação (%s)";
             logger.info(String.format(msg, loginId, entity, operation));
@@ -333,9 +337,10 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     Any any = this.getMediator().getORB().getORB().create_any();
     try {
       ri.set_slot(this.getMediator().getCredentialSlotId(), any);
+      ri.set_slot(this.getMediator().getConnectionSlotId(), any);
     }
     catch (InvalidSlot e) {
-      String message = "Falha inesperada ao acessar o slot da credencial";
+      String message = "Falha inesperada ao limpar informações nos slots";
       logger.log(Level.SEVERE, message, e);
       throw new INTERNAL(message);
     }
@@ -428,4 +433,5 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     }
     multiplexer.setConnectionByThreadId(id, null);
   }
+
 }

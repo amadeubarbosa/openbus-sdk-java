@@ -27,6 +27,7 @@ public final class ORBInitializerImpl extends LocalObject implements
   private int credentialSlotId;
   private int currentThreadSlotId;
   private int joinedChainSlotId;
+  private int connectionSlotId;
 
   @Override
   public void pre_init(ORBInitInfo info) {
@@ -34,6 +35,7 @@ public final class ORBInitializerImpl extends LocalObject implements
     this.credentialSlotId = info.allocate_slot_id();
     this.currentThreadSlotId = info.allocate_slot_id();
     this.joinedChainSlotId = info.allocate_slot_id();
+    this.connectionSlotId = info.allocate_slot_id();
     ConnectionMultiplexerImpl multiplexer =
       new ConnectionMultiplexerImpl(this.currentThreadSlotId);
     try {
@@ -47,7 +49,7 @@ public final class ORBInitializerImpl extends LocalObject implements
     }
     ORBMediator mediator =
       new ORBMediator(codec, this.credentialSlotId, this.joinedChainSlotId,
-        multiplexer);
+        this.connectionSlotId, multiplexer);
     try {
       info.register_initial_reference(ORBMediator.INITIAL_REFERENCE_ID,
         mediator);
