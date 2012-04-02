@@ -40,7 +40,7 @@ public final class Server {
       handler.setLevel(Level.INFO);
       logger.addHandler(handler);
 
-      Properties props = Utils.readPropertyFile("/Hello.properties");
+      Properties props = Utils.readPropertyFile("/hello.properties");
       String host = props.getProperty("openbus.host.name");
       int port = Integer.valueOf(props.getProperty("openbus.host.port"));
       String entity = props.getProperty("server.entity.name");

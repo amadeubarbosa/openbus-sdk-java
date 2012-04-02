@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-import tecgraf.openbus.demo.singlesignon.Client;
-
 /**
  * Classe utilitária para os demos Java.
  * 
@@ -23,7 +21,7 @@ public class Utils {
    */
   static public Properties readPropertyFile(String fileName) throws IOException {
     Properties properties = new Properties();
-    InputStream propertiesStream = Client.class.getResourceAsStream(fileName);
+    InputStream propertiesStream = Utils.class.getResourceAsStream(fileName);
     if (propertiesStream == null) {
       throw new FileNotFoundException(String.format(
         "O arquivo de propriedades '%s' não foi encontrado", fileName));

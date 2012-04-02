@@ -16,5 +16,8 @@
 
   <modules>
     <module>hello</module>
+    <module>multiplexing</module>
+    <module>delegation</module>
+    <module>singlesignon</module>
   </modules>
 </project>
