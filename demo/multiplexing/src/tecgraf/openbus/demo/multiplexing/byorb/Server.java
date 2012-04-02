@@ -25,10 +25,10 @@ public class Server {
   public static void main(String[] args) {
     try {
       Logger logger = Logger.getLogger("tecgraf.openbus");
-      logger.setLevel(Level.FINEST);
+      logger.setLevel(Level.INFO);
       logger.setUseParentHandlers(false);
       ConsoleHandler handler = new ConsoleHandler();
-      handler.setLevel(Level.FINEST);
+      handler.setLevel(Level.INFO);
       logger.addHandler(handler);
 
       Properties properties =
