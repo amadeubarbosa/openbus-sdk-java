@@ -154,7 +154,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
             ri.set_slot(this.getMediator().getConnectionSlotId(), any);
             String msg =
               "Recebendo chamada pelo barramento: login (%s) entidade (%s) operação (%s)";
-            logger.info(String.format(msg, loginId, entity, operation));
+            logger.fine(String.format(msg, loginId, entity, operation));
           }
           else {
             logger.finest(String.format(
@@ -173,7 +173,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         }
       }
       else {
-        logger.info(String.format("Recebeu chamada fora do barramento: %s",
+        logger.fine(String.format("Recebeu chamada fora do barramento: %s",
           operation));
       }
     }

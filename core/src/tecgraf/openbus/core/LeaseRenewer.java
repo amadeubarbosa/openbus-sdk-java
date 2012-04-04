@@ -136,11 +136,11 @@ public final class LeaseRenewer {
           try {
             lease = this.manager.renew();
             expired = !(lease > 0);
-            logger.info(String.format(
+            logger.fine(String.format(
               "Renovando o login '%s' da entidade '%s' por %d segs.", info.id,
               info.entity, lease));
             LoginInfo clogin = conn.login();
-            if (clogin.id != info.id) {
+            if (clogin != null && !info.id.equals(clogin.id)) {
               info.entity = clogin.entity;
               info.id = clogin.id;
             }
@@ -171,7 +171,7 @@ public final class LeaseRenewer {
         lease = -1;
       }
 
-      logger.info(String.format(
+      logger.fine(String.format(
         "Finalizando thread de renovação: login (%s) entidade (%s)", info.id,
         info.entity));
     }

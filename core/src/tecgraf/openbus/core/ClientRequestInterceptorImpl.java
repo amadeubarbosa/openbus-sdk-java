@@ -84,7 +84,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     String operation = ri.operation();
     BusORBImpl orb = (BusORBImpl) this.getMediator().getORB();
     if (orb.isCurrentThreadIgnored()) {
-      logger.fine(String.format("Realizando chamada fora do barramento: %s",
+      logger.finest(String.format("Realizando chamada fora do barramento: %s",
         operation));
       return;
     }
@@ -137,13 +137,13 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         byte[] credentialDataHash =
           this.generateCredentialDataHash(ri, secret, ticket);
         SignedCallChain chain = getCallChain(ri, conn, callee);
-        logger.info(String.format("Realizando chamada via barramento: %s",
+        logger.fine(String.format("Realizando chamada via barramento: %s",
           operation));
         return new CredentialData(busId, loginId, session.getSession(), ticket,
           credentialDataHash, chain);
       }
     }
-    logger.fine(String.format("Realizando chamada sem credencial: %s",
+    logger.finest(String.format("Realizando chamada sem credencial: %s",
       operation));
     return new CredentialData(busId, loginId, 0, 0,
       Cryptography.NULL_HASH_VALUE, Cryptography.NULL_SIGNED_CALL_CHAIN);
@@ -267,8 +267,8 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       this.entities.put(ep, callee);
       this.sessions.put(callee, new ClientSideSession(reset.session,
         reset.challenge, reset.login));
-      logger.fine(String
-        .format("ForwardRequest após reset: %s", ri.operation()));
+      logger.finest(String.format("ForwardRequest após reset: %s", ri
+        .operation()));
       throw new ForwardRequest(ri.target());
     }
     else if (exception.minor == InvalidLoginCode.value) {
@@ -277,7 +277,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       LoginInfo login = conn.login();
       conn.localLogout();
       if (callback != null && callback.invalidLogin(conn, login)) {
-        logger.fine(String.format("ForwardRequest após callback: %s", ri
+        logger.finest(String.format("ForwardRequest após callback: %s", ri
           .operation()));
         throw new ForwardRequest(ri.target());
       }
