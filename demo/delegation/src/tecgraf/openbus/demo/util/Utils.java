@@ -5,6 +5,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
+import org.omg.CORBA.ORB;
+
+import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
+
 /**
  * Classe utilitária para os demos Java.
  * 
@@ -40,5 +44,41 @@ public class Utils {
       }
     }
     return properties;
+  }
+
+  static public String chain2str(LoginInfo[] callers) {
+    StringBuffer buffer = new StringBuffer();
+    for (LoginInfo loginInfo : callers) {
+      buffer.append(loginInfo.entity);
+      buffer.append(";");
+    }
+    return buffer.toString();
+  }
+
+  public static class ORBRunThread extends Thread {
+    private ORB orb;
+
+    public ORBRunThread(ORB orb) {
+      this.orb = orb;
+    }
+
+    @Override
+    public void run() {
+      this.orb.run();
+    }
+  }
+
+  public static class ORBDestroyThread extends Thread {
+    private ORB orb;
+
+    public ORBDestroyThread(ORB orb) {
+      this.orb = orb;
+    }
+
+    @Override
+    public void run() {
+      this.orb.shutdown(true);
+      this.orb.destroy();
+    }
   }
 }
