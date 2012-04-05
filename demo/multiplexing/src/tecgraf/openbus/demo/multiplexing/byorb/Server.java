@@ -13,7 +13,7 @@ import tecgraf.openbus.BusORB;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.OpenBus;
-import tecgraf.openbus.core.MultiplexedOpenBus;
+import tecgraf.openbus.core.StandardOpenBus;
 import tecgraf.openbus.core.v2_00.services.ServiceFailure;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
@@ -37,7 +37,7 @@ public class Server {
       int port1 = Integer.valueOf(properties.getProperty("port1"));
 
       // setup and start the orb
-      OpenBus openbus = MultiplexedOpenBus.getInstance();
+      OpenBus openbus = StandardOpenBus.getInstance();
       BusORB orb1 = openbus.initORB(args);
       new ORBRunThread(orb1.getORB()).start();
       Runtime.getRuntime().addShutdownHook(new ORBDestroyThread(orb1.getORB()));

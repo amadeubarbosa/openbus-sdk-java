@@ -11,7 +11,7 @@ import tecgraf.openbus.OpenBus;
  * 
  * @author Tecgraf
  */
-public class StandardOpenBus extends OpenBus {
+public class StandardOpenBus extends OpenBusImpl {
 
   /**
    * A referência.
@@ -35,7 +35,7 @@ public class StandardOpenBus extends OpenBus {
    */
   @Override
   public BusORB initORB(String[] args, Properties props) {
-    BusORBImpl orb = (BusORBImpl) super.initORB(args, props);
+    BusORBImpl orb = new BusORBImpl(args, props);
     orb.getConnectionMultiplexer().isMultiplexed(false);
     return orb;
   }
@@ -54,4 +54,5 @@ public class StandardOpenBus extends OpenBus {
     }
     return super.connect(host, port, orb);
   }
+
 }

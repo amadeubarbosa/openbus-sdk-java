@@ -85,39 +85,47 @@ public class Server {
       context2.addFacet("hello", HelloHelper.id(), new HelloServant(conns));
 
       // set incoming connection
-      final ConnectionMultiplexer multiplexer =
+      final ConnectionMultiplexer multiplexer1 =
         (ConnectionMultiplexer) orb1.getORB().resolve_initial_references(
           ConnectionMultiplexer.INITIAL_REFERENCE_ID);
-      multiplexer.setIncommingConnection(conn1AtBus1WithOrb1.busid(),
+      multiplexer1.setIncommingConnection(conn1AtBus1WithOrb1.busid(),
         conn1AtBus1WithOrb1);
-      multiplexer.setIncommingConnection(connAtBus2WithOrb1.busid(),
+      multiplexer1.setIncommingConnection(connAtBus2WithOrb1.busid(),
         connAtBus2WithOrb1);
 
       // login to the bus
-      multiplexer.setCurrentConnection(conn1AtBus1WithOrb1);
+      multiplexer1.setCurrentConnection(conn1AtBus1WithOrb1);
       conn1AtBus1WithOrb1.loginByPassword("conn1", "conn1".getBytes());
-      multiplexer.setCurrentConnection(conn2AtBus1WithOrb1);
+      multiplexer1.setCurrentConnection(conn2AtBus1WithOrb1);
       conn2AtBus1WithOrb1.loginByPassword("conn2", "conn2".getBytes());
-      multiplexer.setCurrentConnection(connAtBus2WithOrb1);
+      multiplexer1.setCurrentConnection(connAtBus2WithOrb1);
       connAtBus2WithOrb1.loginByPassword("demo", "demo".getBytes());
-      multiplexer.setCurrentConnection(null);
+      multiplexer1.setCurrentConnection(null);
       connAtBus1WithOrb2.loginByPassword("demo", "demo".getBytes());
 
       Thread thread1 =
-        new RegisterThread(conn1AtBus1WithOrb1, multiplexer, context1
+        new RegisterThread(conn1AtBus1WithOrb1, multiplexer1, context1
           .getIComponent());
       thread1.start();
 
       Thread thread2 =
-        new RegisterThread(conn2AtBus1WithOrb1, multiplexer, context1
+        new RegisterThread(conn2AtBus1WithOrb1, multiplexer1, context1
           .getIComponent());
       thread2.start();
 
-      multiplexer.setCurrentConnection(connAtBus2WithOrb1);
+      multiplexer1.setCurrentConnection(connAtBus2WithOrb1);
       connAtBus2WithOrb1.offers().registerService(context1.getIComponent(),
         getProps());
+
+      final ConnectionMultiplexer multiplexer2 =
+        (ConnectionMultiplexer) orb2.getORB().resolve_initial_references(
+          ConnectionMultiplexer.INITIAL_REFERENCE_ID);
+      multiplexer2.setCurrentConnection(connAtBus1WithOrb2);
+      multiplexer2.setIncommingConnection(connAtBus1WithOrb2.busid(),
+        connAtBus1WithOrb2);
       connAtBus1WithOrb2.offers().registerService(context2.getIComponent(),
         getProps());
+      multiplexer2.setCurrentConnection(null);
     }
     catch (Exception e) {
       e.printStackTrace();

@@ -13,17 +13,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.omg.CORBA.Any;
-import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.LocalObject;
-import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.TCKind;
 import org.omg.PortableInterceptor.Current;
 import org.omg.PortableInterceptor.InvalidSlot;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionMultiplexer;
-import tecgraf.openbus.core.v2_00.services.access_control.NoLoginCode;
 import tecgraf.openbus.exception.OpenBusInternalException;
 
 /**
@@ -67,6 +64,11 @@ final class ConnectionMultiplexerImpl extends LocalObject implements
     this.CURRENT_THREAD_SLOT_ID = currentThreadSlotId;
   }
 
+  /**
+   * Recupera a chave do slot de identificação da thread corrente.
+   * 
+   * @return a chave do slot.s
+   */
   int getCurrentThreadSlotId() {
     return this.CURRENT_THREAD_SLOT_ID;
   }
@@ -134,12 +136,7 @@ final class ConnectionMultiplexerImpl extends LocalObject implements
 
     // Caso exista uma única conexão com o barramento, esta é retornada.
     Connection connection = hasOnlyOneConnection();
-    if (connection == null) {
-      throw new NO_PERMISSION(NoLoginCode.value, CompletionStatus.COMPLETED_NO);
-    }
-    else {
-      return connection;
-    }
+    return connection;
   }
 
   /**
@@ -157,16 +154,16 @@ final class ConnectionMultiplexerImpl extends LocalObject implements
         }
         else {
           logger
-            .fine("Não foi possível obter a conexão, pois não existe conexão para o barramento");
+            .finest("Não foi possível obter a conexão, pois não existe conexão para o barramento");
         }
       }
       else if (this.buses.isEmpty()) {
         logger
-          .fine("Não foi possível obter a conexão, pois não se conhece nenhum barramento");
+          .finest("Não foi possível obter a conexão, pois não se conhece nenhum barramento");
       }
       else {
         logger
-          .fine("Não foi possível obter a conexão, pois existe conexão para mais de um barramento.");
+          .finest("Não foi possível obter a conexão, pois existe conexão para mais de um barramento.");
       }
     }
     return null;
@@ -209,10 +206,22 @@ final class ConnectionMultiplexerImpl extends LocalObject implements
     }
   }
 
+  /**
+   * Recupera a conexão dado a identificação da thread.
+   * 
+   * @param threadId a identificação da thread
+   * @return a conexão em uso.
+   */
   Connection getConnectionByThreadId(long threadId) {
     return this.connectedThreads.get(threadId);
   }
 
+  /**
+   * Configura a conexão em uso na thread.
+   * 
+   * @param threadId identificador da thread.
+   * @param conn a conexão em uso.
+   */
   void setConnectionByThreadId(long threadId, Connection conn) {
     synchronized (this.connectedThreads) {
       this.connectedThreads.remove(threadId);
@@ -259,20 +268,42 @@ final class ConnectionMultiplexerImpl extends LocalObject implements
     }
   }
 
+  /**
+   * Verifica se possui alguma conexão para o barramento.
+   * 
+   * @param busid identificação do barramento.
+   * @return <code>true</code> caso possua alguma conexão, e <code>false</code>
+   *         caso contrário.
+   */
   boolean hasBus(String busid) {
     return this.buses.containsKey(busid);
   }
 
-  // CHECK corrigir visibilidade ou mover especializações de OpenBus
+  /**
+   * Configura o modo de operação do multiplexador.
+   * 
+   * @param isMultiplexed <code>true</code> se a multiplexação será ativada, e
+   *        <code>false</code> caso contrário.
+   */
   void isMultiplexed(boolean isMultiplexed) {
     this.isMultiplexed = isMultiplexed;
   }
 
-  // CHECK corrigir visibilidade ou mover especializações de OpenBus
+  /**
+   * Verifica se o modo multiplexado está ativado ou não.
+   * 
+   * @return <code>true</code> caso o modo multiplexado esteja ativo, e
+   *         <code>false</code> caso contrário.
+   */
   boolean isMultiplexed() {
     return this.isMultiplexed;
   }
 
+  /**
+   * Configura o ORB que o multiplexador esta associado.
+   * 
+   * @param orb o ORB.
+   */
   void setORB(BusORBImpl orb) {
     this.orb = orb;
   }

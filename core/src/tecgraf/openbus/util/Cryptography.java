@@ -119,8 +119,10 @@ public final class Cryptography {
     throws CryptographyException {
     try {
       Cipher cipher = Cipher.getInstance(CIPHER_ALGORITHM);
-      cipher.init(Cipher.ENCRYPT_MODE, publicKey);
-      return cipher.doFinal(data);
+      synchronized (cipher) {
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+        return cipher.doFinal(data);
+      }
     }
     catch (GeneralSecurityException e) {
       throw new CryptographyException(e);
@@ -139,8 +141,10 @@ public final class Cryptography {
     throws CryptographyException {
     try {
       Cipher cipher = Cipher.getInstance(CIPHER_ALGORITHM);
-      cipher.init(Cipher.DECRYPT_MODE, privateKey);
-      return cipher.doFinal(data);
+      synchronized (cipher) {
+        cipher.init(Cipher.DECRYPT_MODE, privateKey);
+        return cipher.doFinal(data);
+      }
     }
     catch (GeneralSecurityException e) {
       throw new CryptographyException(e);
@@ -159,7 +163,9 @@ public final class Cryptography {
     EncodedKeySpec encodedKeySpec = new X509EncodedKeySpec(encodedKey);
     try {
       KeyFactory keyFactory = KeyFactory.getInstance(KEY_FACTORY);
-      return (RSAPublicKey) keyFactory.generatePublic(encodedKeySpec);
+      synchronized (keyFactory) {
+        return (RSAPublicKey) keyFactory.generatePublic(encodedKeySpec);
+      }
     }
     catch (GeneralSecurityException e) {
       throw new CryptographyException(e);
@@ -176,12 +182,15 @@ public final class Cryptography {
     KeyPairGenerator keyPairGenerator;
     try {
       keyPairGenerator = KeyPairGenerator.getInstance(KEY_FACTORY);
+      synchronized (keyPairGenerator) {
+        keyPairGenerator.initialize(2048, new SecureRandom());
+        return keyPairGenerator.genKeyPair();
+      }
     }
     catch (NoSuchAlgorithmException e) {
       throw new CryptographyException(e);
     }
-    keyPairGenerator.initialize(2048, new SecureRandom());
-    return keyPairGenerator.genKeyPair();
+
   }
 
   /**
@@ -195,7 +204,9 @@ public final class Cryptography {
     MessageDigest digest;
     try {
       digest = MessageDigest.getInstance(HASH_ALGORITHM);
-      return digest.digest(data);
+      synchronized (digest) {
+        return digest.digest(data);
+      }
     }
     catch (NoSuchAlgorithmException e) {
       throw new CryptographyException(e);
@@ -239,7 +250,9 @@ public final class Cryptography {
     }
     PKCS8EncodedKeySpec encodedKey = new PKCS8EncodedKeySpec(buffer.array());
     KeyFactory kf = KeyFactory.getInstance(KEY_FACTORY);
-    return (RSAPrivateKey) kf.generatePrivate(encodedKey);
+    synchronized (kf) {
+      return (RSAPrivateKey) kf.generatePrivate(encodedKey);
+    }
   }
 
   /**
@@ -256,10 +269,12 @@ public final class Cryptography {
     byte[] signedData) throws CryptographyException {
     try {
       Signature sign = Signature.getInstance("NONEwithRSA");
-      sign.initVerify(publicKey);
-      byte[] hashData = this.generateHash(rawData);
-      sign.update(hashData);
-      return sign.verify(signedData);
+      synchronized (sign) {
+        sign.initVerify(publicKey);
+        byte[] hashData = this.generateHash(rawData);
+        sign.update(hashData);
+        return sign.verify(signedData);
+      }
     }
     catch (GeneralSecurityException e) {
       throw new CryptographyException(e);

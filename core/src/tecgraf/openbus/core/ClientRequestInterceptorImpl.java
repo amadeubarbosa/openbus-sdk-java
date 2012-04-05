@@ -20,7 +20,9 @@ import org.omg.PortableInterceptor.ClientRequestInfo;
 import org.omg.PortableInterceptor.ClientRequestInterceptor;
 import org.omg.PortableInterceptor.ForwardRequest;
 import org.omg.PortableInterceptor.InvalidSlot;
+import org.omg.PortableInterceptor.RequestInfo;
 
+import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.core.Session.ClientSideSession;
 import tecgraf.openbus.core.v2_00.credential.CredentialContextId;
@@ -32,6 +34,7 @@ import tecgraf.openbus.core.v2_00.services.ServiceFailure;
 import tecgraf.openbus.core.v2_00.services.access_control.InvalidCredentialCode;
 import tecgraf.openbus.core.v2_00.services.access_control.InvalidLoginCode;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_00.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_00.services.access_control.SignedCallChain;
 import tecgraf.openbus.core.v2_00.services.access_control.SignedCallChainHelper;
 import tecgraf.openbus.exception.CryptographyException;
@@ -282,6 +285,41 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         throw new ForwardRequest(ri.target());
       }
     }
+  }
+
+  /**
+   * Recupera a conexão corrente.
+   * 
+   * @param ri informação do request
+   * @return a conexão.
+   */
+  protected Connection getCurrentConnection(RequestInfo ri) {
+    ConnectionMultiplexerImpl multi =
+      this.getMediator().getConnectionMultiplexer();
+    if (multi.isMultiplexed()) {
+      Any any;
+      try {
+        any = ri.get_slot(multi.getCurrentThreadSlotId());
+      }
+      catch (InvalidSlot e) {
+        String message = "Falha inesperada ao obter o slot da conexão corrente";
+        throw new INTERNAL(message);
+      }
+      if (any.type().kind().value() != TCKind._tk_null) {
+        long id = any.extract_longlong();
+        Connection connection = multi.getConnectionByThreadId(id);
+        if (connection != null) {
+          return connection;
+        }
+      }
+    }
+    else {
+      Connection connection = multi.hasOnlyOneConnection();
+      if (connection != null) {
+        return connection;
+      }
+    }
+    throw new NO_PERMISSION(NoLoginCode.value, CompletionStatus.COMPLETED_NO);
   }
 
   /**

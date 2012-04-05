@@ -16,7 +16,7 @@ import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.exception.OpenBusInternalException;
 import tecgraf.openbus.util.Cryptography;
 
-public final class BusInfo {
+final class BusInfo {
   private static final Logger logger = Logger
     .getLogger(BusInfo.class.getName());
 
@@ -29,7 +29,7 @@ public final class BusInfo {
   private CertificateRegistry certificateRegistry;
   private OfferRegistry offerRegistry;
 
-  public BusInfo(IComponent bus) {
+  BusInfo(IComponent bus) {
     this.bus = bus;
 
     org.omg.CORBA.Object obj = this.bus.getFacet(AccessControlHelper.id());
@@ -56,15 +56,15 @@ public final class BusInfo {
     this.offerRegistry = OfferRegistryHelper.narrow(obj);
   }
 
-  public String getId() {
+  String getId() {
     return id;
   }
 
-  public RSAPublicKey getPublicKey() {
+  RSAPublicKey getPublicKey() {
     return publicKey;
   }
 
-  public AccessControl getAccessControl() {
+  AccessControl getAccessControl() {
     return accessControl;
   }
 

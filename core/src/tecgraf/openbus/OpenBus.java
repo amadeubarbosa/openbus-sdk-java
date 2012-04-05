@@ -2,19 +2,12 @@ package tecgraf.openbus;
 
 import java.util.Properties;
 
-import scs.core.IComponent;
-import scs.core.IComponentHelper;
-import tecgraf.openbus.core.BusInfo;
-import tecgraf.openbus.core.BusORBImpl;
-import tecgraf.openbus.core.ConnectionImpl;
-import tecgraf.openbus.core.v2_00.BusObjectKey;
-
 /**
  * Representa o ponto de entrada para o uso do SDK.
  * 
  * @author Tecgraf
  */
-public abstract class OpenBus {
+public interface OpenBus {
 
   /**
    * Inicializa um ORB para ser usado na conexão com um barramento OpenBus.
@@ -23,9 +16,7 @@ public abstract class OpenBus {
    * 
    * @return ORB iniciado.
    */
-  public BusORB initORB() {
-    return this.initORB(null, null);
-  }
+  public BusORB initORB();
 
   /**
    * Inicializa um ORB para ser usado na conexão com um barramento OpenBus.
@@ -36,9 +27,7 @@ public abstract class OpenBus {
    * 
    * @return ORB iniciado.
    */
-  public BusORB initORB(String[] args) {
-    return this.initORB(args, null);
-  }
+  public BusORB initORB(String[] args);
 
   /**
    * Inicializa um ORB para ser usado na conexão com um barramento OpenBus.
@@ -50,9 +39,7 @@ public abstract class OpenBus {
    * 
    * @return ORB iniciado.
    */
-  public BusORB initORB(String[] args, Properties props) {
-    return new BusORBImpl(args, props);
-  }
+  public BusORB initORB(String[] args, Properties props);
 
   /**
    * Cria uma conexão para um barramento a partir de um endereço de rede IP e
@@ -63,9 +50,7 @@ public abstract class OpenBus {
    * 
    * @return Conexão ao barramento referenciado.
    */
-  public Connection connect(String host, int port) {
-    return connect(host, port, initORB());
-  }
+  public Connection connect(String host, int port);
 
   /**
    * Cria uma conexão para um barramento a partir de um endereço de rede IP e
@@ -79,23 +64,6 @@ public abstract class OpenBus {
    * 
    * @return Conexão ao barramento referenciado.
    */
-  public Connection connect(String host, int port, BusORB orb) {
-    ((BusORBImpl) orb).ignoreCurrentThread();
-    try {
-      String str =
-        String.format("corbaloc::1.0@%s:%d/%s", host, port, BusObjectKey.value);
-      org.omg.CORBA.Object obj = orb.getORB().string_to_object(str);
-      if (obj == null) {
-        return null;
-      }
-      IComponent component = IComponentHelper.narrow(obj);
-      BusInfo bus = new BusInfo(component);
-      Connection conn = new ConnectionImpl(bus, orb);
-      return conn;
-    }
-    finally {
-      ((BusORBImpl) orb).unignoreCurrentThread();
-    }
-  }
+  public Connection connect(String host, int port, BusORB orb);
 
 }

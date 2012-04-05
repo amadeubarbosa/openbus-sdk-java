@@ -38,6 +38,7 @@ import tecgraf.openbus.core.v2_00.services.access_control.InvalidLoginCode;
 import tecgraf.openbus.core.v2_00.services.access_control.InvalidLogins;
 import tecgraf.openbus.core.v2_00.services.access_control.InvalidPublicKeyCode;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_00.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_00.services.access_control.SignedCallChain;
 import tecgraf.openbus.core.v2_00.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_00.services.access_control.UnverifiedLoginCode;
@@ -136,8 +137,12 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
             (ConnectionImpl) multiplexer.getIncommingConnection(credential.bus);
           setCurrentConnection(ri, conn);
         }
+        else {
+          conn = (ConnectionImpl) multiplexer.hasOnlyOneConnection();
+        }
         if (conn == null) {
-          conn = (ConnectionImpl) this.getCurrentConnection(ri);
+          throw new NO_PERMISSION(NoLoginCode.value,
+            CompletionStatus.COMPLETED_NO);
         }
         String loginId = credential.login;
         if (!loginsCache.validateLogin(loginId, conn)) {
