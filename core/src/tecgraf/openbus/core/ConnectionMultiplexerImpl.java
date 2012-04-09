@@ -269,17 +269,6 @@ final class ConnectionMultiplexerImpl extends LocalObject implements
   }
 
   /**
-   * Verifica se possui alguma conexão para o barramento.
-   * 
-   * @param busid identificação do barramento.
-   * @return <code>true</code> caso possua alguma conexão, e <code>false</code>
-   *         caso contrário.
-   */
-  boolean hasBus(String busid) {
-    return this.buses.containsKey(busid);
-  }
-
-  /**
    * Configura o modo de operação do multiplexador.
    * 
    * @param isMultiplexed <code>true</code> se a multiplexação será ativada, e

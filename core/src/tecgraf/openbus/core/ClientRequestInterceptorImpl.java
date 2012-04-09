@@ -12,6 +12,7 @@ import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.NO_PERMISSIONHelper;
 import org.omg.CORBA.TCKind;
+import org.omg.IOP.Codec;
 import org.omg.IOP.ServiceContext;
 import org.omg.IOP.CodecPackage.FormatMismatch;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
@@ -25,12 +26,16 @@ import org.omg.PortableInterceptor.RequestInfo;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.core.Session.ClientSideSession;
+import tecgraf.openbus.core.v1_05.access_control_service.Credential;
+import tecgraf.openbus.core.v1_05.access_control_service.CredentialHelper;
 import tecgraf.openbus.core.v2_00.credential.CredentialContextId;
 import tecgraf.openbus.core.v2_00.credential.CredentialData;
 import tecgraf.openbus.core.v2_00.credential.CredentialDataHelper;
 import tecgraf.openbus.core.v2_00.credential.CredentialReset;
 import tecgraf.openbus.core.v2_00.credential.CredentialResetHelper;
 import tecgraf.openbus.core.v2_00.services.ServiceFailure;
+import tecgraf.openbus.core.v2_00.services.access_control.CallChain;
+import tecgraf.openbus.core.v2_00.services.access_control.CallChainHelper;
 import tecgraf.openbus.core.v2_00.services.access_control.InvalidCredentialCode;
 import tecgraf.openbus.core.v2_00.services.access_control.InvalidLoginCode;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
@@ -86,38 +91,86 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
   public void send_request(ClientRequestInfo ri) {
     String operation = ri.operation();
     BusORBImpl orb = (BusORBImpl) this.getMediator().getORB();
+    Codec codec = this.getMediator().getCodec();
     if (orb.isCurrentThreadIgnored()) {
       logger.finest(String.format("Realizando chamada fora do barramento: %s",
         operation));
       return;
     }
-    CredentialData credential = this.generateCredentialData(ri);
-    Any any = orb.getORB().create_any();
-    CredentialDataHelper.insert(any, credential);
+    ConnectionImpl conn = (ConnectionImpl) this.getCurrentConnection(ri);
+    // montando credencial 2.0
+    CredentialData credential = this.generateCredentialData(ri, conn);
+    Any anyCredential = orb.getORB().create_any();
+    CredentialDataHelper.insert(anyCredential, credential);
     byte[] encodedCredential;
     try {
-      encodedCredential = this.getMediator().getCodec().encode_value(any);
+      encodedCredential = codec.encode_value(anyCredential);
     }
     catch (InvalidTypeForEncoding e) {
-      String message = "Falha inesperada ao codificar a credencial";
+      String message = "Falha ao codificar a credencial";
       logger.log(Level.SEVERE, message, e);
       throw new INTERNAL(message);
     }
     ServiceContext requestServiceContext =
       new ServiceContext(CredentialContextId.value, encodedCredential);
     ri.add_request_service_context(requestServiceContext, false);
+
+    if (this.getMediator().getLegacy()) {
+      try {
+        // construindo credencial 1.5
+        Credential legacyCredential = new Credential();
+        legacyCredential.identifier = conn.login().id;
+        legacyCredential.owner = conn.login().entity;
+        String delegate = "";
+        if (credential.chain.encoded.length > 0) {
+          Any anyChain =
+            codec
+              .decode_value(credential.chain.encoded, CallChainHelper.type());
+          CallChain chain = CallChainHelper.extract(anyChain);
+          if (chain.callers != null && chain.callers.length > 1) {
+            delegate = chain.callers[0].entity;
+          }
+        }
+        legacyCredential.delegate = delegate;
+        Any anyLegacy = orb.getORB().create_any();
+        CredentialHelper.insert(anyLegacy, legacyCredential);
+        byte[] encodedLegacy = codec.encode_value(anyLegacy);
+        // TODO discutir sobre a idl da antiga credencial
+        int legacyContextId =
+          tecgraf.openbus.core.v1_05.access_control_service.CredentialContextId.value;
+        ServiceContext legacyServiceContext =
+          new ServiceContext(legacyContextId, encodedLegacy);
+        ri.add_request_service_context(legacyServiceContext, false);
+      }
+      catch (TypeMismatch e) {
+        String message = "Falha ao construir a credencial 1.5";
+        logger.log(Level.SEVERE, message, e);
+        throw new INTERNAL(message);
+      }
+      catch (FormatMismatch e) {
+        String message = "Falha ao construir a credencial 1.5";
+        logger.log(Level.SEVERE, message, e);
+        throw new INTERNAL(message);
+      }
+      catch (InvalidTypeForEncoding e) {
+        String message = "Falha ao codificar a credencial 1.5";
+        logger.log(Level.SEVERE, message, e);
+        throw new INTERNAL(message);
+      }
+    }
   }
 
   /**
    * Gera uma credencial para a chamada.
    * 
    * @param ri Informação do request
+   * @param conn A conexão em uso.
    * @return A credencial válida para a sessão, ou uma credencial para forçar o
    *         reset da sessão.
    */
-  private CredentialData generateCredentialData(ClientRequestInfo ri) {
+  private CredentialData generateCredentialData(ClientRequestInfo ri,
+    ConnectionImpl conn) {
     String operation = ri.operation();
-    ConnectionImpl conn = (ConnectionImpl) this.getCurrentConnection(ri);
     String busId = conn.busid();
     String loginId = conn.login().id;
     EffectiveProfile ep = new EffectiveProfile(ri.effective_profile());

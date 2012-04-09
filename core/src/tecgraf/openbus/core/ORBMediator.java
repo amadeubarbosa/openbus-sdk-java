@@ -19,8 +19,12 @@ final class ORBMediator extends LocalObject {
   private final int JOINED_CHAIN_SLOT_ID;
   /** Identificador do slot da caller chain */
   private final int CONNECTION_SLOT_ID;
+  /** o ORB */
   private BusORB orb;
+  /** o multiplexador */
   private ConnectionMultiplexerImpl multiplexer;
+  /** suporte legado */
+  private boolean legacy;
 
   ORBMediator(Codec codec, int credentialSlotId, int chainSlotId,
     int callerChainSlotId, ConnectionMultiplexerImpl multiplexer) {
@@ -29,6 +33,7 @@ final class ORBMediator extends LocalObject {
     this.JOINED_CHAIN_SLOT_ID = chainSlotId;
     this.CONNECTION_SLOT_ID = callerChainSlotId;
     this.multiplexer = multiplexer;
+    this.legacy = true;
   }
 
   BusORB getORB() {
@@ -57,5 +62,9 @@ final class ORBMediator extends LocalObject {
 
   public ConnectionMultiplexerImpl getConnectionMultiplexer() {
     return multiplexer;
+  }
+
+  public boolean getLegacy() {
+    return legacy;
   }
 }

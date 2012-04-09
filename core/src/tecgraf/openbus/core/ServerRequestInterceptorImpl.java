@@ -9,9 +9,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.omg.CORBA.Any;
+import org.omg.CORBA.BAD_PARAM;
 import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.NO_PERMISSION;
+import org.omg.IOP.Codec;
 import org.omg.IOP.ServiceContext;
 import org.omg.IOP.CodecPackage.FormatMismatch;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
@@ -23,6 +25,8 @@ import org.omg.PortableInterceptor.ServerRequestInterceptor;
 import tecgraf.openbus.BusORB;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.core.Session.ServerSideSession;
+import tecgraf.openbus.core.v1_05.access_control_service.Credential;
+import tecgraf.openbus.core.v1_05.access_control_service.CredentialHelper;
 import tecgraf.openbus.core.v2_00.OctetSeqHolder;
 import tecgraf.openbus.core.v2_00.credential.CredentialContextId;
 import tecgraf.openbus.core.v2_00.credential.CredentialData;
@@ -63,6 +67,11 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
   /** Cache de login */
   private LoginCache loginsCache;
 
+  private final byte[] LEGACY_ENCRYPTED_BLOCK =
+    new byte[Cryptography.ENCRYPTED_BLOCK_SIZE];
+  private static final byte[] LEGACY_HASH =
+    new byte[Cryptography.HASH_VALUE_SIZE];
+
   /**
    * Construtor.
    * 
@@ -75,6 +84,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       Collections.synchronizedMap(new LRUCache<Integer, ServerSideSession>(
         CACHE_SIZE));
     this.loginsCache = new LoginCache(CACHE_SIZE);
+    Arrays.fill(LEGACY_ENCRYPTED_BLOCK, (byte) 0xff);
+    Arrays.fill(LEGACY_HASH, (byte) 0xff);
   }
 
   /**
@@ -82,33 +93,135 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void receive_request_service_contexts(ServerRequestInfo ri) {
-    ServiceContext requestServiceContext =
-      ri.get_request_service_context(CredentialContextId.value);
-    byte[] encodedCredential = requestServiceContext.context_data;
-    Any any;
+    Codec codec = this.getMediator().getCodec();
+    byte[] encodedCredential = null;
     try {
-      any =
-        this.getMediator().getCodec().decode_value(encodedCredential,
-          CredentialDataHelper.type());
+      ServiceContext requestServiceContext =
+        ri.get_request_service_context(CredentialContextId.value);
+      encodedCredential = requestServiceContext.context_data;
     }
-    catch (TypeMismatch e) {
-      String message = "Falha inesperada ao decodificar a credencial";
-      logger.log(Level.SEVERE, message, e);
-      throw new INTERNAL(message);
+    catch (BAD_PARAM e) {
+      // BAD_PARAM caso não exista service context com o id especificado
+      // CORBA ESPEC define com minor code 26.
+      // JacORB define com minor code 23.
+      switch (e.minor) {
+        case 26:
+        case 23:
+          break;
+        default:
+          throw e;
+      }
     }
-    catch (FormatMismatch e) {
-      String message = "Falha inesperada ao decodificar a credencial";
-      logger.log(Level.SEVERE, message, e);
-      throw new INTERNAL(message);
+    if (encodedCredential != null) {
+      Any any;
+      try {
+        any =
+          codec.decode_value(encodedCredential, CredentialDataHelper.type());
+      }
+      catch (TypeMismatch e) {
+        String message = "Falha inesperada ao decodificar a credencial";
+        logger.log(Level.SEVERE, message, e);
+        throw new INTERNAL(message);
+      }
+      catch (FormatMismatch e) {
+        String message = "Falha inesperada ao decodificar a credencial";
+        logger.log(Level.SEVERE, message, e);
+        throw new INTERNAL(message);
+      }
+      try {
+        ri.set_slot(this.getMediator().getCredentialSlotId(), any);
+      }
+      catch (InvalidSlot e) {
+        String message =
+          "Falha inesperada ao armazenar a credencial em seu slot";
+        logger.log(Level.SEVERE, message, e);
+        throw new INTERNAL(message);
+      }
     }
-    try {
-      ri.set_slot(this.getMediator().getCredentialSlotId(), any);
+    else if (getMediator().getLegacy()) {
+      int legacyContextId =
+        tecgraf.openbus.core.v1_05.access_control_service.CredentialContextId.value;
+      byte[] encodedLegacyCredential = null;
+      try {
+        ServiceContext serviceContext =
+          ri.get_request_service_context(legacyContextId);
+        encodedLegacyCredential = serviceContext.context_data;
+      }
+      catch (BAD_PARAM e) {
+        // BAD_PARAM caso não exista service context com o id especificado
+        // CORBA ESPEC define com minor code 26.
+        // JacORB define com minor code 23.
+        switch (e.minor) {
+          case 26:
+          case 23:
+            break;
+          default:
+            throw e;
+        }
+      }
+      if (encodedLegacyCredential != null) {
+        Any any = this.getMediator().getORB().getORB().create_any();
+        try {
+          Any anyLegacy =
+            codec
+              .decode_value(encodedLegacyCredential, CredentialHelper.type());
+          Credential legacyCredential = CredentialHelper.extract(anyLegacy);
+          // extraindo informações da credencial 1.5
+          String loginId = legacyCredential.identifier;
+          String entity = legacyCredential.owner;
+
+          LoginInfo[] callers;
+          if (!legacyCredential.delegate.equals("")) {
+            callers = new LoginInfo[2];
+            callers[0] = new LoginInfo("<unknown>", legacyCredential.delegate);
+            callers[1] = new LoginInfo(loginId, entity);
+          }
+          else {
+            callers = new LoginInfo[1];
+            callers[0] = new LoginInfo(loginId, entity);
+          }
+          CallChain callChain = new CallChain("", callers);
+          Any anyCallChain = this.getMediator().getORB().getORB().create_any();
+          CallChainHelper.insert(anyCallChain, callChain);
+          byte[] encodedCallChain = codec.encode_value(anyCallChain);
+
+          // construindo uma credencial 2.0
+          CredentialData credential = new CredentialData();
+          credential.bus = "";
+          credential.login = loginId;
+          credential.session = -1;
+          credential.ticket = -1;
+          credential.hash = LEGACY_HASH;
+          credential.chain =
+            new SignedCallChain(LEGACY_ENCRYPTED_BLOCK, encodedCallChain);
+          CredentialDataHelper.insert(any, credential);
+        }
+        catch (TypeMismatch e) {
+          String message = "Falha ao decodificar a credencial 1.5";
+          logger.log(Level.SEVERE, message, e);
+          throw new INTERNAL(message);
+        }
+        catch (FormatMismatch e) {
+          String message = "Falha ao decodificar a credencial 1.5";
+          logger.log(Level.SEVERE, message, e);
+          throw new INTERNAL(message);
+        }
+        catch (InvalidTypeForEncoding e) {
+          String message = "Falha ao construir credencial 2.0 a partir da 1.5";
+          logger.log(Level.SEVERE, message, e);
+          throw new INTERNAL(message);
+        }
+        try {
+          ri.set_slot(this.getMediator().getCredentialSlotId(), any);
+        }
+        catch (InvalidSlot e) {
+          String message = "Falha ao armazenar a credencial em seu slot";
+          logger.log(Level.SEVERE, message, e);
+          throw new INTERNAL(message);
+        }
+      }
     }
-    catch (InvalidSlot e) {
-      String message = "Falha inesperada ao armazenar a credencial em seu slot";
-      logger.log(Level.SEVERE, message, e);
-      throw new INTERNAL(message);
-    }
+    // TODO: se nenhum context id foi recuperado, lançar exceção
   }
 
   /**
@@ -126,23 +239,28 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       CredentialData credential =
         CredentialDataHelper.extract(credentialDataAny);
       if (credential != null) {
-        if (!multiplexer.hasBus(credential.bus)) {
-          throw new NO_PERMISSION(UnknownBusCode.value,
-            CompletionStatus.COMPLETED_NO);
-        }
         ConnectionImpl conn = null;
         if (multiplexer.isMultiplexed()) {
-          // se em modo Multiplexed, então deve buscar a conexão default. 
-          conn =
-            (ConnectionImpl) multiplexer.getIncommingConnection(credential.bus);
-          setCurrentConnection(ri, conn);
+          if (!credential.bus.isEmpty()) {
+            conn =
+              (ConnectionImpl) multiplexer
+                .getIncommingConnection(credential.bus);
+            setCurrentConnection(ri, conn);
+            if (conn == null) {
+              throw new NO_PERMISSION(UnknownBusCode.value,
+                CompletionStatus.COMPLETED_NO);
+            }
+          }
+          else {
+            // TODO: verifica o login em todas as conexões
+          }
         }
         else {
           conn = (ConnectionImpl) multiplexer.hasOnlyOneConnection();
-        }
-        if (conn == null) {
-          throw new NO_PERMISSION(NoLoginCode.value,
-            CompletionStatus.COMPLETED_NO);
+          if (conn == null) {
+            throw new NO_PERMISSION(NoLoginCode.value,
+              CompletionStatus.COMPLETED_NO);
+          }
         }
         String loginId = credential.login;
         if (!loginsCache.validateLogin(loginId, conn)) {
@@ -256,7 +374,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   private boolean validateCredential(CredentialData credential,
     ServerRequestInfo ri) {
-    if (credential.hash == null) {
+    if (Arrays.equals(credential.hash, LEGACY_HASH)) {
       // credencial OpenBus 1.5
       logger.finest("Credencial OpenBus 1.5");
       return true;
@@ -293,7 +411,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     Cryptography crypto = Cryptography.getInstance();
     RSAPublicKey busPubKey = conn.getBusPublicKey();
     if (chain != null) {
-      if (chain.signature != null) {
+      if (!Arrays.equals(chain.signature, LEGACY_ENCRYPTED_BLOCK)) {
         try {
           Any any =
             this.getMediator().getCodec().decode_value(chain.encoded,
@@ -326,7 +444,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         }
       }
       else {
-        // TODO: cadeia openbus 1.5 ?
+        // cadeia 1.5 é sempre válida
         logger.finest("Cadeia OpenBus 1.5");
         return true;
       }
