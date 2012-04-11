@@ -20,7 +20,7 @@ import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
  * 
  * @author Tecgraf
  */
-public final class LeaseRenewer {
+final class LeaseRenewer {
   /**
    * Instância de logging.
    */

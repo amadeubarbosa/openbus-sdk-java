@@ -35,7 +35,7 @@ import tecgraf.openbus.exception.OpenBusInternalException;
 
 import com.sun.jdi.InternalException;
 
-public final class BusORBImpl implements BusORB {
+final class BusORBImpl implements BusORB {
   private static final Logger logger = Logger.getLogger(BusORBImpl.class
     .getName());
 
