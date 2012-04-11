@@ -15,8 +15,8 @@ import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.delegation.ForwarderServant.Timer;
 import tecgraf.openbus.demo.util.Utils;
-import tecgraf.openbus.demo.util.Utils.ORBDestroyThread;
 import tecgraf.openbus.demo.util.Utils.ORBRunThread;
+import tecgraf.openbus.demo.util.Utils.ShutdownThread;
 
 public class Server {
 
@@ -29,17 +29,17 @@ public class Server {
       OpenBus openbus = StandardOpenBus.getInstance();
       final BusORB orb1 = openbus.initORB(args);
       new ORBRunThread(orb1.getORB()).start();
-      Runtime.getRuntime().addShutdownHook(new ORBDestroyThread(orb1.getORB()));
+      Runtime.getRuntime().addShutdownHook(new ShutdownThread(orb1.getORB()));
       orb1.activateRootPOAManager();
 
       final BusORB orb2 = openbus.initORB(args);
       new ORBRunThread(orb2.getORB()).start();
-      Runtime.getRuntime().addShutdownHook(new ORBDestroyThread(orb2.getORB()));
+      Runtime.getRuntime().addShutdownHook(new ShutdownThread(orb2.getORB()));
       orb2.activateRootPOAManager();
 
       final BusORB orb3 = openbus.initORB(args);
       new ORBRunThread(orb3.getORB()).start();
-      Runtime.getRuntime().addShutdownHook(new ORBDestroyThread(orb3.getORB()));
+      Runtime.getRuntime().addShutdownHook(new ShutdownThread(orb3.getORB()));
       orb3.activateRootPOAManager();
 
       /********** Messenger ***********/

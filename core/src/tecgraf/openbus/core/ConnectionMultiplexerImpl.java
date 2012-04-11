@@ -191,6 +191,13 @@ final class ConnectionMultiplexerImpl extends LocalObject implements
   }
 
   /**
+   * Recupera a lista de conexões de entrada.
+   */
+  Collection<Connection> getIncommingConnections() {
+    return this.busDefaultConn.values();
+  }
+
+  /**
    * Método de controle para incluir uma nova conexão.
    * 
    * @param conn a conexão a ser incluida.

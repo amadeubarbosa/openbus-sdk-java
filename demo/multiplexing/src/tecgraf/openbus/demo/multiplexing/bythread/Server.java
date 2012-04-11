@@ -7,8 +7,6 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.omg.CORBA.ORB;
-
 import scs.core.ComponentContext;
 import scs.core.ComponentId;
 import scs.core.IComponent;
@@ -23,6 +21,8 @@ import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.hello.HelloHelper;
 import tecgraf.openbus.demo.util.Utils;
+import tecgraf.openbus.demo.util.Utils.ORBRunThread;
+import tecgraf.openbus.demo.util.Utils.ShutdownThread;
 
 public class Server {
 
@@ -45,7 +45,8 @@ public class Server {
       OpenBus openbus = MultiplexedOpenBus.getInstance();
       BusORB orb1 = openbus.initORB(args);
       new ORBRunThread(orb1.getORB()).start();
-      Runtime.getRuntime().addShutdownHook(new ORBDestroyThread(orb1.getORB()));
+      ShutdownThread shutdown = new ShutdownThread(orb1.getORB());
+      Runtime.getRuntime().addShutdownHook(shutdown);
       orb1.activateRootPOAManager();
 
       // connect to the bus
@@ -85,10 +86,13 @@ public class Server {
       // login to the bus
       multiplexer.setCurrentConnection(conn1AtBus1WithOrb1);
       conn1AtBus1WithOrb1.loginByPassword("conn1", "conn1".getBytes());
+      shutdown.addConnetion(conn1AtBus1WithOrb1);
       multiplexer.setCurrentConnection(conn2AtBus1WithOrb1);
       conn2AtBus1WithOrb1.loginByPassword("conn2", "conn2".getBytes());
+      shutdown.addConnetion(conn2AtBus1WithOrb1);
       multiplexer.setCurrentConnection(connAtBus2WithOrb1);
       connAtBus2WithOrb1.loginByPassword("conn3", "conn3".getBytes());
+      shutdown.addConnetion(connAtBus2WithOrb1);
       multiplexer.setCurrentConnection(null);
 
       Thread thread1 =
@@ -164,30 +168,4 @@ public class Server {
     }
   };
 
-  private static class ORBRunThread extends Thread {
-    private ORB orb;
-
-    ORBRunThread(ORB orb) {
-      this.orb = orb;
-    }
-
-    @Override
-    public void run() {
-      this.orb.run();
-    }
-  }
-
-  private static class ORBDestroyThread extends Thread {
-    private ORB orb;
-
-    ORBDestroyThread(ORB orb) {
-      this.orb = orb;
-    }
-
-    @Override
-    public void run() {
-      this.orb.shutdown(true);
-      this.orb.destroy();
-    }
-  }
 }

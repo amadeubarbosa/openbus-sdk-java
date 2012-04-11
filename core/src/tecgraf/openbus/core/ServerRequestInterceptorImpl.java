@@ -251,9 +251,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
                 CompletionStatus.COMPLETED_NO);
             }
           }
-          else {
-            // TODO: verifica o login em todas as conexões
-          }
         }
         else {
           conn = (ConnectionImpl) multiplexer.hasOnlyOneConnection();
@@ -263,9 +260,27 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           }
         }
         String loginId = credential.login;
-        if (!loginsCache.validateLogin(loginId, conn)) {
-          throw new NO_PERMISSION(InvalidLoginCode.value,
-            CompletionStatus.COMPLETED_NO);
+        if (conn != null) {
+          if (!loginsCache.validateLogin(loginId, conn)) {
+            throw new NO_PERMISSION(InvalidLoginCode.value,
+              CompletionStatus.COMPLETED_NO);
+          }
+        }
+        else {
+          // caso com multiplexação e sem busid
+          boolean valid = false;
+          for (Connection aconn : multiplexer.getIncommingConnections()) {
+            conn = (ConnectionImpl) aconn;
+            setCurrentConnection(ri, conn);
+            if (loginsCache.validateLogin(loginId, (ConnectionImpl) aconn)) {
+              valid = true;
+              break;
+            }
+          }
+          if (!valid) {
+            throw new NO_PERMISSION(InvalidLoginCode.value,
+              CompletionStatus.COMPLETED_NO);
+          }
         }
         OctetSeqHolder pubkey = new OctetSeqHolder();
         String entity = loginsCache.getLoginEntity(loginId, pubkey, conn);

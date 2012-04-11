@@ -17,8 +17,8 @@ import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Utils;
-import tecgraf.openbus.demo.util.Utils.ORBDestroyThread;
 import tecgraf.openbus.demo.util.Utils.ORBRunThread;
+import tecgraf.openbus.demo.util.Utils.ShutdownThread;
 
 public class BroadcasterServant extends BroadcasterPOA {
 
@@ -69,7 +69,7 @@ public class BroadcasterServant extends BroadcasterPOA {
       OpenBus openbus = StandardOpenBus.getInstance();
       final BusORB orb2 = openbus.initORB(args);
       new ORBRunThread(orb2.getORB()).start();
-      Runtime.getRuntime().addShutdownHook(new ORBDestroyThread(orb2.getORB()));
+      Runtime.getRuntime().addShutdownHook(new ShutdownThread(orb2.getORB()));
       orb2.activateRootPOAManager();
 
       Connection conn2 = openbus.connect(host, port, orb2);

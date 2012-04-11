@@ -18,8 +18,8 @@ import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Utils;
-import tecgraf.openbus.demo.util.Utils.ORBDestroyThread;
 import tecgraf.openbus.demo.util.Utils.ORBRunThread;
+import tecgraf.openbus.demo.util.Utils.ShutdownThread;
 
 public class ForwarderServant extends ForwarderPOA {
 
@@ -89,7 +89,7 @@ public class ForwarderServant extends ForwarderPOA {
       OpenBus openbus = StandardOpenBus.getInstance();
       final BusORB orb3 = openbus.initORB(args);
       new ORBRunThread(orb3.getORB()).start();
-      Runtime.getRuntime().addShutdownHook(new ORBDestroyThread(orb3.getORB()));
+      Runtime.getRuntime().addShutdownHook(new ShutdownThread(orb3.getORB()));
       orb3.activateRootPOAManager();
 
       Connection conn3 = openbus.connect(host, port, orb3);

@@ -18,8 +18,8 @@ import tecgraf.openbus.core.v2_00.services.ServiceFailure;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Utils;
-import tecgraf.openbus.demo.util.Utils.ORBDestroyThread;
 import tecgraf.openbus.demo.util.Utils.ORBRunThread;
+import tecgraf.openbus.demo.util.Utils.ShutdownThread;
 
 public class MessengerServant extends MessengerPOA {
 
@@ -72,7 +72,7 @@ public class MessengerServant extends MessengerPOA {
       OpenBus openbus = StandardOpenBus.getInstance();
       final BusORB orb1 = openbus.initORB(args);
       new ORBRunThread(orb1.getORB()).start();
-      Runtime.getRuntime().addShutdownHook(new ORBDestroyThread(orb1.getORB()));
+      Runtime.getRuntime().addShutdownHook(new ShutdownThread(orb1.getORB()));
       orb1.activateRootPOAManager();
 
       Connection conn1 = openbus.connect(host, port, orb1);
