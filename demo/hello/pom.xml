@@ -48,6 +48,12 @@
     </dependency>
 
     <dependency>
+      <groupId>tecgraf.openbus</groupId>
+      <artifactId>openbus-sdk-demo-util</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
       <groupId>org.jacorb</groupId>
       <artifactId>jacorb</artifactId>
       <version>${jacorb.version}</version>

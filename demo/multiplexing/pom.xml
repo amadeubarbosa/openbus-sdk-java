@@ -8,10 +8,10 @@
     <version>2.0.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>openbus-sdk-demo-singlesignon</artifactId>
+  <artifactId>openbus-sdk-demo-multiplexing</artifactId>
   <packaging>jar</packaging>
 
-  <name>OpenBus - SDK - Demonstrações - Single Sign-On</name>
+  <name>OpenBus - SDK - Demonstrações - Multiplexing</name>
   <url>http://www.tecgraf.puc-rio.br/openbus</url>
 
   <build>
