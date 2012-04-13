@@ -5,14 +5,16 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.omg.CORBA.ORB;
+import org.omg.PortableServer.POA;
+import org.omg.PortableServer.POAHelper;
+
 import scs.core.ComponentContext;
 import scs.core.ComponentId;
-import tecgraf.openbus.BusORB;
 import tecgraf.openbus.Connection;
+import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.InvalidLoginCallback;
-import tecgraf.openbus.OpenBus;
-import tecgraf.openbus.core.StandardOpenBus;
-import tecgraf.openbus.core.v2_00.services.ServiceFailure;
+import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.hello.HelloHelper;
@@ -34,38 +36,47 @@ public class Server {
       Properties properties =
         Utils.readPropertyFile("/multiplexing.properties");
       String host = properties.getProperty("host");
-      int port1 = Integer.valueOf(properties.getProperty("port1"));
+      int port = Integer.valueOf(properties.getProperty("port1"));
 
       // setup and start the orb
-      OpenBus openbus = StandardOpenBus.getInstance();
-      BusORB orb1 = openbus.initORB(args);
-      new ORBRunThread(orb1.getORB()).start();
-      ShutdownThread shutdown1 = new ShutdownThread(orb1.getORB());
+      ORB orb1 = ORBInitializer.initORB(args);
+      new ORBRunThread(orb1).start();
+      ShutdownThread shutdown1 = new ShutdownThread(orb1);
       Runtime.getRuntime().addShutdownHook(shutdown1);
-      orb1.activateRootPOAManager();
 
-      BusORB orb2 = openbus.initORB(args);
-      new ORBRunThread(orb2.getORB()).start();
-      ShutdownThread shutdown2 = new ShutdownThread(orb2.getORB());
+      ORB orb2 = ORBInitializer.initORB(args);
+      new ORBRunThread(orb2).start();
+      ShutdownThread shutdown2 = new ShutdownThread(orb2);
       Runtime.getRuntime().addShutdownHook(shutdown2);
-      orb2.activateRootPOAManager();
 
       // connect to the bus
-      Connection conn1 = openbus.connect(host, port1, orb1);
-      Connection conn2 = openbus.connect(host, port1, orb2);
+      ConnectionManager connections1 =
+        (ConnectionManager) orb1
+          .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
+      Connection conn1 = connections1.createConnection(host, port);
+      connections1.setDefaultConnection(conn1);
+
+      ConnectionManager connections2 =
+        (ConnectionManager) orb2
+          .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
+      Connection conn2 = connections2.createConnection(host, port);
+      connections2.setDefaultConnection(conn2);
 
       // setup action on login termination
       conn1.onInvalidLoginCallback(new Callback(conn1, "conn1"));
       conn2.onInvalidLoginCallback(new Callback(conn2, "conn2"));
 
       // create service SCS component
+      POA poa1 = POAHelper.narrow(orb1.resolve_initial_references("RootPOA"));
+      poa1.the_POAManager().activate();
       ComponentId id =
         new ComponentId("Hello", (byte) 1, (byte) 0, (byte) 0, "java");
-      ComponentContext context1 =
-        new ComponentContext(orb1.getORB(), orb1.getRootPOA(), id);
+      ComponentContext context1 = new ComponentContext(orb1, poa1, id);
       context1.addFacet("hello", HelloHelper.id(), new HelloServant(conn1));
-      ComponentContext context2 =
-        new ComponentContext(orb2.getORB(), orb2.getRootPOA(), id);
+
+      POA poa2 = POAHelper.narrow(orb2.resolve_initial_references("RootPOA"));
+      poa2.the_POAManager().activate();
+      ComponentContext context2 = new ComponentContext(orb2, poa2, id);
       context2.addFacet("hello", HelloHelper.id(), new HelloServant(conn2));
 
       // login to the bus
@@ -101,12 +112,6 @@ public class Server {
     @Override
     public boolean invalidLogin(Connection conn, LoginInfo login) {
       System.out.println("login terminated: " + name);
-      try {
-        conn.close();
-      }
-      catch (ServiceFailure e) {
-        e.printStackTrace();
-      }
       return false;
     }
   }

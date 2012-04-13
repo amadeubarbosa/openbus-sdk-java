@@ -7,16 +7,17 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.omg.CORBA.ORB;
+import org.omg.PortableServer.POA;
+import org.omg.PortableServer.POAHelper;
+
 import scs.core.ComponentContext;
 import scs.core.ComponentId;
 import scs.core.IComponent;
-import tecgraf.openbus.BusORB;
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.ConnectionMultiplexer;
+import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.InvalidLoginCallback;
-import tecgraf.openbus.OpenBus;
-import tecgraf.openbus.core.MultiplexedOpenBus;
-import tecgraf.openbus.core.v2_00.services.ServiceFailure;
+import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.hello.HelloHelper;
@@ -42,17 +43,20 @@ public class Server {
       int port2 = Integer.valueOf(properties.getProperty("port2"));
 
       // setup and start the orb
-      OpenBus openbus = MultiplexedOpenBus.getInstance();
-      BusORB orb1 = openbus.initORB(args);
-      new ORBRunThread(orb1.getORB()).start();
-      ShutdownThread shutdown = new ShutdownThread(orb1.getORB());
+      ORB orb1 = ORBInitializer.initORB(args);
+      new ORBRunThread(orb1).start();
+      ShutdownThread shutdown = new ShutdownThread(orb1);
       Runtime.getRuntime().addShutdownHook(shutdown);
-      orb1.activateRootPOAManager();
 
       // connect to the bus
-      Connection conn1AtBus1WithOrb1 = openbus.connect(host, port1, orb1);
-      Connection conn2AtBus1WithOrb1 = openbus.connect(host, port1, orb1);
-      Connection connAtBus2WithOrb1 = openbus.connect(host, port2, orb1);
+      ConnectionManager connections =
+        (ConnectionManager) orb1
+          .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
+      Connection conn1AtBus1WithOrb1 =
+        connections.createConnection(host, port1);
+      Connection conn2AtBus1WithOrb1 =
+        connections.createConnection(host, port1);
+      Connection connAtBus2WithOrb1 = connections.createConnection(host, port2);
 
       List<Connection> conns = new ArrayList<Connection>();
       conns.add(conn1AtBus1WithOrb1);
@@ -67,45 +71,41 @@ public class Server {
       connAtBus2WithOrb1.onInvalidLoginCallback(new Callback(
         connAtBus2WithOrb1, "connAtBus2WithOrb1"));
 
+      POA poa1 = POAHelper.narrow(orb1.resolve_initial_references("RootPOA"));
+      poa1.the_POAManager().activate();
       // create service SCS component
       ComponentId id =
         new ComponentId("Hello", (byte) 1, (byte) 0, (byte) 0, "java");
-      ComponentContext context1 =
-        new ComponentContext(orb1.getORB(), orb1.getRootPOA(), id);
+      ComponentContext context1 = new ComponentContext(orb1, poa1, id);
       context1.addFacet("hello", HelloHelper.id(), new HelloServant(conns));
 
       // set incoming connection
-      final ConnectionMultiplexer multiplexer =
-        (ConnectionMultiplexer) orb1.getORB().resolve_initial_references(
-          ConnectionMultiplexer.INITIAL_REFERENCE_ID);
-      multiplexer.setIncommingConnection(conn1AtBus1WithOrb1.busid(),
-        conn1AtBus1WithOrb1);
-      multiplexer.setIncommingConnection(connAtBus2WithOrb1.busid(),
-        connAtBus2WithOrb1);
+      connections.setupBusDispatcher(conn1AtBus1WithOrb1);
+      connections.setupBusDispatcher(connAtBus2WithOrb1);
 
       // login to the bus
-      multiplexer.setCurrentConnection(conn1AtBus1WithOrb1);
+      connections.setThreadRequester(conn1AtBus1WithOrb1);
       conn1AtBus1WithOrb1.loginByPassword("conn1", "conn1".getBytes());
       shutdown.addConnetion(conn1AtBus1WithOrb1);
-      multiplexer.setCurrentConnection(conn2AtBus1WithOrb1);
+      connections.setThreadRequester(conn2AtBus1WithOrb1);
       conn2AtBus1WithOrb1.loginByPassword("conn2", "conn2".getBytes());
       shutdown.addConnetion(conn2AtBus1WithOrb1);
-      multiplexer.setCurrentConnection(connAtBus2WithOrb1);
+      connections.setThreadRequester(connAtBus2WithOrb1);
       connAtBus2WithOrb1.loginByPassword("conn3", "conn3".getBytes());
       shutdown.addConnetion(connAtBus2WithOrb1);
-      multiplexer.setCurrentConnection(null);
+      connections.setThreadRequester(null);
 
       Thread thread1 =
-        new RegisterThread(conn1AtBus1WithOrb1, multiplexer, context1
+        new RegisterThread(conn1AtBus1WithOrb1, connections, context1
           .getIComponent());
       thread1.start();
 
       Thread thread2 =
-        new RegisterThread(conn2AtBus1WithOrb1, multiplexer, context1
+        new RegisterThread(conn2AtBus1WithOrb1, connections, context1
           .getIComponent());
       thread2.start();
 
-      multiplexer.setCurrentConnection(connAtBus2WithOrb1);
+      connections.setThreadRequester(connAtBus2WithOrb1);
       connAtBus2WithOrb1.offers().registerService(context1.getIComponent(),
         getProps());
     }
@@ -133,12 +133,6 @@ public class Server {
     @Override
     public boolean invalidLogin(Connection conn, LoginInfo login) {
       System.out.println("login terminated: " + name);
-      try {
-        conn.close();
-      }
-      catch (ServiceFailure e) {
-        e.printStackTrace();
-      }
       return false;
     }
   }
@@ -146,10 +140,10 @@ public class Server {
   private static class RegisterThread extends Thread {
 
     private Connection conn;
-    private ConnectionMultiplexer multiplexer;
+    private ConnectionManager multiplexer;
     private IComponent component;
 
-    public RegisterThread(Connection conn, ConnectionMultiplexer multiplexer,
+    public RegisterThread(Connection conn, ConnectionManager multiplexer,
       IComponent component) {
       this.conn = conn;
       this.multiplexer = multiplexer;
@@ -158,7 +152,7 @@ public class Server {
 
     @Override
     public void run() {
-      multiplexer.setCurrentConnection(conn);
+      multiplexer.setThreadRequester(conn);
       try {
         conn.offers().registerService(component, getProps());
       }

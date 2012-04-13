@@ -7,10 +7,11 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import tecgraf.openbus.BusORB;
+import org.omg.CORBA.ORB;
+
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.OpenBus;
-import tecgraf.openbus.core.StandardOpenBus;
+import tecgraf.openbus.ConnectionManager;
+import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_00.OctetSeqHolder;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceOfferDesc;
@@ -49,11 +50,20 @@ public final class Client {
       String password = properties.getProperty("entity.password");
       String serverEntity = properties.getProperty("server.entity.name");
 
-      OpenBus openbus = StandardOpenBus.getInstance();
-      BusORB orb1 = openbus.initORB();
-      BusORB orb2 = openbus.initORB();
-      Connection conn1 = openbus.connect(host, port, orb1);
-      Connection conn2 = openbus.connect(host, port, orb2);
+      ORB orb1 = ORBInitializer.initORB();
+      ORB orb2 = ORBInitializer.initORB();
+
+      ConnectionManager connections1 =
+        (ConnectionManager) orb1
+          .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
+      Connection conn1 = connections1.createConnection(host, port);
+      connections1.setDefaultConnection(conn1);
+
+      ConnectionManager connections2 =
+        (ConnectionManager) orb2
+          .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
+      Connection conn2 = connections2.createConnection(host, port);
+      connections2.setDefaultConnection(conn2);
 
       conn1.loginByPassword(entity, password.getBytes(Cryptography.CHARSET));
       OctetSeqHolder secret = new OctetSeqHolder();
@@ -78,9 +88,7 @@ public final class Client {
           conn.offers().findServices(serviceProperties);
         if (services.length == 0) {
           conn1.logout();
-          conn1.close();
           conn2.logout();
-          conn2.close();
           throw new IllegalStateException("Não encontrou nenhum serviço Hello.");
         }
         for (ServiceOfferDesc offer : services) {
@@ -92,7 +100,6 @@ public final class Client {
 
       for (Connection conn : conns) {
         conn.logout();
-        conn.close();
       }
     }
     catch (Exception e) {

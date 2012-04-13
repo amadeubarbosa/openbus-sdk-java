@@ -7,14 +7,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.omg.CORBA.ORB;
+import org.omg.PortableServer.POA;
+import org.omg.PortableServer.POAHelper;
+
 import scs.core.ComponentContext;
 import scs.core.ComponentId;
-import tecgraf.openbus.BusORB;
 import tecgraf.openbus.Connection;
+import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.InvalidLoginCallback;
-import tecgraf.openbus.OpenBus;
-import tecgraf.openbus.core.StandardOpenBus;
-import tecgraf.openbus.core.v2_00.services.ServiceFailure;
+import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Utils;
@@ -69,33 +71,31 @@ public class MessengerServant extends MessengerPOA {
       String host = props.getProperty("host");
       int port = Integer.valueOf(props.getProperty("port"));
 
-      OpenBus openbus = StandardOpenBus.getInstance();
-      final BusORB orb1 = openbus.initORB(args);
-      new ORBRunThread(orb1.getORB()).start();
-      Runtime.getRuntime().addShutdownHook(new ShutdownThread(orb1.getORB()));
-      orb1.activateRootPOAManager();
+      final ORB orb1 = ORBInitializer.initORB(args);
+      new ORBRunThread(orb1).start();
+      Runtime.getRuntime().addShutdownHook(new ShutdownThread(orb1));
 
-      Connection conn1 = openbus.connect(host, port, orb1);
+      ConnectionManager connections =
+        (ConnectionManager) orb1
+          .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
+      Connection conn1 = connections.createConnection(host, port);
+      connections.setDefaultConnection(conn1);
       conn1.onInvalidLoginCallback(new InvalidLoginCallback() {
 
         @Override
         public boolean invalidLogin(Connection conn, LoginInfo login) {
           System.out.println(String.format(
             "login terminated, shutting the server down: %s", login.entity));
-          try {
-            conn.close();
-          }
-          catch (ServiceFailure e) {
-            e.printStackTrace();
-          }
-          orb1.getORB().destroy();
+          orb1.destroy();
           return false;
         }
       });
 
+      POA poa1 = POAHelper.narrow(orb1.resolve_initial_references("RootPOA"));
+      poa1.the_POAManager().activate();
       ComponentContext context1 =
-        new ComponentContext(orb1.getORB(), orb1.getRootPOA(), new ComponentId(
-          "Messenger", (byte) 1, (byte) 0, (byte) 0, "java"));
+        new ComponentContext(orb1, poa1, new ComponentId("Messenger", (byte) 1,
+          (byte) 0, (byte) 0, "java"));
       context1.addFacet(MessengerServant.messenger, MessengerHelper.id(),
         new MessengerServant(conn1));
 

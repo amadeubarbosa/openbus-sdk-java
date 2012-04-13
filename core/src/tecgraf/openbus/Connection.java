@@ -182,11 +182,4 @@ public interface Connection {
    */
   CallerChain getJoinedChain();
 
-  /**
-   * Encerra essa conexão, tornando-a inválida daqui em diante.
-   * 
-   * @throws ServiceFailure
-   */
-  void close() throws ServiceFailure;
-
 }

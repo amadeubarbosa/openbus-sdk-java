@@ -6,6 +6,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.omg.CORBA.Any;
@@ -13,17 +14,24 @@ import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.IntHolder;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.TCKind;
+import org.omg.CORBA.UserException;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
+import org.omg.PortableInterceptor.Current;
+import org.omg.PortableInterceptor.InvalidSlot;
 
-import tecgraf.openbus.BusORB;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.core.v2_00.EncryptedBlockHolder;
 import tecgraf.openbus.core.v2_00.OctetSeqHolder;
+import tecgraf.openbus.core.v2_00.credential.CredentialData;
+import tecgraf.openbus.core.v2_00.credential.CredentialDataHelper;
 import tecgraf.openbus.core.v2_00.services.ServiceFailure;
 import tecgraf.openbus.core.v2_00.services.access_control.AccessControl;
 import tecgraf.openbus.core.v2_00.services.access_control.AccessDenied;
+import tecgraf.openbus.core.v2_00.services.access_control.CallChain;
+import tecgraf.openbus.core.v2_00.services.access_control.CallChainHelper;
 import tecgraf.openbus.core.v2_00.services.access_control.CertificateRegistry;
 import tecgraf.openbus.core.v2_00.services.access_control.InvalidLoginCode;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginAuthenticationInfo;
@@ -32,6 +40,8 @@ import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_00.services.access_control.MissingCertificate;
+import tecgraf.openbus.core.v2_00.services.access_control.SignedCallChain;
+import tecgraf.openbus.core.v2_00.services.access_control.SignedCallChainHelper;
 import tecgraf.openbus.core.v2_00.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_00.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
@@ -55,15 +65,15 @@ public final class ConnectionImpl implements Connection {
   private Cryptography crypto;
 
   /** ORB associado a esta conexão */
-  private BusORBImpl orb;
+  private ORB orb;
+  /** Gerente da conexão. */
+  private ConnectionManagerImpl manager;
   /** Informações sobre o barramento ao qual a conexão pertence */
   private BusInfo bus;
   /** Chave pública do sdk */
   private RSAPublicKey publicKey;
   /** Chave privada do sdk */
   private RSAPrivateKey privateKey;
-  /** Indica se a conexão esta fechada (descartada para uso) */
-  private volatile boolean closed;
   /** Informação do login associado a esta conexão. */
   private LoginInfo login;
   /** Mapa de thread para cadeia de chamada */
@@ -79,9 +89,10 @@ public final class ConnectionImpl implements Connection {
    * @param bus
    * @param orb
    */
-  public ConnectionImpl(BusInfo bus, BusORB orb) {
+  public ConnectionImpl(BusInfo bus, ORB orb) {
     this.bus = bus;
-    this.orb = (BusORBImpl) orb;
+    this.orb = orb;
+    this.manager = ORBUtils.getConnectionManager(orb);
     this.crypto = Cryptography.getInstance();
     KeyPair keyPair;
     try {
@@ -93,11 +104,8 @@ public final class ConnectionImpl implements Connection {
     }
     this.publicKey = (RSAPublicKey) keyPair.getPublic();
     this.privateKey = (RSAPrivateKey) keyPair.getPrivate();
-    this.closed = false;
     this.joinedChains =
       Collections.synchronizedMap(new HashMap<Thread, CallerChain>());
-    ConnectionMultiplexerImpl multiplexer = this.orb.getConnectionMultiplexer();
-    multiplexer.addConnection(this);
   }
 
   /**
@@ -105,7 +113,7 @@ public final class ConnectionImpl implements Connection {
    */
   @Override
   public ORB orb() {
-    return this.orb.getORB();
+    return this.orb;
   }
 
   /**
@@ -147,39 +155,17 @@ public final class ConnectionImpl implements Connection {
   }
 
   /**
-   * Verifica se a conexão esta fechada, e lança uma exceção
-   * {@link OpenBusInternalException} caso esteja.
-   */
-  private void checkClosed() {
-    // CHECK confirmar os locais onde devem existir a verificação checkClosed
-    if (this.closed) {
-      throw new OpenBusInternalException("Conexão fechada!");
-    }
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void close() throws ServiceFailure {
-    this.logout();
-    this.closed = true;
-    this.orb.getConnectionMultiplexer().removeConnection(this);
-  }
-
-  /**
    * {@inheritDoc}
    */
   @Override
   public void loginByPassword(String entity, byte[] password)
     throws AccessDenied, AlreadyLoggedIn, ServiceFailure {
-    checkClosed();
     checkLoggedIn();
     try {
       byte[] encryptedLoginAuthenticationInfo =
         this.generateEncryptedLoginAuthenticationInfo(password);
       IntHolder validityHolder = new IntHolder();
-      this.orb.ignoreCurrentThread();
+      this.manager.ignoreCurrentThread();
       this.login =
         this.bus.getAccessControl().loginByPassword(entity,
           this.publicKey.getEncoded(), encryptedLoginAuthenticationInfo,
@@ -190,7 +176,7 @@ public final class ConnectionImpl implements Connection {
         "Falhou a codificação com a chave pública do barramento", e);
     }
     finally {
-      this.orb.unignoreCurrentThread();
+      this.manager.unignoreCurrentThread();
     }
     logger
       .info(String
@@ -214,11 +200,12 @@ public final class ConnectionImpl implements Connection {
 
       LoginAuthenticationInfo authenticationInfo =
         new LoginAuthenticationInfo(publicKeyHash, data);
-      Any authenticationInfoAny = this.orb.getORB().create_any();
+      Any authenticationInfoAny = this.orb.create_any();
       LoginAuthenticationInfoHelper.insert(authenticationInfoAny,
         authenticationInfo);
+      ORBMediator mediator = ORBUtils.getMediator(orb);
       byte[] encodedLoginAuthenticationInfo =
-        this.orb.getCodec().encode_value(authenticationInfoAny);
+        mediator.getCodec().encode_value(authenticationInfoAny);
       return crypto.encrypt(encodedLoginAuthenticationInfo, this.bus
         .getPublicKey());
     }
@@ -240,9 +227,8 @@ public final class ConnectionImpl implements Connection {
   public void loginByCertificate(String entity, RSAPrivateKey privateKey)
     throws CorruptedPrivateKey, WrongPrivateKey, AlreadyLoggedIn,
     MissingCertificate, ServiceFailure {
-    checkClosed();
     checkLoggedIn();
-    this.orb.ignoreCurrentThread();
+    this.manager.ignoreCurrentThread();
     try {
       EncryptedBlockHolder challengeHolder = new EncryptedBlockHolder();
       LoginProcess loginProcess =
@@ -271,7 +257,7 @@ public final class ConnectionImpl implements Connection {
         "Falhou a codificação com a chave pública do barramento", e);
     }
     finally {
-      this.orb.unignoreCurrentThread();
+      this.manager.unignoreCurrentThread();
     }
     logger
       .info(String
@@ -289,7 +275,6 @@ public final class ConnectionImpl implements Connection {
   @Override
   public LoginProcess startSingleSignOn(OctetSeqHolder secret)
     throws ServiceFailure {
-    checkClosed();
     EncryptedBlockHolder challenge = new EncryptedBlockHolder();
     LoginProcess process = this.access().startLoginBySingleSignOn(challenge);
     try {
@@ -309,7 +294,6 @@ public final class ConnectionImpl implements Connection {
   @Override
   public void loginBySingleSignOn(LoginProcess process, byte[] secret)
     throws WrongSecret, AlreadyLoggedIn, ServiceFailure {
-    checkClosed();
     checkLoggedIn();
     byte[] encryptedLoginAuthenticationInfo =
       this.generateEncryptedLoginAuthenticationInfo(secret);
@@ -367,7 +351,6 @@ public final class ConnectionImpl implements Connection {
    */
   @Override
   public boolean logout() throws ServiceFailure {
-    checkClosed();
     if (this.login != null) {
       try {
         this.bus.getAccessControl().logout();
@@ -403,8 +386,44 @@ public final class ConnectionImpl implements Connection {
    */
   @Override
   public CallerChain getCallerChain() {
-    checkClosed();
-    return this.orb.getCallerChain(this);
+    Current current = ORBUtils.getPICurrent(orb);
+    ORBMediator mediator = ORBUtils.getMediator(orb);
+    String busId;
+    CallChain callChain;
+    SignedCallChain signedChain;
+    try {
+      Any any = current.get_slot(mediator.getConnectionSlotId());
+      if (any.type().kind().value() == TCKind._tk_null) {
+        return null;
+      }
+      String loginid = any.extract_string();
+      if (!this.login.id.equals(loginid)) {
+        return null;
+      }
+      any = current.get_slot(mediator.getCredentialSlotId());
+      if (any.type().kind().value() == TCKind._tk_null) {
+        return null;
+      }
+      CredentialData credential = CredentialDataHelper.extract(any);
+      busId = credential.bus;
+      signedChain = credential.chain;
+      Any anyChain =
+        mediator.getCodec().decode_value(signedChain.encoded,
+          CallChainHelper.type());
+      callChain = CallChainHelper.extract(anyChain);
+    }
+    catch (InvalidSlot e) {
+      String message = "Falha inesperada ao obter o slot no PICurrent";
+      logger.log(Level.SEVERE, message, e);
+      throw new OpenBusInternalException(message, e);
+    }
+    catch (UserException e) {
+      String message = "Falha inesperada ao decodificar a cadeia de chamadas.";
+      logger.log(Level.SEVERE, message, e);
+      throw new OpenBusInternalException(message, e);
+    }
+    LoginInfo[] callers = callChain.callers;
+    return new CallerChainImpl(busId, callers, signedChain);
   }
 
   /**
@@ -412,8 +431,7 @@ public final class ConnectionImpl implements Connection {
    */
   @Override
   public void joinChain() throws OpenBusInternalException {
-    checkClosed();
-    CallerChain currentChain = this.orb.getCallerChain(this);
+    CallerChain currentChain = getCallerChain();
     if (currentChain == null) {
       return;
     }
@@ -425,10 +443,21 @@ public final class ConnectionImpl implements Connection {
    */
   @Override
   public void joinChain(CallerChain chain) {
-    checkClosed();
     Thread currentThread = Thread.currentThread();
     this.joinedChains.put(currentThread, chain);
-    this.orb.joinChain(chain);
+    try {
+      Current current = ORBUtils.getPICurrent(orb);
+      ORBMediator mediator = ORBUtils.getMediator(orb);
+      SignedCallChain signedChain = ((CallerChainImpl) chain).signedCallChain();
+      Any any = this.orb.create_any();
+      SignedCallChainHelper.insert(any, signedChain);
+      current.set_slot(mediator.getJoinedChainSlotId(), any);
+    }
+    catch (InvalidSlot e) {
+      String message = "Falha inesperada ao obter o slot no PICurrent";
+      logger.log(Level.SEVERE, message, e);
+      throw new OpenBusInternalException(message, e);
+    }
   }
 
   /**
@@ -436,10 +465,19 @@ public final class ConnectionImpl implements Connection {
    */
   @Override
   public void exitChain() {
-    checkClosed();
     Thread currentThread = Thread.currentThread();
     this.joinedChains.remove(currentThread);
-    this.orb.exitChain();
+    try {
+      Current current = ORBUtils.getPICurrent(orb);
+      ORBMediator mediator = ORBUtils.getMediator(orb);
+      Any any = this.orb.create_any();
+      current.set_slot(mediator.getJoinedChainSlotId(), any);
+    }
+    catch (InvalidSlot e) {
+      String message = "Falha inesperada ao obter o slot no PICurrent";
+      logger.log(Level.SEVERE, message, e);
+      throw new OpenBusInternalException(message, e);
+    }
   }
 
   /**
@@ -447,7 +485,6 @@ public final class ConnectionImpl implements Connection {
    */
   @Override
   public CallerChain getJoinedChain() {
-    checkClosed();
     Thread currentThread = Thread.currentThread();
     return this.joinedChains.get(currentThread);
   }
@@ -484,7 +521,6 @@ public final class ConnectionImpl implements Connection {
    */
   @Override
   public OfferRegistry offers() {
-    checkClosed();
     return this.bus.getOfferRegistry();
   }
 

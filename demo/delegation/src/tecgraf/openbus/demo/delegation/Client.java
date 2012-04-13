@@ -4,11 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
 
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.OpenBus;
-import tecgraf.openbus.core.StandardOpenBus;
+import tecgraf.openbus.ConnectionManager;
+import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Utils;
@@ -28,9 +29,13 @@ public class Client {
       String host = properties.getProperty("host");
       int port = Integer.valueOf(properties.getProperty("port"));
 
-      OpenBus openbus = StandardOpenBus.getInstance();
-      Connection conn = openbus.connect(host, port);
+      ORB orb = ORBInitializer.initORB();
+      ConnectionManager connections =
+        (ConnectionManager) orb
+          .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
+      Connection conn = connections.createConnection(host, port);
       conn.loginByPassword("demo", "demo".getBytes());
+      connections.setDefaultConnection(conn);
 
       ServiceProperty[] serviceProperties = new ServiceProperty[1];
       serviceProperties[0] =
@@ -107,8 +112,6 @@ public class Client {
       conn.loginByPassword(willian, willian.getBytes());
       forwarder.cancelForward(bill);
       conn.logout();
-
-      conn.close();
     }
     catch (Exception e) {
       e.printStackTrace();

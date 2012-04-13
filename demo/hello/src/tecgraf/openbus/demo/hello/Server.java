@@ -6,14 +6,15 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.omg.CORBA.ORB;
 import org.omg.PortableServer.POA;
+import org.omg.PortableServer.POAHelper;
 
 import scs.core.ComponentContext;
 import scs.core.ComponentId;
-import tecgraf.openbus.BusORB;
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.OpenBus;
-import tecgraf.openbus.core.StandardOpenBus;
+import tecgraf.openbus.ConnectionManager;
+import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Utils;
 import tecgraf.openbus.demo.util.Utils.ORBRunThread;
@@ -49,22 +50,24 @@ public final class Server {
       RSAPrivateKey privateKey =
         Cryptography.getInstance().readPrivateKey(privateKeyFile);
 
-      OpenBus openbus = StandardOpenBus.getInstance();
-      BusORB orb = openbus.initORB(args);
-
-      new ORBRunThread(orb.getORB()).start();
-      ShutdownThread shutdown = new ShutdownThread(orb.getORB());
+      ORB orb = ORBInitializer.initORB(args);
+      new ORBRunThread(orb).start();
+      ShutdownThread shutdown = new ShutdownThread(orb);
       Runtime.getRuntime().addShutdownHook(shutdown);
 
-      Connection conn = openbus.connect(host, port, orb);
+      ConnectionManager connections =
+        (ConnectionManager) orb
+          .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
+      Connection conn = connections.createConnection(host, port);
+      connections.setDefaultConnection(conn);
       conn.loginByCertificate(entity, privateKey);
       shutdown.addConnetion(conn);
 
-      POA poa = orb.getRootPOA();
-      orb.activateRootPOAManager();
+      POA poa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
+      poa.the_POAManager().activate();
       ComponentId id =
         new ComponentId("Hello", (byte) 1, (byte) 0, (byte) 0, "java");
-      ComponentContext context = new ComponentContext(orb.getORB(), poa, id);
+      ComponentContext context = new ComponentContext(orb, poa, id);
       context.addFacet("hello", HelloHelper.id(), new HelloServant(conn));
 
       ServiceProperty[] serviceProperties = new ServiceProperty[1];

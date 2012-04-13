@@ -13,6 +13,7 @@ import org.omg.CORBA.BAD_PARAM;
 import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.NO_PERMISSION;
+import org.omg.CORBA.ORB;
 import org.omg.IOP.Codec;
 import org.omg.IOP.ServiceContext;
 import org.omg.IOP.CodecPackage.FormatMismatch;
@@ -22,7 +23,6 @@ import org.omg.PortableInterceptor.InvalidSlot;
 import org.omg.PortableInterceptor.ServerRequestInfo;
 import org.omg.PortableInterceptor.ServerRequestInterceptor;
 
-import tecgraf.openbus.BusORB;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.core.Session.ServerSideSession;
 import tecgraf.openbus.core.v1_05.access_control_service.Credential;
@@ -42,7 +42,6 @@ import tecgraf.openbus.core.v2_00.services.access_control.InvalidLoginCode;
 import tecgraf.openbus.core.v2_00.services.access_control.InvalidLogins;
 import tecgraf.openbus.core.v2_00.services.access_control.InvalidPublicKeyCode;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_00.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_00.services.access_control.SignedCallChain;
 import tecgraf.openbus.core.v2_00.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_00.services.access_control.UnverifiedLoginCode;
@@ -160,7 +159,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         }
       }
       if (encodedLegacyCredential != null) {
-        Any any = this.getMediator().getORB().getORB().create_any();
+        Any any = this.getMediator().getORB().create_any();
         try {
           Any anyLegacy =
             codec
@@ -181,7 +180,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
             callers[0] = new LoginInfo(loginId, entity);
           }
           CallChain callChain = new CallChain("", callers);
-          Any anyCallChain = this.getMediator().getORB().getORB().create_any();
+          Any anyCallChain = this.getMediator().getORB().create_any();
           CallChainHelper.insert(anyCallChain, callChain);
           byte[] encodedCallChain = codec.encode_value(anyCallChain);
 
@@ -197,6 +196,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           CredentialDataHelper.insert(any, credential);
         }
         catch (TypeMismatch e) {
+          // TODO: MARSHAL ERROR
           String message = "Falha ao decodificar a credencial 1.5";
           logger.log(Level.SEVERE, message, e);
           throw new INTERNAL(message);
@@ -221,7 +221,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         }
       }
     }
-    // TODO: se nenhum context id foi recuperado, lançar exceção
+    // TODO: se nenhum context id foi recuperado, lançar exceção NoLoginCode
   }
 
   /**
@@ -230,8 +230,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
   @Override
   public void receive_request(ServerRequestInfo ri) {
     String operation = ri.operation();
-    BusORB orb = this.getMediator().getORB();
-    ConnectionMultiplexerImpl multiplexer =
+    ORB orb = this.getMediator().getORB();
+    ConnectionManagerImpl multiplexer =
       this.getMediator().getConnectionMultiplexer();
     try {
       Any credentialDataAny =
@@ -240,54 +240,54 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         CredentialDataHelper.extract(credentialDataAny);
       if (credential != null) {
         ConnectionImpl conn = null;
-        if (multiplexer.isMultiplexed()) {
-          if (!credential.bus.isEmpty()) {
-            conn =
-              (ConnectionImpl) multiplexer
-                .getIncommingConnection(credential.bus);
+        String loginId = credential.login;
+        if (!credential.bus.isEmpty()) {
+          conn = (ConnectionImpl) multiplexer.getBusDispatcher(credential.bus);
+          if (conn != null) {
             setCurrentConnection(ri, conn);
+          }
+          else {
+            conn = (ConnectionImpl) multiplexer.getDefaultConnection();
             if (conn == null) {
               throw new NO_PERMISSION(UnknownBusCode.value,
                 CompletionStatus.COMPLETED_NO);
             }
           }
-        }
-        else {
-          conn = (ConnectionImpl) multiplexer.hasOnlyOneConnection();
-          if (conn == null) {
-            throw new NO_PERMISSION(NoLoginCode.value,
-              CompletionStatus.COMPLETED_NO);
+          try {
+            if (!loginsCache.validateLogin(loginId, conn)) {
+              throw new NO_PERMISSION(InvalidLoginCode.value,
+                CompletionStatus.COMPLETED_NO);
+            }
           }
-        }
-        String loginId = credential.login;
-        if (conn != null) {
-          if (!loginsCache.validateLogin(loginId, conn)) {
-            throw new NO_PERMISSION(InvalidLoginCode.value,
-              CompletionStatus.COMPLETED_NO);
+          catch (Exception e) {
+            // TODO UnverifiedLogin
+            // TODO logar o erro.
           }
         }
         else {
-          // caso com multiplexação e sem busid
+          // caso com credencial 1.5
           boolean valid = false;
           for (Connection aconn : multiplexer.getIncommingConnections()) {
             conn = (ConnectionImpl) aconn;
             setCurrentConnection(ri, conn);
+            // TODO Catch de exception e traduzir para NoPermission MINOR 0
             if (loginsCache.validateLogin(loginId, (ConnectionImpl) aconn)) {
               valid = true;
               break;
             }
           }
           if (!valid) {
-            throw new NO_PERMISSION(InvalidLoginCode.value,
-              CompletionStatus.COMPLETED_NO);
+            throw new NO_PERMISSION(0, CompletionStatus.COMPLETED_NO);
           }
         }
         OctetSeqHolder pubkey = new OctetSeqHolder();
+        // TODO: catch InvalidLogin -> NO PERMISSION MINOR invalid
+        // TODO: catch ServiceFailure -> NO PERMISSION minor UNVERIFIED
         String entity = loginsCache.getLoginEntity(loginId, pubkey, conn);
         if (validateCredential(credential, ri)) {
           if (validateChain(credential.chain, loginId, conn)) {
             // salvando informação da conexão que atendeu a requisição
-            Any any = orb.getORB().create_any();
+            Any any = orb.create_any();
             any.insert_string(conn.login().id);
             ri.set_slot(this.getMediator().getConnectionSlotId(), any);
             String msg =
@@ -333,9 +333,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         CompletionStatus.COMPLETED_NO);
     }
     finally {
-      if (multiplexer.isMultiplexed()) {
-        removeCurrentConnection(ri);
-      }
+      removeCurrentConnection(ri);
     }
 
   }
@@ -349,7 +347,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * @param publicKey a chave pública do requisitante.
    * @throws CryptographyException
    */
-  private void doResetCredential(ServerRequestInfo ri, BusORB orb,
+  private void doResetCredential(ServerRequestInfo ri, ORB orb,
     ConnectionImpl conn, byte[] publicKey) throws CryptographyException {
     byte[] newSecret = newSecret();
     Cryptography crypto = Cryptography.getInstance();
@@ -362,7 +360,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     sessions.put(newSession.getSession(), newSession);
     CredentialReset reset =
       new CredentialReset(conn.login().id, sessionId, encriptedSecret);
-    Any any = orb.getORB().create_any();
+    Any any = orb.create_any();
     CredentialResetHelper.insert(any, reset);
     byte[] encodedCredential;
     try {
@@ -472,7 +470,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void send_reply(ServerRequestInfo ri) {
-    Any any = this.getMediator().getORB().getORB().create_any();
+    Any any = this.getMediator().getORB().create_any();
     try {
       ri.set_slot(this.getMediator().getCredentialSlotId(), any);
       ri.set_slot(this.getMediator().getConnectionSlotId(), any);
@@ -536,9 +534,9 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   private void setCurrentConnection(ServerRequestInfo ri, Connection conn) {
     long id = Thread.currentThread().getId();
-    ConnectionMultiplexerImpl multiplexer =
+    ConnectionManagerImpl multiplexer =
       this.getMediator().getConnectionMultiplexer();
-    Any any = this.getMediator().getORB().getORB().create_any();
+    Any any = this.getMediator().getORB().create_any();
     any.insert_longlong(id);
     try {
       ri.set_slot(multiplexer.getCurrentThreadSlotId(), any);
@@ -558,9 +556,9 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   private void removeCurrentConnection(ServerRequestInfo ri) {
     long id = Thread.currentThread().getId();
-    ConnectionMultiplexerImpl multiplexer =
+    ConnectionManagerImpl multiplexer =
       this.getMediator().getConnectionMultiplexer();
-    Any any = this.getMediator().getORB().getORB().create_any();
+    Any any = this.getMediator().getORB().create_any();
     try {
       ri.set_slot(multiplexer.getCurrentThreadSlotId(), any);
     }
@@ -571,5 +569,4 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     }
     multiplexer.setConnectionByThreadId(id, null);
   }
-
 }

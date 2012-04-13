@@ -3,9 +3,8 @@ package tecgraf.openbus.core;
 import java.util.logging.Logger;
 
 import org.omg.CORBA.LocalObject;
+import org.omg.CORBA.ORB;
 import org.omg.IOP.Codec;
-
-import tecgraf.openbus.BusORB;
 
 final class ORBMediator extends LocalObject {
   private static final Logger logger = Logger.getLogger(ORBMediator.class
@@ -20,14 +19,14 @@ final class ORBMediator extends LocalObject {
   /** Identificador do slot da caller chain */
   private final int CONNECTION_SLOT_ID;
   /** o ORB */
-  private BusORB orb;
+  private ORB orb;
   /** o multiplexador */
-  private ConnectionMultiplexerImpl multiplexer;
+  private ConnectionManagerImpl multiplexer;
   /** suporte legado */
   private boolean legacy;
 
   ORBMediator(Codec codec, int credentialSlotId, int chainSlotId,
-    int callerChainSlotId, ConnectionMultiplexerImpl multiplexer) {
+    int callerChainSlotId, ConnectionManagerImpl multiplexer) {
     this.codec = codec;
     this.CREDENTIAL_SLOT_ID = credentialSlotId;
     this.JOINED_CHAIN_SLOT_ID = chainSlotId;
@@ -36,11 +35,11 @@ final class ORBMediator extends LocalObject {
     this.legacy = true;
   }
 
-  BusORB getORB() {
+  ORB getORB() {
     return this.orb;
   }
 
-  void setORB(BusORB orb) {
+  void setORB(ORB orb) {
     this.orb = orb;
   }
 
@@ -60,7 +59,7 @@ final class ORBMediator extends LocalObject {
     return this.CONNECTION_SLOT_ID;
   }
 
-  public ConnectionMultiplexerImpl getConnectionMultiplexer() {
+  public ConnectionManagerImpl getConnectionMultiplexer() {
     return multiplexer;
   }
 

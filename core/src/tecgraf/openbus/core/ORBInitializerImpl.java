@@ -16,7 +16,7 @@ import org.omg.PortableInterceptor.ORBInitializer;
 import org.omg.PortableInterceptor.ORBInitInfoPackage.DuplicateName;
 import org.omg.PortableInterceptor.ORBInitInfoPackage.InvalidName;
 
-import tecgraf.openbus.ConnectionMultiplexer;
+import tecgraf.openbus.ConnectionManager;
 
 public final class ORBInitializerImpl extends LocalObject implements
   ORBInitializer {
@@ -36,11 +36,11 @@ public final class ORBInitializerImpl extends LocalObject implements
     this.currentThreadSlotId = info.allocate_slot_id();
     this.joinedChainSlotId = info.allocate_slot_id();
     this.connectionSlotId = info.allocate_slot_id();
-    ConnectionMultiplexerImpl multiplexer =
-      new ConnectionMultiplexerImpl(this.currentThreadSlotId);
+    ConnectionManagerImpl multiplexer =
+      new ConnectionManagerImpl(this.currentThreadSlotId);
     try {
-      info.register_initial_reference(
-        ConnectionMultiplexer.INITIAL_REFERENCE_ID, multiplexer);
+      info.register_initial_reference(ConnectionManager.INITIAL_REFERENCE_ID,
+        multiplexer);
     }
     catch (InvalidName e) {
       String message = "Falha inesperada ao registrar o multiplexador";

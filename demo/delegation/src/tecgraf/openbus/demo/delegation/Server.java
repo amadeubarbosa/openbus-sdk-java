@@ -2,14 +2,16 @@ package tecgraf.openbus.demo.delegation;
 
 import java.util.Properties;
 
+import org.omg.CORBA.ORB;
+import org.omg.PortableServer.POA;
+import org.omg.PortableServer.POAHelper;
+
 import scs.core.ComponentContext;
 import scs.core.ComponentId;
-import tecgraf.openbus.BusORB;
 import tecgraf.openbus.Connection;
+import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.InvalidLoginCallback;
-import tecgraf.openbus.OpenBus;
-import tecgraf.openbus.core.StandardOpenBus;
-import tecgraf.openbus.core.v2_00.services.ServiceFailure;
+import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
@@ -26,44 +28,44 @@ public class Server {
       String host = props.getProperty("host");
       int port = Integer.valueOf(props.getProperty("port"));
 
-      OpenBus openbus = StandardOpenBus.getInstance();
-      final BusORB orb1 = openbus.initORB(args);
-      new ORBRunThread(orb1.getORB()).start();
-      Runtime.getRuntime().addShutdownHook(new ShutdownThread(orb1.getORB()));
-      orb1.activateRootPOAManager();
+      final ORB orb1 = ORBInitializer.initORB(args);
+      new ORBRunThread(orb1).start();
+      Runtime.getRuntime().addShutdownHook(new ShutdownThread(orb1));
+      POA poa1 = POAHelper.narrow(orb1.resolve_initial_references("RootPOA"));
+      poa1.the_POAManager().activate();
 
-      final BusORB orb2 = openbus.initORB(args);
-      new ORBRunThread(orb2.getORB()).start();
-      Runtime.getRuntime().addShutdownHook(new ShutdownThread(orb2.getORB()));
-      orb2.activateRootPOAManager();
+      final ORB orb2 = ORBInitializer.initORB(args);
+      new ORBRunThread(orb2).start();
+      Runtime.getRuntime().addShutdownHook(new ShutdownThread(orb2));
+      POA poa2 = POAHelper.narrow(orb2.resolve_initial_references("RootPOA"));
+      poa2.the_POAManager().activate();
 
-      final BusORB orb3 = openbus.initORB(args);
-      new ORBRunThread(orb3.getORB()).start();
-      Runtime.getRuntime().addShutdownHook(new ShutdownThread(orb3.getORB()));
-      orb3.activateRootPOAManager();
+      final ORB orb3 = ORBInitializer.initORB(args);
+      new ORBRunThread(orb3).start();
+      Runtime.getRuntime().addShutdownHook(new ShutdownThread(orb3));
+      POA poa3 = POAHelper.narrow(orb3.resolve_initial_references("RootPOA"));
+      poa3.the_POAManager().activate();
 
       /********** Messenger ***********/
-      Connection conn1 = openbus.connect(host, port, orb1);
+      ConnectionManager connections1 =
+        (ConnectionManager) orb1
+          .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
+      Connection conn1 = connections1.createConnection(host, port);
+      connections1.setDefaultConnection(conn1);
       conn1.onInvalidLoginCallback(new InvalidLoginCallback() {
 
         @Override
         public boolean invalidLogin(Connection conn, LoginInfo login) {
           System.out.println(String.format(
             "login terminated, shutting the server down: %s", login.entity));
-          try {
-            conn.close();
-          }
-          catch (ServiceFailure e) {
-            e.printStackTrace();
-          }
-          orb1.getORB().destroy();
+          orb1.destroy();
           return false;
         }
       });
 
       ComponentContext context1 =
-        new ComponentContext(orb1.getORB(), orb1.getRootPOA(), new ComponentId(
-          "Messenger", (byte) 1, (byte) 0, (byte) 0, "java"));
+        new ComponentContext(orb1, poa1, new ComponentId("Messenger", (byte) 1,
+          (byte) 0, (byte) 0, "java"));
       context1.addFacet(MessengerServant.messenger, MessengerHelper.id(),
         new MessengerServant(conn1));
 
@@ -78,20 +80,18 @@ public class Server {
         serviceProperties);
 
       /********** Broadcaster ***********/
-      Connection conn2 = openbus.connect(host, port, orb2);
+      ConnectionManager connections2 =
+        (ConnectionManager) orb2
+          .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
+      Connection conn2 = connections2.createConnection(host, port);
+      connections2.setDefaultConnection(conn2);
       conn2.onInvalidLoginCallback(new InvalidLoginCallback() {
 
         @Override
         public boolean invalidLogin(Connection conn, LoginInfo login) {
           System.out.println(String.format(
             "login terminated, shutting the server down: %s", login.entity));
-          try {
-            conn.close();
-          }
-          catch (ServiceFailure e) {
-            e.printStackTrace();
-          }
-          orb2.getORB().destroy();
+          orb2.destroy();
           return false;
         }
       });
@@ -117,8 +117,8 @@ public class Server {
         MessengerHelper.narrow(conn2find[0].service_ref
           .getFacetByName(MessengerServant.messenger));
       ComponentContext context2 =
-        new ComponentContext(orb2.getORB(), orb2.getRootPOA(), new ComponentId(
-          "Broadcaster", (byte) 1, (byte) 0, (byte) 0, "java"));
+        new ComponentContext(orb2, poa2, new ComponentId("Broadcaster",
+          (byte) 1, (byte) 0, (byte) 0, "java"));
       context2.addFacet(BroadcasterServant.broadcaster, BroadcasterHelper.id(),
         new BroadcasterServant(conn2, conn2messenger));
 
@@ -126,11 +126,15 @@ public class Server {
         serviceProperties);
 
       /********** Forwarder ***********/
-      Connection conn3 = openbus.connect(host, port, orb3);
+      ConnectionManager connections3 =
+        (ConnectionManager) orb3
+          .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
+      Connection conn3 = connections3.createConnection(host, port);
+      connections3.setDefaultConnection(conn3);
       ForwarderServant forwarderServant = new ForwarderServant(conn3);
       ComponentContext context3 =
-        new ComponentContext(orb3.getORB(), orb3.getRootPOA(), new ComponentId(
-          "Forwarder", (byte) 1, (byte) 0, (byte) 0, "java"));
+        new ComponentContext(orb3, poa3, new ComponentId("Forwarder", (byte) 1,
+          (byte) 0, (byte) 0, "java"));
       context3.addFacet(ForwarderServant.forwarder, ForwarderHelper.id(),
         forwarderServant);
 
@@ -157,13 +161,7 @@ public class Server {
         @Override
         public boolean invalidLogin(Connection conn, LoginInfo login) {
           timer.stopTimer();
-          try {
-            conn.close();
-          }
-          catch (ServiceFailure e) {
-            e.printStackTrace();
-          }
-          orb3.getORB().destroy();
+          orb3.destroy();
           return false;
         }
       });

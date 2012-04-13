@@ -10,7 +10,7 @@ import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORBPackage.InvalidName;
 
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.ConnectionMultiplexer;
+import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.core.v2_00.services.ServiceFailure;
 import tecgraf.openbus.core.v2_00.services.access_control.AccessControl;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
@@ -116,12 +116,10 @@ final class LeaseRenewer {
     @Override
     public void run() {
       try {
-        ConnectionMultiplexerImpl multiplexer =
-          (ConnectionMultiplexerImpl) conn.orb().resolve_initial_references(
-            ConnectionMultiplexer.INITIAL_REFERENCE_ID);
-        if (multiplexer.isMultiplexed()) {
-          multiplexer.setCurrentConnection(this.conn);
-        }
+        ConnectionManagerImpl multiplexer =
+          (ConnectionManagerImpl) conn.orb().resolve_initial_references(
+            ConnectionManager.INITIAL_REFERENCE_ID);
+        multiplexer.setThreadRequester(this.conn);
       }
       catch (InvalidName e) {
         String message = "Falha inesperada ao obter o multiplexador";

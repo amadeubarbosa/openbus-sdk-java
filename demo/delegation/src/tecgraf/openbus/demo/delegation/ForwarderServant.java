@@ -5,15 +5,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.omg.CORBA.ORB;
+import org.omg.PortableServer.POA;
+import org.omg.PortableServer.POAHelper;
+
 import scs.core.ComponentContext;
 import scs.core.ComponentId;
-import tecgraf.openbus.BusORB;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
+import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.InvalidLoginCallback;
-import tecgraf.openbus.OpenBus;
-import tecgraf.openbus.core.StandardOpenBus;
-import tecgraf.openbus.core.v2_00.services.ServiceFailure;
+import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
@@ -86,17 +88,22 @@ public class ForwarderServant extends ForwarderPOA {
       String host = props.getProperty("host");
       int port = Integer.valueOf(props.getProperty("port"));
 
-      OpenBus openbus = StandardOpenBus.getInstance();
-      final BusORB orb3 = openbus.initORB(args);
-      new ORBRunThread(orb3.getORB()).start();
-      Runtime.getRuntime().addShutdownHook(new ShutdownThread(orb3.getORB()));
-      orb3.activateRootPOAManager();
+      final ORB orb3 = ORBInitializer.initORB(args);
+      new ORBRunThread(orb3).start();
+      Runtime.getRuntime().addShutdownHook(new ShutdownThread(orb3));
 
-      Connection conn3 = openbus.connect(host, port, orb3);
+      ConnectionManager connections =
+        (ConnectionManager) orb3
+          .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
+      Connection conn3 = connections.createConnection(host, port);
+      connections.setDefaultConnection(conn3);
+
       ForwarderServant forwarderServant = new ForwarderServant(conn3);
+      POA poa3 = POAHelper.narrow(orb3.resolve_initial_references("RootPOA"));
+      poa3.the_POAManager().activate();
       ComponentContext context3 =
-        new ComponentContext(orb3.getORB(), orb3.getRootPOA(), new ComponentId(
-          "Forwarder", (byte) 1, (byte) 0, (byte) 0, "java"));
+        new ComponentContext(orb3, poa3, new ComponentId("Forwarder", (byte) 1,
+          (byte) 0, (byte) 0, "java"));
       context3.addFacet(ForwarderServant.forwarder, ForwarderHelper.id(),
         forwarderServant);
 
@@ -130,13 +137,7 @@ public class ForwarderServant extends ForwarderPOA {
         @Override
         public boolean invalidLogin(Connection conn, LoginInfo login) {
           timer.stopTimer();
-          try {
-            conn.close();
-          }
-          catch (ServiceFailure e) {
-            e.printStackTrace();
-          }
-          orb3.getORB().destroy();
+          orb3.destroy();
           return false;
         }
       });

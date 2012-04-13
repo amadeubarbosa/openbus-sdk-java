@@ -5,9 +5,11 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.omg.CORBA.ORB;
+
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.OpenBus;
-import tecgraf.openbus.core.StandardOpenBus;
+import tecgraf.openbus.ConnectionManager;
+import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.hello.Hello;
@@ -42,8 +44,12 @@ public class Client {
       int ports[] = { port1, port2 };
 
       for (int port : ports) {
-        OpenBus openbus = StandardOpenBus.getInstance();
-        Connection conn = openbus.connect(host, port);
+        ORB orb = ORBInitializer.initORB();
+        ConnectionManager connections =
+          (ConnectionManager) orb
+            .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
+        Connection conn = connections.createConnection(host, port);
+        connections.setDefaultConnection(conn);
         String login = "demo@" + port;
         conn.loginByPassword(login, login.getBytes());
 
@@ -65,7 +71,6 @@ public class Client {
           Hello hello = HelloHelper.narrow(obj);
           hello.sayHello();
         }
-        conn.close();
       }
     }
     catch (Exception e) {

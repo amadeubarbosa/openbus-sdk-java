@@ -5,14 +5,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
+import org.omg.CORBA.ORB;
+import org.omg.PortableServer.POA;
+import org.omg.PortableServer.POAHelper;
+
 import scs.core.ComponentContext;
 import scs.core.ComponentId;
-import tecgraf.openbus.BusORB;
 import tecgraf.openbus.Connection;
+import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.InvalidLoginCallback;
-import tecgraf.openbus.OpenBus;
-import tecgraf.openbus.core.StandardOpenBus;
-import tecgraf.openbus.core.v2_00.services.ServiceFailure;
+import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
@@ -66,26 +68,22 @@ public class BroadcasterServant extends BroadcasterPOA {
       String host = props.getProperty("host");
       int port = Integer.valueOf(props.getProperty("port"));
 
-      OpenBus openbus = StandardOpenBus.getInstance();
-      final BusORB orb2 = openbus.initORB(args);
-      new ORBRunThread(orb2.getORB()).start();
-      Runtime.getRuntime().addShutdownHook(new ShutdownThread(orb2.getORB()));
-      orb2.activateRootPOAManager();
+      final ORB orb2 = ORBInitializer.initORB(args);
+      new ORBRunThread(orb2).start();
+      Runtime.getRuntime().addShutdownHook(new ShutdownThread(orb2));
 
-      Connection conn2 = openbus.connect(host, port, orb2);
+      ConnectionManager connections =
+        (ConnectionManager) orb2
+          .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
+      Connection conn2 = connections.createConnection(host, port);
+      connections.setDefaultConnection(conn2);
       conn2.onInvalidLoginCallback(new InvalidLoginCallback() {
 
         @Override
         public boolean invalidLogin(Connection conn, LoginInfo login) {
           System.out.println(String.format(
             "login terminated, shutting the server down: %s", login.entity));
-          try {
-            conn.close();
-          }
-          catch (ServiceFailure e) {
-            e.printStackTrace();
-          }
-          orb2.getORB().destroy();
+          orb2.destroy();
           return false;
         }
       });
@@ -110,9 +108,11 @@ public class BroadcasterServant extends BroadcasterPOA {
       Messenger conn2messenger =
         MessengerHelper.narrow(conn2find[0].service_ref
           .getFacetByName(MessengerServant.messenger));
+      POA poa2 = POAHelper.narrow(orb2.resolve_initial_references("RootPOA"));
+      poa2.the_POAManager().activate();
       ComponentContext context2 =
-        new ComponentContext(orb2.getORB(), orb2.getRootPOA(), new ComponentId(
-          "Broadcaster", (byte) 1, (byte) 0, (byte) 0, "java"));
+        new ComponentContext(orb2, poa2, new ComponentId("Broadcaster",
+          (byte) 1, (byte) 0, (byte) 0, "java"));
       context2.addFacet(BroadcasterServant.broadcaster, BroadcasterHelper.id(),
         new BroadcasterServant(conn2, conn2messenger));
 
@@ -126,5 +126,4 @@ public class BroadcasterServant extends BroadcasterPOA {
       e.printStackTrace();
     }
   }
-
 }

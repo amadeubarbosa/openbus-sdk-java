@@ -11,6 +11,7 @@ import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.NO_PERMISSIONHelper;
+import org.omg.CORBA.ORB;
 import org.omg.CORBA.TCKind;
 import org.omg.IOP.Codec;
 import org.omg.IOP.ServiceContext;
@@ -90,9 +91,10 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
   @Override
   public void send_request(ClientRequestInfo ri) {
     String operation = ri.operation();
-    BusORBImpl orb = (BusORBImpl) this.getMediator().getORB();
+    ORB orb = this.getMediator().getORB();
+    ConnectionManagerImpl manager = ORBUtils.getConnectionManager(orb);
     Codec codec = this.getMediator().getCodec();
-    if (orb.isCurrentThreadIgnored()) {
+    if (manager.isCurrentThreadIgnored()) {
       logger.finest(String.format("Realizando chamada fora do barramento: %s",
         operation));
       return;
@@ -100,7 +102,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     ConnectionImpl conn = (ConnectionImpl) this.getCurrentConnection(ri);
     // montando credencial 2.0
     CredentialData credential = this.generateCredentialData(ri, conn);
-    Any anyCredential = orb.getORB().create_any();
+    Any anyCredential = orb.create_any();
     CredentialDataHelper.insert(anyCredential, credential);
     byte[] encodedCredential;
     try {
@@ -132,7 +134,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
           }
         }
         legacyCredential.delegate = delegate;
-        Any anyLegacy = orb.getORB().create_any();
+        Any anyLegacy = orb.create_any();
         CredentialHelper.insert(anyLegacy, legacyCredential);
         byte[] encodedLegacy = codec.encode_value(anyLegacy);
         // TODO discutir sobre a idl da antiga credencial
@@ -338,6 +340,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         throw new ForwardRequest(ri.target());
       }
     }
+    else if (exception.minor == NoLoginCode.value) {
+      // TODO: throw NO_PERMISSION minor InvalidRemoteCode
+    }
   }
 
   /**
@@ -347,30 +352,25 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    * @return a conexão.
    */
   protected Connection getCurrentConnection(RequestInfo ri) {
-    ConnectionMultiplexerImpl multi =
-      this.getMediator().getConnectionMultiplexer();
-    if (multi.isMultiplexed()) {
-      Any any;
-      try {
-        any = ri.get_slot(multi.getCurrentThreadSlotId());
-      }
-      catch (InvalidSlot e) {
-        String message = "Falha inesperada ao obter o slot da conexão corrente";
-        throw new INTERNAL(message);
-      }
-      if (any.type().kind().value() != TCKind._tk_null) {
-        long id = any.extract_longlong();
-        Connection connection = multi.getConnectionByThreadId(id);
-        if (connection != null) {
-          return connection;
-        }
-      }
+    ConnectionManagerImpl multi = this.getMediator().getConnectionMultiplexer();
+    Any any;
+    try {
+      any = ri.get_slot(multi.getCurrentThreadSlotId());
     }
-    else {
-      Connection connection = multi.hasOnlyOneConnection();
+    catch (InvalidSlot e) {
+      String message = "Falha inesperada ao obter o slot da conexão corrente";
+      throw new INTERNAL(message);
+    }
+    if (any.type().kind().value() != TCKind._tk_null) {
+      long id = any.extract_longlong();
+      Connection connection = multi.getConnectionByThreadId(id);
       if (connection != null) {
         return connection;
       }
+    }
+    Connection connection = multi.getDefaultConnection();
+    if (connection != null) {
+      return connection;
     }
     throw new NO_PERMISSION(NoLoginCode.value, CompletionStatus.COMPLETED_NO);
   }
