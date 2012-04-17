@@ -24,7 +24,7 @@ public final class ORBInitializerImpl extends LocalObject implements
   private static final byte ENCODING_CDR_ENCAPS_MINOR_VERSION = 2;
   private static final Logger logger = Logger
     .getLogger(ORBInitializerImpl.class.getName());
-  private int credentialSlotId;
+  private int signedChainSlotId;
   private int currentThreadSlotId;
   private int joinedChainSlotId;
   private int connectionSlotId;
@@ -32,7 +32,7 @@ public final class ORBInitializerImpl extends LocalObject implements
   @Override
   public void pre_init(ORBInitInfo info) {
     Codec codec = this.createCodec(info);
-    this.credentialSlotId = info.allocate_slot_id();
+    this.signedChainSlotId = info.allocate_slot_id();
     this.currentThreadSlotId = info.allocate_slot_id();
     this.joinedChainSlotId = info.allocate_slot_id();
     this.connectionSlotId = info.allocate_slot_id();
@@ -48,7 +48,7 @@ public final class ORBInitializerImpl extends LocalObject implements
       throw new INITIALIZE(message);
     }
     ORBMediator mediator =
-      new ORBMediator(codec, this.credentialSlotId, this.joinedChainSlotId,
+      new ORBMediator(codec, this.signedChainSlotId, this.joinedChainSlotId,
         this.connectionSlotId, multiplexer);
     try {
       info.register_initial_reference(ORBMediator.INITIAL_REFERENCE_ID,

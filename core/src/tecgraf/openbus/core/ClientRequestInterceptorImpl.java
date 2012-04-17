@@ -46,7 +46,6 @@ import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.access_control.NoCredentialCode;
 import tecgraf.openbus.core.v2_00.services.access_control.NoLoginCode;
 import tecgraf.openbus.exception.CryptographyException;
-import tecgraf.openbus.util.Cryptography;
 import tecgraf.openbus.util.LRUCache;
 
 /**
@@ -102,34 +101,43 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       return;
     }
     ConnectionImpl conn = (ConnectionImpl) this.getCurrentConnection(ri);
-    // montando credencial 2.0
-    CredentialData credential = this.generateCredentialData(ri, conn);
-    Any anyCredential = orb.create_any();
-    CredentialDataHelper.insert(anyCredential, credential);
-    byte[] encodedCredential;
-    try {
-      encodedCredential = codec.encode_value(anyCredential);
+    boolean joinedToLegacy = false;
+    SignedCallChain joinedChain = getSignedChain(ri);
+    if (Arrays.equals(joinedChain.signature, LEGACY_ENCRYPTED_BLOCK)) {
+      // joined com cadeia 1.5;
+      joinedToLegacy = true;
     }
-    catch (InvalidTypeForEncoding e) {
-      String message = "Falha ao codificar a credencial";
-      logger.log(Level.SEVERE, message, e);
-      throw new INTERNAL(message);
-    }
-    ServiceContext requestServiceContext =
-      new ServiceContext(CredentialContextId.value, encodedCredential);
-    ri.add_request_service_context(requestServiceContext, false);
 
-    if (this.getMediator().getLegacy()) {
+    // montando credencial 2.0
+    if (!joinedToLegacy) {
+      CredentialData credential = this.generateCredentialData(ri, conn);
+      Any anyCredential = orb.create_any();
+      CredentialDataHelper.insert(anyCredential, credential);
+      byte[] encodedCredential;
+      try {
+        encodedCredential = codec.encode_value(anyCredential);
+      }
+      catch (InvalidTypeForEncoding e) {
+        String message = "Falha ao codificar a credencial";
+        logger.log(Level.SEVERE, message, e);
+        throw new INTERNAL(message);
+      }
+      ServiceContext requestServiceContext =
+        new ServiceContext(CredentialContextId.value, encodedCredential);
+      ri.add_request_service_context(requestServiceContext, false);
+    }
+
+    if (conn.legacy()) {
       try {
         // construindo credencial 1.5
         Credential legacyCredential = new Credential();
         legacyCredential.identifier = conn.login().id;
         legacyCredential.owner = conn.login().entity;
         String delegate = "";
-        if (credential.chain.encoded.length > 0) {
+
+        if (joinedChain != NULL_SIGNED_CALL_CHAIN) {
           Any anyChain =
-            codec
-              .decode_value(credential.chain.encoded, CallChainHelper.type());
+            codec.decode_value(joinedChain.encoded, CallChainHelper.type());
           CallChain chain = CallChainHelper.extract(anyChain);
           if (chain.callers != null && chain.callers.length > 1) {
             delegate = chain.callers[0].entity;
@@ -159,6 +167,13 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         logger.log(Level.SEVERE, message, e);
         throw new INTERNAL(message);
       }
+    }
+
+    if (joinedToLegacy && !conn.legacy()) {
+      String message =
+        "Impossível construir credencial: joined em cadeia 1.5 e sem suporte a legacy";
+      logger.severe(message);
+      throw new INTERNAL(message);
     }
   }
 
@@ -203,8 +218,8 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     }
     logger.finest(String.format("Realizando chamada sem credencial: %s",
       operation));
-    return new CredentialData(busId, loginId, 0, 0,
-      Cryptography.NULL_HASH_VALUE, Cryptography.NULL_SIGNED_CALL_CHAIN);
+    return new CredentialData(busId, loginId, 0, 0, NULL_HASH_VALUE,
+      NULL_SIGNED_CALL_CHAIN);
   }
 
   /**
@@ -259,7 +274,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         callChain = SignedCallChainHelper.extract(any);
       }
       else {
-        callChain = Cryptography.NULL_SIGNED_CALL_CHAIN;
+        callChain = NULL_SIGNED_CALL_CHAIN;
       }
     }
     catch (InvalidSlot e) {
@@ -372,7 +387,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    * @return a conexão.
    */
   protected Connection getCurrentConnection(RequestInfo ri) {
-    ConnectionManagerImpl multi = this.getMediator().getConnectionMultiplexer();
+    ConnectionManagerImpl multi = this.getMediator().getConnectionManager();
     Any any;
     try {
       any = ri.get_slot(multi.getCurrentThreadSlotId());

@@ -3,12 +3,14 @@ package tecgraf.openbus.core;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.MessageDigest;
+import java.util.Arrays;
 
 import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.LocalObject;
 import org.omg.PortableInterceptor.Interceptor;
 import org.omg.PortableInterceptor.RequestInfo;
 
+import tecgraf.openbus.core.v2_00.credential.SignedCallChain;
 import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.util.Cryptography;
 
@@ -22,6 +24,22 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
   protected static final byte BUS_MAJOR_VERSION = 2;
   /** Número de versão Minor */
   protected static final byte BUS_MINOR_VERSION = 0;
+
+  /** Tamanho do hash */
+  protected static final int HASH_VALUE_SIZE = 32;
+  /** Hash nulo. */
+  protected static final byte[] NULL_HASH_VALUE = new byte[HASH_VALUE_SIZE];
+  /** Tamanho do bloco criptografado */
+  protected static final int ENCRYPTED_BLOCK_SIZE = 256;
+  /** Bloco nulo criptografado. */
+  protected static final byte[] NULL_ENCRYPTED_BLOCK =
+    new byte[ENCRYPTED_BLOCK_SIZE];
+  /** Cadeia nula assinada. */
+  protected static final SignedCallChain NULL_SIGNED_CALL_CHAIN =
+    new SignedCallChain(NULL_ENCRYPTED_BLOCK, new byte[0]);
+  protected final byte[] LEGACY_ENCRYPTED_BLOCK =
+    new byte[ENCRYPTED_BLOCK_SIZE];
+  protected static final byte[] LEGACY_HASH = new byte[HASH_VALUE_SIZE];
 
   /** Nome */
   private String name;
@@ -40,6 +58,8 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
   protected InterceptorImpl(String name, ORBMediator mediator) {
     this.name = name;
     this.mediator = mediator;
+    Arrays.fill(LEGACY_ENCRYPTED_BLOCK, (byte) 0xff);
+    Arrays.fill(LEGACY_HASH, (byte) 0xff);
   }
 
   /**

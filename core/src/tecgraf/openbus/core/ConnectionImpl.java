@@ -23,10 +23,9 @@ import org.omg.PortableInterceptor.InvalidSlot;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
+import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlService;
 import tecgraf.openbus.core.v2_00.EncryptedBlockHolder;
 import tecgraf.openbus.core.v2_00.OctetSeqHolder;
-import tecgraf.openbus.core.v2_00.credential.CredentialData;
-import tecgraf.openbus.core.v2_00.credential.CredentialDataHelper;
 import tecgraf.openbus.core.v2_00.credential.SignedCallChain;
 import tecgraf.openbus.core.v2_00.credential.SignedCallChainHelper;
 import tecgraf.openbus.core.v2_00.services.ServiceFailure;
@@ -402,13 +401,12 @@ public final class ConnectionImpl implements Connection {
       if (!this.login.id.equals(loginid)) {
         return null;
       }
-      any = current.get_slot(mediator.getCredentialSlotId());
+      any = current.get_slot(mediator.getSignedChainSlotId());
       if (any.type().kind().value() == TCKind._tk_null) {
         return null;
       }
-      CredentialData credential = CredentialDataHelper.extract(any);
-      busId = credential.bus;
-      signedChain = credential.chain;
+      busId = busid();
+      signedChain = SignedCallChainHelper.extract(any);
       Any anyChain =
         mediator.getCodec().decode_value(signedChain.encoded,
           CallChainHelper.type());
@@ -420,7 +418,7 @@ public final class ConnectionImpl implements Connection {
       throw new OpenBusInternalException(message, e);
     }
     catch (UserException e) {
-      String message = "Falha inesperada ao decodificar a cadeia de chamadas.";
+      String message = "Falha inesperada ao recuperar a cadeia.";
       logger.log(Level.SEVERE, message, e);
       throw new OpenBusInternalException(message, e);
     }
@@ -544,5 +542,13 @@ public final class ConnectionImpl implements Connection {
 
   void setLegacyInfo(LegacyInfo legacy) {
     this.legacyBus = legacy;
+  }
+
+  boolean legacy() {
+    return this.legacyBus != null;
+  }
+
+  IAccessControlService legacyAccess() {
+    return this.legacyBus.getAccessControl();
   }
 }

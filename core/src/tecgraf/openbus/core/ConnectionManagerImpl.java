@@ -1,9 +1,11 @@
 package tecgraf.openbus.core;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -215,7 +217,10 @@ final class ConnectionManagerImpl extends LocalObject implements
    * @return A lista de conexões de despacho.
    */
   Collection<Connection> getIncommingConnections() {
-    return this.incomingDispatcherConn.values();
+    List<Connection> list =
+      new ArrayList<Connection>(this.incomingDispatcherConn.values());
+    list.add(defaultConn);
+    return list;
   }
 
   /**

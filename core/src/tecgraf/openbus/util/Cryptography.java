@@ -24,7 +24,6 @@ import java.security.spec.X509EncodedKeySpec;
 
 import javax.crypto.Cipher;
 
-import tecgraf.openbus.core.v2_00.credential.SignedCallChain;
 import tecgraf.openbus.exception.CryptographyException;
 
 /**
@@ -33,28 +32,6 @@ import tecgraf.openbus.exception.CryptographyException;
  * @author Tecgraf
  */
 public final class Cryptography {
-  /**
-   * Tamanho do hash
-   */
-  public static final int HASH_VALUE_SIZE = 32;
-  /**
-   * Hash nulo.
-   */
-  public static final byte[] NULL_HASH_VALUE = new byte[HASH_VALUE_SIZE];
-  /**
-   * Tamanho do bloco criptografado
-   */
-  public static final int ENCRYPTED_BLOCK_SIZE = 256;
-  /**
-   * Bloco nulo criptografado.
-   */
-  public static final byte[] NULL_ENCRYPTED_BLOCK =
-    new byte[ENCRYPTED_BLOCK_SIZE];
-  /**
-   * Cadeia nula assinada.
-   */
-  public static final SignedCallChain NULL_SIGNED_CALL_CHAIN =
-    new SignedCallChain(NULL_ENCRYPTED_BLOCK, new byte[0]);
   /**
    * Algoritmo do hash
    */

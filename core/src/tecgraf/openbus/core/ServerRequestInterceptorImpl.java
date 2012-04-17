@@ -12,7 +12,6 @@ import org.omg.CORBA.Any;
 import org.omg.CORBA.BAD_PARAM;
 import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.INTERNAL;
-import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 import org.omg.IOP.Codec;
@@ -20,6 +19,7 @@ import org.omg.IOP.ServiceContext;
 import org.omg.IOP.CodecPackage.FormatMismatch;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
 import org.omg.IOP.CodecPackage.TypeMismatch;
+import org.omg.PortableInterceptor.ForwardRequest;
 import org.omg.PortableInterceptor.InvalidSlot;
 import org.omg.PortableInterceptor.ServerRequestInfo;
 import org.omg.PortableInterceptor.ServerRequestInterceptor;
@@ -35,6 +35,7 @@ import tecgraf.openbus.core.v2_00.credential.CredentialDataHelper;
 import tecgraf.openbus.core.v2_00.credential.CredentialReset;
 import tecgraf.openbus.core.v2_00.credential.CredentialResetHelper;
 import tecgraf.openbus.core.v2_00.credential.SignedCallChain;
+import tecgraf.openbus.core.v2_00.credential.SignedCallChainHelper;
 import tecgraf.openbus.core.v2_00.services.ServiceFailure;
 import tecgraf.openbus.core.v2_00.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_00.services.access_control.CallChainHelper;
@@ -44,6 +45,7 @@ import tecgraf.openbus.core.v2_00.services.access_control.InvalidLoginCode;
 import tecgraf.openbus.core.v2_00.services.access_control.InvalidLogins;
 import tecgraf.openbus.core.v2_00.services.access_control.InvalidPublicKeyCode;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_00.services.access_control.NoCredentialCode;
 import tecgraf.openbus.core.v2_00.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_00.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.exception.CryptographyException;
@@ -66,11 +68,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
   private Map<Integer, ServerSideSession> sessions;
   /** Cache de login */
   private LoginCache loginsCache;
-
-  private final byte[] LEGACY_ENCRYPTED_BLOCK =
-    new byte[Cryptography.ENCRYPTED_BLOCK_SIZE];
-  private static final byte[] LEGACY_HASH =
-    new byte[Cryptography.HASH_VALUE_SIZE];
+  /** Cache de validade de credencial 1.5 */
+  private IsValidCache validCache;
 
   /**
    * Construtor.
@@ -84,15 +83,26 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       Collections.synchronizedMap(new LRUCache<Integer, ServerSideSession>(
         CACHE_SIZE));
     this.loginsCache = new LoginCache(CACHE_SIZE);
-    Arrays.fill(LEGACY_ENCRYPTED_BLOCK, (byte) 0xff);
-    Arrays.fill(LEGACY_HASH, (byte) 0xff);
+    this.validCache = new IsValidCache(CACHE_SIZE);
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public void receive_request_service_contexts(ServerRequestInfo ri) {
+  public void receive_request_service_contexts(ServerRequestInfo arg0)
+    throws ForwardRequest {
+    // do nothing
+  }
+
+  /**
+   * Recupera a credencial do contexto.
+   * 
+   * @param ri informação do contexto
+   * @return Wrapper para a credencial extraída.
+   */
+  private CredentialWrapper retrieveCredential(ServerRequestInfo ri) {
+    ORB orb = this.getMediator().getORB();
     Codec codec = this.getMediator().getCodec();
     byte[] encodedCredential = null;
     try {
@@ -129,7 +139,12 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         throw new INTERNAL(message);
       }
       try {
-        ri.set_slot(this.getMediator().getCredentialSlotId(), any);
+        CredentialData credential = CredentialDataHelper.extract(any);
+        SignedCallChain chain = credential.chain;
+        Any singnedAny = orb.create_any();
+        SignedCallChainHelper.insert(singnedAny, chain);
+        ri.set_slot(this.getMediator().getSignedChainSlotId(), singnedAny);
+        return new CredentialWrapper(false, credential, null);
       }
       catch (InvalidSlot e) {
         String message =
@@ -138,7 +153,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         throw new INTERNAL(message);
       }
     }
-    else if (getMediator().getLegacy()) {
+    else {
       int legacyContextId = 1234;
       byte[] encodedLegacyCredential = null;
       try {
@@ -159,7 +174,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         }
       }
       if (encodedLegacyCredential != null) {
-        Any any = this.getMediator().getORB().create_any();
+        CredentialWrapper wrapper = new CredentialWrapper();
         try {
           Any anyLegacy =
             codec
@@ -180,7 +195,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
             callers[0] = new LoginInfo(loginId, entity);
           }
           CallChain callChain = new CallChain("", callers);
-          Any anyCallChain = this.getMediator().getORB().create_any();
+          Any anyCallChain = orb.create_any();
           CallChainHelper.insert(anyCallChain, callChain);
           byte[] encodedCallChain = codec.encode_value(anyCallChain);
 
@@ -193,33 +208,38 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           credential.hash = LEGACY_HASH;
           credential.chain =
             new SignedCallChain(LEGACY_ENCRYPTED_BLOCK, encodedCallChain);
-          CredentialDataHelper.insert(any, credential);
+          // salvando informações no wrapper
+          wrapper.isLegacy = true;
+          wrapper.credential = credential;
+          wrapper.legacyCredential = legacyCredential;
         }
         catch (TypeMismatch e) {
           String message =
             String.format("Falha ao decodificar a credencial 1.5: %s", e
               .getClass().getSimpleName());
           logger.log(Level.SEVERE, message, e);
-          throw new MARSHAL(message, 0, CompletionStatus.COMPLETED_NO);
+          throw new INTERNAL(message, 0, CompletionStatus.COMPLETED_NO);
         }
         catch (FormatMismatch e) {
           String message =
             String.format("Falha ao decodificar a credencial 1.5: %s", e
               .getClass().getSimpleName());
           logger.log(Level.SEVERE, message, e);
-          throw new MARSHAL(message, 0, CompletionStatus.COMPLETED_NO);
+          throw new INTERNAL(message, 0, CompletionStatus.COMPLETED_NO);
         }
         catch (InvalidTypeForEncoding e) {
-          // FIXME: deve sumir apos correçao da validacao 1.5
           String message =
             String.format(
               "Falha ao construir credencial 2.0 a partir da 1.5: %s", e
                 .getClass().getSimpleName());
           logger.log(Level.SEVERE, message, e);
-          throw new MARSHAL(message, 0, CompletionStatus.COMPLETED_NO);
+          throw new INTERNAL(message, 0, CompletionStatus.COMPLETED_NO);
         }
         try {
-          ri.set_slot(this.getMediator().getCredentialSlotId(), any);
+          Any signedAny = orb.create_any();
+          SignedCallChainHelper.insert(signedAny, wrapper.credential.chain);
+          ri.set_slot(this.getMediator().getSignedChainSlotId(), signedAny);
+          return wrapper;
         }
         catch (InvalidSlot e) {
           String message = "Falha ao armazenar a credencial em seu slot";
@@ -228,8 +248,10 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         }
       }
     }
-    // TODO: se nenhum context id foi recuperado, lançar exceção NoCredential
-    // Não me parece fazer sentido já que deve ser possível realizar algumas chamadas sem credencial (login)
+    String message = "Nenhuma credencial suportada encontrada";
+    logger.info(message);
+    throw new NO_PERMISSION(message, NoCredentialCode.value,
+      CompletionStatus.COMPLETED_NO);
   }
 
   /**
@@ -240,16 +262,14 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     String operation = ri.operation();
     ORB orb = this.getMediator().getORB();
     ConnectionManagerImpl multiplexer =
-      this.getMediator().getConnectionMultiplexer();
+      this.getMediator().getConnectionManager();
+    CredentialWrapper wrapper = retrieveCredential(ri);
     try {
-      Any credentialDataAny =
-        ri.get_slot(this.getMediator().getCredentialSlotId());
-      CredentialData credential =
-        CredentialDataHelper.extract(credentialDataAny);
+      CredentialData credential = wrapper.credential;
       if (credential != null) {
         ConnectionImpl conn = null;
         String loginId = credential.login;
-        if (!credential.bus.isEmpty()) {
+        if (!wrapper.isLegacy) {
           conn = (ConnectionImpl) multiplexer.getBusDispatcher(credential.bus);
           if (conn != null) {
             setCurrentConnection(ri, conn);
@@ -283,7 +303,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
             conn = (ConnectionImpl) aconn;
             setCurrentConnection(ri, conn);
             try {
-              if (loginsCache.validateLogin(loginId, (ConnectionImpl) aconn)) {
+              if (loginsCache.validateLogin(loginId, conn)
+                && validCache.isValid(wrapper.legacyCredential, conn)) {
                 valid = true;
                 break;
               }
@@ -503,7 +524,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
   public void send_reply(ServerRequestInfo ri) {
     Any any = this.getMediator().getORB().create_any();
     try {
-      ri.set_slot(this.getMediator().getCredentialSlotId(), any);
+      ri.set_slot(this.getMediator().getSignedChainSlotId(), any);
       ri.set_slot(this.getMediator().getConnectionSlotId(), any);
     }
     catch (InvalidSlot e) {
@@ -566,7 +587,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
   private void setCurrentConnection(ServerRequestInfo ri, Connection conn) {
     long id = Thread.currentThread().getId();
     ConnectionManagerImpl multiplexer =
-      this.getMediator().getConnectionMultiplexer();
+      this.getMediator().getConnectionManager();
     Any any = this.getMediator().getORB().create_any();
     any.insert_longlong(id);
     try {
@@ -588,7 +609,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
   private void removeCurrentConnection(ServerRequestInfo ri) {
     long id = Thread.currentThread().getId();
     ConnectionManagerImpl multiplexer =
-      this.getMediator().getConnectionMultiplexer();
+      this.getMediator().getConnectionManager();
     Any any = this.getMediator().getORB().create_any();
     try {
       ri.set_slot(multiplexer.getCurrentThreadSlotId(), any);
@@ -600,4 +621,5 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     }
     multiplexer.setConnectionByThreadId(id, null);
   }
+
 }
