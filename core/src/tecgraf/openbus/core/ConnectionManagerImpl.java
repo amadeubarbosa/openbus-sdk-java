@@ -87,7 +87,23 @@ final class ConnectionManagerImpl extends LocalObject implements
       }
       IComponent component = IComponentHelper.narrow(obj);
       BusInfo bus = new BusInfo(component);
-      Connection conn = new ConnectionImpl(bus, orb);
+      ConnectionImpl conn = new ConnectionImpl(bus, orb);
+      /*
+       * enquanto não definimos uma API o legacy esta guardado no ORBMediator
+       * porém, esta sempre true. Este é o ponto de entrada para configurar o
+       * legacy se for por conexão. Caso seja por ORB, colocar no ORBInit?
+       */
+      boolean legacy = true;
+      if (legacy) {
+        String legacyStr =
+          String.format("corbaloc::1.0@%s:%d/%s", host, port, "openbus_v1_05");
+        org.omg.CORBA.Object legacyObj = orb.string_to_object(legacyStr);
+        if (legacyObj != null) {
+          IComponent legacyComponent = IComponentHelper.narrow(legacyObj);
+          LegacyInfo legacyBus = new LegacyInfo(legacyComponent);
+          conn.setLegacyInfo(legacyBus);
+        }
+      }
       return conn;
     }
     finally {

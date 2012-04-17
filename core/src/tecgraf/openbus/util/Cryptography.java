@@ -24,7 +24,7 @@ import java.security.spec.X509EncodedKeySpec;
 
 import javax.crypto.Cipher;
 
-import tecgraf.openbus.core.v2_00.services.access_control.SignedCallChain;
+import tecgraf.openbus.core.v2_00.credential.SignedCallChain;
 import tecgraf.openbus.exception.CryptographyException;
 
 /**

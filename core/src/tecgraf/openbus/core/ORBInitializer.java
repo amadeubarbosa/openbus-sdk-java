@@ -54,6 +54,13 @@ public class ORBInitializer {
     return orb;
   }
 
+  /**
+   * Cria o ORB.
+   * 
+   * @param args argumentos
+   * @param props propriedades
+   * @return o ORB
+   */
   private static ORB createORB(String[] args, Properties props) {
     ORBBuilder orbBuilder = new ORBBuilder(args, props);
     orbBuilder.addInitializer(new ORBInitializerInfo(ORBInitializerImpl.class));

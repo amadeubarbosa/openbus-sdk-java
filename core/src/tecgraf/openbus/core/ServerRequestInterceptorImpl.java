@@ -12,6 +12,7 @@ import org.omg.CORBA.Any;
 import org.omg.CORBA.BAD_PARAM;
 import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.INTERNAL;
+import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 import org.omg.IOP.Codec;
@@ -33,6 +34,7 @@ import tecgraf.openbus.core.v2_00.credential.CredentialData;
 import tecgraf.openbus.core.v2_00.credential.CredentialDataHelper;
 import tecgraf.openbus.core.v2_00.credential.CredentialReset;
 import tecgraf.openbus.core.v2_00.credential.CredentialResetHelper;
+import tecgraf.openbus.core.v2_00.credential.SignedCallChain;
 import tecgraf.openbus.core.v2_00.services.ServiceFailure;
 import tecgraf.openbus.core.v2_00.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_00.services.access_control.CallChainHelper;
@@ -42,7 +44,6 @@ import tecgraf.openbus.core.v2_00.services.access_control.InvalidLoginCode;
 import tecgraf.openbus.core.v2_00.services.access_control.InvalidLogins;
 import tecgraf.openbus.core.v2_00.services.access_control.InvalidPublicKeyCode;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_00.services.access_control.SignedCallChain;
 import tecgraf.openbus.core.v2_00.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_00.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.exception.CryptographyException;
@@ -138,8 +139,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       }
     }
     else if (getMediator().getLegacy()) {
-      int legacyContextId =
-        tecgraf.openbus.core.v1_05.access_control_service.CredentialContextId.value;
+      int legacyContextId = 1234;
       byte[] encodedLegacyCredential = null;
       try {
         ServiceContext serviceContext =
@@ -196,20 +196,27 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           CredentialDataHelper.insert(any, credential);
         }
         catch (TypeMismatch e) {
-          // TODO: MARSHAL ERROR
-          String message = "Falha ao decodificar a credencial 1.5";
+          String message =
+            String.format("Falha ao decodificar a credencial 1.5: %s", e
+              .getClass().getSimpleName());
           logger.log(Level.SEVERE, message, e);
-          throw new INTERNAL(message);
+          throw new MARSHAL(message, 0, CompletionStatus.COMPLETED_NO);
         }
         catch (FormatMismatch e) {
-          String message = "Falha ao decodificar a credencial 1.5";
+          String message =
+            String.format("Falha ao decodificar a credencial 1.5: %s", e
+              .getClass().getSimpleName());
           logger.log(Level.SEVERE, message, e);
-          throw new INTERNAL(message);
+          throw new MARSHAL(message, 0, CompletionStatus.COMPLETED_NO);
         }
         catch (InvalidTypeForEncoding e) {
-          String message = "Falha ao construir credencial 2.0 a partir da 1.5";
+          // FIXME: deve sumir apos correçao da validacao 1.5
+          String message =
+            String.format(
+              "Falha ao construir credencial 2.0 a partir da 1.5: %s", e
+                .getClass().getSimpleName());
           logger.log(Level.SEVERE, message, e);
-          throw new INTERNAL(message);
+          throw new MARSHAL(message, 0, CompletionStatus.COMPLETED_NO);
         }
         try {
           ri.set_slot(this.getMediator().getCredentialSlotId(), any);
@@ -221,7 +228,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         }
       }
     }
-    // TODO: se nenhum context id foi recuperado, lançar exceção NoLoginCode
+    // TODO: se nenhum context id foi recuperado, lançar exceção NoCredential
+    // Não me parece fazer sentido já que deve ser possível realizar algumas chamadas sem credencial (login)
   }
 
   /**
@@ -253,15 +261,19 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
                 CompletionStatus.COMPLETED_NO);
             }
           }
+          boolean valid;
           try {
-            if (!loginsCache.validateLogin(loginId, conn)) {
-              throw new NO_PERMISSION(InvalidLoginCode.value,
-                CompletionStatus.COMPLETED_NO);
-            }
+            valid = loginsCache.validateLogin(loginId, conn);
           }
           catch (Exception e) {
-            // TODO UnverifiedLogin
-            // TODO logar o erro.
+            String message = "Erro ao validar o login.";
+            logger.log(Level.SEVERE, message, e);
+            throw new NO_PERMISSION(UnverifiedLoginCode.value,
+              CompletionStatus.COMPLETED_NO);
+          }
+          if (!valid) {
+            throw new NO_PERMISSION(InvalidLoginCode.value,
+              CompletionStatus.COMPLETED_NO);
           }
         }
         else {
@@ -270,10 +282,16 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           for (Connection aconn : multiplexer.getIncommingConnections()) {
             conn = (ConnectionImpl) aconn;
             setCurrentConnection(ri, conn);
-            // TODO Catch de exception e traduzir para NoPermission MINOR 0
-            if (loginsCache.validateLogin(loginId, (ConnectionImpl) aconn)) {
-              valid = true;
-              break;
+            try {
+              if (loginsCache.validateLogin(loginId, (ConnectionImpl) aconn)) {
+                valid = true;
+                break;
+              }
+            }
+            catch (Exception e) {
+              String message = "Erro ao validar o login 1.5.";
+              logger.log(Level.SEVERE, message, e);
+              throw new NO_PERMISSION(0, CompletionStatus.COMPLETED_NO);
             }
           }
           if (!valid) {
@@ -281,9 +299,28 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           }
         }
         OctetSeqHolder pubkey = new OctetSeqHolder();
-        // TODO: catch InvalidLogin -> NO PERMISSION MINOR invalid
-        // TODO: catch ServiceFailure -> NO PERMISSION minor UNVERIFIED
-        String entity = loginsCache.getLoginEntity(loginId, pubkey, conn);
+        String entity;
+        try {
+          entity = loginsCache.getLoginEntity(loginId, pubkey, conn);
+        }
+        catch (InvalidLogins e) {
+          String message = "Erro ao verificar o login.";
+          logger.log(Level.SEVERE, message, e);
+          throw new NO_PERMISSION(InvalidLoginCode.value,
+            CompletionStatus.COMPLETED_NO);
+        }
+        catch (ServiceFailure e) {
+          String message = "Erro ao verificar o login.";
+          logger.log(Level.SEVERE, message, e);
+          throw new NO_PERMISSION(UnverifiedLoginCode.value,
+            CompletionStatus.COMPLETED_NO);
+        }
+        catch (Exception e) {
+          String message = "Erro ao verificar o login.";
+          logger.log(Level.SEVERE, message, e);
+          throw new NO_PERMISSION(UnverifiedLoginCode.value,
+            CompletionStatus.COMPLETED_NO);
+        }
         if (validateCredential(credential, ri)) {
           if (validateChain(credential.chain, loginId, conn)) {
             // salvando informação da conexão que atendeu a requisição
@@ -320,15 +357,9 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       logger.log(Level.SEVERE, message, e);
       throw new INTERNAL(message);
     }
-    catch (InvalidLogins e) {
-      throw new NO_PERMISSION(InvalidLoginCode.value,
-        CompletionStatus.COMPLETED_NO);
-    }
-    catch (ServiceFailure e) {
-      throw new NO_PERMISSION(UnverifiedLoginCode.value,
-        CompletionStatus.COMPLETED_NO);
-    }
     catch (CryptographyException e) {
+      String message = "Falha ao criptografar com chave pública";
+      logger.log(Level.SEVERE, message, e);
       throw new NO_PERMISSION(InvalidPublicKeyCode.value,
         CompletionStatus.COMPLETED_NO);
     }

@@ -27,6 +27,8 @@ import tecgraf.openbus.core.v2_00.EncryptedBlockHolder;
 import tecgraf.openbus.core.v2_00.OctetSeqHolder;
 import tecgraf.openbus.core.v2_00.credential.CredentialData;
 import tecgraf.openbus.core.v2_00.credential.CredentialDataHelper;
+import tecgraf.openbus.core.v2_00.credential.SignedCallChain;
+import tecgraf.openbus.core.v2_00.credential.SignedCallChainHelper;
 import tecgraf.openbus.core.v2_00.services.ServiceFailure;
 import tecgraf.openbus.core.v2_00.services.access_control.AccessControl;
 import tecgraf.openbus.core.v2_00.services.access_control.AccessDenied;
@@ -40,8 +42,6 @@ import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_00.services.access_control.MissingCertificate;
-import tecgraf.openbus.core.v2_00.services.access_control.SignedCallChain;
-import tecgraf.openbus.core.v2_00.services.access_control.SignedCallChainHelper;
 import tecgraf.openbus.core.v2_00.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_00.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
@@ -70,6 +70,8 @@ public final class ConnectionImpl implements Connection {
   private ConnectionManagerImpl manager;
   /** Informações sobre o barramento ao qual a conexão pertence */
   private BusInfo bus;
+  /** Informações sobre o legacy do barramento ao qual a conexão pertence */
+  private LegacyInfo legacyBus;
   /** Chave pública do sdk */
   private RSAPublicKey publicKey;
   /** Chave privada do sdk */
@@ -540,4 +542,7 @@ public final class ConnectionImpl implements Connection {
     return this.invalidLoginCallback;
   }
 
+  void setLegacyInfo(LegacyInfo legacy) {
+    this.legacyBus = legacy;
+  }
 }
