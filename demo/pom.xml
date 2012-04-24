@@ -15,6 +15,7 @@
   <url>http://www.tecgraf.puc-rio.br/openbus</url>
 
   <modules>
+    <module>util</module>
     <module>hello</module>
     <module>multiplexing</module>
     <module>delegation</module>
