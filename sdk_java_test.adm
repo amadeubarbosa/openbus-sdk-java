@@ -1,0 +1,37 @@
+Category {
+  id = "OpenbusLegacyTest_Java",
+  name = "Categoria para testes legados do SDK Java",
+}
+
+Entity {
+  id = "sdk_java_legacy",
+  category = "OpenbusLegacyTest_Java",
+  name = "Testes unitários legados do SDK Java",
+}
+
+Certificate {
+  id = "sdk_java_legacy",
+  certificate = "TesteBarramento.crt",
+}
+
+Entity {
+  id = "sdk_java_legacy_integration",
+  category = "OpenbusLegacyTest_Java",
+  name = "Os testes de integração legados do SDK Java",
+}
+
+Certificate {
+  id = "sdk_java_legacy_integration",
+  certificate = "TesteBarramento.crt",
+}
+
+Interface {
+  id = "IDL:demoidl/hello/IHello:1.0",
+}
+
+Grant {
+  id = "sdk_java_legacy_integration",
+  interfaces = {
+    "IDL:demoidl/hello/IHello:1.0",
+  }
+}

@@ -166,7 +166,7 @@ public class OpenbusTest {
     Openbus openbus = Openbus.getInstance();
     IRegistryService registryService = null;
     try {
-      registryService = openbus.connect("null", "null");
+      registryService = openbus.connect("null", "nullnull");
     }
     finally {
       Assert.assertNull(registryService);
