@@ -8,7 +8,7 @@ import org.omg.PortableInterceptor.CurrentHelper;
 import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.exception.OpenBusInternalException;
 
-public class ORBUtils {
+class ORBUtils {
 
   static Current getPICurrent(ORB orb) throws OpenBusInternalException {
     org.omg.CORBA.Object obj;

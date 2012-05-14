@@ -56,7 +56,7 @@ import tecgraf.openbus.util.Cryptography;
  * 
  * @author Tecgraf
  */
-public final class ConnectionImpl implements Connection {
+final class ConnectionImpl implements Connection {
   /** Instância do logger */
   private static final Logger logger = Logger.getLogger(ConnectionImpl.class
     .getName());
