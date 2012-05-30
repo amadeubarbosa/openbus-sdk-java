@@ -19,13 +19,17 @@ import org.junit.Test;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 
+import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionManager;
+import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.core.v2_00.OctetSeqHolder;
 import tecgraf.openbus.core.v2_00.services.ServiceFailure;
 import tecgraf.openbus.core.v2_00.services.access_control.AccessDenied;
+import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_00.services.access_control.MissingCertificate;
+import tecgraf.openbus.core.v2_00.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_00.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
@@ -105,7 +109,7 @@ public final class ConnectionTest {
   }
 
   @Test
-  public void LoginTest() throws Exception {
+  public void loginTest() throws Exception {
 
     Connection conn = createConnection();
     assertNull(conn.login());
@@ -233,7 +237,7 @@ public final class ConnectionTest {
     assertNotNull(conn.login());
     conn.loginByCertificate(serverEntity, privateKey);
     assertNotNull(conn.login());
-    ;
+
     conn.logout();
     assertNull(conn.login());
 
@@ -312,5 +316,77 @@ public final class ConnectionTest {
     conn2.logout();
     manager.setThreadRequester(conn);
     conn.logout();
+  }
+
+  @Test
+  public void logoutTest() throws Exception {
+    Connection conn = createConnection();
+    assertFalse(conn.logout());
+    conn.loginByPassword(entity, password.getBytes());
+    assertTrue(conn.logout());
+    assertNull(conn.login());
+    boolean failed = false;
+    try {
+      conn.offers().findServices(new ServiceProperty[0]);
+    }
+    catch (NO_PERMISSION e) {
+      failed = true;
+      if (e.minor != NoLoginCode.value) {
+        fail("A exceção é NO_PERMISSION mas o minor code não é NoLoginCode. Minor code recebido: "
+          + e.minor);
+      }
+    }
+    catch (Exception e) {
+      fail("A exceção deveria ser NO_PERMISSION. Exceção recebida: " + e);
+    }
+    assertTrue("Uma busca sem login foi bem-sucedida.", failed);
+  }
+
+  @Test
+  public void onInvalidLoginCallbackTest() throws Exception {
+    Connection conn = createConnection();
+    assertNull(conn.onInvalidLoginCallback());
+    InvalidLoginCallback callback = new InvalidLoginCallbackMock();
+    conn.onInvalidLoginCallback(callback);
+    assertEquals(callback, conn.onInvalidLoginCallback());
+  }
+
+  @Test
+  public void callerChainTest() throws Exception {
+    Connection conn = createConnection();
+    assertNull(conn.getCallerChain());
+    //TODO: adicionar testes para caso exista uma callerchain ou os testes de interoperabilidade ja cobrem isso de forma suficiente?
+  }
+
+  public void JoinChainTest() {
+    Connection conn = createConnection();
+    assertNull(conn.getJoinedChain());
+    // adiciona a chain da getCallerChain
+    conn.joinChain(null);
+    assertNull(conn.getJoinedChain());
+
+    //TODO testar caso em que a chain da getCallerChain não é vazia
+    //TODO comparar assinatura do callerchainimpl com a implementação CSHARP
+
+    conn.joinChain(new CallerChainImpl("mock", new LoginInfo[] { new LoginInfo(
+      "a", "b") }, null));
+
+    CallerChain callerChain = conn.getJoinedChain();
+    assertNotNull(callerChain);
+    assertEquals("mock", callerChain.busid());
+    assertEquals("a", callerChain.callers()[0].id);
+    assertEquals("b", callerChain.callers()[0].entity);
+    conn.exitChain();
+  }
+
+  public void ExitChainTest() {
+    Connection conn = createConnection();
+    assertNull(conn.getJoinedChain());
+    conn.exitChain();
+    assertNull(conn.getJoinedChain());
+    conn.joinChain(new CallerChainImpl("mock", new LoginInfo[] { new LoginInfo(
+      "a", "b") }, null));
+    conn.exitChain();
+    assertNull(conn.getJoinedChain());
   }
 }
