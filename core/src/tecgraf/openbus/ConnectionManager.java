@@ -56,7 +56,7 @@ public interface ConnectionManager {
    * 
    * @param conn Conexão a barramento a ser associada a thread corrente.
    */
-  void setThreadRequester(Connection conn);
+  void setRequester(Connection conn);
 
   /**
    * Devolve a conexão com o barramento associada a thread corrente, ou
@@ -64,7 +64,7 @@ public interface ConnectionManager {
    * 
    * @return Conexão a barramento associada a thread corrente.
    */
-  Connection getThreadRequester();
+  Connection getRequester();
 
   /**
    * Define que conexão deve ser utilizada para receber chamadas oriundas do
@@ -72,7 +72,7 @@ public interface ConnectionManager {
    * 
    * @param conn Conexão a barramento a ser associada a thread corrente.
    */
-  void setupBusDispatcher(Connection conn);
+  void setDispatcher(Connection conn);
 
   /**
    * Devolve a conexão de despacho associada ao barramento indicado, se houver.
@@ -82,7 +82,7 @@ public interface ConnectionManager {
    * @param busid Identificador do barramento ao qual a conexão está associada.
    * @return Conexão a barramento associada ao barramento.
    */
-  Connection getBusDispatcher(String busid);
+  Connection getDispatcher(String busid);
 
   /**
    * Remove a conexão de despacho associada ao barramento indicado, se houver.
@@ -91,5 +91,5 @@ public interface ConnectionManager {
    * @return Conexão a barramento associada ao barramento ou 'null' se não
    *         houver nenhuma conexão associada.
    */
-  Connection removeBusDispatcher(String busid);
+  Connection clearDispatcher(String busid);
 }

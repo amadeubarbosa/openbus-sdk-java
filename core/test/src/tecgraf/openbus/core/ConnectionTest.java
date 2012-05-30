@@ -262,7 +262,7 @@ public final class ConnectionTest {
   public void singleSignOnTest() throws Exception {
     Connection conn = createConnection();
     Connection conn2 = createConnection();
-    manager.setThreadRequester(conn);
+    manager.setRequester(conn);
     conn.loginByPassword(entity, password.getBytes());
 
     // segredo errado
@@ -272,7 +272,7 @@ public final class ConnectionTest {
 
     try {
       login = conn.startSingleSignOn(secret);
-      manager.setThreadRequester(conn2);
+      manager.setRequester(conn2);
       conn2.loginBySingleSignOn(login, new byte[0]);
     }
     catch (WrongSecret e) {
@@ -286,9 +286,9 @@ public final class ConnectionTest {
 
     // login válido
     assertNull(conn2.login());
-    manager.setThreadRequester(conn);
+    manager.setRequester(conn);
     login = conn.startSingleSignOn(secret);
-    manager.setThreadRequester(conn2);
+    manager.setRequester(conn2);
     conn2.loginBySingleSignOn(login, secret.value);
     assertNotNull(conn2.login());
     conn2.logout();
@@ -297,9 +297,9 @@ public final class ConnectionTest {
     // login repetido
     failed = false;
     try {
-      manager.setThreadRequester(conn);
+      manager.setRequester(conn);
       login = conn.startSingleSignOn(secret);
-      manager.setThreadRequester(conn2);
+      manager.setRequester(conn2);
       conn2.loginBySingleSignOn(login, secret.value);
       assertNotNull(conn2.login());
       conn2.loginBySingleSignOn(login, secret.value);
@@ -312,9 +312,9 @@ public final class ConnectionTest {
         + e);
     }
     assertTrue("O login com entidade já autenticada foi bem-sucedido.", failed);
-    manager.setThreadRequester(conn2);
+    manager.setRequester(conn2);
     conn2.logout();
-    manager.setThreadRequester(conn);
+    manager.setRequester(conn);
     conn.logout();
   }
 

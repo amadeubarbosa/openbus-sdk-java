@@ -98,20 +98,20 @@ public class Server {
       context2.addFacet("hello", HelloHelper.id(), new HelloServant(conns));
 
       // set incoming connection
-      connections1.setupBusDispatcher(conn1AtBus1WithOrb1);
-      connections1.setupBusDispatcher(connAtBus2WithOrb1);
+      connections1.setDispatcher(conn1AtBus1WithOrb1);
+      connections1.setDispatcher(connAtBus2WithOrb1);
 
       // login to the bus
-      connections1.setThreadRequester(conn1AtBus1WithOrb1);
+      connections1.setRequester(conn1AtBus1WithOrb1);
       conn1AtBus1WithOrb1.loginByPassword("conn1", "conn1".getBytes());
       shutdown1.addConnetion(conn1AtBus1WithOrb1);
-      connections1.setThreadRequester(conn2AtBus1WithOrb1);
+      connections1.setRequester(conn2AtBus1WithOrb1);
       conn2AtBus1WithOrb1.loginByPassword("conn2", "conn2".getBytes());
       shutdown1.addConnetion(conn2AtBus1WithOrb1);
-      connections1.setThreadRequester(connAtBus2WithOrb1);
+      connections1.setRequester(connAtBus2WithOrb1);
       connAtBus2WithOrb1.loginByPassword("demo", "demo".getBytes());
       shutdown1.addConnetion(connAtBus2WithOrb1);
-      connections1.setThreadRequester(null);
+      connections1.setRequester(null);
       connAtBus1WithOrb2.loginByPassword("demo", "demo".getBytes());
       shutdown2.addConnetion(connAtBus1WithOrb2);
 
@@ -125,15 +125,15 @@ public class Server {
           .getIComponent());
       thread2.start();
 
-      connections1.setThreadRequester(connAtBus2WithOrb1);
+      connections1.setRequester(connAtBus2WithOrb1);
       connAtBus2WithOrb1.offers().registerService(context1.getIComponent(),
         getProps());
 
-      connections2.setThreadRequester(connAtBus1WithOrb2);
-      connections2.setupBusDispatcher(connAtBus1WithOrb2);
+      connections2.setRequester(connAtBus1WithOrb2);
+      connections2.setDispatcher(connAtBus1WithOrb2);
       connAtBus1WithOrb2.offers().registerService(context2.getIComponent(),
         getProps());
-      connections2.setThreadRequester(null);
+      connections2.setRequester(null);
     }
     catch (Exception e) {
       e.printStackTrace();
@@ -178,7 +178,7 @@ public class Server {
 
     @Override
     public void run() {
-      multiplexer.setThreadRequester(conn);
+      multiplexer.setRequester(conn);
       try {
         conn.offers().registerService(component, getProps());
       }

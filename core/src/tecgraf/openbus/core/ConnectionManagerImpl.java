@@ -142,7 +142,7 @@ final class ConnectionManagerImpl extends LocalObject implements
    * {@inheritDoc}
    */
   @Override
-  public void setThreadRequester(Connection conn) {
+  public void setRequester(Connection conn) {
     long id = Thread.currentThread().getId();
     Any any = this.orb.create_any();
     any.insert_longlong(id);
@@ -162,7 +162,7 @@ final class ConnectionManagerImpl extends LocalObject implements
    * {@inheritDoc}
    */
   @Override
-  public Connection getThreadRequester() {
+  public Connection getRequester() {
     Connection connection = null;
     Current current = ORBUtils.getPICurrent(orb);
     Any any;
@@ -186,7 +186,7 @@ final class ConnectionManagerImpl extends LocalObject implements
    * {@inheritDoc}
    */
   @Override
-  public void setupBusDispatcher(Connection conn) {
+  public void setDispatcher(Connection conn) {
     synchronized (this.incomingDispatcherConn) {
       this.incomingDispatcherConn.remove(conn.busid());
       if (conn != null) {
@@ -199,7 +199,7 @@ final class ConnectionManagerImpl extends LocalObject implements
    * {@inheritDoc}
    */
   @Override
-  public Connection getBusDispatcher(String busid) {
+  public Connection getDispatcher(String busid) {
     return this.incomingDispatcherConn.get(busid);
   }
 
@@ -207,7 +207,7 @@ final class ConnectionManagerImpl extends LocalObject implements
    * {@inheritDoc}
    */
   @Override
-  public Connection removeBusDispatcher(String busid) {
+  public Connection clearDispatcher(String busid) {
     return this.incomingDispatcherConn.remove(busid);
   }
 

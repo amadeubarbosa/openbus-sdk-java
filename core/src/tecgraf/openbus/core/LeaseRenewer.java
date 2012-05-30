@@ -119,7 +119,7 @@ final class LeaseRenewer {
         ConnectionManagerImpl multiplexer =
           (ConnectionManagerImpl) conn.orb().resolve_initial_references(
             ConnectionManager.INITIAL_REFERENCE_ID);
-        multiplexer.setThreadRequester(this.conn);
+        multiplexer.setRequester(this.conn);
       }
       catch (InvalidName e) {
         String message = "Falha inesperada ao obter o multiplexador";

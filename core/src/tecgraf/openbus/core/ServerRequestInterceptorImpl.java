@@ -270,7 +270,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         ConnectionImpl conn = null;
         String loginId = credential.login;
         if (!wrapper.isLegacy) {
-          conn = (ConnectionImpl) multiplexer.getBusDispatcher(credential.bus);
+          conn = (ConnectionImpl) multiplexer.getDispatcher(credential.bus);
           if (conn != null) {
             setCurrentConnection(ri, conn);
           }

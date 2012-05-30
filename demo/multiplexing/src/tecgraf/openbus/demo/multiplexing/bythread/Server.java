@@ -80,20 +80,20 @@ public class Server {
       context1.addFacet("hello", HelloHelper.id(), new HelloServant(conns));
 
       // set incoming connection
-      connections.setupBusDispatcher(conn1AtBus1WithOrb1);
-      connections.setupBusDispatcher(connAtBus2WithOrb1);
+      connections.setDispatcher(conn1AtBus1WithOrb1);
+      connections.setDispatcher(connAtBus2WithOrb1);
 
       // login to the bus
-      connections.setThreadRequester(conn1AtBus1WithOrb1);
+      connections.setRequester(conn1AtBus1WithOrb1);
       conn1AtBus1WithOrb1.loginByPassword("conn1", "conn1".getBytes());
       shutdown.addConnetion(conn1AtBus1WithOrb1);
-      connections.setThreadRequester(conn2AtBus1WithOrb1);
+      connections.setRequester(conn2AtBus1WithOrb1);
       conn2AtBus1WithOrb1.loginByPassword("conn2", "conn2".getBytes());
       shutdown.addConnetion(conn2AtBus1WithOrb1);
-      connections.setThreadRequester(connAtBus2WithOrb1);
+      connections.setRequester(connAtBus2WithOrb1);
       connAtBus2WithOrb1.loginByPassword("conn3", "conn3".getBytes());
       shutdown.addConnetion(connAtBus2WithOrb1);
-      connections.setThreadRequester(null);
+      connections.setRequester(null);
 
       Thread thread1 =
         new RegisterThread(conn1AtBus1WithOrb1, connections, context1
@@ -105,7 +105,7 @@ public class Server {
           .getIComponent());
       thread2.start();
 
-      connections.setThreadRequester(connAtBus2WithOrb1);
+      connections.setRequester(connAtBus2WithOrb1);
       connAtBus2WithOrb1.offers().registerService(context1.getIComponent(),
         getProps());
     }
@@ -152,7 +152,7 @@ public class Server {
 
     @Override
     public void run() {
-      multiplexer.setThreadRequester(conn);
+      multiplexer.setRequester(conn);
       try {
         conn.offers().registerService(component, getProps());
       }
