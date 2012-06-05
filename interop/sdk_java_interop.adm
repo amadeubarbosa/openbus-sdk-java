@@ -1,11 +1,11 @@
 Category {
-  id = "sdk_java_2_demo",
+  id = "sdk_java_2_interop",
   name = "Demostraçoes do SDK Java",
 }
 
 Entity {
   id = "TestEntity",
-  category = "sdk_java_2_demo",
+  category = "sdk_java_2_interop",
   name = "Servidor da aplicação de demostração Hello do SDK Java",
 }
 
@@ -15,10 +15,10 @@ Certificate {
 }
 
 Interface {
-  id = "IDL:tecgraf/openbus/demo/hello/Hello:1.0"
+  id = "IDL:tecgraf/openbus/interop/simple/Hello:1.0"
 }
 
 Grant {
   id = "TestEntity",
-  interfaces = {"IDL:tecgraf/openbus/demo/hello/Hello:1.0"}
+  interfaces = {"IDL:tecgraf/openbus/interop/simple/Hello:1.0"}
 }
