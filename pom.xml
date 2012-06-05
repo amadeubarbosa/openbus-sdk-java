@@ -30,7 +30,7 @@
 
   <modules>
     <module>core</module>
-    <module>demo</module>
+    <module>interop</module>
     <module>legacy</module>
   </modules>
 
