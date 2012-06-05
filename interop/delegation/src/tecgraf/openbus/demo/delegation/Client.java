@@ -1,4 +1,4 @@
-package tecgraf.openbus.intereop.delegation;
+package tecgraf.openbus.interop.delegation;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,7 +12,7 @@ import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.intereop.util.Utils;
+import tecgraf.openbus.interop.util.Utils;
 
 public class Client {
 

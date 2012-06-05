@@ -1,4 +1,4 @@
-package tecgraf.openbus.intereop.simple;
+package tecgraf.openbus.interop.simple;
 
 import java.security.interfaces.RSAPrivateKey;
 import java.util.Properties;
@@ -16,9 +16,9 @@ import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.intereop.util.Utils;
-import tecgraf.openbus.intereop.util.Utils.ORBRunThread;
-import tecgraf.openbus.intereop.util.Utils.ShutdownThread;
+import tecgraf.openbus.interop.util.Utils;
+import tecgraf.openbus.interop.util.Utils.ORBRunThread;
+import tecgraf.openbus.interop.util.Utils.ShutdownThread;
 import tecgraf.openbus.util.Cryptography;
 
 /**

@@ -1,4 +1,4 @@
-package tecgraf.openbus.intereop.simple;
+package tecgraf.openbus.interop.simple;
 
 import java.util.Properties;
 import java.util.logging.ConsoleHandler;
@@ -12,7 +12,7 @@ import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.intereop.util.Utils;
+import tecgraf.openbus.interop.util.Utils;
 import tecgraf.openbus.util.Cryptography;
 
 /**
