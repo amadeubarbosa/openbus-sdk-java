@@ -116,7 +116,7 @@ public class Server {
 
   public static ServiceProperty[] getProps() {
     ServiceProperty[] serviceProperties = new ServiceProperty[1];
-    serviceProperties[0] = new ServiceProperty("offer.domain", "OpenBus Demos");
+    serviceProperties[0] = new ServiceProperty("offer.domain", "Interoperability Tests");
     return serviceProperties;
   }
 

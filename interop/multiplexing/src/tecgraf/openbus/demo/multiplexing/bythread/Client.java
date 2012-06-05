@@ -57,7 +57,7 @@ public class Client {
         serviceProperties[0] =
           new ServiceProperty("openbus.component.facet", "hello");
         serviceProperties[1] =
-          new ServiceProperty("offer.domain", "OpenBus Demos");
+          new ServiceProperty("offer.domain", "Interoperability Tests");
         ServiceOfferDesc[] services =
           conn.offers().findServices(serviceProperties);
         for (ServiceOfferDesc offer : services) {

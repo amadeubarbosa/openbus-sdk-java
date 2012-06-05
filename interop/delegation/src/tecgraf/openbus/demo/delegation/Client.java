@@ -39,7 +39,7 @@ public class Client {
 
       ServiceProperty[] serviceProperties = new ServiceProperty[1];
       serviceProperties[0] =
-        new ServiceProperty("offer.domain", "OpenBus Demos");
+        new ServiceProperty("offer.domain", "Interoperability Tests");
       ServiceOfferDesc[] offers = conn.offers().findServices(serviceProperties);
       if (offers.length != 3) {
         System.err.println("serviços ofertados errados");

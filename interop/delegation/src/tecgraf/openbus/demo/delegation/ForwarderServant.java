@@ -116,7 +116,7 @@ public class ForwarderServant extends ForwarderPOA {
       messengerProps[1] =
         new ServiceProperty("openbus.component.facet",
           MessengerServant.messenger);
-      messengerProps[2] = new ServiceProperty("offer.domain", "OpenBus Demos");
+      messengerProps[2] = new ServiceProperty("offer.domain", "Interoperability Tests");
       ServiceOfferDesc[] conn3find =
         conn3.offers().findServices(messengerProps);
 
@@ -144,7 +144,7 @@ public class ForwarderServant extends ForwarderPOA {
 
       ServiceProperty[] serviceProperties = new ServiceProperty[1];
       serviceProperties[0] =
-        new ServiceProperty("offer.domain", "OpenBus Demos");
+        new ServiceProperty("offer.domain", "Interoperability Tests");
       conn3.offers().registerService(context3.getIComponent(),
         serviceProperties);
 

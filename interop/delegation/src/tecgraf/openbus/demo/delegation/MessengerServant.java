@@ -104,7 +104,7 @@ public class MessengerServant extends MessengerPOA {
 
       ServiceProperty[] serviceProperties = new ServiceProperty[1];
       serviceProperties[0] =
-        new ServiceProperty("offer.domain", "OpenBus Demos");
+        new ServiceProperty("offer.domain", "Interoperability Tests");
 
       conn1.offers().registerService(context1.getIComponent(),
         serviceProperties);

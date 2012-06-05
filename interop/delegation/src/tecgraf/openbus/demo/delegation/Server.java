@@ -74,7 +74,7 @@ public class Server {
 
       ServiceProperty[] serviceProperties = new ServiceProperty[1];
       serviceProperties[0] =
-        new ServiceProperty("offer.domain", "OpenBus Demos");
+        new ServiceProperty("offer.domain", "Interoperability Tests");
 
       conn1.offers().registerService(context1.getIComponent(),
         serviceProperties);
@@ -104,7 +104,7 @@ public class Server {
       messengerProps[1] =
         new ServiceProperty("openbus.component.facet",
           MessengerServant.messenger);
-      messengerProps[2] = new ServiceProperty("offer.domain", "OpenBus Demos");
+      messengerProps[2] = new ServiceProperty("offer.domain", "Interoperability Tests");
       ServiceOfferDesc[] conn2find =
         conn2.offers().findServices(messengerProps);
 

@@ -72,7 +72,7 @@ public final class Server {
 
       ServiceProperty[] serviceProperties = new ServiceProperty[1];
       serviceProperties[0] =
-        new ServiceProperty("offer.domain", "OpenBus Demos");
+        new ServiceProperty("offer.domain", "Interoperability Tests");
       conn.offers().registerService(context.getIComponent(), serviceProperties);
 
     }

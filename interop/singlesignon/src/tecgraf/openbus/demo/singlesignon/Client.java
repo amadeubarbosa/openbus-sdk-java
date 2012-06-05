@@ -81,7 +81,7 @@ public final class Client {
       serviceProperties[1] =
         new ServiceProperty("openbus.component.facet", "hello");
       serviceProperties[2] =
-        new ServiceProperty("offer.domain", "OpenBus Demos");
+        new ServiceProperty("offer.domain", "Interoperability Tests");
 
       for (Connection conn : conns) {
         ServiceOfferDesc[] services =
