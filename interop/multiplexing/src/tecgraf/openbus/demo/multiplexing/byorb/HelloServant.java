@@ -1,9 +1,9 @@
-package tecgraf.openbus.demo.multiplexing.byorb;
+package tecgraf.openbus.intereop.multiplexing.byorb;
 
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
-import tecgraf.openbus.demo.hello.HelloPOA;
+import tecgraf.openbus.intereop.simple.HelloPOA;
 
 /**
  * Implementação do componente Hello

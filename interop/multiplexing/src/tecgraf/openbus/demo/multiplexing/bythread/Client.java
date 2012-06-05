@@ -1,4 +1,4 @@
-package tecgraf.openbus.demo.multiplexing.bythread;
+package tecgraf.openbus.intereop.multiplexing.bythread;
 
 import java.util.Properties;
 import java.util.logging.ConsoleHandler;
@@ -12,9 +12,9 @@ import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.demo.hello.Hello;
-import tecgraf.openbus.demo.hello.HelloHelper;
-import tecgraf.openbus.demo.util.Utils;
+import tecgraf.openbus.intereop.simple.Hello;
+import tecgraf.openbus.intereop.simple.HelloHelper;
+import tecgraf.openbus.intereop.util.Utils;
 
 /**
  * Cliente do demo de Multiplexação.

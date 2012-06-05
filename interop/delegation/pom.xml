@@ -4,11 +4,11 @@
 
   <parent>
     <groupId>tecgraf.openbus</groupId>
-    <artifactId>openbus-sdk-demo</artifactId>
+    <artifactId>openbus-sdk-interop</artifactId>
     <version>2.0.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>openbus-sdk-demo-delegation</artifactId>
+  <artifactId>openbus-sdk-interop-delegation</artifactId>
   <packaging>jar</packaging>
 
   <name>OpenBus - SDK - Demonstrações - Delegation</name>
@@ -49,7 +49,7 @@
 
     <dependency>
       <groupId>tecgraf.openbus</groupId>
-      <artifactId>openbus-sdk-demo-util</artifactId>
+      <artifactId>openbus-sdk-interop-util</artifactId>
       <version>${project.version}</version>
     </dependency>
 

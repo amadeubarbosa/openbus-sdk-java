@@ -1,4 +1,4 @@
-package tecgraf.openbus.demo.util;
+package tecgraf.openbus.intereop.util;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;

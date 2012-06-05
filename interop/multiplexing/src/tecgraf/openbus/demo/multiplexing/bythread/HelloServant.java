@@ -1,11 +1,11 @@
-package tecgraf.openbus.demo.multiplexing.bythread;
+package tecgraf.openbus.intereop.multiplexing.bythread;
 
 import java.util.List;
 
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
-import tecgraf.openbus.demo.hello.HelloPOA;
+import tecgraf.openbus.intereop.simple.HelloPOA;
 
 /**
  * Implementação do componente Hello

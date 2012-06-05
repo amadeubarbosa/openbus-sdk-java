@@ -1,4 +1,4 @@
-package tecgraf.openbus.demo.delegation;
+package tecgraf.openbus.intereop.delegation;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,9 +18,9 @@ import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.demo.util.Utils;
-import tecgraf.openbus.demo.util.Utils.ORBRunThread;
-import tecgraf.openbus.demo.util.Utils.ShutdownThread;
+import tecgraf.openbus.intereop.util.Utils;
+import tecgraf.openbus.intereop.util.Utils.ORBRunThread;
+import tecgraf.openbus.intereop.util.Utils.ShutdownThread;
 
 public class BroadcasterServant extends BroadcasterPOA {
 

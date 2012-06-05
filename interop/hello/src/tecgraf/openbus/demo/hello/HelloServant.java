@@ -1,4 +1,4 @@
-package tecgraf.openbus.demo.hello;
+package tecgraf.openbus.intereop.simple;
 
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;

@@ -1,4 +1,4 @@
-package tecgraf.openbus.demo.multiplexing.byorb;
+package tecgraf.openbus.intereop.multiplexing.byorb;
 
 import java.util.Properties;
 import java.util.logging.ConsoleHandler;
@@ -17,10 +17,10 @@ import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.demo.hello.HelloHelper;
-import tecgraf.openbus.demo.util.Utils;
-import tecgraf.openbus.demo.util.Utils.ORBRunThread;
-import tecgraf.openbus.demo.util.Utils.ShutdownThread;
+import tecgraf.openbus.intereop.simple.HelloHelper;
+import tecgraf.openbus.intereop.util.Utils;
+import tecgraf.openbus.intereop.util.Utils.ORBRunThread;
+import tecgraf.openbus.intereop.util.Utils.ShutdownThread;
 
 public class Server {
 
