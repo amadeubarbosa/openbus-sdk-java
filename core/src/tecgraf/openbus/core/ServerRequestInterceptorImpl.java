@@ -261,27 +261,28 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
   public void receive_request(ServerRequestInfo ri) {
     String operation = ri.operation();
     ORB orb = this.getMediator().getORB();
-    ConnectionManagerImpl multiplexer =
-      this.getMediator().getConnectionManager();
+    ConnectionManagerImpl manager = this.getMediator().getConnectionManager();
     CredentialWrapper wrapper = retrieveCredential(ri);
     try {
       CredentialData credential = wrapper.credential;
       if (credential != null) {
         ConnectionImpl conn = null;
         String loginId = credential.login;
+
         if (!wrapper.isLegacy) {
-          conn = (ConnectionImpl) multiplexer.getDispatcher(credential.bus);
-          if (conn != null) {
-            setCurrentConnection(ri, conn);
-          }
-          else {
-            conn = (ConnectionImpl) multiplexer.getDefaultConnection();
+          conn = (ConnectionImpl) manager.getDispatcher(credential.bus);
+          if (conn == null) {
+            conn = (ConnectionImpl) manager.getDefaultConnection();
             if (conn == null) {
               throw new NO_PERMISSION(UnknownBusCode.value,
                 CompletionStatus.COMPLETED_NO);
             }
           }
-          boolean valid;
+
+          setCurrentConnection(ri, conn);
+          manager.setRequester(conn);
+
+          boolean valid = false;
           try {
             valid = loginsCache.validateLogin(loginId, conn);
           }
@@ -299,9 +300,10 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         else {
           // caso com credencial 1.5
           boolean valid = false;
-          for (Connection aconn : multiplexer.getIncommingConnections()) {
+          for (Connection aconn : manager.getIncommingConnections()) {
             conn = (ConnectionImpl) aconn;
             setCurrentConnection(ri, conn);
+            manager.setRequester(conn);
             try {
               if (loginsCache.validateLogin(loginId, conn)
                 && validCache.isValid(wrapper.legacyCredential, conn)) {
@@ -386,6 +388,10 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     }
     finally {
       removeCurrentConnection(ri);
+
+      // Talvez essa operação nao deveria ser necessaria, 
+      // pois o PICurrent deveria acabar junto com a thread de interceptação. 
+      manager.setRequester(null);
     }
 
   }
@@ -586,19 +592,18 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   private void setCurrentConnection(ServerRequestInfo ri, Connection conn) {
     long id = Thread.currentThread().getId();
-    ConnectionManagerImpl multiplexer =
-      this.getMediator().getConnectionManager();
+    ConnectionManagerImpl manager = this.getMediator().getConnectionManager();
     Any any = this.getMediator().getORB().create_any();
     any.insert_longlong(id);
     try {
-      ri.set_slot(multiplexer.getCurrentThreadSlotId(), any);
+      ri.set_slot(manager.getCurrentThreadSlotId(), any);
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao acessar o slot da thread corrente";
       logger.log(Level.SEVERE, message, e);
       throw new INTERNAL(message);
     }
-    multiplexer.setConnectionByThreadId(id, conn);
+    manager.setConnectionByThreadId(id, conn);
   }
 
   /**
@@ -608,18 +613,17 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   private void removeCurrentConnection(ServerRequestInfo ri) {
     long id = Thread.currentThread().getId();
-    ConnectionManagerImpl multiplexer =
-      this.getMediator().getConnectionManager();
+    ConnectionManagerImpl manager = this.getMediator().getConnectionManager();
     Any any = this.getMediator().getORB().create_any();
     try {
-      ri.set_slot(multiplexer.getCurrentThreadSlotId(), any);
+      ri.set_slot(manager.getCurrentThreadSlotId(), any);
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao acessar o slot da thread corrente";
       logger.log(Level.SEVERE, message, e);
       throw new INTERNAL(message);
     }
-    multiplexer.setConnectionByThreadId(id, null);
+    manager.setConnectionByThreadId(id, null);
   }
 
 }

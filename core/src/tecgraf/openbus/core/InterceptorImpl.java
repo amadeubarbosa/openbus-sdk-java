@@ -37,7 +37,7 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
   /** Cadeia nula assinada. */
   protected static final SignedCallChain NULL_SIGNED_CALL_CHAIN =
     new SignedCallChain(NULL_ENCRYPTED_BLOCK, new byte[0]);
-  protected final byte[] LEGACY_ENCRYPTED_BLOCK =
+  protected static final byte[] LEGACY_ENCRYPTED_BLOCK =
     new byte[ENCRYPTED_BLOCK_SIZE];
   protected static final byte[] LEGACY_HASH = new byte[HASH_VALUE_SIZE];
 
