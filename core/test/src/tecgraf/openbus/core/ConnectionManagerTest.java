@@ -53,7 +53,7 @@ public final class ConnectionManagerTest {
   public void createConnectionTest() {
     // cria conexão válida
     Connection valid = _manager.createConnection(_hostName, _hostPort);
-    assertNull(valid);
+    assertNotNull(valid);
     // tenta criar conexão com hosts inválidos
     Connection invalid = null;
     try {

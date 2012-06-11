@@ -1,5 +1,6 @@
 package tecgraf.openbus.core;
 
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -81,6 +82,12 @@ final class ConnectionManagerImpl extends LocalObject implements
   public Connection createConnection(String host, int port) {
     ignoreCurrentThread();
     try {
+
+      if ((host == null) || (host.isEmpty()) || (port < 0)) {
+        throw new InvalidParameterException(
+          "Os parametros host e/ou port não são validos");
+      }
+
       String str =
         String.format("corbaloc::1.0@%s:%d/%s", host, port, BusObjectKey.value);
       org.omg.CORBA.Object obj = orb.string_to_object(str);
