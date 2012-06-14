@@ -29,6 +29,7 @@ import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.core.Session.ClientSideSession;
 import tecgraf.openbus.core.v1_05.access_control_service.Credential;
 import tecgraf.openbus.core.v1_05.access_control_service.CredentialHelper;
+import tecgraf.openbus.core.v2_00.BusLogin;
 import tecgraf.openbus.core.v2_00.credential.CredentialContextId;
 import tecgraf.openbus.core.v2_00.credential.CredentialData;
 import tecgraf.openbus.core.v2_00.credential.CredentialDataHelper;
@@ -233,7 +234,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
   private SignedCallChain getCallChain(ClientRequestInfo ri,
     ConnectionImpl conn, String callee) {
     SignedCallChain callChain;
-    if (callee.equals(conn.busid())) {
+    if (callee.equals(BusLogin.value)) {
       callChain = getSignedChain(ri);
     }
     else {
