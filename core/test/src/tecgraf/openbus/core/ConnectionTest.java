@@ -7,12 +7,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.math.BigInteger;
-import java.security.KeyFactory;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.spec.RSAPrivateKeySpec;
 import java.util.Properties;
-import java.util.Random;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -47,14 +42,15 @@ public final class ConnectionTest {
   private static String password;
   private static String serverEntity;
   private static String privateKeyFile;
-  private static RSAPrivateKey privateKey;
-  private static RSAPrivateKey wrongPrivateKey;
+  private static byte[] privateKey;
+  private static byte[] wrongPrivateKey;
   private static String entityWithoutCert;
   private static ORB orb;
   private static ConnectionManager manager;
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
+    Cryptography crypto = Cryptography.getInstance();
     Properties properties = Utils.readPropertyFile("/test.properties");
     host = properties.getProperty("openbus.host.name");
     port = Integer.valueOf(properties.getProperty("openbus.host.port"));
@@ -62,11 +58,10 @@ public final class ConnectionTest {
     password = properties.getProperty("entity.password");
     serverEntity = properties.getProperty("server.entity.name");
     privateKeyFile = properties.getProperty("server.private.key");
-    privateKey = Cryptography.getInstance().readPrivateKey(privateKeyFile);
+    privateKey = crypto.readPrivateKey(privateKeyFile);
     entityWithoutCert = properties.getProperty("entity.withoutcert");
     String wrongPrivateKeyFile = properties.getProperty("wrongkey");
-    wrongPrivateKey =
-      Cryptography.getInstance().readPrivateKey(wrongPrivateKeyFile);
+    wrongPrivateKey = crypto.readPrivateKey(wrongPrivateKeyFile);
     orb = ORBInitializer.initORB();
     manager =
       (ConnectionManager) orb
@@ -202,12 +197,7 @@ public final class ConnectionTest {
     // chave privada corrompida
     failed = false;
     try {
-      RSAPrivateKeySpec kSpec =
-        new RSAPrivateKeySpec(new BigInteger(512, new Random()),
-          new BigInteger(512, new Random()));
-      KeyFactory kf = KeyFactory.getInstance("RSA");
-      RSAPrivateKey wrongKey = (RSAPrivateKey) kf.generatePrivate(kSpec);
-      conn.loginByCertificate(serverEntity, wrongKey);
+      conn.loginByCertificate(serverEntity, new byte[0]);
     }
     catch (CorruptedPrivateKey e) {
       failed = true;
@@ -234,7 +224,7 @@ public final class ConnectionTest {
     assertTrue("O login de entidade com chave errada foi bem-sucedido.", failed);
 
     // login válido
-    assertNotNull(conn.login());
+    assertNull(conn.login());
     conn.loginByCertificate(serverEntity, privateKey);
     assertNotNull(conn.login());
 

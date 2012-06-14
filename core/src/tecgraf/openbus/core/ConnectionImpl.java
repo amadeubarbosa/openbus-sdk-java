@@ -1,8 +1,10 @@
 package tecgraf.openbus.core;
 
 import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -225,12 +227,14 @@ final class ConnectionImpl implements Connection {
    * {@inheritDoc}
    */
   @Override
-  public void loginByCertificate(String entity, RSAPrivateKey privateKey)
+  public void loginByCertificate(String entity, byte[] privateKeyBytes)
     throws CorruptedPrivateKey, WrongPrivateKey, AlreadyLoggedIn,
     MissingCertificate, ServiceFailure {
     checkLoggedIn();
     this.manager.ignoreCurrentThread();
     try {
+      RSAPrivateKey privateKey =
+        crypto.createPrivateKeyFromBytes(privateKeyBytes);
       EncryptedBlockHolder challengeHolder = new EncryptedBlockHolder();
       LoginProcess loginProcess =
         this.bus.getAccessControl().startLoginByCertificate(entity,
@@ -247,7 +251,7 @@ final class ConnectionImpl implements Connection {
           encryptedLoginAuthenticationInfo, validityHolder);
     }
     catch (CryptographyException e) {
-      throw new CorruptedPrivateKey("Erro ao descriptografar desafio.", e);
+      throw new WrongPrivateKey("Erro ao descriptografar desafio.", e);
     }
     catch (AccessDenied e) {
       throw new OpenBusInternalException("Desafio enviado difere do esperado.",
@@ -256,6 +260,14 @@ final class ConnectionImpl implements Connection {
     catch (WrongEncoding e) {
       throw new OpenBusInternalException(
         "Falhou a codificação com a chave pública do barramento", e);
+    }
+    catch (NoSuchAlgorithmException e) {
+      throw new OpenBusInternalException(
+        "O Algoritmo de criptografia especificado não existe", e);
+    }
+    catch (InvalidKeySpecException e) {
+      throw new CorruptedPrivateKey(
+        "Erro ao interpretar bytes da chave privada", e);
     }
     finally {
       this.manager.unignoreCurrentThread();

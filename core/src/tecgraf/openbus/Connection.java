@@ -1,7 +1,5 @@
 package tecgraf.openbus;
 
-import java.security.interfaces.RSAPrivateKey;
-
 import tecgraf.openbus.core.v2_00.OctetSeqHolder;
 import tecgraf.openbus.core.v2_00.services.ServiceFailure;
 import tecgraf.openbus.core.v2_00.services.access_control.AccessDenied;
@@ -70,7 +68,8 @@ public interface Connection {
    * certificado.
    * 
    * @param entity Identificador da entidade a ser conectada.
-   * @param privateKey Chave privada da entidade utilizada na autenticação.
+   * @param privKeyBytes Bytes contento a chave privada da entidade utilizada na
+   *        autenticação.
    * 
    * @exception MissingCertificate Não há certificado para essa entidade
    *            registrado no barramento indicado.
@@ -81,7 +80,7 @@ public interface Connection {
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu o estabelecimento da conexão.
    */
-  void loginByCertificate(String entity, RSAPrivateKey privateKey)
+  void loginByCertificate(String entity, byte[] privKeyBytes)
     throws CorruptedPrivateKey, WrongPrivateKey, AlreadyLoggedIn,
     MissingCertificate, ServiceFailure;
 

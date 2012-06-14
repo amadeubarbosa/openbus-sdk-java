@@ -6,7 +6,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
-import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -206,18 +205,13 @@ public final class Cryptography {
   }
 
   /**
-   * Recupera a chave privada de um arquivo.
+   * Recupera um array de bytes da chave privada contida no arquivo fornecido.
    * 
    * @param privateKeyFileName o path para o arquivo.
    * @return A chave privada RSA.
    * @throws IOException
-   * @throws InvalidKeyException
-   * @throws NoSuchAlgorithmException
-   * @throws InvalidKeySpecException
    */
-  public RSAPrivateKey readPrivateKey(String privateKeyFileName)
-    throws IOException, InvalidKeyException, NoSuchAlgorithmException,
-    InvalidKeySpecException {
+  public byte[] readPrivateKey(String privateKeyFileName) throws IOException {
     FileInputStream fis = new FileInputStream(privateKeyFileName);
     FileChannel channel = fis.getChannel();
     ByteBuffer buffer = ByteBuffer.allocate((int) channel.size());
@@ -225,7 +219,20 @@ public final class Cryptography {
     if (size != (int) channel.size()) {
       throw new IOException("Não foi possível ler todo o arquivo.");
     }
-    PKCS8EncodedKeySpec encodedKey = new PKCS8EncodedKeySpec(buffer.array());
+    return buffer.array();
+  }
+
+  /**
+   * Recupera a chave privada a partir de um array de bytes.
+   * 
+   * @param privateKeyBytes bytes da chave privada
+   * @return A chave privada RSA.
+   * @throws NoSuchAlgorithmException
+   * @throws InvalidKeySpecException
+   */
+  public RSAPrivateKey createPrivateKeyFromBytes(byte[] privateKeyBytes)
+    throws NoSuchAlgorithmException, InvalidKeySpecException {
+    PKCS8EncodedKeySpec encodedKey = new PKCS8EncodedKeySpec(privateKeyBytes);
     KeyFactory kf = KeyFactory.getInstance(KEY_FACTORY);
     synchronized (kf) {
       return (RSAPrivateKey) kf.generatePrivate(encodedKey);

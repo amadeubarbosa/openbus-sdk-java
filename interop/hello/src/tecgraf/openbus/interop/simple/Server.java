@@ -1,6 +1,5 @@
 package tecgraf.openbus.interop.simple;
 
-import java.security.interfaces.RSAPrivateKey;
 import java.util.Properties;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
@@ -47,7 +46,7 @@ public final class Server {
       int port = Integer.valueOf(props.getProperty("openbus.host.port"));
       String entity = props.getProperty("server.entity.name");
       String privateKeyFile = props.getProperty("server.private.key");
-      RSAPrivateKey privateKey =
+      byte[] privateKey =
         Cryptography.getInstance().readPrivateKey(privateKeyFile);
 
       ORB orb = ORBInitializer.initORB(args);
