@@ -101,12 +101,21 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         operation));
       return;
     }
-    ConnectionImpl conn = (ConnectionImpl) this.getCurrentConnection(ri);
+
     boolean joinedToLegacy = false;
     SignedCallChain joinedChain = getSignedChain(ri);
     if (Arrays.equals(joinedChain.signature, LEGACY_ENCRYPTED_BLOCK)) {
       // joined com cadeia 1.5;
       joinedToLegacy = true;
+    }
+
+    ConnectionImpl conn = (ConnectionImpl) this.getCurrentConnection(ri);
+    if (conn.login() == null) {
+      String message =
+        "Chamada cancelada devido a não existir login. Operação: " + operation;
+      logger.info(message);
+      throw new NO_PERMISSION(message, NoLoginCode.value,
+        CompletionStatus.COMPLETED_NO);
     }
 
     // montando credencial 2.0

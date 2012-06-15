@@ -90,6 +90,7 @@ public final class ConnectionTest {
       registryService.findServices(props);
     }
     catch (NO_PERMISSION e) {
+      assertEquals(e.minor, NoLoginCode.value);
     }
     catch (ServiceFailure e) {
       fail(e.message);
@@ -313,6 +314,7 @@ public final class ConnectionTest {
     Connection conn = createConnection();
     assertFalse(conn.logout());
     conn.loginByPassword(entity, password.getBytes());
+    assertNotNull(conn.login());
     assertTrue(conn.logout());
     assertNull(conn.login());
     boolean failed = false;

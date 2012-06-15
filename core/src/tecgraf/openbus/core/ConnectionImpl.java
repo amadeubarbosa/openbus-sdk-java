@@ -308,6 +308,7 @@ final class ConnectionImpl implements Connection {
   public void loginBySingleSignOn(LoginProcess process, byte[] secret)
     throws WrongSecret, AlreadyLoggedIn, ServiceFailure {
     checkLoggedIn();
+    this.manager.ignoreCurrentThread();
     byte[] encryptedLoginAuthenticationInfo =
       this.generateEncryptedLoginAuthenticationInfo(secret);
     IntHolder validity = new IntHolder();
@@ -321,6 +322,9 @@ final class ConnectionImpl implements Connection {
     }
     catch (WrongEncoding e) {
       throw new WrongSecret("Erro durante tentativa de login.", e);
+    }
+    finally {
+      this.manager.unignoreCurrentThread();
     }
     logger
       .info(String
