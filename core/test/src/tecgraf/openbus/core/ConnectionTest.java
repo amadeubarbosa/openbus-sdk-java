@@ -307,6 +307,7 @@ public final class ConnectionTest {
     conn2.logout();
     manager.setRequester(conn);
     conn.logout();
+    manager.setRequester(null);
   }
 
   @Test
