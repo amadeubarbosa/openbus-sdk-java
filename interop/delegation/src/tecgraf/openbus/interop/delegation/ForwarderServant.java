@@ -25,7 +25,7 @@ import tecgraf.openbus.interop.util.Utils.ShutdownThread;
 
 public class ForwarderServant extends ForwarderPOA {
 
-  public static final String forwarder = "forwarder";
+  public static final String forwarder = "interop_delegation_java_forwarder";
 
   private Connection conn;
   private Map<String, ForwardInfo> forwardsOf;
@@ -116,7 +116,8 @@ public class ForwarderServant extends ForwarderPOA {
       messengerProps[1] =
         new ServiceProperty("openbus.component.facet",
           MessengerServant.messenger);
-      messengerProps[2] = new ServiceProperty("offer.domain", "Interoperability Tests");
+      messengerProps[2] =
+        new ServiceProperty("offer.domain", "Interoperability Tests");
       ServiceOfferDesc[] conn3find =
         conn3.offers().findServices(messengerProps);
 

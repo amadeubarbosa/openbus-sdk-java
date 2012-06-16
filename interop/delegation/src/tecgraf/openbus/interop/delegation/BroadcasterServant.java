@@ -24,7 +24,8 @@ import tecgraf.openbus.interop.util.Utils.ShutdownThread;
 
 public class BroadcasterServant extends BroadcasterPOA {
 
-  public static final String broadcaster = "broadcaster";
+  public static final String broadcaster =
+    "interop_delegation_java_broadcaster";
 
   private Connection conn;
   private List<String> subscribers;
@@ -96,7 +97,8 @@ public class BroadcasterServant extends BroadcasterPOA {
       messengerProps[1] =
         new ServiceProperty("openbus.component.facet",
           MessengerServant.messenger);
-      messengerProps[2] = new ServiceProperty("offer.domain", "Interoperability Tests");
+      messengerProps[2] =
+        new ServiceProperty("offer.domain", "Interoperability Tests");
       ServiceOfferDesc[] conn2find =
         conn2.offers().findServices(messengerProps);
 

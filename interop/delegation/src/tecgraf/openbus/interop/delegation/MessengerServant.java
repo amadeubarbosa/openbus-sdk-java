@@ -25,7 +25,7 @@ import tecgraf.openbus.interop.util.Utils.ShutdownThread;
 
 public class MessengerServant extends MessengerPOA {
 
-  public static final String messenger = "messenger";
+  public static final String messenger = "interop_delegation_java_messenger";
 
   private Connection conn;
   private Map<String, List<PostDesc>> inboxOf;
