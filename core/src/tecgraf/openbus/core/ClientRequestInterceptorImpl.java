@@ -333,7 +333,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         if (context.context_data == null) {
           // não recebeu o credential reset
           String message =
-            "Servidor chamado é inválido (servidor enviou o CredentialReset para negociar sessão)";
+            "Servidor chamado é inválido (servidor não enviou o CredentialReset para negociar sessão)";
           logger.info(message);
           throw new NO_PERMISSION(message, InvalidRemoteCode.value,
             CompletionStatus.COMPLETED_NO);
