@@ -68,21 +68,15 @@ public final class ConnectionTest {
         .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
   }
 
-  private Connection createConnection() {
-    Connection conn = manager.createConnection(host, port);
-    manager.setDefaultConnection(conn);
-    return conn;
-  }
-
   @Test
   public void orbTest() throws Exception {
     assertEquals(orb, manager.orb());
-    assertEquals(orb, createConnection().orb());
+    assertEquals(orb, manager.createConnection(host, port).orb());
   }
 
   @Test
   public void offerRegistryTest() {
-    Connection conn = createConnection();
+    Connection conn = manager.createConnection(host, port);
     try {
       OfferRegistry registryService = conn.offers();
       ServiceProperty[] props =
@@ -99,7 +93,7 @@ public final class ConnectionTest {
 
   @Test
   public void busIdTest() throws Exception {
-    Connection conn = createConnection();
+    Connection conn = manager.createConnection(host, port);
     assertNotNull(conn.busid());
     assertFalse(conn.busid().isEmpty());
   }
@@ -107,7 +101,7 @@ public final class ConnectionTest {
   @Test
   public void loginTest() throws Exception {
 
-    Connection conn = createConnection();
+    Connection conn = manager.createConnection(host, port);
     assertNull(conn.login());
     conn.loginByPassword(entity, entity.getBytes());
     assertNotNull(conn.login());
@@ -118,7 +112,7 @@ public final class ConnectionTest {
 
   @Test
   public void loginByPasswordTest() throws Exception {
-    Connection conn = createConnection();
+    Connection conn = manager.createConnection(host, port);
 
     // entidade errada
     boolean failed = false;
@@ -179,7 +173,7 @@ public final class ConnectionTest {
 
   @Test
   public void loginByCertificateTest() throws Exception {
-    Connection conn = createConnection();
+    Connection conn = manager.createConnection(host, port);
     // entidade sem certificado cadastrado
     boolean failed = false;
     try {
@@ -251,8 +245,8 @@ public final class ConnectionTest {
 
   @Test
   public void singleSignOnTest() throws Exception {
-    Connection conn = createConnection();
-    Connection conn2 = createConnection();
+    Connection conn = manager.createConnection(host, port);
+    Connection conn2 = manager.createConnection(host, port);
     manager.setRequester(conn);
     conn.loginByPassword(entity, password.getBytes());
 
@@ -312,7 +306,7 @@ public final class ConnectionTest {
 
   @Test
   public void logoutTest() throws Exception {
-    Connection conn = createConnection();
+    Connection conn = manager.createConnection(host, port);
     assertFalse(conn.logout());
     conn.loginByPassword(entity, password.getBytes());
     assertNotNull(conn.login());
@@ -337,7 +331,7 @@ public final class ConnectionTest {
 
   @Test
   public void onInvalidLoginCallbackTest() throws Exception {
-    Connection conn = createConnection();
+    Connection conn = manager.createConnection(host, port);
     assertNull(conn.onInvalidLoginCallback());
     InvalidLoginCallback callback = new InvalidLoginCallbackMock();
     conn.onInvalidLoginCallback(callback);
@@ -346,13 +340,14 @@ public final class ConnectionTest {
 
   @Test
   public void callerChainTest() throws Exception {
-    Connection conn = createConnection();
+    Connection conn = manager.createConnection(host, port);
     assertNull(conn.getCallerChain());
     //TODO: adicionar testes para caso exista uma callerchain ou os testes de interoperabilidade ja cobrem isso de forma suficiente?
   }
 
+  @Test
   public void JoinChainTest() {
-    Connection conn = createConnection();
+    Connection conn = manager.createConnection(host, port);
     assertNull(conn.getJoinedChain());
     // adiciona a chain da getCallerChain
     conn.joinChain(null);
@@ -372,8 +367,9 @@ public final class ConnectionTest {
     conn.exitChain();
   }
 
+  @Test
   public void ExitChainTest() {
-    Connection conn = createConnection();
+    Connection conn = manager.createConnection(host, port);
     assertNull(conn.getJoinedChain());
     conn.exitChain();
     assertNull(conn.getJoinedChain());
