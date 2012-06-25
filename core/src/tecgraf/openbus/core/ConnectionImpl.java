@@ -15,6 +15,7 @@ import org.omg.CORBA.Any;
 import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.IntHolder;
 import org.omg.CORBA.NO_PERMISSION;
+import org.omg.CORBA.OBJECT_NOT_EXIST;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.TCKind;
 import org.omg.CORBA.UserException;
@@ -48,6 +49,7 @@ import tecgraf.openbus.core.v2_00.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.exception.CorruptedPrivateKey;
 import tecgraf.openbus.exception.CryptographyException;
+import tecgraf.openbus.exception.InvalidLoginProcess;
 import tecgraf.openbus.exception.OpenBusInternalException;
 import tecgraf.openbus.exception.WrongPrivateKey;
 import tecgraf.openbus.exception.WrongSecret;
@@ -175,8 +177,8 @@ final class ConnectionImpl implements Connection {
           validityHolder);
     }
     catch (WrongEncoding e) {
-      throw new OpenBusInternalException(
-        "Falhou a codificação com a chave pública do barramento", e);
+      throw new ServiceFailure(
+        "Falhou a codificação com a chave pública do barramento");
     }
     finally {
       this.manager.unignoreCurrentThread();
@@ -306,7 +308,7 @@ final class ConnectionImpl implements Connection {
    */
   @Override
   public void loginBySingleSignOn(LoginProcess process, byte[] secret)
-    throws WrongSecret, AlreadyLoggedIn, ServiceFailure {
+    throws WrongSecret, AlreadyLoggedIn, ServiceFailure, InvalidLoginProcess {
     checkLoggedIn();
     this.manager.ignoreCurrentThread();
     byte[] encryptedLoginAuthenticationInfo =
@@ -322,6 +324,9 @@ final class ConnectionImpl implements Connection {
     }
     catch (WrongEncoding e) {
       throw new WrongSecret("Erro durante tentativa de login.", e);
+    }
+    catch (OBJECT_NOT_EXIST e) {
+      throw new InvalidLoginProcess("Objeto de processo de login é inválido");
     }
     finally {
       this.manager.unignoreCurrentThread();

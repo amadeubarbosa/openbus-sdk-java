@@ -9,6 +9,7 @@ import tecgraf.openbus.core.v2_00.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_00.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.exception.CorruptedPrivateKey;
+import tecgraf.openbus.exception.InvalidLoginProcess;
 import tecgraf.openbus.exception.WrongPrivateKey;
 import tecgraf.openbus.exception.WrongSecret;
 
@@ -108,7 +109,7 @@ public interface Connection {
    *            barramento que impediu o estabelecimento da conexão.
    */
   void loginBySingleSignOn(LoginProcess process, byte[] secret)
-    throws WrongSecret, AlreadyLoggedIn, ServiceFailure;
+    throws WrongSecret, AlreadyLoggedIn, InvalidLoginProcess, ServiceFailure;
 
   /**
    * Efetua logout no barramento.

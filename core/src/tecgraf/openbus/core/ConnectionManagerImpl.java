@@ -25,6 +25,7 @@ import scs.core.IComponentHelper;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.core.v2_00.BusObjectKey;
+import tecgraf.openbus.exception.NotLoggedIn;
 import tecgraf.openbus.exception.OpenBusInternalException;
 
 /**
@@ -193,12 +194,15 @@ final class ConnectionManagerImpl extends LocalObject implements
    * {@inheritDoc}
    */
   @Override
-  public void setDispatcher(Connection conn) {
+  public void setDispatcher(Connection conn) throws NotLoggedIn {
+    if (conn == null) {
+      throw new NullPointerException("Conexão não pode ser nula");
+    }
+    if (conn.login() == null) {
+      throw new NotLoggedIn();
+    }
     synchronized (this.incomingDispatcherConn) {
-      this.incomingDispatcherConn.remove(conn.busid());
-      if (conn != null) {
-        this.incomingDispatcherConn.put(conn.busid(), conn);
-      }
+      this.incomingDispatcherConn.put(conn.busid(), conn);
     }
   }
 
@@ -264,6 +268,15 @@ final class ConnectionManagerImpl extends LocalObject implements
     this.orb = orb;
   }
 
+  /*
+   * FIXME acredito que o uso de thread como o valor dessa lista só funcione
+   * devido a uma particularidade do JacORB. Até onde sei (CONFIMAR) CORBA não
+   * garante que a thread cliente que faz a requisição seja a mesma que
+   * efetivamente irá enviar o request.
+   * 
+   * A solução adotada por C++ foi de guardar um booleano no PICurrent que
+   * indica que a requisição deve ser ignorada (enviada sem credencial)
+   */
   void ignoreCurrentThread() {
     Thread currentThread = Thread.currentThread();
     this.ignoredThreads.add(currentThread);
