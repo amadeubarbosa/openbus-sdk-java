@@ -1,5 +1,6 @@
 package tecgraf.openbus.core;
 
+import java.security.InvalidParameterException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
@@ -23,10 +24,13 @@ import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
 import org.omg.PortableInterceptor.Current;
 import org.omg.PortableInterceptor.InvalidSlot;
 
+import scs.core.IComponent;
+import scs.core.IComponentHelper;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlService;
+import tecgraf.openbus.core.v2_00.BusObjectKey;
 import tecgraf.openbus.core.v2_00.EncryptedBlockHolder;
 import tecgraf.openbus.core.v2_00.OctetSeqHolder;
 import tecgraf.openbus.core.v2_00.credential.SignedCallChain;
@@ -87,6 +91,10 @@ final class ConnectionImpl implements Connection {
   private LeaseRenewer renewer;
   /** Callback a ser disparada caso o login se encontre inválido */
   private InvalidLoginCallback invalidLoginCallback;
+  /** Referencia para o IComponent do AccessControlService */
+  private IComponent acsComponent;
+  /** Referencia para o IComponent do AccessControlService Legacy */
+  private IComponent acsLegacyComponent;
 
   /**
    * Construtor.
@@ -94,11 +102,38 @@ final class ConnectionImpl implements Connection {
    * @param bus
    * @param orb
    */
-  public ConnectionImpl(BusInfo bus, ORB orb) {
-    this.bus = bus;
+  public ConnectionImpl(String host, int port, ConnectionManagerImpl manager,
+    ORB orb) {
+
+    if ((host == null) || (host.isEmpty()) || (port < 0)) {
+      throw new InvalidParameterException(
+        "Os parametros host e/ou port não são validos");
+    }
+
     this.orb = orb;
-    this.manager = ORBUtils.getConnectionManager(orb);
+    this.manager = manager;
     this.crypto = Cryptography.getInstance();
+
+    String str =
+      String.format("corbaloc::1.0@%s:%d/%s", host, port, BusObjectKey.value);
+    org.omg.CORBA.Object obj = orb.string_to_object(str);
+    assert (obj != null);
+
+    acsComponent = IComponentHelper.narrow(obj);
+    assert (acsComponent != null);
+
+    /* *
+     * enquanto não definimos uma API o legacy esta guardado no ORBMediator
+     * porém, esta sempre true. Este é o ponto de entrada para configurar o
+     * legacy se for por conexão. Caso seja por ORB, colocar no ORBInit?
+     * 
+     * TODO: Tirar duvida desse comentario com hroenick.
+     */
+    String legacyStr =
+      String.format("corbaloc::1.0@%s:%d/%s", host, port, "openbus_v1_05");
+    org.omg.CORBA.Object legacyObj = orb.string_to_object(legacyStr);
+    acsLegacyComponent = IComponentHelper.narrow(legacyObj);
+
     KeyPair keyPair;
     try {
       keyPair = crypto.generateRSAKeyPair();
@@ -160,6 +195,14 @@ final class ConnectionImpl implements Connection {
   }
 
   /**
+   * Metodo auxiliar para inicializar as informacoes do bus (2.0 e 1.5)
+   */
+  private void initializeBusInfo() {
+    this.bus = new BusInfo(acsComponent);
+    this.legacyBus = new LegacyInfo(acsLegacyComponent);
+  }
+
+  /**
    * {@inheritDoc}
    */
   @Override
@@ -171,6 +214,9 @@ final class ConnectionImpl implements Connection {
         this.generateEncryptedLoginAuthenticationInfo(password);
       IntHolder validityHolder = new IntHolder();
       this.manager.ignoreCurrentThread();
+
+      initializeBusInfo();
+
       this.login =
         this.bus.getAccessControl().loginByPassword(entity,
           this.publicKey.getEncoded(), encryptedLoginAuthenticationInfo,
@@ -235,6 +281,8 @@ final class ConnectionImpl implements Connection {
     checkLoggedIn();
     this.manager.ignoreCurrentThread();
     try {
+      initializeBusInfo();
+
       RSAPrivateKey privateKey =
         crypto.createPrivateKeyFromBytes(privateKeyBytes);
       EncryptedBlockHolder challengeHolder = new EncryptedBlockHolder();
@@ -311,6 +359,9 @@ final class ConnectionImpl implements Connection {
     throws WrongSecret, AlreadyLoggedIn, ServiceFailure, InvalidLoginProcess {
     checkLoggedIn();
     this.manager.ignoreCurrentThread();
+
+    initializeBusInfo();
+
     byte[] encryptedLoginAuthenticationInfo =
       this.generateEncryptedLoginAuthenticationInfo(secret);
     IntHolder validity = new IntHolder();

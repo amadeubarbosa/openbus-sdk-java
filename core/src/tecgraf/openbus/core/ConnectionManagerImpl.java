@@ -1,6 +1,5 @@
 package tecgraf.openbus.core;
 
-import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -20,11 +19,8 @@ import org.omg.CORBA.TCKind;
 import org.omg.PortableInterceptor.Current;
 import org.omg.PortableInterceptor.InvalidSlot;
 
-import scs.core.IComponent;
-import scs.core.IComponentHelper;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionManager;
-import tecgraf.openbus.core.v2_00.BusObjectKey;
 import tecgraf.openbus.exception.NotLoggedIn;
 import tecgraf.openbus.exception.OpenBusInternalException;
 
@@ -83,38 +79,7 @@ final class ConnectionManagerImpl extends LocalObject implements
   public Connection createConnection(String host, int port) {
     ignoreCurrentThread();
     try {
-
-      if ((host == null) || (host.isEmpty()) || (port < 0)) {
-        throw new InvalidParameterException(
-          "Os parametros host e/ou port não são validos");
-      }
-
-      String str =
-        String.format("corbaloc::1.0@%s:%d/%s", host, port, BusObjectKey.value);
-      org.omg.CORBA.Object obj = orb.string_to_object(str);
-      if (obj == null) {
-        return null;
-      }
-      IComponent component = IComponentHelper.narrow(obj);
-      BusInfo bus = new BusInfo(component);
-      ConnectionImpl conn = new ConnectionImpl(bus, orb);
-      /*
-       * enquanto não definimos uma API o legacy esta guardado no ORBMediator
-       * porém, esta sempre true. Este é o ponto de entrada para configurar o
-       * legacy se for por conexão. Caso seja por ORB, colocar no ORBInit?
-       */
-      boolean legacy = true;
-      if (legacy) {
-        String legacyStr =
-          String.format("corbaloc::1.0@%s:%d/%s", host, port, "openbus_v1_05");
-        org.omg.CORBA.Object legacyObj = orb.string_to_object(legacyStr);
-        if (legacyObj != null) {
-          IComponent legacyComponent = IComponentHelper.narrow(legacyObj);
-          LegacyInfo legacyBus = new LegacyInfo(legacyComponent);
-          conn.setLegacyInfo(legacyBus);
-        }
-      }
-      return conn;
+      return new ConnectionImpl(host, port, this, orb);
     }
     finally {
       unignoreCurrentThread();
