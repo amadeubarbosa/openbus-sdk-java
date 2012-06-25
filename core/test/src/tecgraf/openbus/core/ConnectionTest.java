@@ -19,6 +19,7 @@ import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.core.v2_00.OctetSeqHolder;
+import tecgraf.openbus.core.v2_00.credential.SignedCallChain;
 import tecgraf.openbus.core.v2_00.services.ServiceFailure;
 import tecgraf.openbus.core.v2_00.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
@@ -361,14 +362,14 @@ public final class ConnectionTest {
     //TODO testar caso em que a chain da getCallerChain não é vazia
     //TODO comparar assinatura do callerchainimpl com a implementação CSHARP
 
-    conn.joinChain(new CallerChainImpl("mock", new LoginInfo[] { new LoginInfo(
-      "a", "b") }, null));
+    conn.joinChain(new CallerChainImpl("mock", new LoginInfo("a", "b"),
+      new LoginInfo[0], new SignedCallChain(new byte[256], new byte[0])));
 
     CallerChain callerChain = conn.getJoinedChain();
     assertNotNull(callerChain);
     assertEquals("mock", callerChain.busid());
-    assertEquals("a", callerChain.callers()[0].id);
-    assertEquals("b", callerChain.callers()[0].entity);
+    assertEquals("a", callerChain.caller().id);
+    assertEquals("b", callerChain.caller().entity);
     conn.exitChain();
   }
 
@@ -378,8 +379,8 @@ public final class ConnectionTest {
     assertNull(conn.getJoinedChain());
     conn.exitChain();
     assertNull(conn.getJoinedChain());
-    conn.joinChain(new CallerChainImpl("mock", new LoginInfo[] { new LoginInfo(
-      "a", "b") }, null));
+    conn.joinChain(new CallerChainImpl("mock", new LoginInfo("a", "b"),
+      new LoginInfo[0], new SignedCallChain(new byte[256], new byte[0])));
     conn.exitChain();
     assertNull(conn.getJoinedChain());
   }

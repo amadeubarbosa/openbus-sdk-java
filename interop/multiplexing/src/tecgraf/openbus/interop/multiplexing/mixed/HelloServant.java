@@ -38,10 +38,9 @@ public final class HelloServant extends HelloPOA {
         if (callerChain != null) {
           System.out.println(String.format("Calling in %s @ %s",
             conn.login().entity, conn.busid()));
-          LoginInfo[] callers = callerChain.callers();
-          String entity = callers[callers.length - 1].entity;
-          System.out.println(String.format("Hello from %s @ %s!", entity,
-            callerChain.busid()));
+          LoginInfo caller = callerChain.caller();
+          System.out.println(String.format("Hello from %s @ %s!",
+            caller.entity, callerChain.busid()));
         }
       }
     }

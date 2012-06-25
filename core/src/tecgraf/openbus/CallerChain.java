@@ -15,9 +15,19 @@ public interface CallerChain {
   String busid();
 
   /**
-   * @return Lista de informações de login de todas as entidades que
-   *         participaram dessa cadeia de chamadas, na ordem em que elas
-   *         entraram na cadeia.
+   * Lista de informações de login de todas as entidades que realizaram chamadas
+   * que originaram a cadeia de chamadas da qual essa chamada está inclusa.
+   * Quando essa lista é vazia isso indica que a chamada não está inclusa numa
+   * cadeia de chamadas.
+   * 
+   * @return lista de LoginInfo.
    */
-  LoginInfo[] callers();
+  LoginInfo[] originators();
+
+  /**
+   * Informação de login da entidade que iniciou a chamada.
+   * 
+   * @return LoginInfo.
+   */
+  LoginInfo caller();
 }

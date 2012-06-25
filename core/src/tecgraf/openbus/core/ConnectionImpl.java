@@ -42,6 +42,7 @@ import tecgraf.openbus.core.v2_00.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_00.services.access_control.CallChainHelper;
 import tecgraf.openbus.core.v2_00.services.access_control.CertificateRegistry;
 import tecgraf.openbus.core.v2_00.services.access_control.InvalidLoginCode;
+import tecgraf.openbus.core.v2_00.services.access_control.InvalidPublicKey;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginAuthenticationInfo;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginAuthenticationInfoHelper;
 import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
@@ -218,12 +219,13 @@ final class ConnectionImpl implements Connection {
     throws AccessDenied, AlreadyLoggedIn, ServiceFailure {
     checkLoggedIn();
     try {
-      byte[] encryptedLoginAuthenticationInfo =
-        this.generateEncryptedLoginAuthenticationInfo(password);
-      IntHolder validityHolder = new IntHolder();
       this.manager.ignoreCurrentThread();
 
       this.bus.retrieveBusIdAndKey();
+
+      byte[] encryptedLoginAuthenticationInfo =
+        this.generateEncryptedLoginAuthenticationInfo(password);
+      IntHolder validityHolder = new IntHolder();
 
       this.login =
         getBus().getAccessControl().loginByPassword(entity,
@@ -233,6 +235,11 @@ final class ConnectionImpl implements Connection {
     catch (WrongEncoding e) {
       throw new ServiceFailure(
         "Falhou a codificação com a chave pública do barramento");
+    }
+    catch (InvalidPublicKey e) {
+      throw new OpenBusInternalException(
+        "Falha no protocolo OpenBus: A chave de acesso gerada não foi aceita. Mensagem="
+          + e.message);
     }
     finally {
       this.manager.unignoreCurrentThread();
@@ -281,6 +288,8 @@ final class ConnectionImpl implements Connection {
 
   /**
    * {@inheritDoc}
+   * 
+   * @throws InvalidPublicKey
    */
   @Override
   public void loginByCertificate(String entity, byte[] privateKeyBytes)
@@ -326,6 +335,11 @@ final class ConnectionImpl implements Connection {
     catch (InvalidKeySpecException e) {
       throw new CorruptedPrivateKey(
         "Erro ao interpretar bytes da chave privada", e);
+    }
+    catch (InvalidPublicKey e) {
+      throw new OpenBusInternalException(
+        "Falha no protocolo OpenBus: A chave de acesso gerada não foi aceita. Mensagem="
+          + e.message);
     }
     finally {
       this.manager.unignoreCurrentThread();
@@ -386,6 +400,11 @@ final class ConnectionImpl implements Connection {
     }
     catch (OBJECT_NOT_EXIST e) {
       throw new InvalidLoginProcess("Objeto de processo de login é inválido");
+    }
+    catch (InvalidPublicKey e) {
+      throw new OpenBusInternalException(
+        "Falha no protocolo OpenBus: A chave de acesso gerada não foi aceita. Mensagem="
+          + e.message);
     }
     finally {
       this.manager.unignoreCurrentThread();
@@ -463,7 +482,8 @@ final class ConnectionImpl implements Connection {
   void localLogout() {
     this.joinedChains.clear();
     stopRenewerThread();
-    if (manager.getDispatcher(busid()).equals(this)) {
+    Connection conn = manager.getDispatcher(busid());
+    if ((conn != null) && (conn.equals(this))) {
       manager.clearDispatcher(busid());
     }
     logger.info(String.format("Logout efetuado: id (%s) entidade (%s)",
@@ -512,8 +532,8 @@ final class ConnectionImpl implements Connection {
       logger.log(Level.SEVERE, message, e);
       throw new OpenBusInternalException(message, e);
     }
-    LoginInfo[] callers = callChain.callers;
-    return new CallerChainImpl(busId, callers, signedChain);
+    return new CallerChainImpl(busId, callChain.caller, callChain.originators,
+      signedChain);
   }
 
   /**
@@ -521,11 +541,7 @@ final class ConnectionImpl implements Connection {
    */
   @Override
   public void joinChain() throws OpenBusInternalException {
-    CallerChain currentChain = getCallerChain();
-    if (currentChain == null) {
-      return;
-    }
-    joinChain(currentChain);
+    joinChain(null);
   }
 
   /**
@@ -533,6 +549,11 @@ final class ConnectionImpl implements Connection {
    */
   @Override
   public void joinChain(CallerChain chain) {
+    chain = (chain != null) ? chain : getCallerChain();
+    if (chain == null) {
+      return;
+    }
+
     Thread currentThread = Thread.currentThread();
     this.joinedChains.put(currentThread, chain);
     try {

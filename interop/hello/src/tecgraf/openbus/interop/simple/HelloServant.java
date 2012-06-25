@@ -31,9 +31,8 @@ public final class HelloServant extends HelloPOA {
   public void sayHello() {
     try {
       CallerChain callerChain = conn.getCallerChain();
-      LoginInfo[] callers = callerChain.callers();
-      String entity = callers[callers.length - 1].entity;
-      System.out.println(String.format("Hello from %s!", entity));
+      LoginInfo caller = callerChain.caller();
+      System.out.println(String.format("Hello from %s!", caller.entity));
     }
     catch (Exception e) {
       e.printStackTrace();

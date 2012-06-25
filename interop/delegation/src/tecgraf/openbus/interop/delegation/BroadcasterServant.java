@@ -49,17 +49,20 @@ public class BroadcasterServant extends BroadcasterPOA {
 
   @Override
   public void subscribe() {
-    LoginInfo[] callers = conn.getCallerChain().callers();
-    String user = callers[0].entity;
-    System.out.println("inscrição de " + Utils.chain2str(callers));
+    LoginInfo caller = conn.getCallerChain().caller();
+    LoginInfo[] originators = conn.getCallerChain().originators();
+    String user = caller.entity;
+    System.out.println("inscrição de " + Utils.chain2str(originators));
     subscribers.add(user);
   }
 
   @Override
   public void unsubscribe() {
-    LoginInfo[] callers = conn.getCallerChain().callers();
-    String user = callers[0].entity;
-    System.out.println("cancelando inscrição de " + Utils.chain2str(callers));
+    LoginInfo caller = conn.getCallerChain().caller();
+    LoginInfo[] originators = conn.getCallerChain().originators();
+    String user = caller.entity;
+    System.out.println("cancelando inscrição de "
+      + Utils.chain2str(originators));
     subscribers.remove(user);
   }
 

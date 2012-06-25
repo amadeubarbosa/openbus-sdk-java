@@ -39,28 +39,30 @@ public class ForwarderServant extends ForwarderPOA {
   @Override
   public void setForward(String to) {
     CallerChain chain = conn.getCallerChain();
-    LoginInfo[] callers = chain.callers();
-    String user = callers[0].entity;
+    LoginInfo caller = chain.caller();
+    LoginInfo[] originators = chain.originators();
+    String user = caller.entity;
     System.out.println(String.format("configurando forward para '%s' por '%s'",
-      to, Utils.chain2str(callers)));
+      to, Utils.chain2str(originators)));
     this.forwardsOf.put(user, new ForwardInfo(chain, to));
   }
 
   @Override
   public void cancelForward(String to) {
-    LoginInfo[] callers = conn.getCallerChain().callers();
-    String user = callers[0].entity;
+    LoginInfo caller = conn.getCallerChain().caller();
+    LoginInfo[] originators = conn.getCallerChain().originators();
+    String user = caller.entity;
     ForwardInfo forward = this.forwardsOf.remove(user);
     if (forward != null) {
       System.out.println(String.format("cancelando forward para '%s' por '%s'",
-        forward.to, Utils.chain2str(callers)));
+        forward.to, Utils.chain2str(originators)));
     }
   }
 
   @Override
   public String getForward() throws NoForward {
-    LoginInfo[] callers = conn.getCallerChain().callers();
-    String user = callers[0].entity;
+    LoginInfo caller = conn.getCallerChain().caller();
+    String user = caller.entity;
     ForwardInfo forward = this.forwardsOf.get(user);
     if (forward == null) {
       throw new NoForward();
