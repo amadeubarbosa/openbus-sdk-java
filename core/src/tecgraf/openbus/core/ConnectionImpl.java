@@ -432,23 +432,29 @@ final class ConnectionImpl implements Connection {
    */
   @Override
   public boolean logout() throws ServiceFailure {
-    if (this.login != null) {
-      try {
-        getBus().getAccessControl().logout();
-        localLogout();
-        return true;
+    if (this.login == null) {
+      return false;
+    }
+
+    Connection previousConnection = manager.getRequester();
+    try {
+      manager.setRequester(this);
+      getBus().getAccessControl().logout();
+    }
+    catch (NO_PERMISSION e) {
+      if (e.minor == InvalidLoginCode.value
+        && e.completed.equals(CompletionStatus.COMPLETED_NO)) {
+        return false;
       }
-      catch (NO_PERMISSION e) {
-        if (e.minor == InvalidLoginCode.value
-          && e.completed.equals(CompletionStatus.COMPLETED_NO)) {
-          return false;
-        }
-        else {
-          throw e;
-        }
+      else {
+        throw e;
       }
     }
-    return false;
+    finally {
+      manager.setRequester(previousConnection);
+      localLogout();
+    }
+    return true;
   }
 
   /**
