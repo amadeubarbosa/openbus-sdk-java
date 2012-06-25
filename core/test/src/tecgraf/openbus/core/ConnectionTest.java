@@ -70,8 +70,9 @@ public final class ConnectionTest {
 
   @Test
   public void orbTest() throws Exception {
+    Connection conn = manager.createConnection(host, port);
+    assertNotNull(conn.orb());
     assertEquals(orb, manager.orb());
-    assertEquals(orb, manager.createConnection(host, port).orb());
   }
 
   @Test
@@ -94,8 +95,12 @@ public final class ConnectionTest {
   @Test
   public void busIdTest() throws Exception {
     Connection conn = manager.createConnection(host, port);
+    assertNull(conn.busid());
+    conn.loginByPassword(entity, entity.getBytes());
     assertNotNull(conn.busid());
     assertFalse(conn.busid().isEmpty());
+    assertTrue(conn.logout());
+    assertNull(conn.login());
   }
 
   @Test
