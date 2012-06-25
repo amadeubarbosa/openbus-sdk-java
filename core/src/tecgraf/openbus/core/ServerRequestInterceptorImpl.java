@@ -345,7 +345,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
             CompletionStatus.COMPLETED_NO);
         }
         if (validateCredential(credential, ri)) {
-          if (validateChain(credential.chain, loginId, conn)) {
+          if (validateChain(credential, pubkey, ri, conn)) {
             // salvando informação da conexão que atendeu a requisição
             Any any = orb.create_any();
             any.insert_string(conn.login().id);
@@ -477,10 +477,11 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * @return <code>true</code> caso a cadeia seja válida, ou <code>false</code>
    *         caso contrário.
    */
-  private boolean validateChain(SignedCallChain chain, String caller,
-    ConnectionImpl conn) {
+  private boolean validateChain(CredentialData credential,
+    OctetSeqHolder pubkey, ServerRequestInfo ri, ConnectionImpl conn) {
     Cryptography crypto = Cryptography.getInstance();
     RSAPublicKey busPubKey = conn.getBusPublicKey();
+    SignedCallChain chain = credential.chain;
     if (chain != null) {
       if (!Arrays.equals(chain.signature, LEGACY_ENCRYPTED_BLOCK)) {
         try {
@@ -490,10 +491,25 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           CallChain callChain = CallChainHelper.extract(any);
           boolean verified =
             crypto.verifySignature(busPubKey, chain.encoded, chain.signature);
-          if (verified && callChain.target.equals(conn.login().id)) {
-            LoginInfo[] callers = callChain.callers;
-            if (callers[callers.length - 1].id.equals(caller)) {
-              return true;
+          if (verified) {
+            if (callChain.target.equals(conn.login().id)) {
+
+              LoginInfo[] callers = callChain.callers;
+              if (callers[callers.length - 1].id.equals(credential.login)) {
+                return true;
+              }
+            }
+            else {
+              ORB orb = this.getMediator().getORB();
+              logger
+                .finest(String
+                  .format(
+                    "O login não é o mesmo do alvo da cadeia. É necessário refazer a sessão de credencial através de um reset. Operação: %s",
+                    ri.operation()));
+              // credencial não é válida. Resetando a credencial da sessão.
+              doResetCredential(ri, orb, conn, pubkey.value);
+              throw new NO_PERMISSION(InvalidCredentialCode.value,
+                CompletionStatus.COMPLETED_NO);
             }
           }
         }
