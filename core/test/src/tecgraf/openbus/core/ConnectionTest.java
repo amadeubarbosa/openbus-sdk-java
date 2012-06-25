@@ -130,10 +130,7 @@ public final class ConnectionTest {
     catch (Exception e) {
       fail("A exceção deveria ser AccessDenied. Exceção recebida: " + e);
     }
-
-    if (!failed) {
-      fail("O login com entidade vazia foi bem-sucedido.");
-    }
+    assertTrue("O login com entidade vazia foi bem-sucedido.", failed);
 
     // senha errada
     failed = false;
@@ -146,9 +143,7 @@ public final class ConnectionTest {
     catch (Exception e) {
       fail("A exceção deveria ser AccessDenied. Exceção recebida: " + e);
     }
-    if (!failed) {
-      fail("O login com senha vazia foi bem-sucedido.");
-    }
+    assertTrue("O login com senha vazia foi bem-sucedido.", failed);
 
     // login válido
     assertNull(conn.login());
@@ -170,10 +165,9 @@ public final class ConnectionTest {
       fail("A exceção deveria ser AlreadyLoggedInException. Exceção recebida: "
         + e);
     }
-    if (!failed) {
-      fail("O login com entidade já autenticada foi bem-sucedido.");
-    }
+    assertTrue("O login com entidade já autenticada foi bem-sucedido.", failed);
     conn.logout();
+    assertNull(conn.login());
   }
 
   @Test
@@ -227,8 +221,7 @@ public final class ConnectionTest {
     assertNull(conn.login());
     conn.loginByCertificate(serverEntity, privateKey);
     assertNotNull(conn.login());
-
-    conn.logout();
+    assertTrue(conn.logout());
     assertNull(conn.login());
 
     // login repetido
@@ -245,14 +238,14 @@ public final class ConnectionTest {
         + e);
     }
     assertTrue("O login com entidade já autenticada foi bem-sucedido.", failed);
-    conn.logout();
+    assertTrue(conn.logout());
+    assertNull(conn.login());
   }
 
   @Test
   public void singleSignOnTest() throws Exception {
     Connection conn = manager.createConnection(host, port);
     Connection conn2 = manager.createConnection(host, port);
-    manager.setRequester(conn);
     conn.loginByPassword(entity, password.getBytes());
 
     // segredo errado
@@ -261,8 +254,9 @@ public final class ConnectionTest {
     LoginProcess login;
 
     try {
+      manager.setRequester(conn);
       login = conn.startSingleSignOn(secret);
-      manager.setRequester(conn2);
+      manager.setRequester(null);
       conn2.loginBySingleSignOn(login, new byte[0]);
     }
     catch (WrongSecret e) {
@@ -278,18 +272,19 @@ public final class ConnectionTest {
     assertNull(conn2.login());
     manager.setRequester(conn);
     login = conn.startSingleSignOn(secret);
-    manager.setRequester(conn2);
+    manager.setRequester(null);
     conn2.loginBySingleSignOn(login, secret.value);
     assertNotNull(conn2.login());
     conn2.logout();
     assertNull(conn2.login());
+    manager.setRequester(null);
 
     // login repetido
     failed = false;
     try {
       manager.setRequester(conn);
       login = conn.startSingleSignOn(secret);
-      manager.setRequester(conn2);
+      manager.setRequester(null);
       conn2.loginBySingleSignOn(login, secret.value);
       assertNotNull(conn2.login());
       conn2.loginBySingleSignOn(login, secret.value);
@@ -302,10 +297,10 @@ public final class ConnectionTest {
         + e);
     }
     assertTrue("O login com entidade já autenticada foi bem-sucedido.", failed);
-    manager.setRequester(conn2);
     conn2.logout();
-    manager.setRequester(conn);
+    assertNull(conn2.login());
     conn.logout();
+    assertNull(conn.login());
     manager.setRequester(null);
   }
 
@@ -314,11 +309,16 @@ public final class ConnectionTest {
     Connection conn = manager.createConnection(host, port);
     assertFalse(conn.logout());
     conn.loginByPassword(entity, password.getBytes());
-    assertNotNull(conn.login());
+    String busId = conn.busid();
+    manager.setDispatcher(conn);
+    assertEquals(manager.getDispatcher(busId), conn);
     assertTrue(conn.logout());
+    assertNull(manager.getDispatcher(busId));
+    assertNull(conn.busid());
     assertNull(conn.login());
     boolean failed = false;
     try {
+      manager.setRequester(conn);
       conn.offers().findServices(new ServiceProperty[0]);
     }
     catch (NO_PERMISSION e) {
