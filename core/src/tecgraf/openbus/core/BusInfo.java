@@ -35,6 +35,20 @@ final class BusInfo {
     org.omg.CORBA.Object obj = this.bus.getFacet(AccessControlHelper.id());
     this.accessControl = AccessControlHelper.narrow(obj);
 
+    this.id = null;
+    this.publicKey = null;
+
+    obj = bus.getFacet(LoginRegistryHelper.id());
+    this.loginRegistry = LoginRegistryHelper.narrow(obj);
+
+    obj = bus.getFacet(CertificateRegistryHelper.id());
+    this.certificateRegistry = CertificateRegistryHelper.narrow(obj);
+
+    obj = bus.getFacet(OfferRegistryHelper.id());
+    this.offerRegistry = OfferRegistryHelper.narrow(obj);
+  }
+
+  void retrieveBusIdAndKey() {
     this.id = this.accessControl.busid();
     try {
       this.publicKey =
@@ -45,15 +59,6 @@ final class BusInfo {
       throw new OpenBusInternalException(
         "Erro ao construir chave pública do barramento.", e);
     }
-
-    obj = bus.getFacet(LoginRegistryHelper.id());
-    this.loginRegistry = LoginRegistryHelper.narrow(obj);
-
-    obj = bus.getFacet(CertificateRegistryHelper.id());
-    this.certificateRegistry = CertificateRegistryHelper.narrow(obj);
-
-    obj = bus.getFacet(OfferRegistryHelper.id());
-    this.offerRegistry = OfferRegistryHelper.narrow(obj);
   }
 
   String getId() {

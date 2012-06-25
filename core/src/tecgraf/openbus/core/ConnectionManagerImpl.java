@@ -77,13 +77,7 @@ final class ConnectionManagerImpl extends LocalObject implements
    */
   @Override
   public Connection createConnection(String host, int port) {
-    ignoreCurrentThread();
-    try {
-      return new ConnectionImpl(host, port, this, orb);
-    }
-    finally {
-      unignoreCurrentThread();
-    }
+    return new ConnectionImpl(host, port, this, orb);
   }
 
   /**

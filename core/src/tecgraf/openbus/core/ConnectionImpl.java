@@ -91,16 +91,14 @@ final class ConnectionImpl implements Connection {
   private LeaseRenewer renewer;
   /** Callback a ser disparada caso o login se encontre inválido */
   private InvalidLoginCallback invalidLoginCallback;
-  /** Referencia para o IComponent do AccessControlService */
-  private IComponent acsComponent;
-  /** Referencia para o IComponent do AccessControlService Legacy */
-  private IComponent acsLegacyComponent;
 
   /**
    * Construtor.
    * 
-   * @param bus
-   * @param orb
+   * @param host Endereço de rede IP onde o barramento está executando.
+   * @param port Porta do processo do barramento no endereço indicado.
+   * @param manager Implementação do multiplexador de conexão.
+   * @param orb ORB que essa conexão ira utilizar;
    */
   public ConnectionImpl(String host, int port, ConnectionManagerImpl manager,
     ORB orb) {
@@ -112,40 +110,30 @@ final class ConnectionImpl implements Connection {
 
     this.orb = orb;
     this.manager = manager;
-    this.crypto = Cryptography.getInstance();
+    this.bus = null;
+    this.legacyBus = null;
 
-    String str =
-      String.format("corbaloc::1.0@%s:%d/%s", host, port, BusObjectKey.value);
-    org.omg.CORBA.Object obj = orb.string_to_object(str);
-    assert (obj != null);
-
-    acsComponent = IComponentHelper.narrow(obj);
-    assert (acsComponent != null);
-
-    /* *
-     * enquanto não definimos uma API o legacy esta guardado no ORBMediator
-     * porém, esta sempre true. Este é o ponto de entrada para configurar o
-     * legacy se for por conexão. Caso seja por ORB, colocar no ORBInit?
-     * 
-     * TODO: Tirar duvida desse comentario com hroenick.
-     */
-    String legacyStr =
-      String.format("corbaloc::1.0@%s:%d/%s", host, port, "openbus_v1_05");
-    org.omg.CORBA.Object legacyObj = orb.string_to_object(legacyStr);
-    acsLegacyComponent = IComponentHelper.narrow(legacyObj);
-
-    KeyPair keyPair;
     try {
-      keyPair = crypto.generateRSAKeyPair();
+      this.manager.ignoreCurrentThread();
+      retrieveBusReferences(host, port);
+    }
+    finally {
+      this.manager.unignoreCurrentThread();
+    }
+
+    try {
+      this.crypto = Cryptography.getInstance();
+      KeyPair keyPair = crypto.generateRSAKeyPair();
+      this.publicKey = (RSAPublicKey) keyPair.getPublic();
+      this.privateKey = (RSAPrivateKey) keyPair.getPrivate();
+      this.joinedChains =
+        Collections.synchronizedMap(new HashMap<Thread, CallerChain>());
     }
     catch (CryptographyException e) {
       throw new OpenBusInternalException(
         "Erro inexperado na geração do par de chaves.", e);
     }
-    this.publicKey = (RSAPublicKey) keyPair.getPublic();
-    this.privateKey = (RSAPrivateKey) keyPair.getPrivate();
-    this.joinedChains =
-      Collections.synchronizedMap(new HashMap<Thread, CallerChain>());
+
   }
 
   /**
@@ -161,7 +149,7 @@ final class ConnectionImpl implements Connection {
    */
   @Override
   public String busid() {
-    return this.bus.getId();
+    return getBus().getId();
   }
 
   /**
@@ -170,7 +158,7 @@ final class ConnectionImpl implements Connection {
    * @return a chave pública.
    */
   RSAPublicKey getBusPublicKey() {
-    return this.bus.getPublicKey();
+    return getBus().getPublicKey();
   }
 
   /**
@@ -195,10 +183,30 @@ final class ConnectionImpl implements Connection {
   }
 
   /**
-   * Metodo auxiliar para inicializar as informacoes do bus (2.0 e 1.5)
+   * @param host Endereço de rede IP onde o barramento está executando.
+   * @param port Porta do processo do barramento no endereço indicado.
    */
-  private void initializeBusInfo() {
+  private void retrieveBusReferences(String host, int port) {
+    String str =
+      String.format("corbaloc::1.0@%s:%d/%s", host, port, BusObjectKey.value);
+    org.omg.CORBA.Object obj = orb.string_to_object(str);
+    assert (obj != null);
+
+    IComponent acsComponent = IComponentHelper.narrow(obj);
+    assert (acsComponent != null);
     this.bus = new BusInfo(acsComponent);
+
+    /* *
+     * enquanto não definimos uma API o legacy esta guardado no ORBMediator
+     * porém, esta sempre true. Este é o ponto de entrada para configurar o
+     * legacy se for por conexão. Caso seja por ORB, colocar no ORBInit?
+     * 
+     * TODO: Tirar duvida desse comentario com hroenick.
+     */
+    String legacyStr =
+      String.format("corbaloc::1.0@%s:%d/%s", host, port, "openbus_v1_05");
+    org.omg.CORBA.Object legacyObj = orb.string_to_object(legacyStr);
+    IComponent acsLegacyComponent = IComponentHelper.narrow(legacyObj);
     this.legacyBus = new LegacyInfo(acsLegacyComponent);
   }
 
@@ -215,10 +223,10 @@ final class ConnectionImpl implements Connection {
       IntHolder validityHolder = new IntHolder();
       this.manager.ignoreCurrentThread();
 
-      initializeBusInfo();
+      this.bus.retrieveBusIdAndKey();
 
       this.login =
-        this.bus.getAccessControl().loginByPassword(entity,
+        getBus().getAccessControl().loginByPassword(entity,
           this.publicKey.getEncoded(), encryptedLoginAuthenticationInfo,
           validityHolder);
     }
@@ -257,7 +265,7 @@ final class ConnectionImpl implements Connection {
       ORBMediator mediator = ORBUtils.getMediator(orb);
       byte[] encodedLoginAuthenticationInfo =
         mediator.getCodec().encode_value(authenticationInfoAny);
-      return crypto.encrypt(encodedLoginAuthenticationInfo, this.bus
+      return crypto.encrypt(encodedLoginAuthenticationInfo, getBus()
         .getPublicKey());
     }
     catch (InvalidTypeForEncoding e) {
@@ -281,13 +289,13 @@ final class ConnectionImpl implements Connection {
     checkLoggedIn();
     this.manager.ignoreCurrentThread();
     try {
-      initializeBusInfo();
+      this.bus.retrieveBusIdAndKey();
 
       RSAPrivateKey privateKey =
         crypto.createPrivateKeyFromBytes(privateKeyBytes);
       EncryptedBlockHolder challengeHolder = new EncryptedBlockHolder();
       LoginProcess loginProcess =
-        this.bus.getAccessControl().startLoginByCertificate(entity,
+        getBus().getAccessControl().startLoginByCertificate(entity,
           challengeHolder);
       byte[] decryptedChallenge =
         crypto.decrypt(challengeHolder.value, privateKey);
@@ -360,7 +368,7 @@ final class ConnectionImpl implements Connection {
     checkLoggedIn();
     this.manager.ignoreCurrentThread();
 
-    initializeBusInfo();
+    this.bus.retrieveBusIdAndKey();
 
     byte[] encryptedLoginAuthenticationInfo =
       this.generateEncryptedLoginAuthenticationInfo(secret);
@@ -426,7 +434,7 @@ final class ConnectionImpl implements Connection {
   public boolean logout() throws ServiceFailure {
     if (this.login != null) {
       try {
-        this.bus.getAccessControl().logout();
+        getBus().getAccessControl().logout();
         localLogout();
         return true;
       }
@@ -567,7 +575,7 @@ final class ConnectionImpl implements Connection {
    * @return o serviço de controle de acesso.
    */
   AccessControl access() {
-    return this.bus.getAccessControl();
+    return getBus().getAccessControl();
   }
 
   /**
@@ -576,7 +584,7 @@ final class ConnectionImpl implements Connection {
    * @return o serviço de registro de logins.
    */
   LoginRegistry logins() {
-    return this.bus.getLoginRegistry();
+    return getBus().getLoginRegistry();
   }
 
   /**
@@ -585,7 +593,7 @@ final class ConnectionImpl implements Connection {
    * @return o serviço de registro de certificados.
    */
   CertificateRegistry certificates() {
-    return this.bus.getCertificateRegistry();
+    return getBus().getCertificateRegistry();
   }
 
   /**
@@ -593,7 +601,7 @@ final class ConnectionImpl implements Connection {
    */
   @Override
   public OfferRegistry offers() {
-    return this.bus.getOfferRegistry();
+    return getBus().getOfferRegistry();
   }
 
   /**
@@ -622,5 +630,14 @@ final class ConnectionImpl implements Connection {
 
   IAccessControlService legacyAccess() {
     return this.legacyBus.getAccessControl();
+  }
+
+  /**
+   * Retorna
+   * 
+   * @return bus
+   */
+  BusInfo getBus() {
+    return bus;
   }
 }
