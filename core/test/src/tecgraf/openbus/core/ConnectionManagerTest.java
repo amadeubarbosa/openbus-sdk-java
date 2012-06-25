@@ -20,6 +20,7 @@ import tecgraf.openbus.core.v2_00.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_00.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
+import tecgraf.openbus.exception.NotLoggedIn;
 import tecgraf.openbus.util.Utils;
 
 public final class ConnectionManagerTest {
@@ -75,34 +76,56 @@ public final class ConnectionManagerTest {
   }
 
   @Test
-  public void getDispatcherTest() {
+  public void getDispatcherTest() throws AccessDenied, AlreadyLoggedIn,
+    ServiceFailure, NotLoggedIn {
     Connection conn = _manager.createConnection(_hostName, _hostPort);
+    conn.loginByPassword(entity, password.getBytes());
+
     Connection conn2 = _manager.createConnection(_hostName, _hostPort);
+    conn2.loginByPassword(entity, password.getBytes());
+
     _manager.setDefaultConnection(conn);
     assertNull(_manager.getDispatcher(conn.busid()));
+
+    _manager.setRequester(conn2);
+    assertNull(_manager.getDispatcher(conn.busid()));
+
     _manager.setDispatcher(conn2);
     assertEquals(_manager.getDispatcher(conn.busid()), conn2);
+
     _manager.clearDispatcher(conn.busid());
     assertNull(_manager.getDispatcher(conn2.busid()));
-    _manager.setDefaultConnection(null);
+
+    _manager.setDispatcher(conn2);
+    assertTrue(conn2.logout());
+
     assertNull(_manager.getDispatcher(conn.busid()));
+    _manager.setRequester(null);
+    assertTrue(conn.logout());
+    _manager.setDefaultConnection(null);
   }
 
   @Test
-  public void clearDispatcherTest() {
+  public void clearDispatcherTest() throws NotLoggedIn, AccessDenied,
+    AlreadyLoggedIn, ServiceFailure {
     Connection conn = _manager.createConnection(_hostName, _hostPort);
     Connection conn2 = _manager.createConnection(_hostName, _hostPort);
+    conn.loginByPassword(entity, password.getBytes());
+    conn2.loginByPassword(entity, password.getBytes());
     Connection removed = _manager.clearDispatcher(conn.busid());
     assertNull(removed);
-    _manager.setDefaultConnection(null);
+    _manager.setDefaultConnection(conn);
     _manager.setDispatcher(conn2);
     removed = _manager.clearDispatcher(conn.busid());
     assertEquals(removed, conn2);
+    assertTrue(conn.logout());
+    _manager.setDefaultConnection(conn2);
+    assertTrue(conn2.logout());
     _manager.setDefaultConnection(null);
   }
 
   @Test
-  public void setDispatcherTest() {
+  public void setDispatcherTest() throws NotLoggedIn {
     Connection conn = _manager.createConnection(_hostName, _hostPort);
     Connection conn2 = _manager.createConnection(_hostName, _hostPort);
     assertNull(_manager.getDispatcher(conn.busid()));
@@ -118,7 +141,7 @@ public final class ConnectionManagerTest {
   }
 
   @Test
-  public void defaultConnectionTest() {
+  public void defaultConnectionTest() throws NotLoggedIn {
     _manager.setDefaultConnection(null);
     Connection conn = _manager.createConnection(_hostName, _hostPort);
     assertNull(_manager.getDefaultConnection());
@@ -134,7 +157,7 @@ public final class ConnectionManagerTest {
 
   @Test
   public void requesterTest() throws AccessDenied, AlreadyLoggedIn,
-    ServiceFailure {
+    ServiceFailure, NotLoggedIn {
     Connection conn = _manager.createConnection(_hostName, _hostPort);
     assertNull(_manager.getRequester());
     _manager.setDispatcher(conn);
