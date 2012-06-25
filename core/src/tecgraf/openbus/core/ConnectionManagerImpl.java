@@ -157,7 +157,7 @@ final class ConnectionManagerImpl extends LocalObject implements
     if (conn == null) {
       throw new NullPointerException("Conexão não pode ser nula");
     }
-    if (conn.login() == null) {
+    if ((conn.login() == null) || (conn.busid() == null)) {
       throw new NotLoggedIn();
     }
     synchronized (this.incomingDispatcherConn) {

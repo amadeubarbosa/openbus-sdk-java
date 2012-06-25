@@ -61,6 +61,11 @@ final class BusInfo {
     }
   }
 
+  void clearBusIdAndKey() {
+    this.id = null;
+    this.publicKey = null;
+  }
+
   String getId() {
     return id;
   }

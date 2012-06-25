@@ -457,9 +457,13 @@ final class ConnectionImpl implements Connection {
   void localLogout() {
     this.joinedChains.clear();
     stopRenewerThread();
+    if (manager.getDispatcher(busid()).equals(this)) {
+      manager.clearDispatcher(busid());
+    }
     logger.info(String.format("Logout efetuado: id (%s) entidade (%s)",
       login.id, login.entity));
     this.login = null;
+    this.getBus().clearBusIdAndKey();
   }
 
   /**
