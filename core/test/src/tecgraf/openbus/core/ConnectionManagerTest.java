@@ -125,48 +125,70 @@ public final class ConnectionManagerTest {
   }
 
   @Test
-  public void setDispatcherTest() throws NotLoggedIn {
+  public void setDispatcherTest() throws NotLoggedIn, AccessDenied,
+    AlreadyLoggedIn, ServiceFailure {
     Connection conn = _manager.createConnection(_hostName, _hostPort);
+    boolean failed = false;
+    try {
+      _manager.setDispatcher(conn);
+    }
+    catch (NotLoggedIn e) {
+      failed = true;
+    }
+    assertTrue(failed);
+    conn.loginByPassword(entity, password.getBytes());
+
     Connection conn2 = _manager.createConnection(_hostName, _hostPort);
-    assertNull(_manager.getDispatcher(conn.busid()));
+    conn2.loginByPassword(entity, password.getBytes());
     _manager.setDefaultConnection(conn);
+    assertNull(_manager.getDispatcher(conn.busid()));
     _manager.setRequester(conn);
     assertNull(_manager.getDispatcher(conn.busid()));
     _manager.setDispatcher(conn2);
     assertEquals(_manager.getDispatcher(conn.busid()), conn2);
-    _manager.clearDispatcher(conn.busid());
-    _manager.setDefaultConnection(null);
-    _manager.setRequester(null);
+    _manager.setRequester(conn2);
+    assertTrue(conn2.logout());
     assertNull(_manager.getDispatcher(conn.busid()));
+    _manager.setRequester(null);
+    assertTrue(conn.logout());
+    _manager.setDefaultConnection(null);
   }
 
   @Test
-  public void defaultConnectionTest() throws NotLoggedIn {
+  public void defaultConnectionTest() throws NotLoggedIn, AccessDenied,
+    AlreadyLoggedIn, ServiceFailure {
     _manager.setDefaultConnection(null);
     Connection conn = _manager.createConnection(_hostName, _hostPort);
+    conn.loginByPassword(entity, password.getBytes());
     assertNull(_manager.getDefaultConnection());
-    _manager.setDispatcher(conn);
     _manager.setRequester(conn);
     assertNull(_manager.getDefaultConnection());
+    _manager.setRequester(null);
     _manager.setDefaultConnection(conn);
     assertEquals(_manager.getDefaultConnection(), conn);
-    _manager.setDefaultConnection(null);
+    _manager.setDispatcher(conn);
+    assertEquals(_manager.getDefaultConnection(), conn);
     _manager.clearDispatcher(conn.busid());
-    _manager.setRequester(null);
+    assertTrue(conn.logout());
+    assertEquals(_manager.getDefaultConnection(), conn);
+    _manager.setDefaultConnection(null);
   }
 
   @Test
   public void requesterTest() throws AccessDenied, AlreadyLoggedIn,
     ServiceFailure, NotLoggedIn {
     Connection conn = _manager.createConnection(_hostName, _hostPort);
+    conn.loginByPassword(entity, password.getBytes());
     assertNull(_manager.getRequester());
-    _manager.setDispatcher(conn);
     _manager.setDefaultConnection(conn);
+    _manager.setDispatcher(conn);
     assertNull(_manager.getRequester());
     _manager.setRequester(conn);
     assertEquals(_manager.getRequester(), conn);
     _manager.setDefaultConnection(null);
     _manager.clearDispatcher(conn.busid());
+    assertTrue(conn.logout());
+    assertEquals(_manager.getRequester(), conn);
     _manager.setRequester(null);
 
     // tentativa de chamada sem threadrequester setado
