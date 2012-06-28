@@ -67,9 +67,9 @@ public final class Client {
 
       conn1.loginByPassword(entity, password.getBytes(Cryptography.CHARSET));
       OctetSeqHolder secret = new OctetSeqHolder();
-      LoginProcess process = conn1.startSingleSignOn(secret);
+      LoginProcess process = conn1.startSharedAuth(secret);
 
-      conn2.loginBySingleSignOn(process, secret.value);
+      conn2.loginBySharedAuth(process, secret.value);
 
       List<Connection> conns = new ArrayList<Connection>();
       conns.add(conn1);

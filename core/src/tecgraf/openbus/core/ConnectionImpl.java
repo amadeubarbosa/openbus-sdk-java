@@ -358,10 +358,10 @@ final class ConnectionImpl implements Connection {
    * @throws ServiceFailure
    */
   @Override
-  public LoginProcess startSingleSignOn(OctetSeqHolder secret)
+  public LoginProcess startSharedAuth(OctetSeqHolder secret)
     throws ServiceFailure {
     EncryptedBlockHolder challenge = new EncryptedBlockHolder();
-    LoginProcess process = this.access().startLoginBySingleSignOn(challenge);
+    LoginProcess process = this.access().startLoginBySharedAuth(challenge);
     try {
       secret.value = crypto.decrypt(challenge.value, this.privateKey);
     }
@@ -377,7 +377,7 @@ final class ConnectionImpl implements Connection {
    * {@inheritDoc}
    */
   @Override
-  public void loginBySingleSignOn(LoginProcess process, byte[] secret)
+  public void loginBySharedAuth(LoginProcess process, byte[] secret)
     throws WrongSecret, AlreadyLoggedIn, ServiceFailure, InvalidLoginProcess {
     checkLoggedIn();
     this.manager.ignoreCurrentThread();

@@ -256,9 +256,9 @@ public final class ConnectionTest {
 
     try {
       manager.setRequester(conn);
-      login = conn.startSingleSignOn(secret);
+      login = conn.startSharedAuth(secret);
       manager.setRequester(null);
-      conn2.loginBySingleSignOn(login, new byte[0]);
+      conn2.loginBySharedAuth(login, new byte[0]);
     }
     catch (WrongSecret e) {
       failed = true;
@@ -272,9 +272,9 @@ public final class ConnectionTest {
     // login válido
     assertNull(conn2.login());
     manager.setRequester(conn);
-    login = conn.startSingleSignOn(secret);
+    login = conn.startSharedAuth(secret);
     manager.setRequester(null);
-    conn2.loginBySingleSignOn(login, secret.value);
+    conn2.loginBySharedAuth(login, secret.value);
     assertNotNull(conn2.login());
     conn2.logout();
     assertNull(conn2.login());
@@ -284,11 +284,11 @@ public final class ConnectionTest {
     failed = false;
     try {
       manager.setRequester(conn);
-      login = conn.startSingleSignOn(secret);
+      login = conn.startSharedAuth(secret);
       manager.setRequester(null);
-      conn2.loginBySingleSignOn(login, secret.value);
+      conn2.loginBySharedAuth(login, secret.value);
       assertNotNull(conn2.login());
-      conn2.loginBySingleSignOn(login, secret.value);
+      conn2.loginBySharedAuth(login, secret.value);
     }
     catch (AlreadyLoggedIn e) {
       failed = true;

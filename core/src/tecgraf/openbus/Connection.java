@@ -93,7 +93,7 @@ public interface Connection {
    * @return Objeto que represeta o processo de login iniciado.
    * @throws ServiceFailure
    */
-  LoginProcess startSingleSignOn(OctetSeqHolder secret) throws ServiceFailure;
+  LoginProcess startSharedAuth(OctetSeqHolder secret) throws ServiceFailure;
 
   /**
    * Efetua login no barramento como uma entidade usando autenticação por single
@@ -108,7 +108,7 @@ public interface Connection {
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu o estabelecimento da conexão.
    */
-  void loginBySingleSignOn(LoginProcess process, byte[] secret)
+  void loginBySharedAuth(LoginProcess process, byte[] secret)
     throws WrongSecret, AlreadyLoggedIn, InvalidLoginProcess, ServiceFailure;
 
   /**
