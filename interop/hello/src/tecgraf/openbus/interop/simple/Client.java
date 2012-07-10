@@ -10,8 +10,8 @@ import org.omg.CORBA.ORB;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.core.ORBInitializer;
-import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceOfferDesc;
-import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
+import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
+import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.util.Utils;
 import tecgraf.openbus.util.Cryptography;
 

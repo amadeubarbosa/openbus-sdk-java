@@ -10,8 +10,8 @@ import java.util.Properties;
 import org.omg.CORBA.ORB;
 
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.core.v2_00.services.ServiceFailure;
-import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_0.services.ServiceFailure;
+import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 
 /**
  * Classe utilitária para os demos Java.

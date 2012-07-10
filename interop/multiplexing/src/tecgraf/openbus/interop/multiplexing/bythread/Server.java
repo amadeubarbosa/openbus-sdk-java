@@ -18,8 +18,8 @@ import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.core.ORBInitializer;
-import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
+import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.simple.HelloHelper;
 import tecgraf.openbus.interop.util.Utils;
 import tecgraf.openbus.interop.util.Utils.ORBRunThread;
@@ -116,7 +116,8 @@ public class Server {
 
   public static ServiceProperty[] getProps() {
     ServiceProperty[] serviceProperties = new ServiceProperty[1];
-    serviceProperties[0] = new ServiceProperty("offer.domain", "Interoperability Tests");
+    serviceProperties[0] =
+      new ServiceProperty("offer.domain", "Interoperability Tests");
     return serviceProperties;
   }
 

@@ -1,7 +1,7 @@
 package tecgraf.openbus.core;
 
 import tecgraf.openbus.core.v1_05.access_control_service.Credential;
-import tecgraf.openbus.core.v2_00.credential.CredentialData;
+import tecgraf.openbus.core.v2_0.credential.CredentialData;
 
 class CredentialWrapper {
 

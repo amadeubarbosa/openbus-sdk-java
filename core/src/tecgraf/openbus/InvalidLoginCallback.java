@@ -2,7 +2,7 @@ package tecgraf.openbus;
 
 import org.omg.CORBA.NO_PERMISSION;
 
-import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 
 /**
  * Callback de expiração de login.

@@ -10,7 +10,7 @@ import org.omg.CORBA.LocalObject;
 import org.omg.PortableInterceptor.Interceptor;
 import org.omg.PortableInterceptor.RequestInfo;
 
-import tecgraf.openbus.core.v2_00.credential.SignedCallChain;
+import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
 import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.util.Cryptography;
 

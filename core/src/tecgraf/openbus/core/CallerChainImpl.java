@@ -1,8 +1,8 @@
 package tecgraf.openbus.core;
 
 import tecgraf.openbus.CallerChain;
-import tecgraf.openbus.core.v2_00.credential.SignedCallChain;
-import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
+import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 
 /**
  * Implementação do {@link CallerChain}

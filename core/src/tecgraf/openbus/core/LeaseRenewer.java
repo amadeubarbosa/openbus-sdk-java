@@ -11,9 +11,9 @@ import org.omg.CORBA.ORBPackage.InvalidName;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionManager;
-import tecgraf.openbus.core.v2_00.services.ServiceFailure;
-import tecgraf.openbus.core.v2_00.services.access_control.AccessControl;
-import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_0.services.ServiceFailure;
+import tecgraf.openbus.core.v2_0.services.access_control.AccessControl;
+import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 
 /**
  * Responsável por renovar um lease junto a um provedor.

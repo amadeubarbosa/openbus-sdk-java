@@ -1,6 +1,6 @@
 package tecgraf.openbus;
 
-import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 
 /**
  * Cadeia de chamadas oriundas de um barramento.

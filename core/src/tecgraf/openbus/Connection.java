@@ -1,12 +1,12 @@
 package tecgraf.openbus;
 
-import tecgraf.openbus.core.v2_00.OctetSeqHolder;
-import tecgraf.openbus.core.v2_00.services.ServiceFailure;
-import tecgraf.openbus.core.v2_00.services.access_control.AccessDenied;
-import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_00.services.access_control.LoginProcess;
-import tecgraf.openbus.core.v2_00.services.access_control.MissingCertificate;
-import tecgraf.openbus.core.v2_00.services.offer_registry.OfferRegistry;
+import tecgraf.openbus.core.v2_0.OctetSeqHolder;
+import tecgraf.openbus.core.v2_0.services.ServiceFailure;
+import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
+import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_0.services.access_control.LoginProcess;
+import tecgraf.openbus.core.v2_0.services.access_control.MissingCertificate;
+import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.exception.CorruptedPrivateKey;
 import tecgraf.openbus.exception.InvalidLoginProcess;

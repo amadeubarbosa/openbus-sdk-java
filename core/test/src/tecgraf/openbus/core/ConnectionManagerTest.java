@@ -15,10 +15,10 @@ import org.omg.CORBA.ORB;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionManager;
-import tecgraf.openbus.core.v2_00.services.ServiceFailure;
-import tecgraf.openbus.core.v2_00.services.access_control.AccessDenied;
-import tecgraf.openbus.core.v2_00.services.access_control.NoLoginCode;
-import tecgraf.openbus.core.v2_00.services.offer_registry.ServiceProperty;
+import tecgraf.openbus.core.v2_0.services.ServiceFailure;
+import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
+import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.exception.NotLoggedIn;
 import tecgraf.openbus.util.Utils;

@@ -5,10 +5,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import tecgraf.openbus.core.v2_00.OctetSeqHolder;
-import tecgraf.openbus.core.v2_00.services.ServiceFailure;
-import tecgraf.openbus.core.v2_00.services.access_control.InvalidLogins;
-import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_0.OctetSeqHolder;
+import tecgraf.openbus.core.v2_0.services.ServiceFailure;
+import tecgraf.openbus.core.v2_0.services.access_control.InvalidLogins;
+import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 import tecgraf.openbus.util.LRUCache;
 
 /**

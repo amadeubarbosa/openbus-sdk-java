@@ -29,23 +29,23 @@ import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.core.Session.ClientSideSession;
 import tecgraf.openbus.core.v1_05.access_control_service.Credential;
 import tecgraf.openbus.core.v1_05.access_control_service.CredentialHelper;
-import tecgraf.openbus.core.v2_00.BusLogin;
-import tecgraf.openbus.core.v2_00.credential.CredentialContextId;
-import tecgraf.openbus.core.v2_00.credential.CredentialData;
-import tecgraf.openbus.core.v2_00.credential.CredentialDataHelper;
-import tecgraf.openbus.core.v2_00.credential.CredentialReset;
-import tecgraf.openbus.core.v2_00.credential.CredentialResetHelper;
-import tecgraf.openbus.core.v2_00.credential.SignedCallChain;
-import tecgraf.openbus.core.v2_00.credential.SignedCallChainHelper;
-import tecgraf.openbus.core.v2_00.services.ServiceFailure;
-import tecgraf.openbus.core.v2_00.services.access_control.CallChain;
-import tecgraf.openbus.core.v2_00.services.access_control.CallChainHelper;
-import tecgraf.openbus.core.v2_00.services.access_control.InvalidCredentialCode;
-import tecgraf.openbus.core.v2_00.services.access_control.InvalidLoginCode;
-import tecgraf.openbus.core.v2_00.services.access_control.InvalidRemoteCode;
-import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_00.services.access_control.NoCredentialCode;
-import tecgraf.openbus.core.v2_00.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_0.BusLogin;
+import tecgraf.openbus.core.v2_0.credential.CredentialContextId;
+import tecgraf.openbus.core.v2_0.credential.CredentialData;
+import tecgraf.openbus.core.v2_0.credential.CredentialDataHelper;
+import tecgraf.openbus.core.v2_0.credential.CredentialReset;
+import tecgraf.openbus.core.v2_0.credential.CredentialResetHelper;
+import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
+import tecgraf.openbus.core.v2_0.credential.SignedCallChainHelper;
+import tecgraf.openbus.core.v2_0.services.ServiceFailure;
+import tecgraf.openbus.core.v2_0.services.access_control.CallChain;
+import tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper;
+import tecgraf.openbus.core.v2_0.services.access_control.InvalidCredentialCode;
+import tecgraf.openbus.core.v2_0.services.access_control.InvalidLoginCode;
+import tecgraf.openbus.core.v2_0.services.access_control.InvalidRemoteCode;
+import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_0.services.access_control.NoCredentialCode;
+import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.util.LRUCache;
 
@@ -149,8 +149,8 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
           Any anyChain =
             codec.decode_value(joinedChain.encoded, CallChainHelper.type());
           CallChain chain = CallChainHelper.extract(anyChain);
-          if (chain.callers != null && chain.callers.length > 1) {
-            delegate = chain.callers[0].entity;
+          if (chain.originators != null && chain.originators.length > 0) {
+            delegate = chain.originators[0].entity;
           }
         }
         legacyCredential.delegate = delegate;

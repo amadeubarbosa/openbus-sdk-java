@@ -6,7 +6,7 @@ Category {
 Entity {
   id = "TestEntity",
   category = "sdk_java_2_test",
-  name = "Servidor da aplicaÃ§Ã£o de teste do SDK Java",
+  name = "Servidor da aplicação de teste do SDK Java",
 }
 
 Certificate {

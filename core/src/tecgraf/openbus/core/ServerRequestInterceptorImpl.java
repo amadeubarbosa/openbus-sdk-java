@@ -28,26 +28,26 @@ import tecgraf.openbus.Connection;
 import tecgraf.openbus.core.Session.ServerSideSession;
 import tecgraf.openbus.core.v1_05.access_control_service.Credential;
 import tecgraf.openbus.core.v1_05.access_control_service.CredentialHelper;
-import tecgraf.openbus.core.v2_00.OctetSeqHolder;
-import tecgraf.openbus.core.v2_00.credential.CredentialContextId;
-import tecgraf.openbus.core.v2_00.credential.CredentialData;
-import tecgraf.openbus.core.v2_00.credential.CredentialDataHelper;
-import tecgraf.openbus.core.v2_00.credential.CredentialReset;
-import tecgraf.openbus.core.v2_00.credential.CredentialResetHelper;
-import tecgraf.openbus.core.v2_00.credential.SignedCallChain;
-import tecgraf.openbus.core.v2_00.credential.SignedCallChainHelper;
-import tecgraf.openbus.core.v2_00.services.ServiceFailure;
-import tecgraf.openbus.core.v2_00.services.access_control.CallChain;
-import tecgraf.openbus.core.v2_00.services.access_control.CallChainHelper;
-import tecgraf.openbus.core.v2_00.services.access_control.InvalidChainCode;
-import tecgraf.openbus.core.v2_00.services.access_control.InvalidCredentialCode;
-import tecgraf.openbus.core.v2_00.services.access_control.InvalidLoginCode;
-import tecgraf.openbus.core.v2_00.services.access_control.InvalidLogins;
-import tecgraf.openbus.core.v2_00.services.access_control.InvalidPublicKeyCode;
-import tecgraf.openbus.core.v2_00.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_00.services.access_control.NoCredentialCode;
-import tecgraf.openbus.core.v2_00.services.access_control.UnknownBusCode;
-import tecgraf.openbus.core.v2_00.services.access_control.UnverifiedLoginCode;
+import tecgraf.openbus.core.v2_0.OctetSeqHolder;
+import tecgraf.openbus.core.v2_0.credential.CredentialContextId;
+import tecgraf.openbus.core.v2_0.credential.CredentialData;
+import tecgraf.openbus.core.v2_0.credential.CredentialDataHelper;
+import tecgraf.openbus.core.v2_0.credential.CredentialReset;
+import tecgraf.openbus.core.v2_0.credential.CredentialResetHelper;
+import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
+import tecgraf.openbus.core.v2_0.credential.SignedCallChainHelper;
+import tecgraf.openbus.core.v2_0.services.ServiceFailure;
+import tecgraf.openbus.core.v2_0.services.access_control.CallChain;
+import tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper;
+import tecgraf.openbus.core.v2_0.services.access_control.InvalidChainCode;
+import tecgraf.openbus.core.v2_0.services.access_control.InvalidCredentialCode;
+import tecgraf.openbus.core.v2_0.services.access_control.InvalidLoginCode;
+import tecgraf.openbus.core.v2_0.services.access_control.InvalidLogins;
+import tecgraf.openbus.core.v2_0.services.access_control.InvalidPublicKeyCode;
+import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_0.services.access_control.NoCredentialCode;
+import tecgraf.openbus.core.v2_0.services.access_control.UnknownBusCode;
+import tecgraf.openbus.core.v2_0.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.util.Cryptography;
 import tecgraf.openbus.util.LRUCache;
@@ -186,15 +186,14 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
 
           LoginInfo[] callers;
           if (!legacyCredential.delegate.equals("")) {
-            callers = new LoginInfo[2];
+            callers = new LoginInfo[1];
             callers[0] = new LoginInfo("<unknown>", legacyCredential.delegate);
-            callers[1] = new LoginInfo(loginId, entity);
           }
           else {
-            callers = new LoginInfo[1];
-            callers[0] = new LoginInfo(loginId, entity);
+            callers = new LoginInfo[0];
           }
-          CallChain callChain = new CallChain("", callers);
+          CallChain callChain =
+            new CallChain("", callers, new LoginInfo(loginId, entity));
           Any anyCallChain = orb.create_any();
           CallChainHelper.insert(anyCallChain, callChain);
           byte[] encodedCallChain = codec.encode_value(anyCallChain);
@@ -494,8 +493,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           if (verified) {
             if (callChain.target.equals(conn.login().id)) {
 
-              LoginInfo[] callers = callChain.callers;
-              if (callers[callers.length - 1].id.equals(credential.login)) {
+              LoginInfo caller = callChain.caller;
+              if (caller.id.equals(credential.login)) {
                 return true;
               }
             }
