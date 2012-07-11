@@ -19,6 +19,6 @@
     <module>hello</module>
     <module>multiplexing</module>
     <module>delegation</module>
-    <module>singlesignon</module>
+    <module>sharedauth</module>
   </modules>
 </project>
