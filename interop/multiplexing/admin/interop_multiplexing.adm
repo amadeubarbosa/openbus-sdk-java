@@ -1,0 +1,62 @@
+Category {
+  id = "openbus_interops",
+  name = "Categoria para testes de interoperabilidade do OpenBus",
+}
+
+Entity {
+  id = "interop_multiplexing_java_conn1",
+  category = "openbus_interops",
+  name = "Teste de Interoperabilidade Multiplexing do SDK Java",
+}
+
+Certificate {
+  id = "interop_multiplexing_java_conn1",
+  certificate = "InteropMultiplexing.crt",
+}
+
+Entity {
+  id = "interop_multiplexing_java_conn2",
+  category = "openbus_interops",
+  name = "Teste de Interoperabilidade Multiplexing do SDK Java",
+}
+
+Certificate {
+  id = "interop_multiplexing_java_conn2",
+  certificate = "InteropMultiplexing.crt",
+}
+
+Entity {
+  id = "interop_multiplexing_java_conn3",
+  category = "openbus_interops",
+  name = "Teste de Interoperabilidade Multiplexing do SDK Java",
+}
+
+Certificate {
+  id = "interop_multiplexing_java_conn3",
+  certificate = "InteropMultiplexing.crt",
+}
+
+Interface {
+  id = "IDL:tecgraf/openbus/interop/simple/Hello:1.0",
+}
+
+Grant {
+  id = "interop_multiplexing_java_conn1",
+  interfaces = {
+	"IDL:tecgraf/openbus/interop/simple/Hello:1.0",
+  }
+}
+
+Grant {
+  id = "interop_multiplexing_java_conn2",
+  interfaces = {
+	"IDL:tecgraf/openbus/interop/simple/Hello:1.0",
+  }
+}
+
+Grant {
+  id = "interop_multiplexing_java_conn3",
+  interfaces = {
+	"IDL:tecgraf/openbus/interop/simple/Hello:1.0",
+  }
+}
