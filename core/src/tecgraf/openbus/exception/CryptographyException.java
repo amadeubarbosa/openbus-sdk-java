@@ -1,13 +1,27 @@
 package tecgraf.openbus.exception;
 
-import java.security.GeneralSecurityException;
-
+/**
+ * Exceção com uso de criptografia.
+ * 
+ * @author Tecgraf
+ */
 public final class CryptographyException extends OpenBusException {
+
+  /**
+   * Construtor.
+   * 
+   * @param message mensagem de erro.
+   */
   public CryptographyException(String message) {
     super(message);
   }
 
-  public CryptographyException(GeneralSecurityException cause) {
+  /**
+   * Construtor.
+   * 
+   * @param cause exeção original
+   */
+  public CryptographyException(Throwable cause) {
     super(cause);
   }
 }

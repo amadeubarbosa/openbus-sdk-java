@@ -105,6 +105,8 @@ public interface Connection {
    * @exception WrongSecret O segredo fornecido não corresponde ao esperado pelo
    *            barramento.
    * @exception AlreadyLoggedIn A conexão já está logada.
+   * @exception InvalidLoginProcess O LoginProcess informado é inválido, por
+   *            exemplo depois de ser cancelado ou ter expirado.
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu o estabelecimento da conexão.
    */
