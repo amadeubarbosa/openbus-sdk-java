@@ -96,7 +96,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     ORB orb = this.getMediator().getORB();
     ConnectionManagerImpl manager = ORBUtils.getConnectionManager(orb);
     Codec codec = this.getMediator().getCodec();
-    if (manager.isCurrentThreadIgnored()) {
+    if (manager.isCurrentThreadIgnored(ri)) {
       logger.finest(String.format("Realizando chamada fora do barramento: %s",
         operation));
       return;

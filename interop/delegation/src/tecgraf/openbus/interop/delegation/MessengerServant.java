@@ -42,7 +42,7 @@ public class MessengerServant extends MessengerPOA {
     LoginInfo[] originators = conn.getCallerChain().originators();
     String from = caller.entity;
     System.out.println(String.format("post para '%s' de '%s'", to, Utils
-      .chain2str(originators)));
+      .chain2str(originators, caller)));
     synchronized (inboxOf) {
       List<PostDesc> list = this.inboxOf.get(to);
       if (list == null) {
@@ -59,7 +59,7 @@ public class MessengerServant extends MessengerPOA {
     LoginInfo[] originators = conn.getCallerChain().originators();
     String owner = caller.entity;
     System.out.println("download das mensagens por "
-      + Utils.chain2str(originators));
+      + Utils.chain2str(originators, caller));
     List<PostDesc> list = this.inboxOf.remove(owner);
     if (list == null) {
       list = new ArrayList<PostDesc>();

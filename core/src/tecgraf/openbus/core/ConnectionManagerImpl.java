@@ -4,10 +4,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -18,6 +16,7 @@ import org.omg.CORBA.ORB;
 import org.omg.CORBA.TCKind;
 import org.omg.PortableInterceptor.Current;
 import org.omg.PortableInterceptor.InvalidSlot;
+import org.omg.PortableInterceptor.RequestInfo;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionManager;
@@ -38,14 +37,14 @@ final class ConnectionManagerImpl extends LocalObject implements
 
   /** Identificador do slot de thread corrente */
   private final int CURRENT_THREAD_SLOT_ID;
+  /** Identificador do slot de interceptação ignorada */
+  private final int IGNORE_THREAD_SLOT_ID;
   /** Mapa de conexão que trata requisições de entrada por barramento */
   private Map<String, Connection> incomingDispatcherConn;
   /** Mapa de conexão por thread */
   private Map<Long, Connection> connectedThreads;
   /** Conexão padrão */
   private Connection defaultConn;
-  /** Threads com interceptação ignorada */
-  private Set<Thread> ignoredThreads;
 
   /** Referência para o ORB ao qual pertence */
   private ORB orb;
@@ -54,14 +53,15 @@ final class ConnectionManagerImpl extends LocalObject implements
    * Construtor.
    * 
    * @param currentThreadSlotId identificador do slot da thread corrente
+   * @param ignoreThreadSlotId identificador do slot de interceptação ignorada.
    */
-  public ConnectionManagerImpl(int currentThreadSlotId) {
+  public ConnectionManagerImpl(int currentThreadSlotId, int ignoreThreadSlotId) {
     this.incomingDispatcherConn =
       Collections.synchronizedMap(new HashMap<String, Connection>());
     this.connectedThreads =
       Collections.synchronizedMap(new HashMap<Long, Connection>());
-    this.ignoredThreads = Collections.synchronizedSet(new HashSet<Thread>());
     this.CURRENT_THREAD_SLOT_ID = currentThreadSlotId;
+    this.IGNORE_THREAD_SLOT_ID = ignoreThreadSlotId;
   }
 
   /**
@@ -227,28 +227,66 @@ final class ConnectionManagerImpl extends LocalObject implements
     this.orb = orb;
   }
 
-  /*
-   * FIXME acredito que o uso de thread como o valor dessa lista só funcione
-   * devido a uma particularidade do JacORB. Até onde sei (CONFIMAR) CORBA não
-   * garante que a thread cliente que faz a requisição seja a mesma que
-   * efetivamente irá enviar o request.
-   * 
-   * A solução adotada por C++ foi de guardar um booleano no PICurrent que
-   * indica que a requisição deve ser ignorada (enviada sem credencial)
+  /**
+   * Sinaliza que as requisições realizadas através desta thread não devem ser
+   * interceptadas.
    */
   void ignoreCurrentThread() {
-    Thread currentThread = Thread.currentThread();
-    this.ignoredThreads.add(currentThread);
+    Any any = this.orb.create_any();
+    any.insert_boolean(true);
+    Current current = ORBUtils.getPICurrent(orb);
+    try {
+      current.set_slot(IGNORE_THREAD_SLOT_ID, any);
+    }
+    catch (InvalidSlot e) {
+      String message =
+        "Falha inesperada ao acessar o slot de interceptação ignorada";
+      logger.log(Level.SEVERE, message, e);
+      throw new OpenBusInternalException(message, e);
+    }
   }
 
+  /**
+   * Siznaliza que as requisições realizadas através desta thread devem voltar a
+   * ser interceptadas.
+   */
   void unignoreCurrentThread() {
-    Thread currentThread = Thread.currentThread();
-    this.ignoredThreads.remove(currentThread);
+    Any any = this.orb.create_any();
+    Current current = ORBUtils.getPICurrent(orb);
+    try {
+      current.set_slot(IGNORE_THREAD_SLOT_ID, any);
+    }
+    catch (InvalidSlot e) {
+      String message =
+        "Falha inesperada ao acessar o slot de interceptação ignorada";
+      logger.log(Level.SEVERE, message, e);
+      throw new OpenBusInternalException(message, e);
+    }
   }
 
-  boolean isCurrentThreadIgnored() {
-    Thread currentThread = Thread.currentThread();
-    return this.ignoredThreads.contains(currentThread);
+  /**
+   * Verifica se a requisição corrente esta configurada para ignorar a
+   * interceptação ou não.
+   * 
+   * @param ri informação da requisição.
+   * @return <code>true</code> caso a interceptação deve ser ignorada, e
+   *         <code>false</code> caso contrário.
+   */
+  boolean isCurrentThreadIgnored(RequestInfo ri) {
+    Any any;
+    try {
+      any = ri.get_slot(IGNORE_THREAD_SLOT_ID);
+    }
+    catch (InvalidSlot e) {
+      String message =
+        "Falha inesperada ao obter o slot de interceptação ignorada";
+      throw new INTERNAL(message);
+    }
+    if (any.type().kind().value() != TCKind._tk_null) {
+      boolean isIgnored = any.extract_boolean();
+      return isIgnored;
+    }
+    return false;
   }
 
 }

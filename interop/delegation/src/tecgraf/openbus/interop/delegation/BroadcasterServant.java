@@ -52,7 +52,7 @@ public class BroadcasterServant extends BroadcasterPOA {
     LoginInfo caller = conn.getCallerChain().caller();
     LoginInfo[] originators = conn.getCallerChain().originators();
     String user = caller.entity;
-    System.out.println("inscrição de " + Utils.chain2str(originators));
+    System.out.println("inscrição de " + Utils.chain2str(originators, caller));
     subscribers.add(user);
   }
 
@@ -62,7 +62,7 @@ public class BroadcasterServant extends BroadcasterPOA {
     LoginInfo[] originators = conn.getCallerChain().originators();
     String user = caller.entity;
     System.out.println("cancelando inscrição de "
-      + Utils.chain2str(originators));
+      + Utils.chain2str(originators, caller));
     subscribers.remove(user);
   }
 

@@ -97,19 +97,17 @@ public class Server {
       ComponentContext context2 = new ComponentContext(orb2, poa2, id);
       context2.addFacet("hello", HelloHelper.id(), new HelloServant(conns));
 
-      // set incoming connection
-      connections1.setDispatcher(conn1AtBus1WithOrb1);
-      connections1.setDispatcher(connAtBus2WithOrb1);
-
       // login to the bus
       connections1.setRequester(conn1AtBus1WithOrb1);
       conn1AtBus1WithOrb1.loginByPassword("conn1", "conn1".getBytes());
+      connections1.setDispatcher(conn1AtBus1WithOrb1);
       shutdown1.addConnetion(conn1AtBus1WithOrb1);
       connections1.setRequester(conn2AtBus1WithOrb1);
       conn2AtBus1WithOrb1.loginByPassword("conn2", "conn2".getBytes());
       shutdown1.addConnetion(conn2AtBus1WithOrb1);
       connections1.setRequester(connAtBus2WithOrb1);
       connAtBus2WithOrb1.loginByPassword("demo", "demo".getBytes());
+      connections1.setDispatcher(connAtBus2WithOrb1);
       shutdown1.addConnetion(connAtBus2WithOrb1);
       connections1.setRequester(null);
       connAtBus1WithOrb2.loginByPassword("demo", "demo".getBytes());
@@ -142,7 +140,8 @@ public class Server {
 
   public static ServiceProperty[] getProps() {
     ServiceProperty[] serviceProperties = new ServiceProperty[1];
-    serviceProperties[0] = new ServiceProperty("offer.domain", "Interoperability Tests");
+    serviceProperties[0] =
+      new ServiceProperty("offer.domain", "Interoperability Tests");
     return serviceProperties;
   }
 

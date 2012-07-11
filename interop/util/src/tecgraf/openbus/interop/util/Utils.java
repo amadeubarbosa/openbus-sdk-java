@@ -50,12 +50,13 @@ public class Utils {
     return properties;
   }
 
-  static public String chain2str(LoginInfo[] callers) {
+  static public String chain2str(LoginInfo[] callers, LoginInfo caller) {
     StringBuffer buffer = new StringBuffer();
     for (LoginInfo loginInfo : callers) {
       buffer.append(loginInfo.entity);
       buffer.append(";");
     }
+    buffer.append(caller.entity);
     return buffer.toString();
   }
 

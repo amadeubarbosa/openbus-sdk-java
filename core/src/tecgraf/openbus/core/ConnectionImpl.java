@@ -288,8 +288,6 @@ final class ConnectionImpl implements Connection {
 
   /**
    * {@inheritDoc}
-   * 
-   * @throws InvalidPublicKey
    */
   @Override
   public void loginByCertificate(String entity, byte[] privateKeyBytes)
@@ -412,7 +410,7 @@ final class ConnectionImpl implements Connection {
     logger
       .info(String
         .format(
-          "Login por singleSignOn efetuado com sucesso: busid (%s) login (%s) entidade (%s)",
+          "Login por compatilhamento de atutenticação efetuado com sucesso: busid (%s) login (%s) entidade (%s)",
           busid(), login.id, login.entity));
     fireRenewerThread();
   }

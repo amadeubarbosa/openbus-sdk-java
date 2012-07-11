@@ -79,19 +79,17 @@ public class Server {
       ComponentContext context1 = new ComponentContext(orb1, poa1, id);
       context1.addFacet("hello", HelloHelper.id(), new HelloServant(conns));
 
-      // set incoming connection
-      connections.setDispatcher(conn1AtBus1WithOrb1);
-      connections.setDispatcher(connAtBus2WithOrb1);
-
       // login to the bus
       connections.setRequester(conn1AtBus1WithOrb1);
       conn1AtBus1WithOrb1.loginByPassword("conn1", "conn1".getBytes());
+      connections.setDispatcher(conn1AtBus1WithOrb1);
       shutdown.addConnetion(conn1AtBus1WithOrb1);
       connections.setRequester(conn2AtBus1WithOrb1);
       conn2AtBus1WithOrb1.loginByPassword("conn2", "conn2".getBytes());
       shutdown.addConnetion(conn2AtBus1WithOrb1);
       connections.setRequester(connAtBus2WithOrb1);
       connAtBus2WithOrb1.loginByPassword("conn3", "conn3".getBytes());
+      connections.setDispatcher(connAtBus2WithOrb1);
       shutdown.addConnetion(connAtBus2WithOrb1);
       connections.setRequester(null);
 

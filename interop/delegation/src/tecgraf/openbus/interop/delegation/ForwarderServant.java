@@ -43,7 +43,7 @@ public class ForwarderServant extends ForwarderPOA {
     LoginInfo[] originators = chain.originators();
     String user = caller.entity;
     System.out.println(String.format("configurando forward para '%s' por '%s'",
-      to, Utils.chain2str(originators)));
+      to, Utils.chain2str(originators, caller)));
     this.forwardsOf.put(user, new ForwardInfo(chain, to));
   }
 
@@ -55,7 +55,7 @@ public class ForwarderServant extends ForwarderPOA {
     ForwardInfo forward = this.forwardsOf.remove(user);
     if (forward != null) {
       System.out.println(String.format("cancelando forward para '%s' por '%s'",
-        forward.to, Utils.chain2str(originators)));
+        forward.to, Utils.chain2str(originators, caller)));
     }
   }
 

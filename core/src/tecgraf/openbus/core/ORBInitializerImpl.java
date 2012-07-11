@@ -26,6 +26,7 @@ public final class ORBInitializerImpl extends LocalObject implements
     .getLogger(ORBInitializerImpl.class.getName());
   private int signedChainSlotId;
   private int currentThreadSlotId;
+  private int ignoreThreadSlotId;
   private int joinedChainSlotId;
   private int connectionSlotId;
 
@@ -34,10 +35,12 @@ public final class ORBInitializerImpl extends LocalObject implements
     Codec codec = this.createCodec(info);
     this.signedChainSlotId = info.allocate_slot_id();
     this.currentThreadSlotId = info.allocate_slot_id();
+    this.ignoreThreadSlotId = info.allocate_slot_id();
     this.joinedChainSlotId = info.allocate_slot_id();
     this.connectionSlotId = info.allocate_slot_id();
     ConnectionManagerImpl multiplexer =
-      new ConnectionManagerImpl(this.currentThreadSlotId);
+      new ConnectionManagerImpl(this.currentThreadSlotId,
+        this.ignoreThreadSlotId);
     try {
       info.register_initial_reference(ConnectionManager.INITIAL_REFERENCE_ID,
         multiplexer);

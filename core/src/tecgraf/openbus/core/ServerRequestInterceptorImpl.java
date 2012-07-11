@@ -184,16 +184,16 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           String loginId = legacyCredential.identifier;
           String entity = legacyCredential.owner;
 
-          LoginInfo[] callers;
+          LoginInfo[] originators;
           if (!legacyCredential.delegate.equals("")) {
-            callers = new LoginInfo[1];
-            callers[0] = new LoginInfo("<unknown>", legacyCredential.delegate);
+            originators = new LoginInfo[1];
+            originators[0] = new LoginInfo("<unknown>", legacyCredential.delegate);
           }
           else {
-            callers = new LoginInfo[0];
+            originators = new LoginInfo[0];
           }
           CallChain callChain =
-            new CallChain("", callers, new LoginInfo(loginId, entity));
+            new CallChain("", originators, new LoginInfo(loginId, entity));
           Any anyCallChain = orb.create_any();
           CallChainHelper.insert(anyCallChain, callChain);
           byte[] encodedCallChain = codec.encode_value(anyCallChain);
