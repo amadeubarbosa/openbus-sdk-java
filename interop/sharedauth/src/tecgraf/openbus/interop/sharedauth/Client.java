@@ -1,4 +1,4 @@
-package tecgraf.openbus.interop.singlesignon;
+package tecgraf.openbus.interop.sharedauth;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,8 +42,7 @@ public final class Client {
       handler.setLevel(Level.INFO);
       logger.addHandler(handler);
 
-      Properties properties =
-        Utils.readPropertyFile("/singlesignon.properties");
+      Properties properties = Utils.readPropertyFile("/sharedauth.properties");
       String host = properties.getProperty("openbus.host.name");
       int port = Integer.valueOf(properties.getProperty("openbus.host.port"));
       String entity = properties.getProperty("entity.name");
