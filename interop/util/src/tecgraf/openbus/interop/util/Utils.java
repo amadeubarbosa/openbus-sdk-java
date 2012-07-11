@@ -12,6 +12,7 @@ import org.omg.CORBA.ORB;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOffer;
 
 /**
  * Classe utilitária para os demos Java.
@@ -76,6 +77,7 @@ public class Utils {
   public static class ShutdownThread extends Thread {
     private ORB orb;
     private List<Connection> conns = new ArrayList<Connection>();
+    private List<ServiceOffer> offers = new ArrayList<ServiceOffer>();
 
     public ShutdownThread(ORB orb) {
       this.orb = orb;
@@ -83,6 +85,16 @@ public class Utils {
 
     @Override
     public void run() {
+
+      for (ServiceOffer offer : this.offers) {
+        try {
+          offer.remove();
+        }
+        catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
+
       for (Connection conn : this.conns) {
         try {
           conn.logout();
@@ -97,6 +109,18 @@ public class Utils {
 
     public void addConnetion(Connection conn) {
       this.conns.add(conn);
+    }
+
+    public void removeConnetion(Connection conn) {
+      this.conns.remove(conn);
+    }
+
+    public void addOffer(ServiceOffer offer) {
+      this.offers.add(offer);
+    }
+
+    public void removeOffer(ServiceOffer offer) {
+      this.offers.remove(offer);
     }
   }
 }

@@ -52,31 +52,40 @@ public final class Client {
       connection.loginByPassword(entity, password
         .getBytes(Cryptography.CHARSET));
 
-      ServiceProperty[] serviceProperties = new ServiceProperty[3];
+      ServiceProperty[] serviceProperties = new ServiceProperty[2];
       serviceProperties[0] =
-        new ServiceProperty("openbus.offer.entity", serverEntity);
+        new ServiceProperty("openbus.component.interface", HelloHelper.id());
       serviceProperties[1] =
-        new ServiceProperty("openbus.component.facet", "hello");
-      serviceProperties[2] =
         new ServiceProperty("offer.domain", "Interoperability Tests");
       ServiceOfferDesc[] services =
         connection.offers().findServices(serviceProperties);
 
-      if (services.length == 1) {
-        org.omg.CORBA.Object obj =
-          services[0].service_ref.getFacetByName("hello");
-
-        Hello hello = HelloHelper.narrow(obj);
-        hello.sayHello();
+      if (services.length < 1) {
+        System.err.println("O servidor do demo Hello não foi encontrado");
+        connection.logout();
+        System.exit(1);
       }
-      else {
-        if (services.length == 0) {
-          System.err.println("O servidor do demo Hello não foi encontrado");
+      if (services.length > 1) {
+        System.out.println("Foram encontrados vários servidores do demo Hello");
+      }
+
+      for (ServiceOfferDesc offerDesc : services) {
+
+        org.omg.CORBA.Object helloObj =
+          offerDesc.service_ref.getFacetByName("Hello");
+        if (helloObj == null) {
+          System.out
+            .println("Não foi possível encontrar uma faceta com esse nome.");
+          continue;
         }
-        else {
-          System.err
-            .println("Foram encontrados vários servidores do demo Hello");
+
+        Hello hello = HelloHelper.narrow(helloObj);
+        if (hello == null) {
+          System.out.println("Faceta encontrada não implementa Hello.");
+          continue;
         }
+
+        hello.sayHello();
       }
 
       connection.logout();

@@ -14,6 +14,8 @@ import scs.core.ComponentId;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.core.ORBInitializer;
+import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
+import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOffer;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.util.Utils;
 import tecgraf.openbus.interop.util.Utils.ORBRunThread;
@@ -54,12 +56,15 @@ public final class Server {
       ShutdownThread shutdown = new ShutdownThread(orb);
       Runtime.getRuntime().addShutdownHook(shutdown);
 
-      ConnectionManager connections =
+      ConnectionManager manager =
         (ConnectionManager) orb
           .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
-      Connection conn = connections.createConnection(host, port);
-      connections.setDefaultConnection(conn);
+      Connection conn = manager.createConnection(host, port);
+      manager.setDefaultConnection(conn);
       conn.loginByCertificate(entity, privateKey);
+      conn.onInvalidLoginCallback(new HelloInvalidLoginCallback(entity,
+        privateKey, manager));
+
       shutdown.addConnetion(conn);
 
       POA poa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
@@ -67,12 +72,15 @@ public final class Server {
       ComponentId id =
         new ComponentId("Hello", (byte) 1, (byte) 0, (byte) 0, "java");
       ComponentContext context = new ComponentContext(orb, poa, id);
-      context.addFacet("hello", HelloHelper.id(), new HelloServant(conn));
+      context.addFacet("Hello", HelloHelper.id(), new HelloServant(conn));
 
-      ServiceProperty[] serviceProperties = new ServiceProperty[1];
-      serviceProperties[0] =
-        new ServiceProperty("offer.domain", "Interoperability Tests");
-      conn.offers().registerService(context.getIComponent(), serviceProperties);
+      ServiceProperty[] serviceProperties =
+        new ServiceProperty[] { new ServiceProperty("offer.domain",
+          "Interoperability Tests") };
+      OfferRegistry registry = conn.offers();
+      ServiceOffer offer =
+        registry.registerService(context.getIComponent(), serviceProperties);
+      shutdown.addOffer(offer);
 
     }
     catch (Exception e) {
