@@ -112,7 +112,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     ConnectionImpl conn = (ConnectionImpl) this.getCurrentConnection(ri);
     if (conn.login() == null) {
       String message =
-        "Chamada cancelada devido a não existir login. Operação: " + operation;
+        "Chamada cancelada. Conexão não possui login. Operação: " + operation;
       logger.info(message);
       throw new NO_PERMISSION(message, NoLoginCode.value,
         CompletionStatus.COMPLETED_NO);
@@ -368,9 +368,34 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       case InvalidLoginCode.value:
         ConnectionImpl conn = (ConnectionImpl) this.getCurrentConnection(ri);
         InvalidLoginCallback callback = conn.onInvalidLoginCallback();
-        LoginInfo login = conn.login();
-        conn.localLogout();
-        if (callback != null && callback.invalidLogin(conn, login)) {
+        LoginInfo login = new LoginInfo();
+        String busid;
+        synchronized (conn.login()) {
+          login.id = conn.login().id;
+          login.entity = conn.login().entity;
+          busid = conn.busid();
+        }
+        if (callback != null) {
+          try {
+            callback.invalidLogin(conn, login, busid);
+          }
+          catch (Exception ex) {
+            logger.log(Level.SEVERE,
+              "Callback gerou um erro durante execução.", ex);
+          }
+          synchronized (conn.login()) {
+            if (conn.login() == null) {
+              throw new NO_PERMISSION("Callback não refez o login da conexão.",
+                NoLoginCode.value, CompletionStatus.COMPLETED_NO);
+            }
+            else if (login.id.equals(conn.login().id)
+              && login.entity.equals(conn.login().entity)) {
+              conn.localLogout();
+              throw new NO_PERMISSION("Callback não refez o login da conexão.",
+                NoLoginCode.value, CompletionStatus.COMPLETED_NO);
+            }
+          }
+          // callback conseguiu refazer o login
           logger.finest(String.format("ForwardRequest após callback: %s", ri
             .operation()));
           throw new ForwardRequest(ri.target());
@@ -500,4 +525,5 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     }
 
   }
+
 }

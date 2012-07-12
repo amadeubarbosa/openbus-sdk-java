@@ -8,8 +8,20 @@ import org.omg.PortableInterceptor.CurrentHelper;
 import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.exception.OpenBusInternalException;
 
+/**
+ * Classe utilitária de uso do ORB.
+ * 
+ * @author Tecgraf
+ */
 class ORBUtils {
 
+  /**
+   * Recupera o {@link Current} da thread em execução do ORB associado.
+   * 
+   * @param orb o orb utilizado.
+   * @return o {@link Current}.
+   * @throws OpenBusInternalException
+   */
   static Current getPICurrent(ORB orb) throws OpenBusInternalException {
     org.omg.CORBA.Object obj;
     try {
@@ -22,6 +34,13 @@ class ORBUtils {
     return CurrentHelper.narrow(obj);
   }
 
+  /**
+   * Recupera o mediador do ORB
+   * 
+   * @param orb o orb utilizado
+   * @return o mediado do ORB
+   * @throws OpenBusInternalException
+   */
   static ORBMediator getMediator(ORB orb) throws OpenBusInternalException {
     org.omg.CORBA.Object obj;
     try {
@@ -34,6 +53,12 @@ class ORBUtils {
     return (ORBMediator) obj;
   }
 
+  /**
+   * Recupera o gerente de conexões do OpenBus associado ao ORB.
+   * 
+   * @param orb o ORB utilizado.
+   * @return o gerente de conexões.
+   */
   static ConnectionManagerImpl getConnectionManager(ORB orb) {
     org.omg.CORBA.Object obj;
     try {

@@ -187,7 +187,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           LoginInfo[] originators;
           if (!legacyCredential.delegate.equals("")) {
             originators = new LoginInfo[1];
-            originators[0] = new LoginInfo("<unknown>", legacyCredential.delegate);
+            originators[0] =
+              new LoginInfo("<unknown>", legacyCredential.delegate);
           }
           else {
             originators = new LoginInfo[0];
@@ -470,8 +471,9 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
   /**
    * Valida a cadeia da credencial.
    * 
-   * @param chain a cadeia.
-   * @param caller identificador de login do requisitante da operação.
+   * @param credential a credencial
+   * @param pubkey a chave pública da entidade
+   * @param ri informações do request
    * @param conn a conexão em uso.
    * @return <code>true</code> caso a cadeia seja válida, ou <code>false</code>
    *         caso contrário.

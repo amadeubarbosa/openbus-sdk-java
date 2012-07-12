@@ -1,7 +1,6 @@
 package tecgraf.openbus.core;
 
 import java.security.interfaces.RSAPublicKey;
-import java.util.logging.Logger;
 
 import scs.core.IComponent;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessControl;
@@ -16,19 +15,34 @@ import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.exception.OpenBusInternalException;
 import tecgraf.openbus.util.Cryptography;
 
+/**
+ * Classe utiliária para agrupar as informações do barramento.
+ * 
+ * @author Tecgraf
+ */
 final class BusInfo {
-  private static final Logger logger = Logger
-    .getLogger(BusInfo.class.getName());
 
+  /** Identificador do barramento */
   private String id;
+  /** Chave pública do barramento */
   private RSAPublicKey publicKey;
+  /** Referência para o barramento */
   private IComponent bus;
 
+  /** Referência para o controle de acesso do barramento */
   private AccessControl accessControl;
+  /** Referência para o registro de login do barramento */
   private LoginRegistry loginRegistry;
+  /** Referência para o registro de certificado do barramento */
   private CertificateRegistry certificateRegistry;
+  /** Referência para o registro de ofertas do barramento */
   private OfferRegistry offerRegistry;
 
+  /**
+   * Construtor.
+   * 
+   * @param bus referência para o barramento.
+   */
   BusInfo(IComponent bus) {
     this.bus = bus;
 
@@ -48,6 +62,9 @@ final class BusInfo {
     this.offerRegistry = OfferRegistryHelper.narrow(obj);
   }
 
+  /**
+   * Atualiza a informação de identificador e chave do barramento.
+   */
   void retrieveBusIdAndKey() {
     this.id = this.accessControl.busid();
     try {
@@ -61,31 +78,64 @@ final class BusInfo {
     }
   }
 
+  /**
+   * Apaga a informação de identificador e chave do barramento.
+   */
   void clearBusIdAndKey() {
     this.id = null;
     this.publicKey = null;
   }
 
+  /**
+   * Recupera o identificador do barramento.
+   * 
+   * @return o identificador do barramento.
+   */
   String getId() {
     return id;
   }
 
+  /**
+   * Recupera a chave pública do barramento.
+   * 
+   * @return a chave pública do barramento.
+   */
   RSAPublicKey getPublicKey() {
     return publicKey;
   }
 
+  /**
+   * Recupera a referência para o controle de acesso do barramento.
+   * 
+   * @return o controle de acesso do barramento.
+   */
   AccessControl getAccessControl() {
     return accessControl;
   }
 
+  /**
+   * Recupera a referência para o registro de login do barramento.
+   * 
+   * @return o registro de login do barramento.
+   */
   LoginRegistry getLoginRegistry() {
     return loginRegistry;
   }
 
+  /**
+   * Recupera a referência para o registro de certificado do barramento.
+   * 
+   * @return o registro de certificado do barramento.
+   */
   CertificateRegistry getCertificateRegistry() {
     return certificateRegistry;
   }
 
+  /**
+   * Recupera a referência para o registro de ofertas do barramento.
+   * 
+   * @return o registro de ofertas do barramento.
+   */
   OfferRegistry getOfferRegistry() {
     return offerRegistry;
   }

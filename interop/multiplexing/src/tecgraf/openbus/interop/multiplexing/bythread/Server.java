@@ -130,9 +130,8 @@ public class Server {
     }
 
     @Override
-    public boolean invalidLogin(Connection conn, LoginInfo login) {
+    public void invalidLogin(Connection conn, LoginInfo login, String busid) {
       System.out.println("login terminated: " + name);
-      return false;
     }
   }
 

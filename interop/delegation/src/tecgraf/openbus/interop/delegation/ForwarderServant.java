@@ -138,10 +138,9 @@ public class ForwarderServant extends ForwarderPOA {
       conn3.onInvalidLoginCallback(new InvalidLoginCallback() {
 
         @Override
-        public boolean invalidLogin(Connection conn, LoginInfo login) {
+        public void invalidLogin(Connection conn, LoginInfo login, String busid) {
           timer.stopTimer();
           orb3.destroy();
-          return false;
         }
       });
 

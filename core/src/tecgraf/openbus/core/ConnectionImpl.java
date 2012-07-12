@@ -649,14 +649,30 @@ final class ConnectionImpl implements Connection {
     return this.invalidLoginCallback;
   }
 
+  /**
+   * Configura as informações de suporte legado do barramento.
+   * 
+   * @param legacy
+   */
   void setLegacyInfo(LegacyInfo legacy) {
     this.legacyBus = legacy;
   }
 
+  /**
+   * Verifica se o suporte legado esta ativo.
+   * 
+   * @return <code>true</code> caso o suporte esteja ativo, e <code>false</code>
+   *         caso contrário.
+   */
   boolean legacy() {
     return this.legacyBus != null;
   }
 
+  /**
+   * Recupera a referência para o controle de acesso do suporte legado.
+   * 
+   * @return o serviço de controle de acesso legado.
+   */
   IAccessControlService legacyAccess() {
     return this.legacyBus.getAccessControl();
   }

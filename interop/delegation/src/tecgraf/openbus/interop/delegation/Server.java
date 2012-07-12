@@ -55,11 +55,10 @@ public class Server {
       conn1.onInvalidLoginCallback(new InvalidLoginCallback() {
 
         @Override
-        public boolean invalidLogin(Connection conn, LoginInfo login) {
+        public void invalidLogin(Connection conn, LoginInfo login, String busid) {
           System.out.println(String.format(
             "login terminated, shutting the server down: %s", login.entity));
           orb1.destroy();
-          return false;
         }
       });
 
@@ -88,11 +87,10 @@ public class Server {
       conn2.onInvalidLoginCallback(new InvalidLoginCallback() {
 
         @Override
-        public boolean invalidLogin(Connection conn, LoginInfo login) {
+        public void invalidLogin(Connection conn, LoginInfo login, String busid) {
           System.out.println(String.format(
             "login terminated, shutting the server down: %s", login.entity));
           orb2.destroy();
-          return false;
         }
       });
       conn2.loginByPassword(BroadcasterServant.broadcaster,
@@ -104,7 +102,8 @@ public class Server {
       messengerProps[1] =
         new ServiceProperty("openbus.component.facet",
           MessengerServant.messenger);
-      messengerProps[2] = new ServiceProperty("offer.domain", "Interoperability Tests");
+      messengerProps[2] =
+        new ServiceProperty("offer.domain", "Interoperability Tests");
       ServiceOfferDesc[] conn2find =
         conn2.offers().findServices(messengerProps);
 
@@ -159,10 +158,9 @@ public class Server {
       conn3.onInvalidLoginCallback(new InvalidLoginCallback() {
 
         @Override
-        public boolean invalidLogin(Connection conn, LoginInfo login) {
+        public void invalidLogin(Connection conn, LoginInfo login, String busid) {
           timer.stopTimer();
           orb3.destroy();
-          return false;
         }
       });
 
