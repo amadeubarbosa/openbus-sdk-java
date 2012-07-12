@@ -18,18 +18,16 @@ public class HelloInvalidLoginCallback implements InvalidLoginCallback {
   }
 
   @Override
-  public boolean invalidLogin(Connection conn, LoginInfo login) {
+  public void invalidLogin(Connection conn, LoginInfo login, String busid) {
     manager.setRequester(conn);
     try {
       System.out
         .println("Callback de InvalidLogin foi chamada, tentando logar novamente no barramento.");
       conn.loginByCertificate(entity, privKey);
-      return conn.login() != null;
     }
     catch (Exception e) {
       e.printStackTrace();
     }
-    return false;
   }
 
 }
