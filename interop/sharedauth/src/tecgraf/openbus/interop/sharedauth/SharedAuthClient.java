@@ -1,10 +1,10 @@
 package tecgraf.openbus.interop.sharedauth;
 
-import java.io.BufferedWriter;
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.io.InputStreamReader;
 import java.util.Properties;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
@@ -15,27 +15,15 @@ import org.omg.CORBA.ORB;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.core.ORBInitializer;
-import tecgraf.openbus.core.v2_0.OctetSeqHolder;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginProcess;
+import tecgraf.openbus.core.v2_0.services.access_control.LoginProcessHelper;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.simple.Hello;
 import tecgraf.openbus.interop.simple.HelloHelper;
 import tecgraf.openbus.interop.util.Utils;
-import tecgraf.openbus.util.Cryptography;
 
-/**
- * Demo Single Sign On.
- * 
- * @author Tecgraf
- */
-public final class Client {
-
-  /**
-   * Função main.
-   * 
-   * @param args argumentos.
-   */
+public class SharedAuthClient {
   public static void main(String[] args) {
     try {
       Logger logger = Logger.getLogger("tecgraf.openbus");
@@ -48,8 +36,6 @@ public final class Client {
       Properties properties = Utils.readPropertyFile("/sharedauth.properties");
       String host = properties.getProperty("openbus.host.name");
       int port = Integer.valueOf(properties.getProperty("openbus.host.port"));
-      String entity = properties.getProperty("entity.name");
-      String password = properties.getProperty("entity.password");
 
       ORB orb = ORBInitializer.initORB();
 
@@ -59,13 +45,10 @@ public final class Client {
       Connection connection = manager.createConnection(host, port);
       manager.setDefaultConnection(connection);
 
-      connection.loginByPassword(entity, password
-        .getBytes(Cryptography.CHARSET));
-      OctetSeqHolder secret = new OctetSeqHolder();
-      LoginProcess process = connection.startSharedAuth(secret);
+      LoginProcess process = readLoginProcess(properties, orb);
+      byte[] secret = readSecret(properties);
 
-      writeLoginProcess(properties, process, orb);
-      writeSecret(properties, secret);
+      connection.loginBySharedAuth(process, secret);
 
       ServiceProperty[] serviceProperties = new ServiceProperty[2];
       serviceProperties[0] =
@@ -110,21 +93,22 @@ public final class Client {
     }
   }
 
-  private static void writeSecret(Properties properties, OctetSeqHolder secret)
-    throws IOException {
+  private static byte[] readSecret(Properties properties) throws IOException {
     File file = new File(properties.getProperty("secretFile"));
-    FileOutputStream fstream = new FileOutputStream(file);
-    fstream.write(secret.value);
+    FileInputStream fstream = new FileInputStream(file);
+    byte[] secret = new byte[(int) file.length()];
+    fstream.read(secret);
     fstream.close();
+    return secret;
   }
 
-  private static void writeLoginProcess(Properties properties,
-    LoginProcess process, ORB orb) throws IOException {
-    FileOutputStream fstream =
-      new FileOutputStream(properties.getProperty("loginFile"));
-    BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fstream));
-    bw.write(orb.object_to_string(process));
-    bw.close();
-
+  private static LoginProcess readLoginProcess(Properties properties, ORB orb)
+    throws IOException {
+    FileInputStream fstream =
+      new FileInputStream(properties.getProperty("loginFile"));
+    BufferedReader br = new BufferedReader(new InputStreamReader(fstream));
+    String loginProcessIOR = br.readLine();
+    br.close();
+    return LoginProcessHelper.narrow(orb.string_to_object(loginProcessIOR));
   }
 }
