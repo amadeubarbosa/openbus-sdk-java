@@ -354,21 +354,25 @@ final class ConnectionImpl implements Connection {
 
   /**
    * {@inheritDoc}
-   * 
-   * @throws ServiceFailure
    */
   @Override
   public LoginProcess startSharedAuth(OctetSeqHolder secret)
     throws ServiceFailure {
     EncryptedBlockHolder challenge = new EncryptedBlockHolder();
-    LoginProcess process = this.access().startLoginBySharedAuth(challenge);
+    LoginProcess process = null;
+    Connection previousConnection = manager.getRequester();
     try {
+      manager.setRequester(this);
+      process = this.access().startLoginBySharedAuth(challenge);
       secret.value = crypto.decrypt(challenge.value, this.privateKey);
     }
     catch (CryptographyException e) {
       process.cancel();
       throw new OpenBusInternalException(
         "Erro ao descriptografar segredo com chave privada.", e);
+    }
+    finally {
+      manager.setRequester(previousConnection);
     }
     return process;
   }
