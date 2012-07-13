@@ -46,6 +46,7 @@ import tecgraf.openbus.core.v2_0.services.access_control.InvalidLogins;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidPublicKeyCode;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_0.services.access_control.NoCredentialCode;
+import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_0.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_0.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.exception.CryptographyException;
@@ -278,6 +279,10 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
                 CompletionStatus.COMPLETED_NO);
             }
           }
+          if (conn.login() == null) {
+            throw new NO_PERMISSION(UnknownBusCode.value,
+              CompletionStatus.COMPLETED_NO);
+          }
 
           setCurrentConnection(ri, conn);
           manager.setRequester(conn);
@@ -285,6 +290,21 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           boolean valid = false;
           try {
             valid = loginsCache.validateLogin(loginId, conn);
+          }
+          catch (NO_PERMISSION e) {
+            if (e.minor == NoLoginCode.value) {
+              String message =
+                "Erro ao validar o login. Conexão dispatcher está deslogada.";
+              logger.log(Level.SEVERE, message, e);
+              throw new NO_PERMISSION(UnknownBusCode.value,
+                CompletionStatus.COMPLETED_NO);
+            }
+            else {
+              String message = "Erro ao validar o login.";
+              logger.log(Level.SEVERE, message, e);
+              throw new NO_PERMISSION(UnverifiedLoginCode.value,
+                CompletionStatus.COMPLETED_NO);
+            }
           }
           catch (Exception e) {
             String message = "Erro ao validar o login.";
@@ -337,6 +357,21 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           logger.log(Level.SEVERE, message, e);
           throw new NO_PERMISSION(UnverifiedLoginCode.value,
             CompletionStatus.COMPLETED_NO);
+        }
+        catch (NO_PERMISSION e) {
+          if (e.minor == NoLoginCode.value) {
+            String message =
+              "Erro ao verificar o login. Conexão dispatcher está deslogada.";
+            logger.log(Level.SEVERE, message, e);
+            throw new NO_PERMISSION(UnknownBusCode.value,
+              CompletionStatus.COMPLETED_NO);
+          }
+          else {
+            String message = "Erro ao verificar o login.";
+            logger.log(Level.SEVERE, message, e);
+            throw new NO_PERMISSION(UnverifiedLoginCode.value,
+              CompletionStatus.COMPLETED_NO);
+          }
         }
         catch (Exception e) {
           String message = "Erro ao verificar o login.";
