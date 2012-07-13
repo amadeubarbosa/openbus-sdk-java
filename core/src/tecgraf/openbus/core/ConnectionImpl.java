@@ -295,13 +295,14 @@ final class ConnectionImpl implements Connection {
     MissingCertificate, ServiceFailure {
     checkLoggedIn();
     this.manager.ignoreCurrentThread();
+    LoginProcess loginProcess = null;
     try {
       this.bus.retrieveBusIdAndKey();
 
       RSAPrivateKey privateKey =
         crypto.createPrivateKeyFromBytes(privateKeyBytes);
       EncryptedBlockHolder challengeHolder = new EncryptedBlockHolder();
-      LoginProcess loginProcess =
+      loginProcess =
         getBus().getAccessControl().startLoginByCertificate(entity,
           challengeHolder);
       byte[] decryptedChallenge =
@@ -316,6 +317,7 @@ final class ConnectionImpl implements Connection {
           encryptedLoginAuthenticationInfo, validityHolder);
     }
     catch (CryptographyException e) {
+      loginProcess.cancel();
       throw new WrongPrivateKey("Erro ao descriptografar desafio.", e);
     }
     catch (AccessDenied e) {
