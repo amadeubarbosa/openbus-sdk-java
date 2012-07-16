@@ -9,6 +9,9 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -29,6 +32,7 @@ import scs.core.IComponentHelper;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
+import tecgraf.openbus.core.InternalLogin.LoginStatus;
 import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlService;
 import tecgraf.openbus.core.v2_0.BusObjectKey;
 import tecgraf.openbus.core.v2_0.EncryptedBlockHolder;
@@ -85,7 +89,15 @@ final class ConnectionImpl implements Connection {
   /** Chave privada do sdk */
   private RSAPrivateKey privateKey;
   /** Informação do login associado a esta conexão. */
-  private LoginInfo login;
+  private InternalLogin login;
+  /** Lock para operações sobre o login */
+  private final ReentrantReadWriteLock rwlock =
+    new ReentrantReadWriteLock(true);
+  /** Lock de leitura para operações sobre o login */
+  private final ReadLock readLock = rwlock.readLock();
+  /** Lock de escrita para operações sobre o login */
+  private final WriteLock writeLock = rwlock.writeLock();
+
   /** Mapa de thread para cadeia de chamada */
   private Map<Thread, CallerChain> joinedChains;
   /** Thread de renovação de login */
@@ -134,7 +146,7 @@ final class ConnectionImpl implements Connection {
       throw new OpenBusInternalException(
         "Erro inexperado na geração do par de chaves.", e);
     }
-
+    this.login = new InternalLogin(this);
   }
 
   /**
@@ -178,7 +190,8 @@ final class ConnectionImpl implements Connection {
    * @throws AlreadyLoggedIn
    */
   private void checkLoggedIn() throws AlreadyLoggedIn {
-    if (this.login != null) {
+    LoginStatus status = this.login.getStatus();
+    if (status.equals(LoginStatus.loggedIn)) {
       throw new AlreadyLoggedIn();
     }
   }
@@ -198,7 +211,7 @@ final class ConnectionImpl implements Connection {
     this.bus = new BusInfo(acsComponent);
 
     /* *
-     * enquanto não definimos uma API o legacy esta guardado no ORBMediator
+     * enquanto não definimos uma API, o legacy esta guardado no ORBMediator
      * porém, esta sempre true. Este é o ponto de entrada para configurar o
      * legacy se for por conexão. Caso seja por ORB, colocar no ORBInit?
      * 
@@ -218,6 +231,7 @@ final class ConnectionImpl implements Connection {
   public void loginByPassword(String entity, byte[] password)
     throws AccessDenied, AlreadyLoggedIn, ServiceFailure {
     checkLoggedIn();
+    LoginInfo newLogin;
     try {
       this.manager.ignoreCurrentThread();
 
@@ -227,10 +241,11 @@ final class ConnectionImpl implements Connection {
         this.generateEncryptedLoginAuthenticationInfo(password);
       IntHolder validityHolder = new IntHolder();
 
-      this.login =
+      newLogin =
         getBus().getAccessControl().loginByPassword(entity,
           this.publicKey.getEncoded(), encryptedLoginAuthenticationInfo,
           validityHolder);
+      login.setLoggedIn(newLogin);
     }
     catch (WrongEncoding e) {
       throw new ServiceFailure(
@@ -248,7 +263,7 @@ final class ConnectionImpl implements Connection {
       .info(String
         .format(
           "Login por senha efetuado com sucesso: busid (%s) login (%s) entidade (%s)",
-          busid(), login.id, login.entity));
+          busid(), newLogin.id, newLogin.entity));
     fireRenewerThread();
   }
 
@@ -296,6 +311,7 @@ final class ConnectionImpl implements Connection {
     checkLoggedIn();
     this.manager.ignoreCurrentThread();
     LoginProcess loginProcess = null;
+    LoginInfo newLogin;
     try {
       this.bus.retrieveBusIdAndKey();
 
@@ -312,9 +328,10 @@ final class ConnectionImpl implements Connection {
         this.generateEncryptedLoginAuthenticationInfo(decryptedChallenge);
 
       IntHolder validityHolder = new IntHolder();
-      this.login =
+      newLogin =
         loginProcess.login(this.publicKey.getEncoded(),
           encryptedLoginAuthenticationInfo, validityHolder);
+      login.setLoggedIn(newLogin);
     }
     catch (CryptographyException e) {
       loginProcess.cancel();
@@ -348,7 +365,7 @@ final class ConnectionImpl implements Connection {
       .info(String
         .format(
           "Login por certificado efetuada com sucesso: busid (%s) login (%s) entidade (%s)",
-          busid(), login.id, login.entity));
+          busid(), newLogin.id, newLogin.entity));
     fireRenewerThread();
   }
 
@@ -391,10 +408,12 @@ final class ConnectionImpl implements Connection {
     byte[] encryptedLoginAuthenticationInfo =
       this.generateEncryptedLoginAuthenticationInfo(secret);
     IntHolder validity = new IntHolder();
+    LoginInfo newLogin;
     try {
-      this.login =
+      newLogin =
         process.login(this.publicKey.getEncoded(),
           encryptedLoginAuthenticationInfo, validity);
+      login.setLoggedIn(newLogin);
     }
     catch (AccessDenied e) {
       throw new WrongSecret("Erro durante tentativa de login.", e);
@@ -417,7 +436,7 @@ final class ConnectionImpl implements Connection {
       .info(String
         .format(
           "Login por compatilhamento de atutenticação efetuado com sucesso: busid (%s) login (%s) entidade (%s)",
-          busid(), login.id, login.entity));
+          busid(), newLogin.id, newLogin.entity));
     fireRenewerThread();
   }
 
@@ -447,7 +466,18 @@ final class ConnectionImpl implements Connection {
    */
   @Override
   public LoginInfo login() {
-    return this.login;
+    readLock.lock();
+    try {
+      if (this.login.getStatus() == LoginStatus.loggedIn) {
+        return this.login.getLogin();
+      }
+      else {
+        return null;
+      }
+    }
+    finally {
+      readLock.unlock();
+    }
   }
 
   /**
@@ -455,7 +485,8 @@ final class ConnectionImpl implements Connection {
    */
   @Override
   public boolean logout() throws ServiceFailure {
-    if (this.login == null) {
+    LoginStatus status = this.login.getStatus();
+    if (status.equals(LoginStatus.loggedOut)) {
       return false;
     }
 
@@ -490,9 +521,9 @@ final class ConnectionImpl implements Connection {
     if ((conn != null) && (conn.equals(this))) {
       manager.clearDispatcher(busid());
     }
-    logger.info(String.format("Logout efetuado: id (%s) entidade (%s)",
-      login.id, login.entity));
-    this.login = null;
+    LoginInfo old = this.login.setLoggedOut();
+    logger.info(String.format("Logout efetuado: id (%s) entidade (%s)", old.id,
+      old.entity));
     this.getBus().clearBusIdAndKey();
   }
 
@@ -512,7 +543,8 @@ final class ConnectionImpl implements Connection {
         return null;
       }
       String loginid = any.extract_string();
-      if (!this.login.id.equals(loginid)) {
+      LoginInfo curr = this.login.getLogin();
+      if (!curr.id.equals(loginid)) {
         return null;
       }
       any = current.get_slot(mediator.getSignedChainSlotId());
@@ -690,5 +722,23 @@ final class ConnectionImpl implements Connection {
    */
   BusInfo getBus() {
     return bus;
+  }
+
+  /**
+   * Recupera o lock de leitura
+   * 
+   * @return o lock de leitura.
+   */
+  ReadLock readLock() {
+    return this.readLock;
+  }
+
+  /**
+   * Recupera o lock de escrita
+   * 
+   * @return o lock de escrita.
+   */
+  WriteLock writeLock() {
+    return this.writeLock;
   }
 }

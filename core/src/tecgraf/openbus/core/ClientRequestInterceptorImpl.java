@@ -370,10 +370,15 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         InvalidLoginCallback callback = conn.onInvalidLoginCallback();
         LoginInfo login = new LoginInfo();
         String busid;
-        synchronized (conn.login()) {
-          login.id = conn.login().id;
-          login.entity = conn.login().entity;
+        conn.readLock().lock();
+        try {
+          LoginInfo info = conn.login();
+          login.id = info.id;
+          login.entity = info.entity;
           busid = conn.busid();
+        }
+        finally {
+          conn.readLock().unlock();
         }
         if (callback != null) {
           try {
@@ -383,17 +388,17 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
             logger.log(Level.SEVERE,
               "Callback gerou um erro durante execução.", ex);
           }
-          synchronized (conn.login()) {
-            if (conn.login() == null) {
-              throw new NO_PERMISSION("Callback não refez o login da conexão.",
-                NoLoginCode.value, CompletionStatus.COMPLETED_NO);
-            }
-            else if (login.id.equals(conn.login().id)
-              && login.entity.equals(conn.login().entity)) {
-              conn.localLogout();
-              throw new NO_PERMISSION("Callback não refez o login da conexão.",
-                NoLoginCode.value, CompletionStatus.COMPLETED_NO);
-            }
+          LoginInfo afterLogin = conn.login();
+          if (afterLogin == null) {
+            throw new NO_PERMISSION("Callback não refez o login da conexão.",
+              NoLoginCode.value, CompletionStatus.COMPLETED_NO);
+          }
+          else if (login.id.equals(afterLogin.id)
+            && login.entity.equals(afterLogin.entity)) {
+            //FIXME
+            conn.localLogout();
+            throw new NO_PERMISSION("Callback não refez o login da conexão.",
+              NoLoginCode.value, CompletionStatus.COMPLETED_NO);
           }
           // callback conseguiu refazer o login
           logger.finest(String.format("ForwardRequest após callback: %s", ri
