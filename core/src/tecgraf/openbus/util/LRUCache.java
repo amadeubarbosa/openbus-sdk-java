@@ -23,7 +23,8 @@ public class LRUCache<k, v> extends LinkedHashMap<k, v> {
    */
   public LRUCache(int size) {
     // Fator de 0.75 é o default especificado na API.
-    super(size, 0.75f, true);
+    // 16 é a capacidade incial default especificado na API
+    super(16, 0.75f, true);
     this.MAX_SIZE = size;
   }
 
@@ -32,6 +33,7 @@ public class LRUCache<k, v> extends LinkedHashMap<k, v> {
    */
   @Override
   protected boolean removeEldestEntry(java.util.Map.Entry<k, v> eldest) {
-    return super.size() >= MAX_SIZE;
+    return super.size() > MAX_SIZE;
   }
+
 }
