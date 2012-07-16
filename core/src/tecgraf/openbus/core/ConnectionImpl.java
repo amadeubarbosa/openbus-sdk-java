@@ -542,6 +542,9 @@ final class ConnectionImpl implements Connection {
       if (any.type().kind().value() == TCKind._tk_null) {
         return null;
       }
+      // FIXME: o uso do login.id para identificar a conexão não é saudável
+      // pois a conexão pode não ter mais condição de recuperar a callerChain
+      // caso o seu login mude.
       String loginid = any.extract_string();
       LoginInfo curr = this.login.getLogin();
       if (!curr.id.equals(loginid)) {

@@ -140,9 +140,10 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     if (conn.legacy()) {
       try {
         // construindo credencial 1.5
+        LoginInfo login = conn.login();
         Credential legacyCredential = new Credential();
-        legacyCredential.identifier = conn.login().id;
-        legacyCredential.owner = conn.login().entity;
+        legacyCredential.identifier = login.id;
+        legacyCredential.owner = login.entity;
         String delegate = "";
 
         if (joinedChain != NULL_SIGNED_CALL_CHAIN) {
@@ -314,6 +315,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void receive_exception(ClientRequestInfo ri) throws ForwardRequest {
+    // FIXME necessario salvar a conexão e o login que foi utilizado no send_request
     if (!ri.received_exception_id().equals(NO_PERMISSIONHelper.id())) {
       return;
     }
@@ -366,8 +368,13 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         throw new ForwardRequest(ri.target());
 
       case InvalidLoginCode.value:
+        // FIXME verificar se o login é o mesmo do utilizado em send_request
         ConnectionImpl conn = (ConnectionImpl) this.getCurrentConnection(ri);
         InvalidLoginCallback callback = conn.onInvalidLoginCallback();
+        // FIXME implementar a lógica abaixo:
+        // if (conn.login() == "login que realizou a requisição") {
+        //   conn.login.setInvalid();
+        // }
         LoginInfo login = new LoginInfo();
         String busid;
         conn.readLock().lock();
@@ -395,7 +402,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
           }
           else if (login.id.equals(afterLogin.id)
             && login.entity.equals(afterLogin.entity)) {
-            //FIXME
+            //FIXME o locallogout deve ser feito quando se seta o login como inválido 
             conn.localLogout();
             throw new NO_PERMISSION("Callback não refez o login da conexão.",
               NoLoginCode.value, CompletionStatus.COMPLETED_NO);

@@ -96,6 +96,7 @@ final class LeaseRenewer {
     /**
      * A conexão.
      */
+    // FIXME a referência para a conexão deve ser fraca
     private Connection conn;
 
     /**
@@ -127,6 +128,7 @@ final class LeaseRenewer {
         this.mustContinue = false;
       }
       LoginInfo info = conn.login();
+      // FIXME mudar para "timed wait" ao invés de sleep
       while (this.mustContinue) {
         int lease = -1;
         try {

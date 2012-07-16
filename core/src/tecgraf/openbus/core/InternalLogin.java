@@ -28,7 +28,7 @@ class InternalLogin {
   /** Informações do login */
   private LoginInfo login;
   /** Cópia das informações do login */
-  private LoginInfo cplogin;
+  private LoginInfo cplogin = null;
   /** A conexão deste login */
   private final ConnectionImpl conn;
 
@@ -97,10 +97,12 @@ class InternalLogin {
    */
   LoginInfo setLoggedOut() {
     conn.writeLock().lock();
+    LoginInfo old = cplogin;
     login = null;
+    cplogin = null;
     status = LoginStatus.loggedOut;
     conn.writeLock().unlock();
-    return cplogin;
+    return old;
   }
 
   /**

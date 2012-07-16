@@ -41,7 +41,7 @@ final class ConnectionManagerImpl extends LocalObject implements
   private final int IGNORE_THREAD_SLOT_ID;
   /** Mapa de conexão que trata requisições de entrada por barramento */
   private Map<String, Connection> incomingDispatcherConn;
-  /** Mapa de conexão por thread */
+  /** Mapa de conexão por Requester */
   private Map<Long, Connection> connectedThreads;
   /** Conexão padrão */
   private Connection defaultConn;
