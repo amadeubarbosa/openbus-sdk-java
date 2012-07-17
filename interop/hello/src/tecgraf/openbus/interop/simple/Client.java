@@ -39,7 +39,6 @@ public final class Client {
       String host = properties.getProperty("openbus.host.name");
       int port = Integer.valueOf(properties.getProperty("openbus.host.port"));
       String entity = properties.getProperty("entity.name");
-      String serverEntity = properties.getProperty("server.entity.name");
       String password = properties.getProperty("entity.password");
 
       ORB orb = ORBInitializer.initORB();

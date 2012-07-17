@@ -21,6 +21,7 @@ import tecgraf.openbus.interop.simple.HelloHelper;
 import tecgraf.openbus.interop.util.Utils;
 import tecgraf.openbus.interop.util.Utils.ORBRunThread;
 import tecgraf.openbus.interop.util.Utils.ShutdownThread;
+import tecgraf.openbus.util.Cryptography;
 
 public class Server {
 
@@ -35,8 +36,16 @@ public class Server {
 
       Properties properties =
         Utils.readPropertyFile("/multiplexing.properties");
-      String host = properties.getProperty("host");
+      String host = properties.getProperty("host1");
       int port = Integer.valueOf(properties.getProperty("port1"));
+      String keyFile = properties.getProperty("key");
+      String entityPrefix = properties.getProperty("entity");
+
+      Cryptography crypto = Cryptography.getInstance();
+      byte[] privateKey = crypto.readPrivateKey(keyFile);
+
+      String entity1 = entityPrefix + "1";
+      String entity2 = entityPrefix + "2";
 
       // setup and start the orb
       ORB orb1 = ORBInitializer.initORB(args);
@@ -50,17 +59,17 @@ public class Server {
       Runtime.getRuntime().addShutdownHook(shutdown2);
 
       // connect to the bus
-      ConnectionManager connections1 =
+      ConnectionManager manager1 =
         (ConnectionManager) orb1
           .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
-      Connection conn1 = connections1.createConnection(host, port);
-      connections1.setDefaultConnection(conn1);
+      Connection conn1 = manager1.createConnection(host, port);
+      manager1.setDefaultConnection(conn1);
 
-      ConnectionManager connections2 =
+      ConnectionManager manager2 =
         (ConnectionManager) orb2
           .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
-      Connection conn2 = connections2.createConnection(host, port);
-      connections2.setDefaultConnection(conn2);
+      Connection conn2 = manager2.createConnection(host, port);
+      manager2.setDefaultConnection(conn2);
 
       // setup action on login termination
       conn1.onInvalidLoginCallback(new Callback(conn1, "conn1"));
@@ -72,17 +81,18 @@ public class Server {
       ComponentId id =
         new ComponentId("Hello", (byte) 1, (byte) 0, (byte) 0, "java");
       ComponentContext context1 = new ComponentContext(orb1, poa1, id);
-      context1.addFacet("hello", HelloHelper.id(), new HelloServant(conn1));
+      context1.addFacet("Hello", HelloHelper.id(), new HelloServant(conn1));
 
       POA poa2 = POAHelper.narrow(orb2.resolve_initial_references("RootPOA"));
       poa2.the_POAManager().activate();
       ComponentContext context2 = new ComponentContext(orb2, poa2, id);
-      context2.addFacet("hello", HelloHelper.id(), new HelloServant(conn2));
+      context2.addFacet("Hello", HelloHelper.id(), new HelloServant(conn2));
 
       // login to the bus
-      conn1.loginByPassword("conn1", "conn1".getBytes());
+      conn1.loginByCertificate(entity1, privateKey);
+      conn2.loginByCertificate(entity2, privateKey);
+
       shutdown1.addConnetion(conn1);
-      conn2.loginByPassword("conn2", "conn2".getBytes());
       shutdown2.addConnetion(conn2);
 
       ServiceProperty[] serviceProperties = new ServiceProperty[1];

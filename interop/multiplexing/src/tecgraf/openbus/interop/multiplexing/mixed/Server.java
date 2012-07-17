@@ -24,6 +24,7 @@ import tecgraf.openbus.interop.simple.HelloHelper;
 import tecgraf.openbus.interop.util.Utils;
 import tecgraf.openbus.interop.util.Utils.ORBRunThread;
 import tecgraf.openbus.interop.util.Utils.ShutdownThread;
+import tecgraf.openbus.util.Cryptography;
 
 public class Server {
 
@@ -38,9 +39,20 @@ public class Server {
 
       Properties properties =
         Utils.readPropertyFile("/multiplexing.properties");
-      String host = properties.getProperty("host");
+      String host = properties.getProperty("host1");
+      String host2 = properties.getProperty("host2");
       int port1 = Integer.valueOf(properties.getProperty("port1"));
       int port2 = Integer.valueOf(properties.getProperty("port2"));
+
+      String keyFile = properties.getProperty("key");
+      String entityPrefix = properties.getProperty("entity");
+
+      Cryptography crypto = Cryptography.getInstance();
+      byte[] privateKey = crypto.readPrivateKey(keyFile);
+
+      String entity1 = entityPrefix + "1";
+      String entity2 = entityPrefix + "2";
+      String entity3 = entityPrefix + "3";
 
       // setup and start the orb
       ORB orb1 = ORBInitializer.initORB(args);
@@ -54,36 +66,32 @@ public class Server {
       Runtime.getRuntime().addShutdownHook(shutdown2);
 
       // connect to the bus
-      ConnectionManager connections1 =
+      ConnectionManager manager1 =
         (ConnectionManager) orb1
           .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
-      ConnectionManager connections2 =
+      ConnectionManager manager2 =
         (ConnectionManager) orb2
           .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
 
-      Connection conn1AtBus1WithOrb1 =
-        connections1.createConnection(host, port1);
-      Connection conn2AtBus1WithOrb1 =
-        connections1.createConnection(host, port1);
-      Connection connAtBus2WithOrb1 =
-        connections1.createConnection(host, port2);
-      Connection connAtBus1WithOrb2 =
-        connections2.createConnection(host, port1);
+      Connection conn1AtBus1WithOrb1 = manager1.createConnection(host, port1);
+      Connection conn2AtBus1WithOrb1 = manager1.createConnection(host, port1);
+      Connection conn1AtBus2WithOrb1 = manager1.createConnection(host2, port2);
+      Connection conn3AtBus1WithOrb2 = manager2.createConnection(host, port1);
 
       List<Connection> conns = new ArrayList<Connection>();
       conns.add(conn1AtBus1WithOrb1);
-      conns.add(connAtBus2WithOrb1);
-      conns.add(connAtBus1WithOrb2);
+      conns.add(conn1AtBus2WithOrb1);
+      conns.add(conn3AtBus1WithOrb2);
 
       // setup action on login termination
       conn1AtBus1WithOrb1.onInvalidLoginCallback(new Callback(
         conn1AtBus1WithOrb1, "conn1AtBus1WithOrb1"));
       conn2AtBus1WithOrb1.onInvalidLoginCallback(new Callback(
         conn2AtBus1WithOrb1, "conn2AtBus1WithOrb1"));
-      connAtBus2WithOrb1.onInvalidLoginCallback(new Callback(
-        connAtBus2WithOrb1, "connAtBus2WithOrb1"));
-      connAtBus1WithOrb2.onInvalidLoginCallback(new Callback(
-        connAtBus1WithOrb2, "connAtBus1WithOrb2"));
+      conn1AtBus2WithOrb1.onInvalidLoginCallback(new Callback(
+        conn1AtBus2WithOrb1, "connAtBus2WithOrb1"));
+      conn3AtBus1WithOrb2.onInvalidLoginCallback(new Callback(
+        conn3AtBus1WithOrb2, "connAtBus1WithOrb2"));
 
       // create service SCS component
       ComponentId id =
@@ -91,47 +99,45 @@ public class Server {
       POA poa1 = POAHelper.narrow(orb1.resolve_initial_references("RootPOA"));
       poa1.the_POAManager().activate();
       ComponentContext context1 = new ComponentContext(orb1, poa1, id);
-      context1.addFacet("hello", HelloHelper.id(), new HelloServant(conns));
+      context1.addFacet("Hello", HelloHelper.id(), new HelloServant(conns));
       POA poa2 = POAHelper.narrow(orb2.resolve_initial_references("RootPOA"));
       poa2.the_POAManager().activate();
       ComponentContext context2 = new ComponentContext(orb2, poa2, id);
-      context2.addFacet("hello", HelloHelper.id(), new HelloServant(conns));
+      context2.addFacet("Hello", HelloHelper.id(), new HelloServant(conns));
 
       // login to the bus
-      connections1.setRequester(conn1AtBus1WithOrb1);
-      conn1AtBus1WithOrb1.loginByPassword("conn1", "conn1".getBytes());
-      connections1.setDispatcher(conn1AtBus1WithOrb1);
+      conn1AtBus1WithOrb1.loginByCertificate(entity1, privateKey);
+      conn2AtBus1WithOrb1.loginByCertificate(entity2, privateKey);
+      conn3AtBus1WithOrb2.loginByCertificate(entity3, privateKey);
+      conn1AtBus2WithOrb1.loginByCertificate(entity1, privateKey);
+
+      manager1.setDispatcher(conn1AtBus1WithOrb1);
+      manager1.setDispatcher(conn1AtBus2WithOrb1);
+
       shutdown1.addConnetion(conn1AtBus1WithOrb1);
-      connections1.setRequester(conn2AtBus1WithOrb1);
-      conn2AtBus1WithOrb1.loginByPassword("conn2", "conn2".getBytes());
       shutdown1.addConnetion(conn2AtBus1WithOrb1);
-      connections1.setRequester(connAtBus2WithOrb1);
-      connAtBus2WithOrb1.loginByPassword("demo", "demo".getBytes());
-      connections1.setDispatcher(connAtBus2WithOrb1);
-      shutdown1.addConnetion(connAtBus2WithOrb1);
-      connections1.setRequester(null);
-      connAtBus1WithOrb2.loginByPassword("demo", "demo".getBytes());
-      shutdown2.addConnetion(connAtBus1WithOrb2);
+      shutdown1.addConnetion(conn1AtBus2WithOrb1);
+      shutdown2.addConnetion(conn3AtBus1WithOrb2);
 
       Thread thread1 =
-        new RegisterThread(conn1AtBus1WithOrb1, connections1, context1
+        new RegisterThread(conn1AtBus1WithOrb1, manager1, context1
           .getIComponent());
       thread1.start();
 
       Thread thread2 =
-        new RegisterThread(conn2AtBus1WithOrb1, connections1, context1
+        new RegisterThread(conn2AtBus1WithOrb1, manager1, context1
           .getIComponent());
       thread2.start();
 
-      connections1.setRequester(connAtBus2WithOrb1);
-      connAtBus2WithOrb1.offers().registerService(context1.getIComponent(),
+      manager1.setRequester(conn1AtBus2WithOrb1);
+      conn1AtBus2WithOrb1.offers().registerService(context1.getIComponent(),
         getProps());
 
-      connections2.setRequester(connAtBus1WithOrb2);
-      connections2.setDispatcher(connAtBus1WithOrb2);
-      connAtBus1WithOrb2.offers().registerService(context2.getIComponent(),
+      manager2.setRequester(conn3AtBus1WithOrb2);
+      manager2.setDispatcher(conn3AtBus1WithOrb2);
+      conn3AtBus1WithOrb2.offers().registerService(context2.getIComponent(),
         getProps());
-      connections2.setRequester(null);
+      manager2.setRequester(null);
     }
     catch (Exception e) {
       e.printStackTrace();

@@ -38,24 +38,29 @@ public class Client {
 
       Properties properties =
         Utils.readPropertyFile("/multiplexing.properties");
-      String host = properties.getProperty("host");
-      int port1 = Integer.valueOf(properties.getProperty("port1"));
-      int port2 = Integer.valueOf(properties.getProperty("port2"));
-      int ports[] = { port1, port2 };
+      BusAddress bus1 =
+        new BusAddress(properties.getProperty("host1"), Integer
+          .valueOf(properties.getProperty("port1")));
+      BusAddress bus2 =
+        new BusAddress(properties.getProperty("host2"), Integer
+          .valueOf(properties.getProperty("port2")));
 
-      for (int port : ports) {
+      BusAddress buses[] = { bus1, bus2 };
+
+      for (BusAddress busAddr : buses) {
         ORB orb = ORBInitializer.initORB();
-        ConnectionManager connections =
+        ConnectionManager manager =
           (ConnectionManager) orb
             .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
-        Connection conn = connections.createConnection(host, port);
-        connections.setDefaultConnection(conn);
-        String login = "demo@" + port;
+        Connection conn =
+          manager.createConnection(busAddr.hostname, busAddr.port);
+        manager.setDefaultConnection(conn);
+        String login = "interop@" + busAddr.hostname + ":" + busAddr.port;
         conn.loginByPassword(login, login.getBytes());
 
         ServiceProperty[] serviceProperties = new ServiceProperty[2];
         serviceProperties[0] =
-          new ServiceProperty("openbus.component.facet", "hello");
+          new ServiceProperty("openbus.component.interface", HelloHelper.id());
         serviceProperties[1] =
           new ServiceProperty("offer.domain", "Interoperability Tests");
         ServiceOfferDesc[] services =
@@ -64,10 +69,11 @@ public class Client {
           for (ServiceProperty prop : offer.properties) {
             if (prop.name.equals("openbus.offer.entity")) {
               System.out.println("found offer from " + prop.value
-                + " on bus at port " + port);
+                + " on bus at " + busAddr.hostname + ":" + busAddr.port);
             }
           }
-          org.omg.CORBA.Object obj = offer.service_ref.getFacetByName("hello");
+          org.omg.CORBA.Object obj =
+            offer.service_ref.getFacet(HelloHelper.id());
           Hello hello = HelloHelper.narrow(obj);
           hello.sayHello();
         }
@@ -75,6 +81,16 @@ public class Client {
     }
     catch (Exception e) {
       e.printStackTrace();
+    }
+  }
+
+  static class BusAddress {
+    public String hostname;
+    public int port;
+
+    public BusAddress(String host, int port) {
+      this.hostname = host;
+      this.port = port;
     }
   }
 }

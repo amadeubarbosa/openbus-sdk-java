@@ -38,7 +38,7 @@ public class Client {
 
       Properties properties =
         Utils.readPropertyFile("/multiplexing.properties");
-      String host = properties.getProperty("host");
+      String host = properties.getProperty("host1");
       int port1 = Integer.valueOf(properties.getProperty("port1"));
       int port2 = Integer.valueOf(properties.getProperty("port2"));
       int ports[] = { port1, port2 };
@@ -55,7 +55,7 @@ public class Client {
 
         ServiceProperty[] serviceProperties = new ServiceProperty[2];
         serviceProperties[0] =
-          new ServiceProperty("openbus.component.facet", "hello");
+          new ServiceProperty("openbus.component.interface", HelloHelper.id());
         serviceProperties[1] =
           new ServiceProperty("offer.domain", "Interoperability Tests");
         ServiceOfferDesc[] services =
@@ -67,7 +67,8 @@ public class Client {
                 + " on bus at port " + port);
             }
           }
-          org.omg.CORBA.Object obj = offer.service_ref.getFacetByName("hello");
+          org.omg.CORBA.Object obj =
+            offer.service_ref.getFacet(HelloHelper.id());
           Hello hello = HelloHelper.narrow(obj);
           hello.sayHello();
         }
