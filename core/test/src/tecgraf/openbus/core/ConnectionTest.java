@@ -96,9 +96,10 @@ public final class ConnectionTest {
   @Test
   public void busIdTest() throws Exception {
     Connection conn = manager.createConnection(host, port);
-    assertNull(conn.busid());
-    conn.loginByPassword(entity, entity.getBytes());
+    String busid = conn.busid();
     assertNotNull(conn.busid());
+    conn.loginByPassword(entity, entity.getBytes());
+    assertEquals(conn.busid(), busid);
     assertFalse(conn.busid().isEmpty());
     assertTrue(conn.logout());
     assertNull(conn.login());
@@ -314,8 +315,8 @@ public final class ConnectionTest {
     manager.setDispatcher(conn);
     assertEquals(manager.getDispatcher(busId), conn);
     assertTrue(conn.logout());
-    assertNull(manager.getDispatcher(busId));
-    assertNull(conn.busid());
+    assertEquals(manager.getDispatcher(busId), conn);
+    assertNotNull(conn.busid());
     assertNull(conn.login());
     boolean failed = false;
     try {

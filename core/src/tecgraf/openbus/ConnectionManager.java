@@ -1,6 +1,5 @@
 package tecgraf.openbus;
 
-import tecgraf.openbus.exception.NotLoggedIn;
 
 /**
  * Interface com operações para gerenciar acesso multiplexado a diferentes
@@ -73,9 +72,8 @@ public interface ConnectionManager {
    * barramento ao qual está conectada, denominada conexão de despacho.
    * 
    * @param conn Conexão a barramento a ser associada a thread corrente.
-   * @throws NotLoggedIn Caso a conexão não esteja autenticada.
    */
-  void setDispatcher(Connection conn) throws NotLoggedIn;
+  void setDispatcher(Connection conn);
 
   /**
    * Devolve a conexão de despacho associada ao barramento indicado, se houver.

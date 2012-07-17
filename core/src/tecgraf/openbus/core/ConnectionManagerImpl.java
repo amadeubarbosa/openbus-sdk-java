@@ -20,7 +20,6 @@ import org.omg.PortableInterceptor.RequestInfo;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionManager;
-import tecgraf.openbus.exception.NotLoggedIn;
 import tecgraf.openbus.exception.OpenBusInternalException;
 
 /**
@@ -153,12 +152,9 @@ final class ConnectionManagerImpl extends LocalObject implements
    * {@inheritDoc}
    */
   @Override
-  public void setDispatcher(Connection conn) throws NotLoggedIn {
+  public void setDispatcher(Connection conn) {
     if (conn == null) {
       throw new NullPointerException("Conexão não pode ser nula");
-    }
-    if ((conn.login() == null) || (conn.busid() == null)) {
-      throw new NotLoggedIn();
     }
     synchronized (this.incomingDispatcherConn) {
       this.incomingDispatcherConn.put(conn.busid(), conn);

@@ -234,9 +234,6 @@ final class ConnectionImpl implements Connection {
     LoginInfo newLogin;
     try {
       this.manager.ignoreCurrentThread();
-
-      this.bus.retrieveBusIdAndKey();
-
       byte[] encryptedLoginAuthenticationInfo =
         this.generateEncryptedLoginAuthenticationInfo(password);
       IntHolder validityHolder = new IntHolder();
@@ -245,7 +242,7 @@ final class ConnectionImpl implements Connection {
         getBus().getAccessControl().loginByPassword(entity,
           this.publicKey.getEncoded(), encryptedLoginAuthenticationInfo,
           validityHolder);
-      login.setLoggedIn(newLogin);
+      localLogin(newLogin);
     }
     catch (WrongEncoding e) {
       throw new ServiceFailure(
@@ -264,7 +261,6 @@ final class ConnectionImpl implements Connection {
         .format(
           "Login por senha efetuado com sucesso: busid (%s) login (%s) entidade (%s)",
           busid(), newLogin.id, newLogin.entity));
-    fireRenewerThread();
   }
 
   /**
@@ -313,8 +309,6 @@ final class ConnectionImpl implements Connection {
     LoginProcess loginProcess = null;
     LoginInfo newLogin;
     try {
-      this.bus.retrieveBusIdAndKey();
-
       RSAPrivateKey privateKey =
         crypto.createPrivateKeyFromBytes(privateKeyBytes);
       EncryptedBlockHolder challengeHolder = new EncryptedBlockHolder();
@@ -331,7 +325,7 @@ final class ConnectionImpl implements Connection {
       newLogin =
         loginProcess.login(this.publicKey.getEncoded(),
           encryptedLoginAuthenticationInfo, validityHolder);
-      login.setLoggedIn(newLogin);
+      localLogin(newLogin);
     }
     catch (CryptographyException e) {
       loginProcess.cancel();
@@ -366,7 +360,6 @@ final class ConnectionImpl implements Connection {
         .format(
           "Login por certificado efetuada com sucesso: busid (%s) login (%s) entidade (%s)",
           busid(), newLogin.id, newLogin.entity));
-    fireRenewerThread();
   }
 
   /**
@@ -402,9 +395,6 @@ final class ConnectionImpl implements Connection {
     throws WrongSecret, AlreadyLoggedIn, ServiceFailure, InvalidLoginProcess {
     checkLoggedIn();
     this.manager.ignoreCurrentThread();
-
-    this.bus.retrieveBusIdAndKey();
-
     byte[] encryptedLoginAuthenticationInfo =
       this.generateEncryptedLoginAuthenticationInfo(secret);
     IntHolder validity = new IntHolder();
@@ -413,7 +403,7 @@ final class ConnectionImpl implements Connection {
       newLogin =
         process.login(this.publicKey.getEncoded(),
           encryptedLoginAuthenticationInfo, validity);
-      login.setLoggedIn(newLogin);
+      localLogin(newLogin);
     }
     catch (AccessDenied e) {
       throw new WrongSecret("Erro durante tentativa de login.", e);
@@ -437,7 +427,6 @@ final class ConnectionImpl implements Connection {
         .format(
           "Login por compatilhamento de atutenticação efetuado com sucesso: busid (%s) login (%s) entidade (%s)",
           busid(), newLogin.id, newLogin.entity));
-    fireRenewerThread();
   }
 
   /**
@@ -481,13 +470,38 @@ final class ConnectionImpl implements Connection {
   }
 
   /**
+   * Realiza o login localmente.
+   * 
+   * @param newLogin a nova informação de login.
+   * @throws AlreadyLoggedIn se a conexão já estiver logada.
+   */
+  private void localLogin(LoginInfo newLogin) throws AlreadyLoggedIn {
+    String old = getBus().getId();
+    String busid = getBus().getAccessControl().busid();
+    if (!old.equals(busid)) {
+      throw new OpenBusInternalException(
+        "Barramento inválido! Identificador do barramento mudou.");
+    }
+    checkLoggedIn();
+    login.setLoggedIn(newLogin);
+    fireRenewerThread();
+  }
+
+  /**
    * {@inheritDoc}
    */
   @Override
   public boolean logout() throws ServiceFailure {
     LoginStatus status = this.login.getStatus();
-    if (status.equals(LoginStatus.loggedOut)) {
-      return false;
+    switch (status) {
+      case loggedOut:
+        return false;
+      case invalid:
+        localLogout();
+        return true;
+      default:
+        // executa o método por completo.
+        break;
     }
 
     Connection previousConnection = manager.getRequester();
@@ -517,14 +531,9 @@ final class ConnectionImpl implements Connection {
   void localLogout() {
     this.joinedChains.clear();
     stopRenewerThread();
-    Connection conn = manager.getDispatcher(busid());
-    if ((conn != null) && (conn.equals(this))) {
-      manager.clearDispatcher(busid());
-    }
     LoginInfo old = this.login.setLoggedOut();
     logger.info(String.format("Logout efetuado: id (%s) entidade (%s)", old.id,
       old.entity));
-    this.getBus().clearBusIdAndKey();
   }
 
   /**

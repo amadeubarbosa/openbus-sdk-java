@@ -60,6 +60,8 @@ final class BusInfo {
 
     obj = bus.getFacet(OfferRegistryHelper.id());
     this.offerRegistry = OfferRegistryHelper.narrow(obj);
+
+    retrieveBusIdAndKey();
   }
 
   /**

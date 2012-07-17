@@ -14,7 +14,6 @@ public interface InvalidLoginCallback {
    * 
    * @param conn a conexão cujo login foi invalidado.
    * @param login o login inválido.
-   * @param busid o identificador do barramento.
    */
-  void invalidLogin(Connection conn, LoginInfo login, String busid);
+  void invalidLogin(Connection conn, LoginInfo login);
 }

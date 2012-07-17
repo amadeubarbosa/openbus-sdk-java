@@ -13,6 +13,7 @@ import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.NO_PERMISSIONHelper;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.TCKind;
+import org.omg.CORBA.ORBPackage.InvalidName;
 import org.omg.IOP.Codec;
 import org.omg.IOP.ServiceContext;
 import org.omg.IOP.CodecPackage.FormatMismatch;
@@ -25,6 +26,7 @@ import org.omg.PortableInterceptor.InvalidSlot;
 import org.omg.PortableInterceptor.RequestInfo;
 
 import tecgraf.openbus.Connection;
+import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.core.Session.ClientSideSession;
 import tecgraf.openbus.core.v1_05.access_control_service.Credential;
@@ -94,7 +96,17 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
   public void send_request(ClientRequestInfo ri) {
     String operation = ri.operation();
     ORB orb = this.getMediator().getORB();
-    ConnectionManagerImpl manager = ORBUtils.getConnectionManager(orb);
+    ConnectionManagerImpl manager;
+    try {
+      org.omg.CORBA.Object obj =
+        orb.resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
+      manager = (ConnectionManagerImpl) obj;
+    }
+    catch (InvalidName e) {
+      String message = "Falha inesperada ao obter o multiplexador";
+      logger.log(Level.SEVERE, message, e);
+      throw new INTERNAL(message);
+    }
     Codec codec = this.getMediator().getCodec();
     if (manager.isCurrentThreadIgnored(ri)) {
       logger.finest(String.format("Realizando chamada fora do barramento: %s",
@@ -110,7 +122,8 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     }
 
     ConnectionImpl conn = (ConnectionImpl) this.getCurrentConnection(ri);
-    if (conn.login() == null) {
+    LoginInfo currLogin = conn.login();
+    if (currLogin == null) {
       String message =
         "Chamada cancelada. Conexão não possui login. Operação: " + operation;
       logger.info(message);
@@ -118,9 +131,12 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         CompletionStatus.COMPLETED_NO);
     }
 
+    // salvando a conexão e o login utilizado no request.
+
     // montando credencial 2.0
     if (!joinedToLegacy) {
-      CredentialData credential = this.generateCredentialData(ri, conn);
+      CredentialData credential =
+        this.generateCredentialData(ri, conn, currLogin);
       Any anyCredential = orb.create_any();
       CredentialDataHelper.insert(anyCredential, credential);
       byte[] encodedCredential;
@@ -140,10 +156,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     if (conn.legacy()) {
       try {
         // construindo credencial 1.5
-        LoginInfo login = conn.login();
         Credential legacyCredential = new Credential();
-        legacyCredential.identifier = login.id;
-        legacyCredential.owner = login.entity;
+        legacyCredential.identifier = currLogin.id;
+        legacyCredential.owner = currLogin.entity;
         String delegate = "";
 
         if (joinedChain != NULL_SIGNED_CALL_CHAIN) {
@@ -193,14 +208,15 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    * 
    * @param ri Informação do request
    * @param conn A conexão em uso.
+   * @param currLogin o login em uso.
    * @return A credencial válida para a sessão, ou uma credencial para forçar o
    *         reset da sessão.
    */
   private CredentialData generateCredentialData(ClientRequestInfo ri,
-    ConnectionImpl conn) {
+    ConnectionImpl conn, LoginInfo currLogin) {
     String operation = ri.operation();
     String busId = conn.busid();
-    String loginId = conn.login().id;
+    String loginId = currLogin.id;
     EffectiveProfile ep = new EffectiveProfile(ri.effective_profile());
     String callee = this.entities.get(ep);
     if (callee != null) {
@@ -220,7 +236,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         }
         byte[] credentialDataHash =
           this.generateCredentialDataHash(ri, secret, ticket);
-        SignedCallChain chain = getCallChain(ri, conn, callee);
+        SignedCallChain chain = getCallChain(ri, conn, currLogin, callee);
         logger.fine(String.format("Realizando chamada via barramento: %s",
           operation));
         return new CredentialData(busId, loginId, session.getSession(), ticket,
@@ -238,11 +254,12 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    * 
    * @param ri informação do request
    * @param conn a conexão em uso
+   * @param currLogin o login em uso.
    * @param callee o alvo do request
    * @return A cadeia assinada.
    */
   private SignedCallChain getCallChain(ClientRequestInfo ri,
-    ConnectionImpl conn, String callee) {
+    ConnectionImpl conn, LoginInfo currLogin, String callee) {
     SignedCallChain callChain;
     if (callee.equals(BusLogin.value)) {
       callChain = getSignedChain(ri);
@@ -251,7 +268,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       try {
         // checando se existe na cache
         ChainCacheKey key =
-          new ChainCacheKey(conn.login().id, callee, getSignedChain(ri));
+          new ChainCacheKey(currLogin.id, callee, getSignedChain(ri));
         callChain = chains.get(key);
         if (callChain == null) {
           callChain = conn.access().signChainFor(callee);
@@ -389,7 +406,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         }
         if (callback != null) {
           try {
-            callback.invalidLogin(conn, login, busid);
+            callback.invalidLogin(conn, login);
           }
           catch (Exception ex) {
             logger.log(Level.SEVERE,

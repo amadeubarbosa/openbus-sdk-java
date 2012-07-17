@@ -18,7 +18,7 @@ public class HelloInvalidLoginCallback implements InvalidLoginCallback {
   }
 
   @Override
-  public void invalidLogin(Connection conn, LoginInfo login, String busid) {
+  public void invalidLogin(Connection conn, LoginInfo login) {
     manager.setRequester(conn);
     try {
       System.out

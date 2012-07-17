@@ -99,10 +99,13 @@ public final class ConnectionManagerTest {
     _manager.setDispatcher(conn2);
     assertTrue(conn2.logout());
 
-    assertNull(_manager.getDispatcher(conn.busid()));
+    assertNotNull(_manager.getDispatcher(conn.busid()));
+    assertEquals(_manager.getDispatcher(conn.busid()), conn2);
     _manager.setRequester(null);
     assertTrue(conn.logout());
     _manager.setDefaultConnection(null);
+    _manager.clearDispatcher(conn.busid());
+    assertNull(_manager.getDispatcher(conn.busid()));
   }
 
   @Test
@@ -130,9 +133,9 @@ public final class ConnectionManagerTest {
     Connection conn = _manager.createConnection(_hostName, _hostPort);
     boolean failed = false;
     try {
-      _manager.setDispatcher(conn);
+      _manager.setDispatcher(null);
     }
-    catch (NotLoggedIn e) {
+    catch (NullPointerException e) {
       failed = true;
     }
     assertTrue(failed);
@@ -148,6 +151,9 @@ public final class ConnectionManagerTest {
     assertEquals(_manager.getDispatcher(conn.busid()), conn2);
     _manager.setRequester(conn2);
     assertTrue(conn2.logout());
+    assertNotNull(_manager.getDispatcher(conn.busid()));
+    assertEquals(_manager.getDispatcher(conn.busid()), conn2);
+    _manager.clearDispatcher(conn.busid());
     assertNull(_manager.getDispatcher(conn.busid()));
     _manager.setRequester(null);
     assertTrue(conn.logout());

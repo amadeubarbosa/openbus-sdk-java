@@ -85,7 +85,7 @@ public class MessengerServant extends MessengerPOA {
       conn1.onInvalidLoginCallback(new InvalidLoginCallback() {
 
         @Override
-        public void invalidLogin(Connection conn, LoginInfo login, String busid) {
+        public void invalidLogin(Connection conn, LoginInfo login) {
           System.out.println(String.format(
             "login terminated, shutting the server down: %s", login.entity));
           orb1.destroy();
