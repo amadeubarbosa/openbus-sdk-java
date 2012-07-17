@@ -3,6 +3,7 @@
  */
 package tecgraf.openbus.core;
 
+import java.lang.ref.WeakReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -11,9 +12,7 @@ import org.omg.CORBA.ORBPackage.InvalidName;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionManager;
-import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessControl;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 
 /**
  * Responsável por renovar um lease junto a um provedor.
@@ -90,14 +89,9 @@ final class LeaseRenewer {
     private volatile boolean isSleeping;
 
     /**
-     * Serviço de controle de acesso.
-     */
-    private AccessControl manager;
-    /**
      * A conexão.
      */
-    // FIXME a referência para a conexão deve ser fraca
-    private Connection conn;
+    private WeakReference<Connection> weakConn;
 
     /**
      * Cria uma tarefa para renovar um <i>lease</i>.
@@ -107,8 +101,7 @@ final class LeaseRenewer {
     RenewerTask(Connection conn) {
       this.mustContinue = true;
       this.isSleeping = false;
-      this.manager = ((ConnectionImpl) conn).access();
-      this.conn = conn;
+      this.weakConn = new WeakReference<Connection>(conn);
     }
 
     /**
@@ -116,45 +109,46 @@ final class LeaseRenewer {
      */
     @Override
     public void run() {
-      try {
-        ConnectionManagerImpl multiplexer =
-          (ConnectionManagerImpl) conn.orb().resolve_initial_references(
-            ConnectionManager.INITIAL_REFERENCE_ID);
-        multiplexer.setRequester(this.conn);
-      }
-      catch (InvalidName e) {
-        String message = "Falha inesperada ao obter o multiplexador";
-        logger.log(Level.SEVERE, message, e);
-        this.mustContinue = false;
-      }
-      LoginInfo info = conn.login();
       // FIXME mudar para "timed wait" ao invés de sleep
       while (this.mustContinue) {
+        Connection conn = weakConn.get();
+        if (conn == null) {
+          this.mustContinue = false;
+          break;
+        }
+        ConnectionManagerImpl connections = null;
         int lease = -1;
         try {
+          connections =
+            (ConnectionManagerImpl) conn.orb().resolve_initial_references(
+              ConnectionManager.INITIAL_REFERENCE_ID);
+          connections.setRequester(conn);
+          AccessControl manager = ((ConnectionImpl) conn).access();
+
           boolean expired;
           try {
-            lease = this.manager.renew();
+            lease = manager.renew();
             expired = !(lease > 0);
-            logger.fine(String.format(
-              "Renovando o login '%s' da entidade '%s' por %d segs.", info.id,
-              info.entity, lease));
-            LoginInfo clogin = conn.login();
-            if (clogin != null && !info.id.equals(clogin.id)) {
-              info.entity = clogin.entity;
-              info.id = clogin.id;
-            }
           }
           catch (NO_PERMISSION ne) {
             expired = true;
           }
-
           if (expired) {
             this.mustContinue = false;
           }
         }
-        catch (ServiceFailure e) {
+        catch (InvalidName e) {
+          String message = "Falha inesperada ao obter o multiplexador";
+          logger.log(Level.SEVERE, message, e);
+          this.mustContinue = false;
+        }
+        catch (Exception e) {
           logger.log(Level.SEVERE, "Falha na renovação da credencial", e);
+        }
+        finally {
+          if (connections != null) {
+            connections.setRequester(null);
+          }
         }
 
         if (this.mustContinue) {
@@ -168,12 +162,7 @@ final class LeaseRenewer {
             this.isSleeping = false;
           }
         }
-        lease = -1;
       }
-
-      logger.fine(String.format(
-        "Finalizando thread de renovação: login (%s) entidade (%s)", info.id,
-        info.entity));
     }
 
     /**
