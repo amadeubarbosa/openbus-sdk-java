@@ -51,20 +51,17 @@ public class Client {
       Broadcaster broadcaster = null;
       for (ServiceOfferDesc desc : offers) {
         for (ServiceProperty prop : desc.properties) {
-          if (prop.name.equals("openbus.component.facet")) {
-            if (prop.value.equals(ForwarderServant.forwarder)) {
-              Object facet =
-                desc.service_ref.getFacetByName(ForwarderServant.forwarder);
+          if (prop.name.equals("openbus.component.interface")) {
+            if (prop.value.equals(ForwarderHelper.id())) {
+              Object facet = desc.service_ref.getFacet(ForwarderHelper.id());
               forwarder = ForwarderHelper.narrow(facet);
             }
-            else if (prop.value.equals(MessengerServant.messenger)) {
-              Object facet =
-                desc.service_ref.getFacetByName(MessengerServant.messenger);
+            else if (prop.value.equals(MessengerHelper.id())) {
+              Object facet = desc.service_ref.getFacet(MessengerHelper.id());
               messenger = MessengerHelper.narrow(facet);
             }
-            else if (prop.value.equals(BroadcasterServant.broadcaster)) {
-              Object facet =
-                desc.service_ref.getFacetByName(BroadcasterServant.broadcaster);
+            else if (prop.value.equals(BroadcasterHelper.id())) {
+              Object facet = desc.service_ref.getFacet(BroadcasterHelper.id());
               broadcaster = BroadcasterHelper.narrow(facet);
             }
           }

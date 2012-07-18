@@ -63,7 +63,7 @@ public final class Server {
       manager.setDefaultConnection(conn);
       conn.loginByCertificate(entity, privateKey);
       conn.onInvalidLoginCallback(new HelloInvalidLoginCallback(entity,
-        privateKey, manager));
+        privateKey));
 
       shutdown.addConnetion(conn);
 
