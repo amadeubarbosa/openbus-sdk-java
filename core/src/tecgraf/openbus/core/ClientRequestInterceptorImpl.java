@@ -2,6 +2,7 @@ package tecgraf.openbus.core;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -27,7 +28,6 @@ import org.omg.PortableInterceptor.RequestInfo;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionManager;
-import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.core.Session.ClientSideSession;
 import tecgraf.openbus.core.v1_05.access_control_service.Credential;
 import tecgraf.openbus.core.v1_05.access_control_service.CredentialHelper;
@@ -70,6 +70,11 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
   /** Cache de cadeias assinadas */
   private Map<ChainCacheKey, SignedCallChain> chains;
 
+  /** Mapa interno do interceptador que associa a conexão ao requestId */
+  private Map<Integer, ConnectionImpl> requestId2Conn;
+  /** Mapa interno do interceptador que associa o loginId ao requestId */
+  private Map<Integer, String> requestId2LoginId;
+
   /**
    * Construtor.
    * 
@@ -87,6 +92,10 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     this.chains =
       Collections.synchronizedMap(new LRUCache<ChainCacheKey, SignedCallChain>(
         CACHE_SIZE));
+    this.requestId2Conn =
+      Collections.synchronizedMap(new HashMap<Integer, ConnectionImpl>());
+    this.requestId2LoginId =
+      Collections.synchronizedMap(new HashMap<Integer, String>());
   }
 
   /**
@@ -122,7 +131,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     }
 
     ConnectionImpl conn = (ConnectionImpl) this.getCurrentConnection(ri);
-    LoginInfo currLogin = conn.login();
+    LoginInfo currLogin = conn.getLogin();
     if (currLogin == null) {
       String message =
         "Chamada cancelada. Conexão não possui login. Operação: " + operation;
@@ -168,6 +177,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
           if (chain.originators != null && chain.originators.length > 0) {
             delegate = chain.originators[0].entity;
           }
+          else {
+            delegate = chain.caller.entity;
+          }
         }
         legacyCredential.delegate = delegate;
         Any anyLegacy = orb.create_any();
@@ -201,6 +213,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       logger.severe(message);
       throw new INTERNAL(message);
     }
+    // salvando informações da conexão e login que foram utilizados no request
+    requestId2Conn.put(Integer.valueOf(ri.request_id()), conn);
+    requestId2LoginId.put(Integer.valueOf(ri.request_id()), currLogin.id);
   }
 
   /**
@@ -237,8 +252,10 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         byte[] credentialDataHash =
           this.generateCredentialDataHash(ri, secret, ticket);
         SignedCallChain chain = getCallChain(ri, conn, currLogin, callee);
-        logger.fine(String.format("Realizando chamada via barramento: %s",
-          operation));
+        logger
+          .fine(String.format(
+            "Realizando chamada via barramento para '%s': %s", callee,
+            operation));
         return new CredentialData(busId, loginId, session.getSession(), ticket,
           credentialDataHash, chain);
       }
@@ -325,6 +342,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void receive_reply(ClientRequestInfo ri) {
+    Integer requestId = Integer.valueOf(ri.request_id());
+    this.requestId2Conn.remove(requestId);
+    this.requestId2LoginId.remove(requestId);
   }
 
   /**
@@ -332,115 +352,98 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void receive_exception(ClientRequestInfo ri) throws ForwardRequest {
-    // FIXME necessario salvar a conexão e o login que foi utilizado no send_request
-    if (!ri.received_exception_id().equals(NO_PERMISSIONHelper.id())) {
-      return;
-    }
+    Integer requestId = Integer.valueOf(ri.request_id());
+    try {
+      if (!ri.received_exception_id().equals(NO_PERMISSIONHelper.id())) {
+        return;
+      }
 
-    Any exceptionAny = ri.received_exception();
-    NO_PERMISSION exception = NO_PERMISSIONHelper.extract(exceptionAny);
-    if (!exception.completed.equals(CompletionStatus.COMPLETED_NO)) {
-      return;
-    }
+      Any exceptionAny = ri.received_exception();
+      NO_PERMISSION exception = NO_PERMISSIONHelper.extract(exceptionAny);
+      if (!exception.completed.equals(CompletionStatus.COMPLETED_NO)) {
+        return;
+      }
 
-    switch (exception.minor) {
+      switch (exception.minor) {
 
-      case InvalidCredentialCode.value:
-        EffectiveProfile ep = new EffectiveProfile(ri.effective_profile());
-        ServiceContext context =
-          ri.get_reply_service_context(CredentialContextId.value);
-        if (context.context_data == null) {
-          // não recebeu o credential reset
-          String message =
-            "Servidor chamado é inválido (servidor não enviou o CredentialReset para negociar sessão)";
-          logger.info(message);
-          throw new NO_PERMISSION(message, InvalidRemoteCode.value,
-            CompletionStatus.COMPLETED_NO);
-        }
-        Any credentialResetAny = null;
-        try {
-          credentialResetAny =
-            this.getMediator().getCodec().decode_value(context.context_data,
-              CredentialResetHelper.type());
-        }
-        catch (FormatMismatch e) {
-          String message = "Falha inesperada ao obter o CredentialReset";
-          logger.log(Level.SEVERE, message, e);
-          throw new INTERNAL(message);
-        }
-        catch (TypeMismatch e) {
-          String message = "Falha inesperada ao obter o CredentialReset";
-          logger.log(Level.SEVERE, message, e);
-          throw new INTERNAL(message);
-        }
+        case InvalidCredentialCode.value:
+          EffectiveProfile ep = new EffectiveProfile(ri.effective_profile());
+          ServiceContext context =
+            ri.get_reply_service_context(CredentialContextId.value);
+          if (context.context_data == null) {
+            // não recebeu o credential reset
+            String message =
+              "Servidor chamado é inválido (servidor não enviou o CredentialReset para negociar sessão)";
+            logger.info(message);
+            throw new NO_PERMISSION(message, InvalidRemoteCode.value,
+              CompletionStatus.COMPLETED_NO);
+          }
+          Any credentialResetAny = null;
+          try {
+            credentialResetAny =
+              this.getMediator().getCodec().decode_value(context.context_data,
+                CredentialResetHelper.type());
+          }
+          catch (FormatMismatch e) {
+            String message = "Falha inesperada ao obter o CredentialReset";
+            logger.log(Level.SEVERE, message, e);
+            throw new INTERNAL(message);
+          }
+          catch (TypeMismatch e) {
+            String message = "Falha inesperada ao obter o CredentialReset";
+            logger.log(Level.SEVERE, message, e);
+            throw new INTERNAL(message);
+          }
 
-        CredentialReset reset =
-          CredentialResetHelper.extract(credentialResetAny);
-        String callee = reset.login;
-        this.entities.put(ep, callee);
-        this.sessions.put(callee, new ClientSideSession(reset.session,
-          reset.challenge, reset.login));
-        logger.finest(String.format("ForwardRequest após reset: %s", ri
-          .operation()));
-        throw new ForwardRequest(ri.target());
+          CredentialReset reset =
+            CredentialResetHelper.extract(credentialResetAny);
+          String callee = reset.login;
+          this.entities.put(ep, callee);
+          this.sessions.put(callee, new ClientSideSession(reset.session,
+            reset.challenge, reset.login));
+          logger.finest(String.format("ForwardRequest após reset: %s", ri
+            .operation()));
+          throw new ForwardRequest(ri.target());
 
-      case InvalidLoginCode.value:
-        // FIXME verificar se o login é o mesmo do utilizado em send_request
-        ConnectionImpl conn = (ConnectionImpl) this.getCurrentConnection(ri);
-        InvalidLoginCallback callback = conn.onInvalidLoginCallback();
-        // FIXME implementar a lógica abaixo:
-        // if (conn.login() == "login que realizou a requisição") {
-        //   conn.login.setInvalid();
-        // }
-        LoginInfo login = new LoginInfo();
-        String busid;
-        conn.readLock().lock();
-        try {
+        case InvalidLoginCode.value:
+          ConnectionImpl conn = requestId2Conn.get(requestId);
+          String loginId = requestId2LoginId.get(requestId);
           LoginInfo info = conn.login();
+          LoginInfo login = new LoginInfo();
           login.id = info.id;
           login.entity = info.entity;
-          busid = conn.busid();
-        }
-        finally {
-          conn.readLock().unlock();
-        }
-        if (callback != null) {
-          try {
-            callback.invalidLogin(conn, login);
+          if (info.id.equals(loginId)) {
+            conn.localLogout(true);
           }
-          catch (Exception ex) {
-            logger.log(Level.SEVERE,
-              "Callback gerou um erro durante execução.", ex);
-          }
-          LoginInfo afterLogin = conn.login();
+          logger.info(String.format("Recebeu exceção InvalidLogin: %s", ri
+            .operation()));
+          // tenta refazer o login.
+          LoginInfo afterLogin = conn.getLogin();
           if (afterLogin == null) {
             throw new NO_PERMISSION("Callback não refez o login da conexão.",
               NoLoginCode.value, CompletionStatus.COMPLETED_NO);
           }
-          else if (login.id.equals(afterLogin.id)
-            && login.entity.equals(afterLogin.entity)) {
-            //FIXME o locallogout deve ser feito quando se seta o login como inválido 
-            conn.localLogout();
-            throw new NO_PERMISSION("Callback não refez o login da conexão.",
-              NoLoginCode.value, CompletionStatus.COMPLETED_NO);
-          }
+
           // callback conseguiu refazer o login
           logger.finest(String.format("ForwardRequest após callback: %s", ri
             .operation()));
           throw new ForwardRequest(ri.target());
-        }
-        break;
 
-      case NoCredentialCode.value:
-        String message =
-          "Servidor chamado é inválido (não detectou credencial enviada)";
-        logger.info(message);
-        throw new NO_PERMISSION(message, InvalidRemoteCode.value,
-          CompletionStatus.COMPLETED_NO);
+        case NoCredentialCode.value:
+          String message =
+            "Servidor chamado é inválido (não detectou credencial enviada)";
+          logger.info(message);
+          throw new NO_PERMISSION(message, InvalidRemoteCode.value,
+            CompletionStatus.COMPLETED_NO);
 
-      default:
-        // deixa a exceção passar
-        break;
+        default:
+          // deixa a exceção passar
+          break;
+      }
+    }
+    finally {
+      this.requestId2Conn.remove(requestId);
+      this.requestId2LoginId.remove(requestId);
     }
   }
 

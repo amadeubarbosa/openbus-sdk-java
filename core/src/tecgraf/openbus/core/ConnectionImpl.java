@@ -9,6 +9,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
@@ -32,7 +33,6 @@ import scs.core.IComponentHelper;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
-import tecgraf.openbus.core.InternalLogin.LoginStatus;
 import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlService;
 import tecgraf.openbus.core.v2_0.BusObjectKey;
 import tecgraf.openbus.core.v2_0.EncryptedBlockHolder;
@@ -70,6 +70,8 @@ import tecgraf.openbus.util.Cryptography;
  * @author Tecgraf
  */
 final class ConnectionImpl implements Connection {
+  /** Identificador da conexão */
+  private final String connId = UUID.randomUUID().toString();
   /** Instância do logger */
   private static final Logger logger = Logger.getLogger(ConnectionImpl.class
     .getName());
@@ -89,7 +91,7 @@ final class ConnectionImpl implements Connection {
   /** Chave privada do sdk */
   private RSAPrivateKey privateKey;
   /** Informação do login associado a esta conexão. */
-  private InternalLogin login;
+  private InternalLogin internalLogin;
   /** Lock para operações sobre o login */
   private final ReentrantReadWriteLock rwlock =
     new ReentrantReadWriteLock(true);
@@ -146,7 +148,7 @@ final class ConnectionImpl implements Connection {
       throw new OpenBusInternalException(
         "Erro inexperado na geração do par de chaves.", e);
     }
-    this.login = new InternalLogin(this);
+    this.internalLogin = new InternalLogin(this);
   }
 
   /**
@@ -190,8 +192,8 @@ final class ConnectionImpl implements Connection {
    * @throws AlreadyLoggedIn
    */
   private void checkLoggedIn() throws AlreadyLoggedIn {
-    LoginStatus status = this.login.getStatus();
-    if (status.equals(LoginStatus.loggedIn)) {
+    LoginInfo login = this.internalLogin.login();
+    if (login != null) {
       throw new AlreadyLoggedIn();
     }
   }
@@ -204,9 +206,11 @@ final class ConnectionImpl implements Connection {
     String str =
       String.format("corbaloc::1.0@%s:%d/%s", host, port, BusObjectKey.value);
     org.omg.CORBA.Object obj = orb.string_to_object(str);
+    // FIXME lançar exceção InvalidBusAddress
     assert (obj != null);
 
     IComponent acsComponent = IComponentHelper.narrow(obj);
+    // FIXME lançar exceção InvalidBusAddress
     assert (acsComponent != null);
     this.bus = new BusInfo(acsComponent);
 
@@ -242,7 +246,7 @@ final class ConnectionImpl implements Connection {
         getBus().getAccessControl().loginByPassword(entity,
           this.publicKey.getEncoded(), encryptedLoginAuthenticationInfo,
           validityHolder);
-      localLogin(newLogin);
+      localLogin(newLogin, validityHolder.value);
     }
     catch (WrongEncoding e) {
       throw new ServiceFailure(
@@ -325,7 +329,7 @@ final class ConnectionImpl implements Connection {
       newLogin =
         loginProcess.login(this.publicKey.getEncoded(),
           encryptedLoginAuthenticationInfo, validityHolder);
-      localLogin(newLogin);
+      localLogin(newLogin, validityHolder.value);
     }
     catch (CryptographyException e) {
       loginProcess.cancel();
@@ -403,7 +407,7 @@ final class ConnectionImpl implements Connection {
       newLogin =
         process.login(this.publicKey.getEncoded(),
           encryptedLoginAuthenticationInfo, validity);
-      localLogin(newLogin);
+      localLogin(newLogin, validity.value);
     }
     catch (AccessDenied e) {
       throw new WrongSecret("Erro durante tentativa de login.", e);
@@ -431,12 +435,14 @@ final class ConnectionImpl implements Connection {
 
   /**
    * Dispara a thread de renovação de Login
+   * 
+   * @param defaultLease tempo de lease padrão.
    */
-  private void fireRenewerThread() {
+  private void fireRenewerThread(int defaultLease) {
     if (this.renewer != null) {
       this.renewer.stop();
     }
-    this.renewer = new LeaseRenewer(this);
+    this.renewer = new LeaseRenewer(this, defaultLease);
     this.renewer.start();
   }
 
@@ -455,36 +461,43 @@ final class ConnectionImpl implements Connection {
    */
   @Override
   public LoginInfo login() {
-    readLock.lock();
-    try {
-      if (this.login.getStatus() == LoginStatus.loggedIn) {
-        return this.login.getLogin();
-      }
-      else {
-        return null;
-      }
-    }
-    finally {
-      readLock.unlock();
-    }
+    return this.internalLogin.login();
+  }
+
+  /**
+   * Recupera o login associado a conexão, mas tenta refazer o login via
+   * callback, caso a conexão esteja com login inválido.
+   * 
+   * @return o login.
+   */
+  LoginInfo getLogin() {
+    return this.internalLogin.getLogin();
   }
 
   /**
    * Realiza o login localmente.
    * 
    * @param newLogin a nova informação de login.
+   * @param validity tempo de validade do login.
    * @throws AlreadyLoggedIn se a conexão já estiver logada.
    */
-  private void localLogin(LoginInfo newLogin) throws AlreadyLoggedIn {
+  private void localLogin(LoginInfo newLogin, int validity)
+    throws AlreadyLoggedIn {
     String old = getBus().getId();
     String busid = getBus().getAccessControl().busid();
     if (!old.equals(busid)) {
       throw new OpenBusInternalException(
         "Barramento inválido! Identificador do barramento mudou.");
     }
-    checkLoggedIn();
-    login.setLoggedIn(newLogin);
-    fireRenewerThread();
+    writeLock().lock();
+    try {
+      checkLoggedIn();
+      internalLogin.setLoggedIn(newLogin);
+    }
+    finally {
+      writeLock().unlock();
+    }
+    fireRenewerThread(validity);
   }
 
   /**
@@ -492,16 +505,12 @@ final class ConnectionImpl implements Connection {
    */
   @Override
   public boolean logout() throws ServiceFailure {
-    LoginStatus status = this.login.getStatus();
-    switch (status) {
-      case loggedOut:
-        return false;
-      case invalid:
-        localLogout();
-        return true;
-      default:
-        // executa o método por completo.
-        break;
+    LoginInfo login = this.internalLogin.login();
+    if (login == null) {
+      if (this.internalLogin.invalid() != null) {
+        localLogout(false);
+      }
+      return false;
     }
 
     Connection previousConnection = manager.getRequester();
@@ -520,20 +529,31 @@ final class ConnectionImpl implements Connection {
     }
     finally {
       manager.setRequester(previousConnection);
-      localLogout();
+      localLogout(false);
     }
     return true;
   }
 
   /**
-   * Realiza o logout localmente.
+   * Realiza o logout localmente. Se o parâmetro "invalidated" for
+   * <code>true</code> seta o estado da conexão para INVÁLIDO, se for
+   * <code>false</code> seta o estado para DESLOGADO.
+   * 
+   * @param invalidated
    */
-  void localLogout() {
+  void localLogout(boolean invalidated) {
     this.joinedChains.clear();
     stopRenewerThread();
-    LoginInfo old = this.login.setLoggedOut();
-    logger.info(String.format("Logout efetuado: id (%s) entidade (%s)", old.id,
-      old.entity));
+    if (invalidated) {
+      this.internalLogin.setInvalid();
+    }
+    else {
+      LoginInfo old = this.internalLogin.setLoggedOut();
+      if (old != null) {
+        logger.info(String.format("Logout efetuado: id (%s) entidade (%s)",
+          old.id, old.entity));
+      }
+    }
   }
 
   /**
@@ -551,12 +571,8 @@ final class ConnectionImpl implements Connection {
       if (any.type().kind().value() == TCKind._tk_null) {
         return null;
       }
-      // FIXME: o uso do login.id para identificar a conexão não é saudável
-      // pois a conexão pode não ter mais condição de recuperar a callerChain
-      // caso o seu login mude.
-      String loginid = any.extract_string();
-      LoginInfo curr = this.login.getLogin();
-      if (!curr.id.equals(loginid)) {
+      String connid = any.extract_string();
+      if (!this.connId.equals(connid)) {
         return null;
       }
       any = current.get_slot(mediator.getSignedChainSlotId());
@@ -752,5 +768,21 @@ final class ConnectionImpl implements Connection {
    */
   WriteLock writeLock() {
     return this.writeLock;
+  }
+
+  /**
+   * Recupera o identificador desta conexão.
+   * 
+   * @return o identificador da conexão.
+   */
+  String connId() {
+    return this.connId;
+  }
+
+  /**
+   * Configura o login como inválido.
+   */
+  void setLoginInvalid() {
+    this.internalLogin.setInvalid();
   }
 }

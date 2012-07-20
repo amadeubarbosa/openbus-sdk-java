@@ -42,9 +42,10 @@ final class LeaseRenewer {
    * Cria um renovador de <i>lease</i> junto a um provedor.
    * 
    * @param conn a conexão.
+   * @param defaultLease tempo padrão de lease.
    */
-  public LeaseRenewer(Connection conn) {
-    this.renewer = new RenewerTask(conn);
+  public LeaseRenewer(Connection conn, int defaultLease) {
+    this.renewer = new RenewerTask(conn, defaultLease);
   }
 
   /**
@@ -92,16 +93,22 @@ final class LeaseRenewer {
      * A conexão.
      */
     private WeakReference<Connection> weakConn;
+    /**
+     * Tempo padrão de lease.
+     */
+    private int defaultLease;
 
     /**
      * Cria uma tarefa para renovar um <i>lease</i>.
      * 
      * @param conn a conexão.
+     * @param defaultLease
      */
-    RenewerTask(Connection conn) {
+    RenewerTask(Connection conn, int defaultLease) {
       this.mustContinue = true;
       this.isSleeping = false;
       this.weakConn = new WeakReference<Connection>(conn);
+      this.defaultLease = defaultLease;
     }
 
     /**
@@ -109,7 +116,7 @@ final class LeaseRenewer {
      */
     @Override
     public void run() {
-      // FIXME mudar para "timed wait" ao invés de sleep
+      // TODO [OPENBUS-1849]
       while (this.mustContinue) {
         Connection conn = weakConn.get();
         if (conn == null) {
@@ -124,22 +131,15 @@ final class LeaseRenewer {
               ConnectionManager.INITIAL_REFERENCE_ID);
           connections.setRequester(conn);
           AccessControl manager = ((ConnectionImpl) conn).access();
-
-          boolean expired;
-          try {
-            lease = manager.renew();
-            expired = !(lease > 0);
-          }
-          catch (NO_PERMISSION ne) {
-            expired = true;
-          }
-          if (expired) {
-            this.mustContinue = false;
-          }
+          lease = manager.renew();
+          this.mustContinue = (lease > 0);
         }
         catch (InvalidName e) {
           String message = "Falha inesperada ao obter o multiplexador";
           logger.log(Level.SEVERE, message, e);
+          this.mustContinue = false;
+        }
+        catch (NO_PERMISSION ne) {
           this.mustContinue = false;
         }
         catch (Exception e) {
@@ -153,13 +153,18 @@ final class LeaseRenewer {
 
         if (this.mustContinue) {
           try {
+            int time = lease;
+            if (time < 0) {
+              time = this.defaultLease;
+            }
             this.isSleeping = true;
-            Thread.sleep(lease * 1000);
+            Thread.sleep(time * 1000);
             this.isSleeping = false;
           }
           catch (InterruptedException e) {
             this.mustContinue = false;
             this.isSleeping = false;
+            break;
           }
         }
       }

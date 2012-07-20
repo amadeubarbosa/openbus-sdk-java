@@ -1,5 +1,9 @@
 package tecgraf.openbus.core;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 
 /**
@@ -9,26 +13,14 @@ import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
  */
 class InternalLogin {
 
-  /**
-   * Enumeração dos possíveis estados do login.
-   * 
-   * @author Tecgraf
-   */
-  enum LoginStatus {
-    /** Logado */
-    loggedIn,
-    /** Deslogado */
-    loggedOut,
-    /** Inválido */
-    invalid
-  }
+  /** Instância de logging. */
+  private static final Logger logger = Logger.getLogger(ConnectionImpl.class
+    .getName());
 
-  /** Estado do login. */
-  private LoginStatus status;
   /** Informações do login */
   private LoginInfo login;
-  /** Cópia das informações do login */
-  private LoginInfo cplogin = null;
+  /** Informações do login inválido */
+  private LoginInfo invalid = null;
   /** A conexão deste login */
   private final ConnectionImpl conn;
 
@@ -43,14 +35,14 @@ class InternalLogin {
   }
 
   /**
-   * Retorna o estado do login
+   * Recupera a informação do login atual.
    * 
-   * @return o estado
+   * @return informação do login.
    */
-  LoginStatus getStatus() {
+  LoginInfo login() {
     conn.readLock().lock();
     try {
-      return status;
+      return this.login;
     }
     finally {
       conn.readLock().unlock();
@@ -58,23 +50,63 @@ class InternalLogin {
   }
 
   /**
-   * Retorna a informação do login.
+   * Recupera a informação do login inválido.
+   * 
+   * @return informação do login inválido.
+   */
+  LoginInfo invalid() {
+    conn.readLock().lock();
+    try {
+      return this.invalid;
+    }
+    finally {
+      conn.readLock().unlock();
+    }
+  }
+
+  /**
+   * Retorna a informação do login, relizando a chamada da callback, caso o
+   * login esteja inválido.
    * 
    * @return informações do login.
    */
   LoginInfo getLogin() {
     conn.readLock().lock();
-    try {
-      if (login != null) {
-        return cplogin;
+    LoginInfo login = this.login;
+    LoginInfo invalid = this.invalid;
+    conn.readLock().unlock();
+    if (login == null) {
+      while (invalid != null) {
+        InvalidLoginCallback callback = conn.onInvalidLoginCallback();
+        if (callback != null) {
+          try {
+            callback.invalidLogin(conn, invalid);
+          }
+          catch (Exception ex) {
+            logger.log(Level.SEVERE,
+              "Callback gerou um erro durante execução.", ex);
+          }
+          LoginInfo curr = this.invalid();
+          if (curr.id.equals(invalid.id) && curr.entity.equals(invalid.entity)) {
+            invalid = null;
+            conn.writeLock().lock();
+            this.invalid = null;
+            conn.writeLock().unlock();
+          }
+          else {
+            invalid = curr;
+          }
+        }
+        else {
+          invalid = null;
+          conn.writeLock().lock();
+          this.invalid = null;
+          conn.writeLock().unlock();
+        }
       }
-      else {
-        return null;
-      }
+      login = this.login();
     }
-    finally {
-      conn.readLock().unlock();
-    }
+    return login;
   }
 
   /**
@@ -85,8 +117,7 @@ class InternalLogin {
   void setLoggedIn(LoginInfo login) {
     conn.writeLock().lock();
     this.login = login;
-    this.cplogin = new LoginInfo(login.id, login.entity);
-    status = LoginStatus.loggedIn;
+    this.invalid = null;
     conn.writeLock().unlock();
   }
 
@@ -97,10 +128,9 @@ class InternalLogin {
    */
   LoginInfo setLoggedOut() {
     conn.writeLock().lock();
-    LoginInfo old = cplogin;
+    LoginInfo old = login;
     login = null;
-    cplogin = null;
-    status = LoginStatus.loggedOut;
+    invalid = null;
     conn.writeLock().unlock();
     return old;
   }
@@ -110,7 +140,8 @@ class InternalLogin {
    */
   void setInvalid() {
     conn.writeLock().lock();
-    status = LoginStatus.invalid;
+    invalid = login;
+    login = null;
     conn.writeLock().unlock();
   }
 

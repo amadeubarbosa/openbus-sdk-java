@@ -24,23 +24,20 @@ public final class ORBInitializerImpl extends LocalObject implements
   private static final byte ENCODING_CDR_ENCAPS_MINOR_VERSION = 2;
   private static final Logger logger = Logger
     .getLogger(ORBInitializerImpl.class.getName());
-  private int signedChainSlotId;
-  private int currentThreadSlotId;
-  private int ignoreThreadSlotId;
-  private int joinedChainSlotId;
-  private int connectionSlotId;
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void pre_init(ORBInitInfo info) {
     Codec codec = this.createCodec(info);
-    this.signedChainSlotId = info.allocate_slot_id();
-    this.currentThreadSlotId = info.allocate_slot_id();
-    this.ignoreThreadSlotId = info.allocate_slot_id();
-    this.joinedChainSlotId = info.allocate_slot_id();
-    this.connectionSlotId = info.allocate_slot_id();
+    int signedChainSlotId = info.allocate_slot_id();
+    int currentThreadSlotId = info.allocate_slot_id();
+    int ignoreThreadSlotId = info.allocate_slot_id();
+    int joinedChainSlotId = info.allocate_slot_id();
+    int connectionSlotId = info.allocate_slot_id();
     ConnectionManagerImpl multiplexer =
-      new ConnectionManagerImpl(this.currentThreadSlotId,
-        this.ignoreThreadSlotId);
+      new ConnectionManagerImpl(currentThreadSlotId, ignoreThreadSlotId);
     try {
       info.register_initial_reference(ConnectionManager.INITIAL_REFERENCE_ID,
         multiplexer);
@@ -51,8 +48,8 @@ public final class ORBInitializerImpl extends LocalObject implements
       throw new INITIALIZE(message);
     }
     ORBMediator mediator =
-      new ORBMediator(codec, this.signedChainSlotId, this.joinedChainSlotId,
-        this.connectionSlotId, multiplexer);
+      new ORBMediator(codec, signedChainSlotId, joinedChainSlotId,
+        connectionSlotId, multiplexer);
     try {
       info.register_initial_reference(ORBMediator.INITIAL_REFERENCE_ID,
         mediator);
@@ -64,6 +61,9 @@ public final class ORBInitializerImpl extends LocalObject implements
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void post_init(ORBInitInfo info) {
     ORBMediator mediator = this.getMediator(info);

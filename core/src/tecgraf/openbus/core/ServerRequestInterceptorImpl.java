@@ -383,7 +383,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           if (validateChain(credential, pubkey, ri, conn)) {
             // salvando informação da conexão que atendeu a requisição
             Any any = orb.create_any();
-            any.insert_string(conn.login().id);
+            any.insert_string(conn.connId());
             ri.set_slot(this.getMediator().getConnectionSlotId(), any);
             String msg =
               "Recebendo chamada pelo barramento: login (%s) entidade (%s) operação (%s)";
