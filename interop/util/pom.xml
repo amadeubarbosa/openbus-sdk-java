@@ -11,7 +11,7 @@
   <artifactId>openbus-sdk-interop-util</artifactId>
   <packaging>jar</packaging>
 
-  <name>OpenBus - SDK - Demonstrações - Utilitários</name>
+  <name>OpenBus - SDK - Testes de Interoperabilidade - Utilitários</name>
   <url>http://www.tecgraf.puc-rio.br/openbus</url>
 
   <dependencies>

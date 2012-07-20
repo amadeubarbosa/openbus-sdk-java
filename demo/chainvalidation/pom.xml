@@ -8,10 +8,10 @@
     <version>2.0.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>openbus-sdk-interop-delegation</artifactId>
+  <artifactId>openbus-sdk-interop-hello</artifactId>
   <packaging>jar</packaging>
 
-  <name>OpenBus - SDK - Testes de Interoperabilidade - Delegation</name>
+  <name>OpenBus - SDK - Demonstrações - Hello</name>
   <url>http://www.tecgraf.puc-rio.br/openbus</url>
 
   <build>

@@ -11,7 +11,7 @@
   <artifactId>openbus-sdk-interop-sharedauth</artifactId>
   <packaging>jar</packaging>
 
-  <name>OpenBus - SDK - Demonstrações - Shared Auth</name>
+  <name>OpenBus - SDK - Testes de Interoperabilidade - Shared Auth</name>
   <url>http://www.tecgraf.puc-rio.br/openbus</url>
 
   <build>

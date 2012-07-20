@@ -11,7 +11,7 @@
   <artifactId>openbus-sdk-interop-hello</artifactId>
   <packaging>jar</packaging>
 
-  <name>OpenBus - SDK - Demonstrações - Hello</name>
+  <name>OpenBus - SDK - Testes de Interoperabilidade - Hello</name>
   <url>http://www.tecgraf.puc-rio.br/openbus</url>
 
   <build>

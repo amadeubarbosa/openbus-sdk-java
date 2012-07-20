@@ -31,6 +31,7 @@
   <modules>
     <module>core</module>
     <module>interop</module>
+    <module>demo</module>
     <module>legacy</module>
   </modules>
 
