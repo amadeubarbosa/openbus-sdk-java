@@ -20,6 +20,7 @@ import org.omg.PortableInterceptor.RequestInfo;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionManager;
+import tecgraf.openbus.exception.InvalidBusAddress;
 import tecgraf.openbus.exception.OpenBusInternalException;
 
 /**
@@ -75,7 +76,8 @@ final class ConnectionManagerImpl extends LocalObject implements
    * {@inheritDoc}
    */
   @Override
-  public Connection createConnection(String host, int port) {
+  public Connection createConnection(String host, int port)
+    throws InvalidBusAddress {
     return new ConnectionImpl(host, port, this, orb);
   }
 

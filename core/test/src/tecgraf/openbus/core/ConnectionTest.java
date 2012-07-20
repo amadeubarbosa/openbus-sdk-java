@@ -30,6 +30,7 @@ import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.exception.CorruptedPrivateKey;
+import tecgraf.openbus.exception.InvalidBusAddress;
 import tecgraf.openbus.exception.WrongPrivateKey;
 import tecgraf.openbus.exception.WrongSecret;
 import tecgraf.openbus.util.Cryptography;
@@ -77,7 +78,7 @@ public final class ConnectionTest {
   }
 
   @Test
-  public void offerRegistryTest() {
+  public void offerRegistryTest() throws InvalidBusAddress {
     Connection conn = manager.createConnection(host, port);
     try {
       OfferRegistry registryService = conn.offers();
@@ -353,7 +354,7 @@ public final class ConnectionTest {
   }
 
   @Test
-  public void JoinChainTest() {
+  public void JoinChainTest() throws InvalidBusAddress {
     Connection conn = manager.createConnection(host, port);
     assertNull(conn.getJoinedChain());
     // adiciona a chain da getCallerChain
@@ -375,7 +376,7 @@ public final class ConnectionTest {
   }
 
   @Test
-  public void ExitChainTest() {
+  public void ExitChainTest() throws InvalidBusAddress {
     Connection conn = manager.createConnection(host, port);
     assertNull(conn.getJoinedChain());
     conn.exitChain();

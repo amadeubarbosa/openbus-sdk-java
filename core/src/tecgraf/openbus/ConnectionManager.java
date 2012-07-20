@@ -1,5 +1,6 @@
 package tecgraf.openbus;
 
+import tecgraf.openbus.exception.InvalidBusAddress;
 
 /**
  * Interface com operações para gerenciar acesso multiplexado a diferentes
@@ -29,8 +30,10 @@ public interface ConnectionManager {
    * @param port Porta do processo do barramento no endereço indicado.
    * 
    * @return Conexão ao barramento referenciado.
+   * @throws InvalidBusAddress par host/porta não corresponde a um barramento
+   *         acessível.
    */
-  Connection createConnection(String host, int port);
+  Connection createConnection(String host, int port) throws InvalidBusAddress;
 
   /**
    * Define a conexão a ser utilizada nas chamadas realizadas e no despacho de

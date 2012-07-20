@@ -58,6 +58,7 @@ import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.exception.CorruptedPrivateKey;
 import tecgraf.openbus.exception.CryptographyException;
+import tecgraf.openbus.exception.InvalidBusAddress;
 import tecgraf.openbus.exception.InvalidLoginProcess;
 import tecgraf.openbus.exception.OpenBusInternalException;
 import tecgraf.openbus.exception.WrongPrivateKey;
@@ -114,9 +115,11 @@ final class ConnectionImpl implements Connection {
    * @param port Porta do processo do barramento no endereço indicado.
    * @param manager Implementação do multiplexador de conexão.
    * @param orb ORB que essa conexão ira utilizar;
+   * @throws InvalidBusAddress par host/porta não corresponde a um barramento
+   *         acessível.
    */
   public ConnectionImpl(String host, int port, ConnectionManagerImpl manager,
-    ORB orb) {
+    ORB orb) throws InvalidBusAddress {
 
     if ((host == null) || (host.isEmpty()) || (port < 0)) {
       throw new InvalidParameterException(
@@ -201,17 +204,23 @@ final class ConnectionImpl implements Connection {
   /**
    * @param host Endereço de rede IP onde o barramento está executando.
    * @param port Porta do processo do barramento no endereço indicado.
+   * @throws InvalidBusAddress para host/porta não aponta para um barramento.
    */
-  private void retrieveBusReferences(String host, int port) {
+  private void retrieveBusReferences(String host, int port)
+    throws InvalidBusAddress {
     String str =
       String.format("corbaloc::1.0@%s:%d/%s", host, port, BusObjectKey.value);
     org.omg.CORBA.Object obj = orb.string_to_object(str);
-    // FIXME lançar exceção InvalidBusAddress
-    assert (obj != null);
+    if (obj == null) {
+      throw new InvalidBusAddress(
+        "Não foi possível obter uma referência para o barramento.");
+    }
 
     IComponent acsComponent = IComponentHelper.narrow(obj);
-    // FIXME lançar exceção InvalidBusAddress
-    assert (acsComponent != null);
+    if (acsComponent == null) {
+      throw new InvalidBusAddress(
+        "Referência obtida não corresponde a um IComponent.");
+    }
     this.bus = new BusInfo(acsComponent);
 
     /* *

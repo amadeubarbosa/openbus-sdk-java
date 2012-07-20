@@ -13,6 +13,7 @@ import org.omg.CORBA.ORB;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
+import tecgraf.openbus.exception.InvalidBusAddress;
 import tecgraf.openbus.util.Cryptography;
 import tecgraf.openbus.util.Utils;
 
@@ -47,7 +48,7 @@ public class InternalLoginTest {
   }
 
   @Test
-  public void statusTest() {
+  public void statusTest() throws InvalidBusAddress {
     Connection conn = manager.createConnection(host, port);
     InternalLogin internal = new InternalLogin((ConnectionImpl) conn);
     assertNull(internal.login());
@@ -70,7 +71,7 @@ public class InternalLoginTest {
   }
 
   @Test
-  public void loginChangeTest() {
+  public void loginChangeTest() throws InvalidBusAddress {
     Connection conn = manager.createConnection(host, port);
     InternalLogin internal = new InternalLogin((ConnectionImpl) conn);
     LoginInfo login1 = new LoginInfo("id1", "entity1");
