@@ -46,6 +46,7 @@ import tecgraf.openbus.core.v2_0.services.access_control.InvalidCredentialCode;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidLoginCode;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidRemoteCode;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_0.services.access_control.LoginInfoHolder;
 import tecgraf.openbus.core.v2_0.services.access_control.NoCredentialCode;
 import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.exception.CryptographyException;
@@ -139,13 +140,14 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       throw new NO_PERMISSION(message, NoLoginCode.value,
         CompletionStatus.COMPLETED_NO);
     }
+    LoginInfoHolder holder = new LoginInfoHolder();
+    holder.value = currLogin;
 
     // salvando a conexão e o login utilizado no request.
 
     // montando credencial 2.0
     if (!joinedToLegacy) {
-      CredentialData credential =
-        this.generateCredentialData(ri, conn, currLogin);
+      CredentialData credential = this.generateCredentialData(ri, conn, holder);
       Any anyCredential = orb.create_any();
       CredentialDataHelper.insert(anyCredential, credential);
       byte[] encodedCredential;
@@ -223,15 +225,14 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    * 
    * @param ri Informação do request
    * @param conn A conexão em uso.
-   * @param currLogin o login em uso.
+   * @param holder o login em uso.
    * @return A credencial válida para a sessão, ou uma credencial para forçar o
    *         reset da sessão.
    */
   private CredentialData generateCredentialData(ClientRequestInfo ri,
-    ConnectionImpl conn, LoginInfo currLogin) {
+    ConnectionImpl conn, LoginInfoHolder holder) {
     String operation = ri.operation();
     String busId = conn.busid();
-    String loginId = currLogin.id;
     EffectiveProfile ep = new EffectiveProfile(ri.effective_profile());
     String callee = this.entities.get(ep);
     if (callee != null) {
@@ -251,18 +252,18 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         }
         byte[] credentialDataHash =
           this.generateCredentialDataHash(ri, secret, ticket);
-        SignedCallChain chain = getCallChain(ri, conn, currLogin, callee);
+        SignedCallChain chain = getCallChain(ri, conn, holder, callee);
         logger
           .fine(String.format(
             "Realizando chamada via barramento para '%s': %s", callee,
             operation));
-        return new CredentialData(busId, loginId, session.getSession(), ticket,
-          credentialDataHash, chain);
+        return new CredentialData(busId, holder.value.id, session.getSession(),
+          ticket, credentialDataHash, chain);
       }
     }
     logger.finest(String.format("Realizando chamada sem credencial: %s",
       operation));
-    return new CredentialData(busId, loginId, 0, 0, NULL_HASH_VALUE,
+    return new CredentialData(busId, holder.value.id, 0, 0, NULL_HASH_VALUE,
       NULL_SIGNED_CALL_CHAIN);
   }
 
@@ -271,26 +272,32 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    * 
    * @param ri informação do request
    * @param conn a conexão em uso
-   * @param currLogin o login em uso.
+   * @param holder o login em uso.
    * @param callee o alvo do request
    * @return A cadeia assinada.
    */
   private SignedCallChain getCallChain(ClientRequestInfo ri,
-    ConnectionImpl conn, LoginInfo currLogin, String callee) {
+    ConnectionImpl conn, LoginInfoHolder holder, String callee) {
     SignedCallChain callChain;
     if (callee.equals(BusLogin.value)) {
       callChain = getSignedChain(ri);
     }
     else {
       try {
+        LoginInfo curr = holder.value;
         // checando se existe na cache
         ChainCacheKey key =
-          new ChainCacheKey(currLogin.id, callee, getSignedChain(ri));
+          new ChainCacheKey(curr.id, callee, getSignedChain(ri));
         callChain = chains.get(key);
         if (callChain == null) {
-          callChain = conn.access().signChainFor(callee);
+          do {
+            callChain = conn.access().signChainFor(callee);
+            curr = conn.getLogin();
+          } while (!unmarshallSignedChain(callChain, logger).caller.id
+            .equals(curr.id));
           chains.put(key, callChain);
         }
+        holder.value = curr;
       }
       catch (ServiceFailure e) {
         String message =

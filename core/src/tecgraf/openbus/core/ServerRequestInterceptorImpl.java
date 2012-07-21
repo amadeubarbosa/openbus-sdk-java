@@ -521,10 +521,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     if (chain != null) {
       if (!Arrays.equals(chain.signature, LEGACY_ENCRYPTED_BLOCK)) {
         try {
-          Any any =
-            this.getMediator().getCodec().decode_value(chain.encoded,
-              CallChainHelper.type());
-          CallChain callChain = CallChainHelper.extract(any);
+          CallChain callChain = unmarshallSignedChain(chain, logger);
           boolean verified =
             crypto.verifySignature(busPubKey, chain.encoded, chain.signature);
           if (verified) {
@@ -552,16 +549,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         catch (CryptographyException e) {
           String message =
             "Falha inesperada ao verificar assinatura da cadeia.";
-          logger.log(Level.SEVERE, message, e);
-          throw new INTERNAL(message);
-        }
-        catch (FormatMismatch e) {
-          String message = "Falha inesperada ao decodificar a cadeia";
-          logger.log(Level.SEVERE, message, e);
-          throw new INTERNAL(message);
-        }
-        catch (TypeMismatch e) {
-          String message = "Falha inesperada ao decodificar a cadeia";
           logger.log(Level.SEVERE, message, e);
           throw new INTERNAL(message);
         }

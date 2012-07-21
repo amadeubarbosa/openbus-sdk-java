@@ -116,7 +116,7 @@ final class LeaseRenewer {
      */
     @Override
     public void run() {
-      // TODO [OPENBUS-1849]
+      // TODO [OPENBUS-1849] Avaliar uso de join thread
       while (this.mustContinue) {
         Connection conn = weakConn.get();
         if (conn == null) {
