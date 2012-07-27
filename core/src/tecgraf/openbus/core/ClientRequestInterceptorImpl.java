@@ -417,10 +417,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
           ConnectionImpl conn = requestId2Conn.get(requestId);
           String loginId = requestId2LoginId.get(requestId);
           LoginInfo info = conn.login();
-          LoginInfo login = new LoginInfo();
-          login.id = info.id;
-          login.entity = info.entity;
-          if (info.id.equals(loginId)) {
+          if (info != null && loginId.equals(info.id)) {
             conn.localLogout(true);
           }
           logger.info(String.format("Recebeu exceção InvalidLogin: %s", ri

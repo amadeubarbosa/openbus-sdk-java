@@ -56,14 +56,12 @@ import tecgraf.openbus.core.v2_0.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_0.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
-import tecgraf.openbus.exception.CorruptedPrivateKey;
 import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.exception.InvalidBusAddress;
 import tecgraf.openbus.exception.InvalidLoginProcess;
+import tecgraf.openbus.exception.InvalidPrivateKey;
 import tecgraf.openbus.exception.InvalidPropertyValue;
 import tecgraf.openbus.exception.OpenBusInternalException;
-import tecgraf.openbus.exception.WrongPrivateKey;
-import tecgraf.openbus.exception.WrongSecret;
 import tecgraf.openbus.util.Cryptography;
 
 /**
@@ -375,8 +373,8 @@ final class ConnectionImpl implements Connection {
    */
   @Override
   public void loginByCertificate(String entity, byte[] privateKeyBytes)
-    throws CorruptedPrivateKey, WrongPrivateKey, AlreadyLoggedIn,
-    MissingCertificate, ServiceFailure {
+    throws InvalidPrivateKey, AlreadyLoggedIn, MissingCertificate,
+    AccessDenied, ServiceFailure {
     checkLoggedIn();
     this.manager.ignoreCurrentThread();
     LoginProcess loginProcess = null;
@@ -402,11 +400,7 @@ final class ConnectionImpl implements Connection {
     }
     catch (CryptographyException e) {
       loginProcess.cancel();
-      throw new WrongPrivateKey("Erro ao descriptografar desafio.", e);
-    }
-    catch (AccessDenied e) {
-      throw new OpenBusInternalException("Desafio enviado difere do esperado.",
-        e);
+      throw new AccessDenied("Erro ao descriptografar desafio.");
     }
     catch (WrongEncoding e) {
       throw new OpenBusInternalException(
@@ -417,8 +411,8 @@ final class ConnectionImpl implements Connection {
         "O Algoritmo de criptografia especificado não existe", e);
     }
     catch (InvalidKeySpecException e) {
-      throw new CorruptedPrivateKey(
-        "Erro ao interpretar bytes da chave privada", e);
+      throw new InvalidPrivateKey("Erro ao interpretar bytes da chave privada",
+        e);
     }
     catch (InvalidPublicKey e) {
       throw new OpenBusInternalException(
@@ -465,7 +459,7 @@ final class ConnectionImpl implements Connection {
    */
   @Override
   public void loginBySharedAuth(LoginProcess process, byte[] secret)
-    throws WrongSecret, AlreadyLoggedIn, ServiceFailure, InvalidLoginProcess {
+    throws AlreadyLoggedIn, ServiceFailure, AccessDenied, InvalidLoginProcess {
     checkLoggedIn();
     this.manager.ignoreCurrentThread();
     byte[] encryptedLoginAuthenticationInfo =
@@ -478,11 +472,8 @@ final class ConnectionImpl implements Connection {
           encryptedLoginAuthenticationInfo, validity);
       localLogin(newLogin, validity.value);
     }
-    catch (AccessDenied e) {
-      throw new WrongSecret("Erro durante tentativa de login.", e);
-    }
     catch (WrongEncoding e) {
-      throw new WrongSecret("Erro durante tentativa de login.", e);
+      throw new AccessDenied("Erro durante tentativa de login.");
     }
     catch (OBJECT_NOT_EXIST e) {
       throw new InvalidLoginProcess("Objeto de processo de login é inválido");

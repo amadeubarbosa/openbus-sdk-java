@@ -1,19 +1,18 @@
 package tecgraf.openbus.exception;
 
 /**
- * Exceção indicando chave privada não corresponde à chave pública ou
- * certificado utilizado.
+ * Exceção indicando chave privada corrompida.
  * 
  * @author Tecgraf
  */
-public class WrongPrivateKey extends OpenBusException {
+public final class InvalidPrivateKey extends OpenBusException {
 
   /**
    * Construtor.
    * 
    * @param message mensagem de erro.
    */
-  protected WrongPrivateKey(String message) {
+  public InvalidPrivateKey(String message) {
     super(message);
   }
 
@@ -23,8 +22,7 @@ public class WrongPrivateKey extends OpenBusException {
    * @param message mensagem de erro.
    * @param exception exceção original.
    */
-  public WrongPrivateKey(String message, Throwable exception) {
+  public InvalidPrivateKey(String message, Throwable exception) {
     super(message, exception);
   }
-
 }

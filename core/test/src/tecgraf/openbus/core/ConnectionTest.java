@@ -29,10 +29,8 @@ import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
-import tecgraf.openbus.exception.CorruptedPrivateKey;
 import tecgraf.openbus.exception.InvalidBusAddress;
-import tecgraf.openbus.exception.WrongPrivateKey;
-import tecgraf.openbus.exception.WrongSecret;
+import tecgraf.openbus.exception.InvalidPrivateKey;
 import tecgraf.openbus.util.Cryptography;
 import tecgraf.openbus.util.Utils;
 
@@ -196,7 +194,7 @@ public final class ConnectionTest {
     try {
       conn.loginByCertificate(serverEntity, new byte[0]);
     }
-    catch (CorruptedPrivateKey e) {
+    catch (InvalidPrivateKey e) {
       failed = true;
     }
     catch (Exception e) {
@@ -211,7 +209,7 @@ public final class ConnectionTest {
     try {
       conn.loginByCertificate(serverEntity, wrongPrivateKey);
     }
-    catch (WrongPrivateKey e) {
+    catch (AccessDenied e) {
       failed = true;
     }
     catch (Exception e) {
@@ -262,7 +260,7 @@ public final class ConnectionTest {
       manager.setRequester(null);
       conn2.loginBySharedAuth(login, new byte[0]);
     }
-    catch (WrongSecret e) {
+    catch (AccessDenied e) {
       failed = true;
     }
     catch (Exception e) {

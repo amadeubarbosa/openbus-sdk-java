@@ -8,10 +8,8 @@ import tecgraf.openbus.core.v2_0.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_0.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
-import tecgraf.openbus.exception.CorruptedPrivateKey;
+import tecgraf.openbus.exception.InvalidPrivateKey;
 import tecgraf.openbus.exception.InvalidLoginProcess;
-import tecgraf.openbus.exception.WrongPrivateKey;
-import tecgraf.openbus.exception.WrongSecret;
 
 /**
  * Conexão com um barramento.
@@ -74,15 +72,15 @@ public interface Connection {
    * 
    * @exception MissingCertificate Não há certificado para essa entidade
    *            registrado no barramento indicado.
-   * @exception CorruptedPrivateKey A chave privada fornecida está corrompida.
-   * @exception WrongPrivateKey A chave privada fornecida não corresponde ao
-   *            certificado da entidade registrado no barramento indicado.
+   * @exception InvalidPrivateKey A chave privada fornecida está corrompida.
    * @exception AlreadyLoggedIn A conexão já está logada.
+   * @exception AccessDenied A chave privada fornecida não corresponde ao
+   *            certificado da entidade registrado no barramento indicado.
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu o estabelecimento da conexão.
    */
   void loginByCertificate(String entity, byte[] privKeyBytes)
-    throws CorruptedPrivateKey, WrongPrivateKey, AlreadyLoggedIn,
+    throws InvalidPrivateKey, AlreadyLoggedIn, AccessDenied,
     MissingCertificate, ServiceFailure;
 
   /**
@@ -102,16 +100,16 @@ public interface Connection {
    * @param process Objeto que represeta o processo de login iniciado.
    * @param secret Segredo a ser fornecido na conclusão do processo de login.
    * 
-   * @exception WrongSecret O segredo fornecido não corresponde ao esperado pelo
-   *            barramento.
    * @exception AlreadyLoggedIn A conexão já está logada.
    * @exception InvalidLoginProcess O LoginProcess informado é inválido, por
    *            exemplo depois de ser cancelado ou ter expirado.
+   * @exception AccessDenied O segredo fornecido não corresponde ao esperado
+   *            pelo barramento.
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu o estabelecimento da conexão.
    */
   void loginBySharedAuth(LoginProcess process, byte[] secret)
-    throws WrongSecret, AlreadyLoggedIn, InvalidLoginProcess, ServiceFailure;
+    throws AlreadyLoggedIn, InvalidLoginProcess, AccessDenied, ServiceFailure;
 
   /**
    * Efetua logout no barramento.
