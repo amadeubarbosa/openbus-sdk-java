@@ -106,8 +106,8 @@ public class Client {
         conn.logout();
       }
 
-      conn.loginByPassword(willian, willian.getBytes());
-      forwarder.cancelForward(bill);
+      conn.loginByPassword(bill, bill.getBytes());
+      forwarder.cancelForward(willian);
       conn.logout();
     }
     catch (Exception e) {
