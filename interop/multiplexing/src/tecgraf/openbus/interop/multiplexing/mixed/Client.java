@@ -70,7 +70,16 @@ public class Client {
           org.omg.CORBA.Object obj =
             offer.service_ref.getFacet(HelloHelper.id());
           Hello hello = HelloHelper.narrow(obj);
-          hello.sayHello();
+          String expected = "Hello " + login + "!";
+          String sayHello = hello.sayHello();
+          if (expected.equals(sayHello)) {
+            System.out.println("Received: " + sayHello);
+          }
+          else {
+            System.err.println("ERROR!");
+            System.err.println("Expected: " + expected);
+            System.err.println("Received: " + sayHello);
+          }
         }
         conn.logout();
       }

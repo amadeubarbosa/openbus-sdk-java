@@ -37,10 +37,10 @@ public final class Server {
   public static void main(String[] args) {
     try {
       Logger logger = Logger.getLogger("tecgraf.openbus");
-      logger.setLevel(Level.INFO);
+      logger.setLevel(Level.FINE);
       logger.setUseParentHandlers(false);
       ConsoleHandler handler = new ConsoleHandler();
-      handler.setLevel(Level.INFO);
+      handler.setLevel(Level.FINE);
       logger.addHandler(handler);
 
       Properties props = Utils.readPropertyFile("/hello.properties");

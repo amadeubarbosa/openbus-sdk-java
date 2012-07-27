@@ -83,8 +83,16 @@ public final class Client {
           System.out.println("Faceta encontrada não implementa Hello.");
           continue;
         }
-
-        hello.sayHello();
+        String expected = "Hello " + entity + "!";
+        String sayHello = hello.sayHello();
+        if (expected.equals(sayHello)) {
+          System.out.println("Received: " + sayHello);
+        }
+        else {
+          System.err.println("ERROR!");
+          System.err.println("Expected: " + expected);
+          System.err.println("Received: " + sayHello);
+        }
       }
 
       connection.logout();

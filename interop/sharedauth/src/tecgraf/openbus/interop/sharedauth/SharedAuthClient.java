@@ -83,7 +83,8 @@ public class SharedAuthClient {
           continue;
         }
 
-        hello.sayHello();
+        String sayHello = hello.sayHello();
+        System.out.println("Received: " + sayHello);
       }
 
       connection.logout();

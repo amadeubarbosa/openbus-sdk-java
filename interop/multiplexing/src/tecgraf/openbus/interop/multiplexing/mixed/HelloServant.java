@@ -31,7 +31,7 @@ public final class HelloServant extends HelloPOA {
    * {@inheritDoc}
    */
   @Override
-  public void sayHello() {
+  public String sayHello() {
     try {
       for (Connection conn : conns) {
         CallerChain callerChain = conn.getCallerChain();
@@ -39,14 +39,16 @@ public final class HelloServant extends HelloPOA {
           System.out.println(String.format("Calling in %s @ %s",
             conn.login().entity, conn.busid()));
           LoginInfo caller = callerChain.caller();
-          System.out.println(String.format("Hello from %s @ %s!",
-            caller.entity, callerChain.busid()));
+          String hello =
+            String.format("Hello %s@%s!", caller.entity, callerChain.busid());
+          System.out.println(hello);
+          return hello;
         }
       }
     }
     catch (Exception e) {
       e.printStackTrace();
     }
-
+    return "A bug happened! Bye!";
   }
 }

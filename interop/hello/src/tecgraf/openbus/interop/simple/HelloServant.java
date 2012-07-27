@@ -28,15 +28,17 @@ public final class HelloServant extends HelloPOA {
    * {@inheritDoc}
    */
   @Override
-  public void sayHello() {
+  public String sayHello() {
     try {
       CallerChain callerChain = conn.getCallerChain();
       LoginInfo caller = callerChain.caller();
-      System.out.println(String.format("Hello from %s!", caller.entity));
+      String hello = String.format("Hello %s!", caller.entity);
+      System.out.println(hello);
+      return hello;
     }
     catch (Exception e) {
       e.printStackTrace();
     }
-
+    return "A bug happened! Bye!";
   }
 }
