@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -21,6 +22,7 @@ import org.omg.PortableInterceptor.RequestInfo;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.exception.InvalidBusAddress;
+import tecgraf.openbus.exception.InvalidPropertyValue;
 import tecgraf.openbus.exception.OpenBusInternalException;
 
 /**
@@ -78,7 +80,25 @@ final class ConnectionManagerImpl extends LocalObject implements
   @Override
   public Connection createConnection(String host, int port)
     throws InvalidBusAddress {
-    return new ConnectionImpl(host, port, this, orb);
+    ConnectionImpl conn;
+    try {
+      conn = new ConnectionImpl(host, port, this, orb);
+    }
+    catch (InvalidPropertyValue e) {
+      // Nunca deveria acontecer
+      throw new OpenBusInternalException(
+        "BUG: Este erro nunca deveria ocorrer.", e);
+    }
+    return conn;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public Connection createConnection(String host, int port, Properties props)
+    throws InvalidBusAddress, InvalidPropertyValue {
+    return new ConnectionImpl(host, port, this, orb, props);
   }
 
   /**

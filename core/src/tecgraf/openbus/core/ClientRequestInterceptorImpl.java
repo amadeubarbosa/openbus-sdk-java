@@ -176,7 +176,8 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
           Any anyChain =
             codec.decode_value(joinedChain.encoded, CallChainHelper.type());
           CallChain chain = CallChainHelper.extract(anyChain);
-          if (chain.originators != null && chain.originators.length > 0) {
+          if (chain.originators != null && chain.originators.length > 0
+            && conn.isLegacyDelegateSetToOriginator()) {
             delegate = chain.originators[0].entity;
           }
           else {

@@ -1,5 +1,6 @@
 package tecgraf.openbus.core;
 
+import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.omg.CORBA.ORB;
@@ -23,13 +24,13 @@ final class ORBBuilder {
   public ORBBuilder(String[] args, Properties props) {
     this.args = args;
     if (props == null) {
-      this.props = new Properties();
+      this.props = buildDefaultProperties();
     }
     else {
-      this.props = new Properties(props);
+      this.props = buildFromProperties(props);
     }
-    this.props.put("org.omg.CORBA.ORBClass", "org.jacorb.orb.ORB");
-    this.props.put("org.omg.CORBA.ORBSingletonClass",
+    this.props.setProperty("org.omg.CORBA.ORBClass", "org.jacorb.orb.ORB");
+    this.props.setProperty("org.omg.CORBA.ORBSingletonClass",
       "org.jacorb.orb.ORBSingleton");
   }
 
@@ -48,5 +49,22 @@ final class ORBBuilder {
 
   public ORB build() {
     return ORB.init(this.args, this.props);
+  }
+
+  private Properties buildDefaultProperties() {
+    Properties props = new Properties();
+    props.setProperty("jacorb.log.default.verbosity", "1"); // ERROR
+    props
+      .setProperty("jacorb.connection.client.pending_reply_timeout", "30000");
+    return props;
+  }
+
+  private Properties buildFromProperties(Properties props) {
+    Properties result = new Properties(buildDefaultProperties());
+    for (Entry<Object, Object> entry : props.entrySet()) {
+      result.setProperty(String.valueOf(entry.getKey()), String.valueOf(entry
+        .getValue()));
+    }
+    return result;
   }
 }

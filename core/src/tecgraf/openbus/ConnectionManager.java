@@ -1,6 +1,9 @@
 package tecgraf.openbus;
 
+import java.util.Properties;
+
 import tecgraf.openbus.exception.InvalidBusAddress;
+import tecgraf.openbus.exception.InvalidPropertyValue;
 
 /**
  * Interface com operações para gerenciar acesso multiplexado a diferentes
@@ -34,6 +37,23 @@ public interface ConnectionManager {
    *         acessível.
    */
   Connection createConnection(String host, int port) throws InvalidBusAddress;
+
+  /**
+   * Cria uma conexão para um barramento a partir de um endereço de rede IP e
+   * uma porta.
+   * 
+   * @param host Endereço de rede IP onde o barramento está executando.
+   * @param port Porta do processo do barramento no endereço indicado.
+   * @param props Propriedades específicas da conexão.
+   * 
+   * @return Conexão ao barramento referenciado.
+   * @throws InvalidBusAddress par host/porta não corresponde a um barramento
+   *         acessível.
+   * @throws InvalidPropertyValue propriedade especificada possui um valor
+   *         inválido.
+   */
+  Connection createConnection(String host, int port, Properties props)
+    throws InvalidBusAddress, InvalidPropertyValue;
 
   /**
    * Define a conexão a ser utilizada nas chamadas realizadas e no despacho de

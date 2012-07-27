@@ -1,6 +1,5 @@
 package tecgraf.openbus.core;
 
-import java.security.InvalidParameterException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
@@ -9,6 +8,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
@@ -60,6 +60,7 @@ import tecgraf.openbus.exception.CorruptedPrivateKey;
 import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.exception.InvalidBusAddress;
 import tecgraf.openbus.exception.InvalidLoginProcess;
+import tecgraf.openbus.exception.InvalidPropertyValue;
 import tecgraf.openbus.exception.OpenBusInternalException;
 import tecgraf.openbus.exception.WrongPrivateKey;
 import tecgraf.openbus.exception.WrongSecret;
@@ -108,6 +109,12 @@ final class ConnectionImpl implements Connection {
   /** Callback a ser disparada caso o login se encontre inválido */
   private InvalidLoginCallback invalidLoginCallback;
 
+  /* Propriedades da conexão. */
+  /** Informa se o suporte legado esta ativo */
+  private boolean legacy;
+  /** Informa qual o modelo de preenchimento do campo delegate. */
+  private String delegate;
+
   /**
    * Construtor.
    * 
@@ -117,12 +124,29 @@ final class ConnectionImpl implements Connection {
    * @param orb ORB que essa conexão ira utilizar;
    * @throws InvalidBusAddress par host/porta não corresponde a um barramento
    *         acessível.
+   * @throws InvalidPropertyValue Existe uma propriedade com um valor inválido.
    */
   public ConnectionImpl(String host, int port, ConnectionManagerImpl manager,
-    ORB orb) throws InvalidBusAddress {
+    ORB orb) throws InvalidBusAddress, InvalidPropertyValue {
+    this(host, port, manager, orb, new Properties());
+  }
 
+  /**
+   * Construtor.
+   * 
+   * @param host Endereço de rede IP onde o barramento está executando.
+   * @param port Porta do processo do barramento no endereço indicado.
+   * @param manager Implementação do multiplexador de conexão.
+   * @param orb ORB que essa conexão ira utilizar;
+   * @param props Propriedades da conexão.
+   * @throws InvalidBusAddress par host/porta não corresponde a um barramento
+   *         acessível.
+   * @throws InvalidPropertyValue Existe uma propriedade com um valor inválido.
+   */
+  public ConnectionImpl(String host, int port, ConnectionManagerImpl manager,
+    ORB orb, Properties props) throws InvalidBusAddress, InvalidPropertyValue {
     if ((host == null) || (host.isEmpty()) || (port < 0)) {
-      throw new InvalidParameterException(
+      throw new InvalidBusAddress(
         "Os parametros host e/ou port não são validos");
     }
 
@@ -130,7 +154,13 @@ final class ConnectionImpl implements Connection {
     this.manager = manager;
     this.bus = null;
     this.legacyBus = null;
-
+    if (props == null) {
+      props = new Properties();
+    }
+    String prop = Property.LEGACY_DISABLE.getProperty(props);
+    Boolean disabled = Boolean.valueOf(prop);
+    this.legacy = !disabled;
+    this.delegate = Property.LEGACY_DELEGATE.getProperty(props);
     try {
       this.manager.ignoreCurrentThread();
       retrieveBusReferences(host, port);
@@ -211,30 +241,60 @@ final class ConnectionImpl implements Connection {
     String str =
       String.format("corbaloc::1.0@%s:%d/%s", host, port, BusObjectKey.value);
     org.omg.CORBA.Object obj = orb.string_to_object(str);
-    if (obj == null) {
-      throw new InvalidBusAddress(
-        "Não foi possível obter uma referência para o barramento.");
+    boolean existent = false;
+    try {
+      if (obj != null && !obj._non_existent()) {
+        existent = true;
+      }
     }
-
-    IComponent acsComponent = IComponentHelper.narrow(obj);
+    catch (OBJECT_NOT_EXIST e) {
+      // o tratamento esta no finally
+    }
+    finally {
+      if (!existent) {
+        throw new InvalidBusAddress(
+          "Não foi possível obter uma referência para o barramento.");
+      }
+    }
+    IComponent acsComponent = null;
+    if (obj._is_a(IComponentHelper.id())) {
+      acsComponent = IComponentHelper.narrow(obj);
+    }
     if (acsComponent == null) {
       throw new InvalidBusAddress(
         "Referência obtida não corresponde a um IComponent.");
     }
     this.bus = new BusInfo(acsComponent);
 
-    /* *
-     * enquanto não definimos uma API, o legacy esta guardado no ORBMediator
-     * porém, esta sempre true. Este é o ponto de entrada para configurar o
-     * legacy se for por conexão. Caso seja por ORB, colocar no ORBInit?
-     * 
-     * TODO: Tirar duvida desse comentario com hroenick.
-     */
-    String legacyStr =
-      String.format("corbaloc::1.0@%s:%d/%s", host, port, "openbus_v1_05");
-    org.omg.CORBA.Object legacyObj = orb.string_to_object(legacyStr);
-    IComponent acsLegacyComponent = IComponentHelper.narrow(legacyObj);
-    this.legacyBus = new LegacyInfo(acsLegacyComponent);
+    if (this.legacy) {
+      String legacyStr =
+        String.format("corbaloc::1.0@%s:%d/%s", host, port, "openbus_v1_05");
+      org.omg.CORBA.Object legacyObj = orb.string_to_object(legacyStr);
+      existent = false;
+      try {
+        if (legacyObj != null && !legacyObj._non_existent()) {
+          existent = true;
+        }
+      }
+      catch (OBJECT_NOT_EXIST e) {
+        // o tratamento esta no finally
+      }
+      finally {
+        if (!existent) {
+          this.legacy = false;
+          return;
+        }
+      }
+      IComponent acsLegacyComponent = null;
+      if (obj._is_a(IComponentHelper.id())) {
+        acsLegacyComponent = IComponentHelper.narrow(legacyObj);
+      }
+      if (acsLegacyComponent == null) {
+        this.legacy = false;
+        return;
+      }
+      this.legacyBus = new LegacyInfo(acsLegacyComponent);
+    }
   }
 
   /**
@@ -740,6 +800,9 @@ final class ConnectionImpl implements Connection {
    *         caso contrário.
    */
   boolean legacy() {
+    if (!this.legacy) {
+      return false;
+    }
     return this.legacyBus != null;
   }
 
@@ -793,5 +856,20 @@ final class ConnectionImpl implements Connection {
    */
   void setLoginInvalid() {
     this.internalLogin.setInvalid();
+  }
+
+  /**
+   * Verifica se a propriedade "legacy.delegate" da conexão está configurada. Os
+   * valores possíveis são "originator" e "caller", onde "caller" é o valor
+   * default.
+   * 
+   * @return <code>true</code> se a propriedade esta configurada para
+   *         "originator", e <code>false</code> caso contrário.
+   */
+  boolean isLegacyDelegateSetToOriginator() {
+    if (this.delegate.equals("originator")) {
+      return true;
+    }
+    return false;
   }
 }
