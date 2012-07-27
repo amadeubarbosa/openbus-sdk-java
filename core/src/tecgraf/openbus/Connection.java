@@ -8,8 +8,9 @@ import tecgraf.openbus.core.v2_0.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_0.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
-import tecgraf.openbus.exception.InvalidPrivateKey;
+import tecgraf.openbus.exception.BusChanged;
 import tecgraf.openbus.exception.InvalidLoginProcess;
+import tecgraf.openbus.exception.InvalidPrivateKey;
 
 /**
  * Conexão com um barramento.
@@ -56,11 +57,13 @@ public interface Connection {
    * @exception AccessDenied Senha fornecida para autenticação da entidade não
    *            foi validada pelo barramento.
    * @exception AlreadyLoggedIn A conexão já está logada.
+   * @exception BusChanged O identificador do barramento mudou. Uma nova conexão
+   *            deve ser criada.
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu o estabelecimento da conexão.
    */
   void loginByPassword(String entity, byte[] password) throws AccessDenied,
-    AlreadyLoggedIn, ServiceFailure;
+    AlreadyLoggedIn, BusChanged, ServiceFailure;
 
   /**
    * Efetua login no barramento como uma entidade usando autenticação por
@@ -74,13 +77,15 @@ public interface Connection {
    *            registrado no barramento indicado.
    * @exception InvalidPrivateKey A chave privada fornecida está corrompida.
    * @exception AlreadyLoggedIn A conexão já está logada.
+   * @exception BusChanged O identificador do barramento mudou. Uma nova conexão
+   *            deve ser criada.
    * @exception AccessDenied A chave privada fornecida não corresponde ao
    *            certificado da entidade registrado no barramento indicado.
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu o estabelecimento da conexão.
    */
   void loginByCertificate(String entity, byte[] privKeyBytes)
-    throws InvalidPrivateKey, AlreadyLoggedIn, AccessDenied,
+    throws InvalidPrivateKey, AlreadyLoggedIn, BusChanged, AccessDenied,
     MissingCertificate, ServiceFailure;
 
   /**
@@ -103,13 +108,16 @@ public interface Connection {
    * @exception AlreadyLoggedIn A conexão já está logada.
    * @exception InvalidLoginProcess O LoginProcess informado é inválido, por
    *            exemplo depois de ser cancelado ou ter expirado.
+   * @exception BusChanged O identificador do barramento mudou. Uma nova conexão
+   *            deve ser criada.
    * @exception AccessDenied O segredo fornecido não corresponde ao esperado
    *            pelo barramento.
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu o estabelecimento da conexão.
    */
   void loginBySharedAuth(LoginProcess process, byte[] secret)
-    throws AlreadyLoggedIn, InvalidLoginProcess, AccessDenied, ServiceFailure;
+    throws AlreadyLoggedIn, InvalidLoginProcess, BusChanged, AccessDenied,
+    ServiceFailure;
 
   /**
    * Efetua logout no barramento.

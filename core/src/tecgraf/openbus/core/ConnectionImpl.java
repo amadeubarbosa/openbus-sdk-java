@@ -56,6 +56,7 @@ import tecgraf.openbus.core.v2_0.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_0.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
+import tecgraf.openbus.exception.BusChanged;
 import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.exception.InvalidBusAddress;
 import tecgraf.openbus.exception.InvalidLoginProcess;
@@ -300,7 +301,7 @@ final class ConnectionImpl implements Connection {
    */
   @Override
   public void loginByPassword(String entity, byte[] password)
-    throws AccessDenied, AlreadyLoggedIn, ServiceFailure {
+    throws AccessDenied, AlreadyLoggedIn, ServiceFailure, BusChanged {
     checkLoggedIn();
     LoginInfo newLogin;
     try {
@@ -374,7 +375,7 @@ final class ConnectionImpl implements Connection {
   @Override
   public void loginByCertificate(String entity, byte[] privateKeyBytes)
     throws InvalidPrivateKey, AlreadyLoggedIn, MissingCertificate,
-    AccessDenied, ServiceFailure {
+    AccessDenied, ServiceFailure, BusChanged {
     checkLoggedIn();
     this.manager.ignoreCurrentThread();
     LoginProcess loginProcess = null;
@@ -459,7 +460,8 @@ final class ConnectionImpl implements Connection {
    */
   @Override
   public void loginBySharedAuth(LoginProcess process, byte[] secret)
-    throws AlreadyLoggedIn, ServiceFailure, AccessDenied, InvalidLoginProcess {
+    throws AlreadyLoggedIn, ServiceFailure, AccessDenied, InvalidLoginProcess,
+    BusChanged {
     checkLoggedIn();
     this.manager.ignoreCurrentThread();
     byte[] encryptedLoginAuthenticationInfo =
@@ -540,14 +542,14 @@ final class ConnectionImpl implements Connection {
    * @param newLogin a nova informação de login.
    * @param validity tempo de validade do login.
    * @throws AlreadyLoggedIn se a conexão já estiver logada.
+   * @throws BusChanged caso a conexão tente relogar em outro barramento.
    */
   private void localLogin(LoginInfo newLogin, int validity)
-    throws AlreadyLoggedIn {
+    throws AlreadyLoggedIn, BusChanged {
     String old = getBus().getId();
     String busid = getBus().getAccessControl().busid();
     if (!old.equals(busid)) {
-      throw new OpenBusInternalException(
-        "Barramento inválido! Identificador do barramento mudou.");
+      throw new BusChanged(busid);
     }
     writeLock().lock();
     try {
