@@ -1,7 +1,7 @@
 package tecgraf.openbus.core;
 
-import tecgraf.openbus.exception.CryptographyException;
-import tecgraf.openbus.util.Cryptography;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import tecgraf.openbus.util.TicketsHistory;
 
 /**
@@ -15,15 +15,15 @@ abstract class Session {
   /**
    * Identificador da sessão.
    */
-  private int session;
+  final private int session;
   /**
    * O segredo compartilhado na sessão
    */
-  protected byte[] secret;
+  final protected byte[] secret;
   /**
    * Alvo da comunicação.
    */
-  private String callee;
+  final private String callee;
 
   /**
    * Construtor.
@@ -89,12 +89,14 @@ abstract class Session {
     }
 
     /**
-     * Recupera o histórico dos tickets utilizados
+     * Verifica se o ticket é válido e marca com utilizado caso seja válido.
      * 
-     * @return o histórico dos tickets.
+     * @param id o ticket a ser utilizado.
+     * @return <code>true</code> caso o ticket era válido e foi marcado, e
+     *         <code>false</code> caso o ticket não fosse válido.
      */
-    public TicketsHistory getTicket() {
-      return this.ticket;
+    public boolean checkTicket(int id) {
+      return this.ticket.check(id);
     }
 
   }
@@ -108,11 +110,7 @@ abstract class Session {
     /**
      * Valor do último ticket utilizado
      */
-    private int ticket;
-    /**
-     * Identifica se o segredo já foi desencriptado
-     */
-    private volatile boolean decrypted = false;
+    private AtomicInteger ticket;
 
     /**
      * Construtor.
@@ -123,7 +121,7 @@ abstract class Session {
      */
     public ClientSideSession(int session, byte[] secret, String callee) {
       super(session, secret, callee);
-      this.ticket = -1;
+      this.ticket = new AtomicInteger(-1);
     }
 
     /**
@@ -132,30 +130,8 @@ abstract class Session {
      * @return o valor do próximo ticket.
      */
     public int nextTicket() {
-      return ++this.ticket;
+      return this.ticket.incrementAndGet();
     }
 
-    /**
-     * Recupera o segredo desencriptado.
-     * 
-     * @param conn a conexão em uso.
-     * @return o segredo.
-     * @throws CryptographyException
-     */
-    public byte[] getDecryptedSecret(ConnectionImpl conn)
-      throws CryptographyException {
-      if (!decrypted) {
-        synchronized (this) {
-          if (!decrypted) {
-            Cryptography crypto = Cryptography.getInstance();
-            byte[] decrypted =
-              crypto.decrypt(this.secret, conn.getPrivateKey());
-            this.secret = decrypted;
-            this.decrypted = true;
-          }
-        }
-      }
-      return this.secret;
-    }
   }
 }

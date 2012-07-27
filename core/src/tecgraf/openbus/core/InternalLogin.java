@@ -87,7 +87,8 @@ class InternalLogin {
               "Callback gerou um erro durante execução.", ex);
           }
           LoginInfo curr = this.invalid();
-          if (curr.id.equals(invalid.id) && curr.entity.equals(invalid.entity)) {
+          if (curr != null && curr.id.equals(invalid.id)
+            && curr.entity.equals(invalid.entity)) {
             invalid = null;
             conn.writeLock().lock();
             this.invalid = null;

@@ -55,9 +55,6 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
   /** Mediador */
   private ORBMediator mediator;
 
-  /** Tamanho das caches dos interceptadores */
-  protected final int CACHE_SIZE = 30;
-
   /**
    * Construtor.
    * 

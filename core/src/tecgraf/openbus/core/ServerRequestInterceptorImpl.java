@@ -2,8 +2,6 @@ package tecgraf.openbus.core;
 
 import java.security.interfaces.RSAPublicKey;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Map;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -51,7 +49,6 @@ import tecgraf.openbus.core.v2_0.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_0.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.util.Cryptography;
-import tecgraf.openbus.util.LRUCache;
 
 /**
  * Interceptador servidor.
@@ -65,13 +62,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
   private static final Logger logger = Logger
     .getLogger(ServerRequestInterceptorImpl.class.getName());
 
-  /** Cache de sessão: mapa de cliente alvo da chamada para sessão */
-  private Map<Integer, ServerSideSession> sessions;
-  /** Cache de login */
-  private LoginCache loginsCache;
-  /** Cache de validade de credencial 1.5 */
-  private IsValidCache validCache;
-
   /**
    * Construtor.
    * 
@@ -80,11 +70,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   ServerRequestInterceptorImpl(String name, ORBMediator mediator) {
     super(name, mediator);
-    this.sessions =
-      Collections.synchronizedMap(new LRUCache<Integer, ServerSideSession>(
-        CACHE_SIZE));
-    this.loginsCache = new LoginCache(CACHE_SIZE);
-    this.validCache = new IsValidCache(CACHE_SIZE);
   }
 
   /**
@@ -289,7 +274,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
 
           boolean valid = false;
           try {
-            valid = loginsCache.validateLogin(loginId, conn);
+            valid = conn.cache.logins.validateLogin(loginId, conn);
           }
           catch (NO_PERMISSION e) {
             if (e.minor == NoLoginCode.value) {
@@ -325,8 +310,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
             setCurrentConnection(ri, conn);
             manager.setRequester(conn);
             try {
-              if (loginsCache.validateLogin(loginId, conn)
-                && validCache.isValid(wrapper.legacyCredential, conn)) {
+              if (conn.cache.logins.validateLogin(loginId, conn)
+                && conn.cache.valids.isValid(wrapper.legacyCredential, conn)) {
                 valid = true;
                 break;
               }
@@ -344,7 +329,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         OctetSeqHolder pubkey = new OctetSeqHolder();
         String entity;
         try {
-          entity = loginsCache.getLoginEntity(loginId, pubkey, conn);
+          entity = conn.cache.logins.getLoginEntity(loginId, pubkey, conn);
         }
         catch (InvalidLogins e) {
           String message = "Erro ao verificar o login.";
@@ -379,7 +364,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           throw new NO_PERMISSION(UnverifiedLoginCode.value,
             CompletionStatus.COMPLETED_NO);
         }
-        if (validateCredential(credential, ri)) {
+        if (validateCredential(credential, ri, conn)) {
           if (validateChain(credential, pubkey, ri, conn)) {
             // salvando informação da conexão que atendeu a requisição
             Any any = orb.create_any();
@@ -447,10 +432,10 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     byte[] encriptedSecret =
       crypto.encrypt(newSecret, crypto
         .generateRSAPublicKeyFromX509EncodedKey(publicKey));
-    int sessionId = nextAvailableSessionId();
+    int sessionId = conn.nextAvailableSessionId();
     ServerSideSession newSession =
       new ServerSideSession(sessionId, newSecret, conn.login().id);
-    sessions.put(newSession.getSession(), newSession);
+    conn.cache.srvSessions.put(newSession.getSession(), newSession);
     CredentialReset reset =
       new CredentialReset(conn.login().id, sessionId, encriptedSecret);
     Any any = orb.create_any();
@@ -475,17 +460,18 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * 
    * @param credential a credencial
    * @param ri informação do request.
+   * @param conn a conexão em uso.
    * @return <code>true</code> caso a credencial seja válida, ou
    *         <code>false</code> caso contrário.
    */
   private boolean validateCredential(CredentialData credential,
-    ServerRequestInfo ri) {
+    ServerRequestInfo ri, ConnectionImpl conn) {
     if (Arrays.equals(credential.hash, LEGACY_HASH)) {
       // credencial OpenBus 1.5
       logger.finest("Credencial OpenBus 1.5");
       return true;
     }
-    ServerSideSession session = sessions.get(credential.session);
+    ServerSideSession session = conn.cache.srvSessions.get(credential.session);
     if (session != null) {
       logger.finest(String.format("sessão utilizada: id = %d ticket = %d",
         session.getSession(), credential.ticket));
@@ -493,7 +479,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         this.generateCredentialDataHash(ri, session.getSecret(),
           credential.ticket);
       if (Arrays.equals(hash, credential.hash)
-        && session.getTicket().check(credential.ticket)) {
+        && session.checkTicket(credential.ticket)) {
         return true;
       }
       else {
@@ -591,23 +577,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void send_other(ServerRequestInfo ri) {
-  }
-
-  /**
-   * Recupera o próximo indentificador de sessão disponível.
-   * 
-   * @return o Identificador de sessão.
-   */
-  private int nextAvailableSessionId() {
-    synchronized (sessions) {
-      for (int i = 1; i <= CACHE_SIZE + 1; i++) {
-        if (!sessions.containsKey(i)) {
-          return i;
-        }
-      }
-    }
-    // não deveria chegar neste ponto
-    return CACHE_SIZE + 1;
   }
 
   /**

@@ -50,7 +50,7 @@ import tecgraf.openbus.core.v2_0.services.access_control.LoginInfoHolder;
 import tecgraf.openbus.core.v2_0.services.access_control.NoCredentialCode;
 import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.exception.CryptographyException;
-import tecgraf.openbus.util.LRUCache;
+import tecgraf.openbus.util.Cryptography;
 
 /**
  * Implementação do interceptador cliente.
@@ -63,13 +63,6 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
   /** Instância de logging. */
   private static final Logger logger = Logger
     .getLogger(ClientRequestInterceptorImpl.class.getName());
-
-  /** Mapa de profile do interceptador para o cliente alvo da chamanha */
-  private Map<EffectiveProfile, String> entities;
-  /** Cache de sessão: mapa de cliente alvo da chamada para sessão */
-  private Map<String, ClientSideSession> sessions;
-  /** Cache de cadeias assinadas */
-  private Map<ChainCacheKey, SignedCallChain> chains;
 
   /** Mapa interno do interceptador que associa a conexão ao requestId */
   private Map<Integer, ConnectionImpl> requestId2Conn;
@@ -84,15 +77,6 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    */
   ClientRequestInterceptorImpl(String name, ORBMediator mediator) {
     super(name, mediator);
-    this.entities =
-      Collections.synchronizedMap(new LRUCache<EffectiveProfile, String>(
-        CACHE_SIZE));
-    this.sessions =
-      Collections.synchronizedMap(new LRUCache<String, ClientSideSession>(
-        CACHE_SIZE));
-    this.chains =
-      Collections.synchronizedMap(new LRUCache<ChainCacheKey, SignedCallChain>(
-        CACHE_SIZE));
     this.requestId2Conn =
       Collections.synchronizedMap(new HashMap<Integer, ConnectionImpl>());
     this.requestId2LoginId =
@@ -235,22 +219,14 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     String operation = ri.operation();
     String busId = conn.busid();
     EffectiveProfile ep = new EffectiveProfile(ri.effective_profile());
-    String callee = this.entities.get(ep);
+    String callee = conn.cache.entities.get(ep);
     if (callee != null) {
-      ClientSideSession session = this.sessions.get(callee);
+      ClientSideSession session = conn.cache.cltSessions.get(callee);
       if (session != null) {
         int ticket = session.nextTicket();
         logger.finest(String.format("utilizando sessão: id = %d ticket = %d",
           session.getSession(), ticket));
-        byte[] secret;
-        try {
-          secret = session.getDecryptedSecret(conn);
-        }
-        catch (CryptographyException e) {
-          String message = "Falha inesperada ao descriptografar segredo.";
-          logger.log(Level.SEVERE, message, e);
-          throw new INTERNAL(message);
-        }
+        byte[] secret = session.getSecret();
         byte[] credentialDataHash =
           this.generateCredentialDataHash(ri, secret, ticket);
         SignedCallChain chain = getCallChain(ri, conn, holder, callee);
@@ -289,14 +265,14 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         // checando se existe na cache
         ChainCacheKey key =
           new ChainCacheKey(curr.id, callee, getSignedChain(ri));
-        callChain = chains.get(key);
+        callChain = conn.cache.chains.get(key);
         if (callChain == null) {
           do {
             callChain = conn.access().signChainFor(callee);
             curr = conn.getLogin();
           } while (!unmarshallSignedChain(callChain, logger).caller.id
             .equals(curr.id));
-          chains.put(key, callChain);
+          conn.cache.chains.put(key, callChain);
         }
         holder.value = curr;
       }
@@ -372,6 +348,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         return;
       }
 
+      ConnectionImpl conn = requestId2Conn.get(requestId);
       switch (exception.minor) {
 
         case InvalidCredentialCode.value:
@@ -406,15 +383,24 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
           CredentialReset reset =
             CredentialResetHelper.extract(credentialResetAny);
           String callee = reset.login;
-          this.entities.put(ep, callee);
-          this.sessions.put(callee, new ClientSideSession(reset.session,
-            reset.challenge, reset.login));
+          Cryptography crypto = Cryptography.getInstance();
+          byte[] secret;
+          try {
+            secret = crypto.decrypt(reset.challenge, conn.getPrivateKey());
+          }
+          catch (CryptographyException e) {
+            String message = "Falha inesperada ao descriptografar segredo.";
+            logger.log(Level.SEVERE, message, e);
+            throw new INTERNAL(message);
+          }
+          conn.cache.entities.put(ep, callee);
+          conn.cache.cltSessions.put(callee, new ClientSideSession(
+            reset.session, secret, reset.login));
           logger.finest(String.format("ForwardRequest após reset: %s", ri
             .operation()));
           throw new ForwardRequest(ri.target());
 
         case InvalidLoginCode.value:
-          ConnectionImpl conn = requestId2Conn.get(requestId);
           String loginId = requestId2LoginId.get(requestId);
           LoginInfo info = conn.login();
           if (info != null && loginId.equals(info.id)) {
@@ -487,80 +473,6 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void receive_other(ClientRequestInfo ri) {
-  }
-
-  /**
-   * Chave da cache de cadeias assinadas.
-   * 
-   * @author Tecgraf
-   */
-  private class ChainCacheKey {
-    /**
-     * O prório login
-     */
-    private String login;
-    /**
-     * O login do alvo da requisição
-     */
-    private String callee;
-    /**
-     * A cadeia com a qual esta joined
-     */
-    private SignedCallChain joinedChain;
-
-    /**
-     * Construtor.
-     * 
-     * @param login login.
-     * @param callee login do alvo da requisição
-     * @param joinedChain cadeia que esta joined
-     */
-    public ChainCacheKey(String login, String callee,
-      SignedCallChain joinedChain) {
-      this.login = login;
-      this.callee = callee;
-      this.joinedChain = joinedChain;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean equals(Object obj) {
-      if (obj instanceof ChainCacheKey) {
-        ChainCacheKey other = (ChainCacheKey) obj;
-        if (this.callee.equals(other.callee)
-          && this.login.equals(other.login)
-          && Arrays.equals(this.joinedChain.encoded, other.joinedChain.encoded)
-          && Arrays.equals(this.joinedChain.signature,
-            other.joinedChain.signature)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int hashCode() {
-      // um valor qualquer
-      int BASE = 17;
-      // um valor qualquer
-      int SEED = 37;
-      int hash = BASE;
-      if (this.login != null) {
-        hash = hash * SEED + this.login.hashCode();
-      }
-      if (this.callee != null) {
-        hash = hash * SEED + this.login.hashCode();
-      }
-      hash += Arrays.hashCode(this.joinedChain.encoded);
-      hash += Arrays.hashCode(this.joinedChain.signature);
-      return hash;
-    }
-
   }
 
 }

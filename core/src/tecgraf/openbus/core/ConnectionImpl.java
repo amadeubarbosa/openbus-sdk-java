@@ -33,6 +33,8 @@ import scs.core.IComponentHelper;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
+import tecgraf.openbus.core.Session.ClientSideSession;
+import tecgraf.openbus.core.Session.ServerSideSession;
 import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlService;
 import tecgraf.openbus.core.v2_0.BusObjectKey;
 import tecgraf.openbus.core.v2_0.EncryptedBlockHolder;
@@ -64,6 +66,7 @@ import tecgraf.openbus.exception.InvalidPrivateKey;
 import tecgraf.openbus.exception.InvalidPropertyValue;
 import tecgraf.openbus.exception.OpenBusInternalException;
 import tecgraf.openbus.util.Cryptography;
+import tecgraf.openbus.util.LRUCache;
 
 /**
  * Implementação da Interface {@link Connection}
@@ -108,6 +111,9 @@ final class ConnectionImpl implements Connection {
   /** Callback a ser disparada caso o login se encontre inválido */
   private InvalidLoginCallback invalidLoginCallback;
 
+  /** Caches da conexão */
+  Caches cache;
+
   /* Propriedades da conexão. */
   /** Informa se o suporte legado esta ativo */
   private boolean legacy;
@@ -151,6 +157,7 @@ final class ConnectionImpl implements Connection {
 
     this.orb = orb;
     this.manager = manager;
+    this.cache = new Caches();
     this.bus = null;
     this.legacyBus = null;
     if (props == null) {
@@ -864,5 +871,68 @@ final class ConnectionImpl implements Connection {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Recupera o próximo indentificador de sessão disponível.
+   * 
+   * @return o Identificador de sessão.
+   */
+  int nextAvailableSessionId() {
+    synchronized (this.cache.srvSessions) {
+      for (int i = 1; i <= this.cache.CACHE_SIZE + 1; i++) {
+        if (!this.cache.srvSessions.containsKey(i)) {
+          return i;
+        }
+      }
+    }
+    // não deveria chegar neste ponto
+    return this.cache.CACHE_SIZE + 1;
+  }
+
+  /**
+   * Classe interna para agrupar os caches utilizados pela conexão.
+   * 
+   * @author Tecgraf
+   */
+  class Caches {
+    /** Tamanho das caches dos interceptadores */
+    final int CACHE_SIZE = 30;
+    /* Caches Cliente da conexão */
+    /** Mapa de profile do interceptador para o cliente alvo da chamanha */
+    Map<EffectiveProfile, String> entities;
+    /** Cache de sessão: mapa de cliente alvo da chamada para sessão */
+    Map<String, ClientSideSession> cltSessions;
+    /** Cache de cadeias assinadas */
+    Map<ChainCacheKey, SignedCallChain> chains;
+    /* Caches servidor da conexão */
+    /** Cache de sessão: mapa de cliente alvo da chamada para sessão */
+    Map<Integer, ServerSideSession> srvSessions;
+    /** Cache de login */
+    LoginCache logins;
+    /** Cache de validade de credencial 1.5 */
+    IsValidCache valids;
+
+    /**
+     * Construtor.
+     */
+    public Caches() {
+      this.entities =
+        Collections.synchronizedMap(new LRUCache<EffectiveProfile, String>(
+          CACHE_SIZE));
+      this.cltSessions =
+        Collections.synchronizedMap(new LRUCache<String, ClientSideSession>(
+          CACHE_SIZE));
+      this.chains =
+        Collections
+          .synchronizedMap(new LRUCache<ChainCacheKey, SignedCallChain>(
+            CACHE_SIZE));
+      this.srvSessions =
+        Collections.synchronizedMap(new LRUCache<Integer, ServerSideSession>(
+          CACHE_SIZE));
+      this.logins = new LoginCache(CACHE_SIZE);
+      this.valids = new IsValidCache(CACHE_SIZE);
+
+    }
   }
 }

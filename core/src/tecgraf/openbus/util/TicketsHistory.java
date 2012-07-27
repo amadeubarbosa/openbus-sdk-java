@@ -100,7 +100,7 @@ public class TicketsHistory {
    * @return <code>true</code> caso o ticket era válido e foi marcado, e
    *         <code>false</code> caso o ticket não fosse válido.
    */
-  public boolean check(int id) {
+  synchronized public boolean check(int id) {
     if (id < this.base) {
       return false;
     }
