@@ -25,4 +25,21 @@ public final class InvalidPropertyValue extends OpenBusException {
     this.value = value;
   }
 
+  /**
+   * Recupera o nome da propriedade.
+   * 
+   * @return o nome da propriedade.
+   */
+  public String getProperty() {
+    return prop;
+  }
+
+  /**
+   * Recupera o valor da propriedade.
+   * 
+   * @return o valor da propriedade.
+   */
+  public String getValue() {
+    return value;
+  }
 }
