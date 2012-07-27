@@ -3,6 +3,7 @@ package tecgraf.openbus.interop.delegation;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
@@ -96,14 +97,16 @@ public class ForwarderImpl extends ForwarderPOA {
         }
         Map<String, ForwardInfo> forwardsOf = forwarder.getForwardsOf();
         synchronized (forwardsOf) {
-          for (ForwardInfo info : forwardsOf.values()) {
-            System.out.println("Verificando mensagens de " + info.to);
+          for (Entry<String, ForwardInfo> entry : forwardsOf.entrySet()) {
+            String user = entry.getKey();
+            ForwardInfo info = entry.getValue();
+            System.out.println("Verificando mensagens de " + user);
             conn.joinChain(info.chain);
             PostDesc[] posts = messenger.receivePosts();
             conn.exitChain();
             for (PostDesc post : posts) {
-              messenger.post(info.to, String.format("forwarded de %s: %s",
-                post.from, post.message));
+              messenger.post(info.to, String.format(
+                "forwarded message by %s:%s", post.from, post.message));
             }
           }
         }

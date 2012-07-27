@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 import tecgraf.openbus.interop.util.Utils;
@@ -40,16 +41,19 @@ public class MessengerImpl extends MessengerPOA {
 
   @Override
   public PostDesc[] receivePosts() {
-    LoginInfo caller = conn.getCallerChain().caller();
-    LoginInfo[] originators = conn.getCallerChain().originators();
+    CallerChain chain = conn.getCallerChain();
+    LoginInfo caller = chain.caller();
+    LoginInfo[] originators = chain.originators();
     String owner = caller.entity;
-    System.out.println("download das mensagens por "
-      + Utils.chain2str(originators, caller));
+    if (originators.length > 0) {
+      owner = originators[0].entity;
+    }
+    System.out.println(String.format("download das mensagens de %s por %s",
+      owner, Utils.chain2str(originators, caller)));
     List<PostDesc> list = this.inboxOf.remove(owner);
     if (list == null) {
       list = new ArrayList<PostDesc>();
     }
     return list.toArray(new PostDesc[list.size()]);
   }
-
 }

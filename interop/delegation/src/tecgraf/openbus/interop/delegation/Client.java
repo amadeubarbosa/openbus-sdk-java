@@ -70,8 +70,8 @@ public class Client {
 
       conn.logout();
 
-      conn.loginByPassword(willian, willian.getBytes());
-      forwarder.setForward(bill);
+      conn.loginByPassword(bill, bill.getBytes());
+      forwarder.setForward(willian);
       broadcaster.subscribe();
       conn.logout();
 
