@@ -66,7 +66,7 @@ public class Client {
         }
         org.omg.CORBA.Object obj = offer.service_ref.getFacet(HelloHelper.id());
         Hello hello = HelloHelper.narrow(obj);
-        String expected = "Hello " + login + "!";
+        String expected = String.format("Hello %s!", login);
         String sayHello = hello.sayHello();
         if (expected.equals(sayHello)) {
           System.out.println("Received: " + sayHello);
