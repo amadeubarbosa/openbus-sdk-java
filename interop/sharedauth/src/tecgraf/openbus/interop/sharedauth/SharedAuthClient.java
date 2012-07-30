@@ -1,15 +1,13 @@
 package tecgraf.openbus.interop.sharedauth;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.Properties;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.omg.CORBA.Any;
 import org.omg.CORBA.ORB;
 
 import tecgraf.openbus.Connection;
@@ -45,8 +43,21 @@ public class SharedAuthClient {
       Connection connection = manager.createConnection(host, port);
       manager.setDefaultConnection(connection);
 
-      LoginProcess process = readLoginProcess(properties, orb);
-      byte[] secret = readSecret(properties);
+      File file = new File("sharedauth.dat");
+      FileInputStream fstream = new FileInputStream(file);
+      byte[] encoded = new byte[(int) file.length()];
+      int read = fstream.read(encoded);
+      if (read != file.length()) {
+        System.err.println("Erro de leitura!");
+        return;
+      }
+      fstream.close();
+      Any any =
+        Utils.getCodec(orb).decode_value(encoded,
+          EncodedSharedAuthHelper.type());
+      EncodedSharedAuth sharedAuth = EncodedSharedAuthHelper.extract(any);
+      LoginProcess process = LoginProcessHelper.narrow(sharedAuth.attempt);
+      byte[] secret = sharedAuth.secret;
 
       connection.loginBySharedAuth(process, secret);
 
@@ -94,22 +105,4 @@ public class SharedAuthClient {
     }
   }
 
-  private static byte[] readSecret(Properties properties) throws IOException {
-    File file = new File(properties.getProperty("secretFile"));
-    FileInputStream fstream = new FileInputStream(file);
-    byte[] secret = new byte[(int) file.length()];
-    fstream.read(secret);
-    fstream.close();
-    return secret;
-  }
-
-  private static LoginProcess readLoginProcess(Properties properties, ORB orb)
-    throws IOException {
-    FileInputStream fstream =
-      new FileInputStream(properties.getProperty("loginFile"));
-    BufferedReader br = new BufferedReader(new InputStreamReader(fstream));
-    String loginProcessIOR = br.readLine();
-    br.close();
-    return LoginProcessHelper.narrow(orb.string_to_object(loginProcessIOR));
-  }
 }

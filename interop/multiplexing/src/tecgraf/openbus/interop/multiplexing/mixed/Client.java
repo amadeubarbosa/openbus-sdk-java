@@ -1,9 +1,6 @@
 package tecgraf.openbus.interop.multiplexing.mixed;
 
 import java.util.Properties;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.omg.CORBA.ORB;
 
@@ -29,13 +26,6 @@ public class Client {
    */
   public static void main(String[] args) {
     try {
-      Logger logger = Logger.getLogger("tecgraf.openbus");
-      logger.setLevel(Level.INFO);
-      logger.setUseParentHandlers(false);
-      ConsoleHandler handler = new ConsoleHandler();
-      handler.setLevel(Level.INFO);
-      logger.addHandler(handler);
-
       Properties props = Utils.readPropertyFile("/test.properties");
       String host = props.getProperty("bus.host.name");
       int port1 = Integer.valueOf(props.getProperty("bus.host.port"));
@@ -50,7 +40,7 @@ public class Client {
             .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
         Connection conn = connections.createConnection(host, port);
         connections.setDefaultConnection(conn);
-        String login = "demo@" + port;
+        String login = "interop_multiplexing_java_client";
         conn.loginByPassword(login, login.getBytes());
 
         ServiceProperty[] serviceProperties = new ServiceProperty[2];
@@ -61,12 +51,9 @@ public class Client {
         ServiceOfferDesc[] services =
           conn.offers().findServices(serviceProperties);
         for (ServiceOfferDesc offer : services) {
-          for (ServiceProperty prop : offer.properties) {
-            if (prop.name.equals("openbus.offer.entity")) {
-              System.out.println("found offer from " + prop.value
-                + " on bus at port " + port);
-            }
-          }
+          System.out.println("found offer from "
+            + Utils.findProperty(offer.properties, "openbus.offer.entity")
+            + " on bus at port " + port);
           org.omg.CORBA.Object obj =
             offer.service_ref.getFacet(HelloHelper.id());
           Hello hello = HelloHelper.narrow(obj);

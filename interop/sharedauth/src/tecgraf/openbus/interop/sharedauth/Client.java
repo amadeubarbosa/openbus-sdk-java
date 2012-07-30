@@ -1,15 +1,13 @@
 package tecgraf.openbus.interop.sharedauth;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.util.Properties;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.omg.CORBA.Any;
 import org.omg.CORBA.ORB;
 
 import tecgraf.openbus.Connection;
@@ -62,8 +60,14 @@ public final class Client {
       OctetSeqHolder secret = new OctetSeqHolder();
       LoginProcess process = connection.startSharedAuth(secret);
 
-      writeLoginProcess(properties, process, orb);
-      writeSecret(properties, secret);
+      EncodedSharedAuth data = new EncodedSharedAuth(process, secret.value);
+      Any any = orb.create_any();
+      EncodedSharedAuthHelper.insert(any, data);
+      byte[] encoded = Utils.getCodec(orb).encode_value(any);
+      File file = new File("sharedauth.dat");
+      FileOutputStream fstream = new FileOutputStream(file);
+      fstream.write(encoded);
+      fstream.close();
 
       ServiceProperty[] serviceProperties = new ServiceProperty[2];
       serviceProperties[0] =
@@ -117,21 +121,4 @@ public final class Client {
     }
   }
 
-  private static void writeSecret(Properties properties, OctetSeqHolder secret)
-    throws IOException {
-    File file = new File(properties.getProperty("secretFile"));
-    FileOutputStream fstream = new FileOutputStream(file);
-    fstream.write(secret.value);
-    fstream.close();
-  }
-
-  private static void writeLoginProcess(Properties properties,
-    LoginProcess process, ORB orb) throws IOException {
-    FileOutputStream fstream =
-      new FileOutputStream(properties.getProperty("loginFile"));
-    BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fstream));
-    bw.write(orb.object_to_string(process));
-    bw.close();
-
-  }
 }

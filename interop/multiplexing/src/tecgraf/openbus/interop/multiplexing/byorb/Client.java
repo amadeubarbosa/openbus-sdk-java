@@ -46,7 +46,7 @@ public class Client {
           .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
       Connection conn = connections.createConnection(host, port);
       connections.setDefaultConnection(conn);
-      String login = "demo@" + port;
+      String login = "interop_multiplexing_java_client";
       conn.loginByPassword(login, login.getBytes());
 
       ServiceProperty[] serviceProperties = new ServiceProperty[2];

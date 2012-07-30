@@ -1,9 +1,6 @@
 package tecgraf.openbus.interop.simple;
 
 import java.util.Properties;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.omg.CORBA.ORB;
 
@@ -28,13 +25,6 @@ public final class Client {
    */
   public static void main(String[] args) {
     try {
-      Logger logger = Logger.getLogger("tecgraf.openbus");
-      logger.setLevel(Level.INFO);
-      logger.setUseParentHandlers(false);
-      ConsoleHandler handler = new ConsoleHandler();
-      handler.setLevel(Level.INFO);
-      logger.addHandler(handler);
-
       Properties props = Utils.readPropertyFile("/test.properties");
       String host = props.getProperty("bus.host.name");
       int port = Integer.valueOf(props.getProperty("bus.host.port"));
@@ -63,11 +53,15 @@ public final class Client {
         System.exit(1);
       }
       if (services.length > 1) {
-        System.out.println("Foram encontrados vários servidores do demo Hello");
+        System.out
+          .println("Foram encontrados vários servidores do demo Hello: "
+            + services.length);
       }
 
       for (ServiceOfferDesc offerDesc : services) {
-
+        String found =
+          Utils.findProperty(offerDesc.properties, "openbus.offer.entity");
+        System.out.println("Entidade encontrada: " + found);
         org.omg.CORBA.Object helloObj =
           offerDesc.service_ref.getFacetByName("Hello");
         if (helloObj == null) {

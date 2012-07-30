@@ -3,9 +3,6 @@ package tecgraf.openbus.interop.multiplexing.mixed;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.omg.CORBA.ORB;
 import org.omg.PortableServer.POA;
@@ -30,27 +27,16 @@ public class Server {
 
   public static void main(String[] args) {
     try {
-      Logger logger = Logger.getLogger("tecgraf.openbus");
-      logger.setLevel(Level.INFO);
-      logger.setUseParentHandlers(false);
-      ConsoleHandler handler = new ConsoleHandler();
-      handler.setLevel(Level.INFO);
-      logger.addHandler(handler);
-
       Properties props = Utils.readPropertyFile("/test.properties");
       String host = props.getProperty("bus.host.name");
       String host2 = props.getProperty("bus2.host.name");
       int port = Integer.valueOf(props.getProperty("bus.host.port"));
       int port2 = Integer.valueOf(props.getProperty("bus2.host.port"));
-      String entityPrefix = "interop_multiplexing_java_conn";
+      String entity = "interop_multiplexing_java_server";
       String privateKeyFile = "admin/InteropMultiplexing.key";
 
       Cryptography crypto = Cryptography.getInstance();
       byte[] privateKey = crypto.readPrivateKey(privateKeyFile);
-
-      String entity1 = entityPrefix + "1";
-      String entity2 = entityPrefix + "2";
-      String entity3 = entityPrefix + "3";
 
       // setup and start the orb
       ORB orb1 = ORBInitializer.initORB(args);
@@ -104,10 +90,10 @@ public class Server {
       context2.addFacet("Hello", HelloHelper.id(), new HelloServant(conns));
 
       // login to the bus
-      conn1AtBus1WithOrb1.loginByCertificate(entity1, privateKey);
-      conn2AtBus1WithOrb1.loginByCertificate(entity2, privateKey);
-      conn3AtBus1WithOrb2.loginByCertificate(entity3, privateKey);
-      conn1AtBus2WithOrb1.loginByCertificate(entity1, privateKey);
+      conn1AtBus1WithOrb1.loginByCertificate(entity, privateKey);
+      conn2AtBus1WithOrb1.loginByCertificate(entity, privateKey);
+      conn3AtBus1WithOrb2.loginByCertificate(entity, privateKey);
+      conn1AtBus2WithOrb1.loginByCertificate(entity, privateKey);
 
       manager1.setDispatcher(conn1AtBus1WithOrb1);
       manager1.setDispatcher(conn1AtBus2WithOrb1);

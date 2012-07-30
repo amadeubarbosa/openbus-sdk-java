@@ -54,7 +54,7 @@ public class Client {
         Connection conn =
           manager.createConnection(busAddr.hostname, busAddr.port);
         manager.setDefaultConnection(conn);
-        String login = "interop@" + busAddr.hostname + ":" + busAddr.port;
+        String login = "interop_multiplexing_java_client";
         conn.loginByPassword(login, login.getBytes());
 
         ServiceProperty[] serviceProperties = new ServiceProperty[2];

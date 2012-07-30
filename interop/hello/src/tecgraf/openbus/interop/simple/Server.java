@@ -1,9 +1,6 @@
 package tecgraf.openbus.interop.simple;
 
 import java.util.Properties;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.omg.CORBA.ORB;
 import org.omg.PortableServer.POA;
@@ -36,13 +33,6 @@ public final class Server {
    */
   public static void main(String[] args) {
     try {
-      Logger logger = Logger.getLogger("tecgraf.openbus");
-      logger.setLevel(Level.FINE);
-      logger.setUseParentHandlers(false);
-      ConsoleHandler handler = new ConsoleHandler();
-      handler.setLevel(Level.FINE);
-      logger.addHandler(handler);
-
       Properties props = Utils.readPropertyFile("/test.properties");
       String host = props.getProperty("bus.host.name");
       int port = Integer.valueOf(props.getProperty("bus.host.port"));

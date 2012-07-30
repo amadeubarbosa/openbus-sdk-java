@@ -37,14 +37,11 @@ public class Server {
       Properties props = Utils.readPropertyFile("/test.properties");
       String host = props.getProperty("bus.host.name");
       int port = Integer.valueOf(props.getProperty("bus.host.port"));
-      String entityPrefix = "interop_multiplexing_java_conn";
+      String entity = "interop_multiplexing_java_server";
       String privateKeyFile = "admin/InteropMultiplexing.key";
 
       Cryptography crypto = Cryptography.getInstance();
       byte[] privateKey = crypto.readPrivateKey(privateKeyFile);
-
-      String entity1 = entityPrefix + "1";
-      String entity2 = entityPrefix + "2";
 
       // setup and start the orb
       ORB orb1 = ORBInitializer.initORB(args);
@@ -88,8 +85,8 @@ public class Server {
       context2.addFacet("Hello", HelloHelper.id(), new HelloServant(conn2));
 
       // login to the bus
-      conn1.loginByCertificate(entity1, privateKey);
-      conn2.loginByCertificate(entity2, privateKey);
+      conn1.loginByCertificate(entity, privateKey);
+      conn2.loginByCertificate(entity, privateKey);
 
       shutdown1.addConnetion(conn1);
       shutdown2.addConnetion(conn2);
