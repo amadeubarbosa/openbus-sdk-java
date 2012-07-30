@@ -36,10 +36,9 @@ public class Client {
       handler.setLevel(Level.INFO);
       logger.addHandler(handler);
 
-      Properties properties =
-        Utils.readPropertyFile("/multiplexing.properties");
-      String host = properties.getProperty("host1");
-      int port = Integer.valueOf(properties.getProperty("port1"));
+      Properties props = Utils.readPropertyFile("/test.properties");
+      String host = props.getProperty("bus.host.name");
+      int port = Integer.valueOf(props.getProperty("bus.host.port"));
 
       ORB orb = ORBInitializer.initORB();
       ConnectionManager connections =

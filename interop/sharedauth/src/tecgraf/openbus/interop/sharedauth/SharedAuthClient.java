@@ -33,9 +33,9 @@ public class SharedAuthClient {
       handler.setLevel(Level.INFO);
       logger.addHandler(handler);
 
-      Properties properties = Utils.readPropertyFile("/sharedauth.properties");
-      String host = properties.getProperty("openbus.host.name");
-      int port = Integer.valueOf(properties.getProperty("openbus.host.port"));
+      Properties properties = Utils.readPropertyFile("/test.properties");
+      String host = properties.getProperty("bus.host.name");
+      int port = Integer.valueOf(properties.getProperty("bus.host.port"));
 
       ORB orb = ORBInitializer.initORB();
 

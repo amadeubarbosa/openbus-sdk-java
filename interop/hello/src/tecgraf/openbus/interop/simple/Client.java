@@ -35,11 +35,10 @@ public final class Client {
       handler.setLevel(Level.INFO);
       logger.addHandler(handler);
 
-      Properties properties = Utils.readPropertyFile("/hello.properties");
-      String host = properties.getProperty("openbus.host.name");
-      int port = Integer.valueOf(properties.getProperty("openbus.host.port"));
-      String entity = properties.getProperty("entity.name");
-      String password = properties.getProperty("entity.password");
+      Properties props = Utils.readPropertyFile("/test.properties");
+      String host = props.getProperty("bus.host.name");
+      int port = Integer.valueOf(props.getProperty("bus.host.port"));
+      String entity = "interop_hello_java_client";
 
       ORB orb = ORBInitializer.initORB();
       ConnectionManager connections =
@@ -48,8 +47,7 @@ public final class Client {
       Connection connection = connections.createConnection(host, port);
       connections.setDefaultConnection(connection);
 
-      connection.loginByPassword(entity, password
-        .getBytes(Cryptography.CHARSET));
+      connection.loginByPassword(entity, entity.getBytes(Cryptography.CHARSET));
 
       ServiceProperty[] serviceProperties = new ServiceProperty[2];
       serviceProperties[0] =

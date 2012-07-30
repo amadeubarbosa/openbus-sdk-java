@@ -21,11 +21,11 @@ import tecgraf.openbus.util.Cryptography;
 public class MessengerServer {
   public static void main(String[] args) {
     try {
-      Properties props = Utils.readPropertyFile("/delegation.properties");
-      String entity = props.getProperty("messenger_entity");
-      String host = props.getProperty("host");
-      int port = Integer.valueOf(props.getProperty("port"));
-      String privateKeyFile = props.getProperty("key");
+      Properties props = Utils.readPropertyFile("/test.properties");
+      String host = props.getProperty("bus.host.name");
+      int port = Integer.valueOf(props.getProperty("bus.host.port"));
+      String entity = "interop_delegation_java_messenger";
+      String privateKeyFile = "admin/InteropDelegation.key";
       byte[] privateKey =
         Cryptography.getInstance().readPrivateKey(privateKeyFile);
 

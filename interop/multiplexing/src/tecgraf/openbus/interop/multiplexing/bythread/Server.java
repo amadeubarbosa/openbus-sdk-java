@@ -37,17 +37,16 @@ public class Server {
       handler.setLevel(Level.INFO);
       logger.addHandler(handler);
 
-      Properties properties =
-        Utils.readPropertyFile("/multiplexing.properties");
-      String host1 = properties.getProperty("host1");
-      String host2 = properties.getProperty("host2");
-      int port1 = Integer.valueOf(properties.getProperty("port1"));
-      int port2 = Integer.valueOf(properties.getProperty("port2"));
-      String keyFile = properties.getProperty("key");
-      String entityPrefix = properties.getProperty("entity");
+      Properties props = Utils.readPropertyFile("/test.properties");
+      String host = props.getProperty("bus.host.name");
+      String host2 = props.getProperty("bus2.host.name");
+      int port = Integer.valueOf(props.getProperty("bus.host.port"));
+      int port2 = Integer.valueOf(props.getProperty("bus2.host.port"));
+      String entityPrefix = "interop_multiplexing_java_conn";
+      String privateKeyFile = "admin/InteropMultiplexing.key";
 
       Cryptography crypto = Cryptography.getInstance();
-      byte[] privateKey = crypto.readPrivateKey(keyFile);
+      byte[] privateKey = crypto.readPrivateKey(privateKeyFile);
 
       String entity1 = entityPrefix + "1";
       String entity2 = entityPrefix + "2";
@@ -64,8 +63,8 @@ public class Server {
         (ConnectionManager) orb
           .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
 
-      Connection conn1AtBus1 = manager.createConnection(host1, port1);
-      Connection conn2AtBus1 = manager.createConnection(host1, port1);
+      Connection conn1AtBus1 = manager.createConnection(host, port);
+      Connection conn2AtBus1 = manager.createConnection(host, port);
       Connection connAtBus2 = manager.createConnection(host2, port2);
 
       List<Connection> conns = new ArrayList<Connection>();

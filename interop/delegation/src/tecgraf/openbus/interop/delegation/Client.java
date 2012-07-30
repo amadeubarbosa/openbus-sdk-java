@@ -25,16 +25,17 @@ public class Client {
 
   public static void main(String[] args) {
     try {
-      Properties properties = Utils.readPropertyFile("/delegation.properties");
-      String host = properties.getProperty("host");
-      int port = Integer.valueOf(properties.getProperty("port"));
+      Properties props = Utils.readPropertyFile("/test.properties");
+      String host = props.getProperty("bus.host.name");
+      int port = Integer.valueOf(props.getProperty("bus.host.port"));
+      String entity = "interop_delegation_java_client";
 
       ORB orb = ORBInitializer.initORB();
       ConnectionManager connections =
         (ConnectionManager) orb
           .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
       Connection conn = connections.createConnection(host, port);
-      conn.loginByPassword("demo", "demo".getBytes());
+      conn.loginByPassword(entity, entity.getBytes());
       connections.setDefaultConnection(conn);
 
       ServiceProperty[] serviceProperties = new ServiceProperty[1];

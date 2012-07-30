@@ -43,11 +43,11 @@ public final class Server {
       handler.setLevel(Level.FINE);
       logger.addHandler(handler);
 
-      Properties props = Utils.readPropertyFile("/hello.properties");
-      String host = props.getProperty("openbus.host.name");
-      int port = Integer.valueOf(props.getProperty("openbus.host.port"));
-      String entity = props.getProperty("server.entity.name");
-      String privateKeyFile = props.getProperty("server.private.key");
+      Properties props = Utils.readPropertyFile("/test.properties");
+      String host = props.getProperty("bus.host.name");
+      int port = Integer.valueOf(props.getProperty("bus.host.port"));
+      String entity = "interop_hello_java_server";
+      String privateKeyFile = "admin/InteropHello.key";
       byte[] privateKey =
         Cryptography.getInstance().readPrivateKey(privateKeyFile);
 

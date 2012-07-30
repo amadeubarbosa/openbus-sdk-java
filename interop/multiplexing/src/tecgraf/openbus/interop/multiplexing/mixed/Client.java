@@ -36,11 +36,11 @@ public class Client {
       handler.setLevel(Level.INFO);
       logger.addHandler(handler);
 
-      Properties properties =
-        Utils.readPropertyFile("/multiplexing.properties");
-      String host = properties.getProperty("host1");
-      int port1 = Integer.valueOf(properties.getProperty("port1"));
-      int port2 = Integer.valueOf(properties.getProperty("port2"));
+      Properties props = Utils.readPropertyFile("/test.properties");
+      String host = props.getProperty("bus.host.name");
+      int port1 = Integer.valueOf(props.getProperty("bus.host.port"));
+      int port2 = Integer.valueOf(props.getProperty("bus2.host.port"));
+
       int ports[] = { port1, port2 };
 
       for (int port : ports) {

@@ -45,11 +45,10 @@ public final class Client {
       handler.setLevel(Level.INFO);
       logger.addHandler(handler);
 
-      Properties properties = Utils.readPropertyFile("/sharedauth.properties");
-      String host = properties.getProperty("openbus.host.name");
-      int port = Integer.valueOf(properties.getProperty("openbus.host.port"));
-      String entity = properties.getProperty("entity.name");
-      String password = properties.getProperty("entity.password");
+      Properties properties = Utils.readPropertyFile("/test.properties");
+      String host = properties.getProperty("bus.host.name");
+      int port = Integer.valueOf(properties.getProperty("bus.host.port"));
+      String entity = "interop_sharedauth_java_client";
 
       ORB orb = ORBInitializer.initORB();
 
@@ -59,8 +58,7 @@ public final class Client {
       Connection connection = manager.createConnection(host, port);
       manager.setDefaultConnection(connection);
 
-      connection.loginByPassword(entity, password
-        .getBytes(Cryptography.CHARSET));
+      connection.loginByPassword(entity, entity.getBytes(Cryptography.CHARSET));
       OctetSeqHolder secret = new OctetSeqHolder();
       LoginProcess process = connection.startSharedAuth(secret);
 

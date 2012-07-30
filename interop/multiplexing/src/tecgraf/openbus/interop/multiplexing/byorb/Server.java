@@ -34,15 +34,14 @@ public class Server {
       handler.setLevel(Level.INFO);
       logger.addHandler(handler);
 
-      Properties properties =
-        Utils.readPropertyFile("/multiplexing.properties");
-      String host = properties.getProperty("host1");
-      int port = Integer.valueOf(properties.getProperty("port1"));
-      String keyFile = properties.getProperty("key");
-      String entityPrefix = properties.getProperty("entity");
+      Properties props = Utils.readPropertyFile("/test.properties");
+      String host = props.getProperty("bus.host.name");
+      int port = Integer.valueOf(props.getProperty("bus.host.port"));
+      String entityPrefix = "interop_multiplexing_java_conn";
+      String privateKeyFile = "admin/InteropMultiplexing.key";
 
       Cryptography crypto = Cryptography.getInstance();
-      byte[] privateKey = crypto.readPrivateKey(keyFile);
+      byte[] privateKey = crypto.readPrivateKey(privateKeyFile);
 
       String entity1 = entityPrefix + "1";
       String entity2 = entityPrefix + "2";
