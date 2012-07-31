@@ -6,6 +6,9 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.ORBPackage.InvalidName;
@@ -87,6 +90,15 @@ public class Utils {
     byte minor = 2;
     Encoding encoding = new Encoding(ENCODING_CDR_ENCAPS.value, major, minor);
     return codecFactory.create_codec(encoding);
+  }
+
+  public static void setLogLevel(Level level) {
+    Logger logger = Logger.getLogger("tecgraf.openbus");
+    logger.setLevel(level);
+    logger.setUseParentHandlers(false);
+    ConsoleHandler handler = new ConsoleHandler();
+    handler.setLevel(level);
+    logger.addHandler(handler);
   }
 
   public static class ORBRunThread extends Thread {

@@ -1,6 +1,7 @@
 package tecgraf.openbus.interop.delegation;
 
 import java.util.Properties;
+import java.util.logging.Level;
 
 import org.omg.CORBA.ORB;
 import org.omg.PortableServer.POA;
@@ -28,6 +29,7 @@ public class MessengerServer {
       String privateKeyFile = "admin/InteropDelegation.key";
       byte[] privateKey =
         Cryptography.getInstance().readPrivateKey(privateKeyFile);
+      Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
       final ORB orb = ORBInitializer.initORB(args);
       new ORBRunThread(orb).start();

@@ -1,9 +1,7 @@
 package tecgraf.openbus.interop.multiplexing.byorb;
 
 import java.util.Properties;
-import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.omg.CORBA.ORB;
 
@@ -29,16 +27,10 @@ public class Client {
    */
   public static void main(String[] args) {
     try {
-      Logger logger = Logger.getLogger("tecgraf.openbus");
-      logger.setLevel(Level.INFO);
-      logger.setUseParentHandlers(false);
-      ConsoleHandler handler = new ConsoleHandler();
-      handler.setLevel(Level.INFO);
-      logger.addHandler(handler);
-
       Properties props = Utils.readPropertyFile("/test.properties");
       String host = props.getProperty("bus.host.name");
       int port = Integer.valueOf(props.getProperty("bus.host.port"));
+      Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
       ORB orb = ORBInitializer.initORB();
       ConnectionManager connections =

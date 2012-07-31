@@ -1,9 +1,7 @@
 package tecgraf.openbus.interop.multiplexing.bythread;
 
 import java.util.Properties;
-import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.omg.CORBA.ORB;
 
@@ -29,13 +27,6 @@ public class Client {
    */
   public static void main(String[] args) {
     try {
-      Logger logger = Logger.getLogger("tecgraf.openbus");
-      logger.setLevel(Level.INFO);
-      logger.setUseParentHandlers(false);
-      ConsoleHandler handler = new ConsoleHandler();
-      handler.setLevel(Level.INFO);
-      logger.addHandler(handler);
-
       Properties props = Utils.readPropertyFile("/test.properties");
       String host = props.getProperty("bus.host.name");
       String host2 = props.getProperty("bus2.host.name");
@@ -43,6 +34,7 @@ public class Client {
       int port2 = Integer.valueOf(props.getProperty("bus2.host.port"));
       BusAddress bus1 = new BusAddress(host, port);
       BusAddress bus2 = new BusAddress(host2, port2);
+      Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
       BusAddress buses[] = { bus1, bus2 };
 

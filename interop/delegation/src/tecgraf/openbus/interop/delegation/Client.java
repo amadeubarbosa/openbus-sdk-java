@@ -3,6 +3,7 @@ package tecgraf.openbus.interop.delegation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.logging.Level;
 
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
@@ -29,6 +30,7 @@ public class Client {
       String host = props.getProperty("bus.host.name");
       int port = Integer.valueOf(props.getProperty("bus.host.port"));
       String entity = "interop_delegation_java_client";
+      Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
       ORB orb = ORBInitializer.initORB();
       ConnectionManager connections =

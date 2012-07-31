@@ -1,6 +1,7 @@
 package tecgraf.openbus.interop.simple;
 
 import java.util.Properties;
+import java.util.logging.Level;
 
 import org.omg.CORBA.ORB;
 import org.omg.PortableServer.POA;
@@ -40,6 +41,7 @@ public final class Server {
       String privateKeyFile = "admin/InteropHello.key";
       byte[] privateKey =
         Cryptography.getInstance().readPrivateKey(privateKeyFile);
+      Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
       ORB orb = ORBInitializer.initORB(args);
       new ORBRunThread(orb).start();

@@ -3,6 +3,7 @@ package tecgraf.openbus.interop.multiplexing.mixed;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.logging.Level;
 
 import org.omg.CORBA.ORB;
 import org.omg.PortableServer.POA;
@@ -34,6 +35,7 @@ public class Server {
       int port2 = Integer.valueOf(props.getProperty("bus2.host.port"));
       String entity = "interop_multiplexing_java_server";
       String privateKeyFile = "admin/InteropMultiplexing.key";
+      Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
       Cryptography crypto = Cryptography.getInstance();
       byte[] privateKey = crypto.readPrivateKey(privateKeyFile);

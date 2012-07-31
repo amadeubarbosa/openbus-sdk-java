@@ -1,9 +1,7 @@
 package tecgraf.openbus.interop.multiplexing.byorb;
 
 import java.util.Properties;
-import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.omg.CORBA.ORB;
 import org.omg.PortableServer.POA;
@@ -27,18 +25,12 @@ public class Server {
 
   public static void main(String[] args) {
     try {
-      Logger logger = Logger.getLogger("tecgraf.openbus");
-      logger.setLevel(Level.INFO);
-      logger.setUseParentHandlers(false);
-      ConsoleHandler handler = new ConsoleHandler();
-      handler.setLevel(Level.INFO);
-      logger.addHandler(handler);
-
       Properties props = Utils.readPropertyFile("/test.properties");
       String host = props.getProperty("bus.host.name");
       int port = Integer.valueOf(props.getProperty("bus.host.port"));
       String entity = "interop_multiplexing_java_server";
       String privateKeyFile = "admin/InteropMultiplexing.key";
+      Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
       Cryptography crypto = Cryptography.getInstance();
       byte[] privateKey = crypto.readPrivateKey(privateKeyFile);

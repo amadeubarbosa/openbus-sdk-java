@@ -1,6 +1,7 @@
 package tecgraf.openbus.interop.multiplexing.mixed;
 
 import java.util.Properties;
+import java.util.logging.Level;
 
 import org.omg.CORBA.ORB;
 
@@ -30,6 +31,7 @@ public class Client {
       String host = props.getProperty("bus.host.name");
       int port1 = Integer.valueOf(props.getProperty("bus.host.port"));
       int port2 = Integer.valueOf(props.getProperty("bus2.host.port"));
+      Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
       int ports[] = { port1, port2 };
 

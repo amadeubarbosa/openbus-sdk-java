@@ -3,9 +3,7 @@ package tecgraf.openbus.interop.sharedauth;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.Properties;
-import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.omg.CORBA.Any;
 import org.omg.CORBA.ORB;
@@ -24,16 +22,10 @@ import tecgraf.openbus.interop.util.Utils;
 public class SharedAuthClient {
   public static void main(String[] args) {
     try {
-      Logger logger = Logger.getLogger("tecgraf.openbus");
-      logger.setLevel(Level.INFO);
-      logger.setUseParentHandlers(false);
-      ConsoleHandler handler = new ConsoleHandler();
-      handler.setLevel(Level.INFO);
-      logger.addHandler(handler);
-
-      Properties properties = Utils.readPropertyFile("/test.properties");
-      String host = properties.getProperty("bus.host.name");
-      int port = Integer.valueOf(properties.getProperty("bus.host.port"));
+      Properties props = Utils.readPropertyFile("/test.properties");
+      String host = props.getProperty("bus.host.name");
+      int port = Integer.valueOf(props.getProperty("bus.host.port"));
+      Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
       ORB orb = ORBInitializer.initORB();
 

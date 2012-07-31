@@ -8,10 +8,10 @@
     <version>2.0.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>openbus-sdk-interop-hello</artifactId>
+  <artifactId>openbus-sdk-interop-simple</artifactId>
   <packaging>jar</packaging>
 
-  <name>OpenBus - SDK - Testes de Interoperabilidade - Hello</name>
+  <name>OpenBus - SDK - Testes de Interoperabilidade - Simple</name>
   <url>http://www.tecgraf.puc-rio.br/openbus</url>
 
   <build>
