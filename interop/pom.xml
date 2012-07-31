@@ -16,7 +16,7 @@
 
   <modules>
     <module>util</module>
-    <module>hello</module>
+    <module>simple</module>
     <module>multiplexing</module>
     <module>delegation</module>
     <module>sharedauth</module>
