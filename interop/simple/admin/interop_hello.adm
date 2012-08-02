@@ -1,0 +1,26 @@
+Category {
+  id = "openbus_interops",
+  name = "Categoria para testes de interoperabilidade do OpenBus",
+}
+
+Entity {
+  id = "interop_hello_java_server",
+  category = "openbus_interops",
+  name = "Teste de Interoperabilidade Hello do SDK Java",
+}
+
+Certificate {
+  id = "interop_hello_java_server",
+  certificate = "InteropHello.crt",
+}
+
+Interface {
+  id = "IDL:tecgraf/openbus/interop/simple/Hello:1.0",
+}
+
+Grant {
+  id = "interop_hello_java_server",
+  interfaces = {
+    "IDL:tecgraf/openbus/interop/simple/Hello:1.0",
+  }
+}

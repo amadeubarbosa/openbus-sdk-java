@@ -4,15 +4,16 @@
 
   <parent>
     <groupId>tecgraf.openbus</groupId>
-    <artifactId>openbus-sdk</artifactId>
+    <artifactId>openbus-sdk-interop</artifactId>
     <version>2.0.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>openbus-sdk-core</artifactId>
+  <artifactId>openbus-sdk-interop-simple</artifactId>
   <packaging>jar</packaging>
-  <name>OpenBus - SDK - Core</name>
+
+  <name>OpenBus - SDK - Testes de Interoperabilidade - Simple</name>
   <url>http://www.tecgraf.puc-rio.br/openbus</url>
-  
+
   <build>
     <plugins>
       <plugin>
@@ -21,14 +22,7 @@
         <version>1.1</version>
 
         <configuration>
-          <sourceDirectory>${env.OPENBUS_HOME}/idl/v2_0</sourceDirectory>
-          <sources>
-            <source>
-              <excludes>
-                <exclude>scs.idl</exclude>
-              </excludes>
-            </source>
-          </sources>
+          <sourceDirectory>idl</sourceDirectory>
         </configuration>
       </plugin>
     </plugins>
@@ -37,29 +31,34 @@
   <dependencies>
     <dependency>
       <groupId>tecgraf.openbus</groupId>
-      <artifactId>openbus-sdk-legacy</artifactId>
+      <artifactId>openbus-sdk-core</artifactId>
       <version>${project.version}</version>
     </dependency>
-    
+
     <dependency>
       <groupId>tecgraf.scs</groupId>
       <artifactId>scs-idl-jacorb</artifactId>
+      <version>${scsidl.version}</version>
     </dependency>
 
     <dependency>
       <groupId>tecgraf.scs</groupId>
       <artifactId>scs-core</artifactId>
+      <version>${scs.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>tecgraf.openbus</groupId>
+      <artifactId>openbus-sdk-interop-util</artifactId>
+      <version>${project.version}</version>
     </dependency>
 
     <dependency>
       <groupId>org.jacorb</groupId>
       <artifactId>jacorb</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <scope>test</scope>
-    </dependency>
+      <version>${jacorb.version}</version>
+      <scope>runtime</scope>
+    </dependency> 
   </dependencies>
 </project>
+

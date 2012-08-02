@@ -8,19 +8,17 @@
     <version>2.0.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>openbus-sdk-demo</artifactId>
+  <artifactId>openbus-sdk-interop</artifactId>
   <packaging>pom</packaging>
 
-  <name>OpenBus - SDK - Demonstrações</name>
+  <name>OpenBus - SDK - Testes de Interoperabilidade</name>
   <url>http://www.tecgraf.puc-rio.br/openbus</url>
 
   <modules>
-    <module>audit</module>
-    <module>chainvalidation</module>
-    <module>dedicatedclock</module>
-    <module>greetings</module>
-    <module>hello</module>
-    <module>independentclock</module>
+    <module>util</module>
+    <module>simple</module>
     <module>multiplexing</module>
+    <module>delegation</module>
+    <module>sharedauth</module>
   </modules>
 </project>

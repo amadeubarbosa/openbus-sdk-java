@@ -4,29 +4,15 @@
 
   <parent>
     <groupId>tecgraf.openbus</groupId>
-    <artifactId>openbus-sdk-demo</artifactId>
+    <artifactId>openbus-sdk-interop</artifactId>
     <version>2.0.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>openbus-sdk-demo-hello</artifactId>
+  <artifactId>openbus-sdk-interop-util</artifactId>
   <packaging>jar</packaging>
 
-  <name>OpenBus - SDK - Demonstrações - Hello</name>
+  <name>OpenBus - SDK - Testes de Interoperabilidade - Utilitários</name>
   <url>http://www.tecgraf.puc-rio.br/openbus</url>
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>idlj-maven-plugin</artifactId>
-        <version>1.1</version>
-
-        <configuration>
-          <sourceDirectory>idl</sourceDirectory>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
 
   <dependencies>
     <dependency>

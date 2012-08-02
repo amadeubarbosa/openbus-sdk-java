@@ -1,0 +1,45 @@
+Category {
+  id = "openbus_demos",
+  name = "Categoria para demos do OpenBus",
+}
+
+Entity {
+  id = "demo_audit_java_server",
+  category = "openbus_demos",
+  name = "Demo Audit do SDK Java - Server",
+}
+
+Certificate {
+  id = "demo_audit_java_server",
+  certificate = "DemoAudit.crt",
+}
+
+Entity {
+  id = "demo_audit_java_proxy",
+  category = "openbus_demos",
+  name = "Demo Audit do SDK Java - Proxy",
+}
+
+Certificate {
+  id = "demo_audit_java_proxy",
+  certificate = "DemoAudit.crt",
+}
+
+Interface {
+  id = "IDL:Hello:1.0",
+}
+
+Grant {
+  id = "demo_audit_java_server",
+  interfaces = {
+	"IDL:Hello:1.0",
+  }
+}
+
+Grant {
+  id = "demo_audit_java_proxy",
+  interfaces = {
+	"IDL:Hello:1.0",
+  }
+}
+

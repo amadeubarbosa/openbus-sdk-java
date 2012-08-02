@@ -1,46 +1,37 @@
-/*
- * $Id$
- */
 package tecgraf.openbus.exception;
 
 /**
- * Representa uma exceção do OpenBus.
+ * Categoria de exceção do OpenBus
  * 
- * @author Tecgraf/PUC-Rio
+ * @author Tecgraf
  */
-public class OpenBusException extends Exception {
-  /**
-   * Cria uma exceção do OpenBus.
-   */
-  public OpenBusException() {
-    super();
-  }
+public abstract class OpenBusException extends Exception {
 
   /**
-   * Cria uma exceção do OpenBus com uma causa associada.
+   * Construtor.
    * 
-   * @param cause A causa.
+   * @param message mensagem de erro.
    */
-  public OpenBusException(Throwable cause) {
-    super(cause);
-  }
-
-  /**
-   * Cria uma exceção do OpenBus com uma mensagem associada.
-   * 
-   * @param message A mensagem.
-   */
-  public OpenBusException(String message) {
+  protected OpenBusException(String message) {
     super(message);
   }
 
   /**
-   * Cria uma exceção do OpenBus com uma mensagem e uma causa associadas.
+   * Construtor.
    * 
-   * @param message A mensagem de erro.
-   * @param cause A causa.
+   * @param cause exceção original.
    */
-  public OpenBusException(String message, Throwable cause) {
+  protected OpenBusException(Throwable cause) {
+    super(cause);
+  }
+
+  /**
+   * Construtor.
+   * 
+   * @param message mensagem de erro.
+   * @param cause exceção original.
+   */
+  protected OpenBusException(String message, Throwable cause) {
     super(message, cause);
   }
 }
