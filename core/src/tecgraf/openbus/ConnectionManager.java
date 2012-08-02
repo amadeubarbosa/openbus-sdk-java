@@ -2,117 +2,169 @@ package tecgraf.openbus;
 
 import java.util.Properties;
 
+import org.omg.PortableInterceptor.Current;
+
 import tecgraf.openbus.exception.InvalidBusAddress;
 import tecgraf.openbus.exception.InvalidPropertyValue;
 
 /**
- * Interface com operações para gerenciar acesso multiplexado a diferentes
- * barramentos OpenBus usando um mesmo ORB.
+ * Gerencia conexões de acesso a barramentos OpenBus através de um ORB.
+ * <p>
+ * Conexões representam formas diferentes de acesso ao barramento. O
+ * ConnectionManager permite criar essas conexões e gerenciá-las, indicando
+ * quais são utilizadas em cada chamada. As conexões são usadas basicamente de
+ * duas formas no tratamento das chamadas:
+ * <ul>
+ * <li>para realizar uma chamada remota (cliente), neste caso a conexão é
+ * denominada "Requester".
+ * <li>para validar uma chamada recebida (servidor), neste caso a conexão é
+ * denominada "Dispatcher".
+ * </ul>
  * 
  * @author Tecgraf
  */
 public interface ConnectionManager {
 
   /**
-   * Identificador no INITIAL_REFERENCE de CORBA
+   * Identificador no INITIAL_REFERENCE de CORBA do ConnectionManager.
    */
-  static final String INITIAL_REFERENCE_ID = "openbus.ConnectionMultiplexer";
+  static final String INITIAL_REFERENCE_ID = "OpenBusConnectionManager";
 
   /**
-   * Recupera o ORB que está associado.
+   * Recupera o ORB associado ao ConnectionManager.
    * 
    * @return o ORB
    */
   org.omg.CORBA.ORB orb();
 
   /**
-   * Cria uma conexão para um barramento a partir de um endereço de rede IP e
-   * uma porta.
+   * Cria uma conexão para um barramento. O barramento é indicado por um nome ou
+   * endereço de rede e um número de porta, onde os serviços núcleo daquele
+   * barramento estão executando.
    * 
-   * @param host Endereço de rede IP onde o barramento está executando.
-   * @param port Porta do processo do barramento no endereço indicado.
+   * @param host Endereço ou nome de rede onde os serviços núcleo do barramento
+   *        estão executando.
+   * @param port Porta onde os serviços núcleo do barramento estão executando.
    * 
-   * @return Conexão ao barramento referenciado.
-   * @throws InvalidBusAddress par host/porta não corresponde a um barramento
-   *         acessível.
+   * @return Conexão criada.
+   * 
+   * @throws InvalidBusAddress Os parâmetros 'host' e 'port' não são válidos.
    */
   Connection createConnection(String host, int port) throws InvalidBusAddress;
 
   /**
-   * Cria uma conexão para um barramento a partir de um endereço de rede IP e
-   * uma porta.
+   * Cria uma conexão para um barramento. O barramento é indicado por um nome ou
+   * endereço de rede e um número de porta, onde os serviços núcleo daquele
+   * barramento estão executando.
    * 
-   * @param host Endereço de rede IP onde o barramento está executando.
-   * @param port Porta do processo do barramento no endereço indicado.
-   * @param props Propriedades específicas da conexão.
+   * @param host Endereço ou nome de rede onde os serviços núcleo do barramento
+   *        estão executando.
+   * @param port Porta onde os serviços núcleo do barramento estão executando.
+   * @param props Lista opcional de propriedades que definem algumas
+   *        configurações sobre a forma que as chamadas realizadas ou validadas
+   *        com essa conexão são feitas. A seguir são listadas as propriedades
+   *        válidas:
+   *        <ul>
+   *        <li>access.key: chave de acesso a ser utiliza internamente para a
+   *        geração de credenciais que identificam as chamadas através do
+   *        barramento. A chave deve ser uma chave privada RSA de 2048 bits (256
+   *        bytes). Quando essa propriedade não é fornecida, uma chave de acesso
+   *        é gerada automaticamente.
+   *        <li>legacy.disable: desabilita o suporte a chamadas usando protocolo
+   *        OpenBus 1.5. Por padrão o suporte está habilitado.
+   *        <li>legacy.delegate: indica como é preenchido o campo 'delegate' das
+   *        credenciais enviadas em chamadas usando protocolo OpenBus 1.5. Há
+   *        duas formas possíveis (o padrão é 'caller'):
+   *        <ul>
+   *        <li>caller: o campo 'delegate' é preenchido sempre com a entidade do
+   *        campo 'caller' da cadeia de chamadas.
+   *        <li>originator: o campo 'delegate' é preenchido sempre com a
+   *        entidade que originou a cadeia de chamadas, que é o primeiro login
+   *        do campo 'originators' ou o campo 'caller' quando este é vazio.
+   *        </ul>
+   *        </ul>
    * 
-   * @return Conexão ao barramento referenciado.
-   * @throws InvalidBusAddress par host/porta não corresponde a um barramento
-   *         acessível.
-   * @throws InvalidPropertyValue propriedade especificada possui um valor
-   *         inválido.
+   * @return Conexão criada.
+   * 
+   * @throws InvalidBusAddress Os parâmetros 'host' e 'port' não são válidos.
+   * @throws InvalidPropertyValue O valor de uma propriedade não é válido.
    */
   Connection createConnection(String host, int port, Properties props)
     throws InvalidBusAddress, InvalidPropertyValue;
 
   /**
-   * Define a conexão a ser utilizada nas chamadas realizadas e no despacho de
-   * chamadas recebidas sempre que não houver uma conexão específica definida.
-   * Sempre que não houver uma conexão associada tanto as chamadas realizadas
-   * como as chamadas recebidas são negadas com a exceção CORBA::NO_PERMISSION.
+   * Define a conexão padrão a ser usada nas chamadas.
+   * <p>
+   * Define uma conexão a ser utilizada como "Requester" e "Dispatcher" de
+   * chamadas sempre que não houver uma conexão "Requester" e "Dispatcher"
+   * específica definida para o caso específico, como é feito através das
+   * operações {@link ConnectionManager#setRequester(Connection) setRequester} e
+   * {@link ConnectionManager#setDispatcher(Connection) setDispatcher}.
    * 
-   * @param conn Conexão a ser definida como conexão default.
+   * @param conn Conexão a ser definida como conexão padrão.
    */
   void setDefaultConnection(Connection conn);
 
   /**
-   * Obtém a conexão a ser utilizada nas chamadas realizadas e no despacho de
-   * chamadas recebidas sempre que não houver uma conexão específica definida.
+   * Devolve a conexão padrão.
+   * <p>
    * 
-   * @return Conexão definida como conexão default.
+   * @see {@link ConnectionManager#setDefaultConnection setDefaultConnection}.
+   * 
+   * @return Conexão definida como conexão padrão.
    */
   Connection getDefaultConnection();
 
   /**
-   * Define a conexão com o barramento a ser utilizada em todas as chamadas
-   * feitas pela thread corrente. Quando 'conn' é <code>null</code> a thread
-   * passa a ficar sem nenhuma conexão associada.
+   * Define a conexão "Requester" do contexto corrente.
+   * <p>
+   * Define a conexão "Requester" a ser utilizada em todas as chamadas feitas no
+   * contexto atual, por exemplo, o contexto representado pelo {@link Current}
+   * atual. Quando 'conn' é 'null' o contexto passa a ficar sem nenhuma conexão
+   * associada.
    * 
-   * @param conn Conexão a barramento a ser associada a thread corrente.
+   * @param conn Conexão a ser associada ao contexto corrente.
    */
   void setRequester(Connection conn);
 
   /**
-   * Devolve a conexão com o barramento associada a thread corrente, ou
-   * <code>null</code> caso não haja nenhuma conexão associada à thread.
+   * Devolve a conexão associada ao contexto corrente.
    * 
-   * @return Conexão a barramento associada a thread corrente.
+   * @return Conexão associada ao contexto corrente, ou 'null' caso não haja
+   *         nenhuma conexão associada.
    */
   Connection getRequester();
 
   /**
-   * Define que conexão deve ser utilizada para receber chamadas oriundas do
-   * barramento ao qual está conectada, denominada conexão de despacho.
+   * Define uma a conexão como "Dispatcher" de barramento.
+   * <p>
+   * Define a conexão como "Dispatcher" do barramento ao qual ela está
+   * conectada, de forma que todas as chamadas originadas por entidades
+   * conectadas a este barramento serão validadas com essa conexão. Só pode
+   * haver uma conexão "Dispatcher" para cada barramento, portanto se já houver
+   * outra conexão "Dispatcher" para o mesmo barramento essa será substituída
+   * pela nova conexão.
    * 
-   * @param conn Conexão a barramento a ser associada a thread corrente.
+   * @param conn Conexão a ser definida como "Dispatcher".
    */
   void setDispatcher(Connection conn);
 
   /**
-   * Devolve a conexão de despacho associada ao barramento indicado, se houver.
-   * dado barramento, ou 'null' caso não haja nenhuma conexão associada ao
-   * barramento.
+   * Devolve a conexão "Dispatcher" do barramento indicado.
    * 
    * @param busid Identificador do barramento ao qual a conexão está associada.
-   * @return Conexão a barramento associada ao barramento.
+   * 
+   * @return Conexão "Dispatcher" do barramento indicado, ou 'null' caso não
+   *         haja nenhuma conexão "Dispatcher" associada ao barramento indicado.
    */
   Connection getDispatcher(String busid);
 
   /**
-   * Remove a conexão de despacho associada ao barramento indicado, se houver.
+   * Remove a conexão "Dispatcher" associada ao barramento indicado.
    * 
-   * @param busid identificador do barramento
-   * @return Conexão a barramento associada ao barramento ou 'null' se não
+   * @param busid Identificador do barramento ao qual a conexão está associada.
+   * 
+   * @return Conexão "Dispatcher" associada ao barramento ou 'null' se não
    *         houver nenhuma conexão associada.
    */
   Connection clearDispatcher(String busid);
