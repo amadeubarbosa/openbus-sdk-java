@@ -121,8 +121,8 @@ public interface ConnectionManager {
    * <p>
    * Define a conexão "Requester" a ser utilizada em todas as chamadas feitas no
    * contexto atual, por exemplo, o contexto representado pelo {@link Current}
-   * atual. Quando 'conn' é 'null' o contexto passa a ficar sem nenhuma conexão
-   * associada.
+   * atual. Quando <code>conn</code> é <code>null</code> o contexto passa a
+   * ficar sem nenhuma conexão associada.
    * 
    * @param conn Conexão a ser associada ao contexto corrente.
    */
@@ -131,8 +131,8 @@ public interface ConnectionManager {
   /**
    * Devolve a conexão associada ao contexto corrente.
    * 
-   * @return Conexão associada ao contexto corrente, ou 'null' caso não haja
-   *         nenhuma conexão associada.
+   * @return Conexão associada ao contexto corrente, ou <code>null</code> caso
+   *         não haja nenhuma conexão associada.
    */
   Connection getRequester();
 
@@ -155,8 +155,9 @@ public interface ConnectionManager {
    * 
    * @param busid Identificador do barramento ao qual a conexão está associada.
    * 
-   * @return Conexão "Dispatcher" do barramento indicado, ou 'null' caso não
-   *         haja nenhuma conexão "Dispatcher" associada ao barramento indicado.
+   * @return Conexão "Dispatcher" do barramento indicado, ou <code>null</code>
+   *         caso não haja nenhuma conexão "Dispatcher" associada ao barramento
+   *         indicado.
    */
   Connection getDispatcher(String busid);
 
@@ -165,8 +166,8 @@ public interface ConnectionManager {
    * 
    * @param busid Identificador do barramento ao qual a conexão está associada.
    * 
-   * @return Conexão "Dispatcher" associada ao barramento ou 'null' se não
-   *         houver nenhuma conexão associada.
+   * @return Conexão "Dispatcher" associada ao barramento ou <code>null</code>
+   *         se não houver nenhuma conexão associada.
    */
   Connection clearDispatcher(String busid);
 }

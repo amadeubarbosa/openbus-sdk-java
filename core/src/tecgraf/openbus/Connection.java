@@ -67,8 +67,9 @@ public interface Connection {
   String busid();
 
   /**
-   * Recupera as Informações do login dessa conexão ou 'null' se a conexão não
-   * está autenticada, ou seja, não tem um login válido no barramento.
+   * Recupera as Informações do login dessa conexão ou <code>null</code> se a
+   * conexão não está autenticada, ou seja, não tem um login válido no
+   * barramento.
    * 
    * @return as informações do login.
    */
@@ -196,8 +197,8 @@ public interface Connection {
    * conexão. Um login pode se tornar inválido caso o administrador
    * explicitamente o torne inválido ou caso a thread interna de renovação de
    * login não seja capaz de renovar o lease do login a tempo. Caso esse
-   * atributo seja 'null', nenhum objeto de callback é chamado na ocorrência
-   * desse evento.
+   * atributo seja <code>null</code>, nenhum objeto de callback é chamado na
+   * ocorrência desse evento.
    * <p>
    * Durante a execução dessa callback um novo login pode ser restabelecido.
    * Neste caso, a chamada do barramento que recebeu a notificação de login
@@ -224,7 +225,7 @@ public interface Connection {
    * contexto de execução de uma chamada remota oriunda do barramento dessa
    * conexão, essa operação devolve um objeto que representa a cadeia de
    * chamadas do barramento que esta chamada faz parte. Caso contrário, devolve
-   * 'null'.
+   * <code>null</code>.
    * 
    * @return Cadeia da chamada em execução.
    */
@@ -271,9 +272,10 @@ public interface Connection {
    * corrente (e.g. definido pelo {@link Current}) nesta conexão. A cadeia de
    * chamadas informada foi associada previamente pela operação
    * {@link #joinChain(CallerChain) joinChain}. Caso o contexto corrente não
-   * tenha nenhuma cadeia associada, essa operação devolve 'null'.
+   * tenha nenhuma cadeia associada, essa operação devolve <code>null</code>.
    * 
-   * @return Cadeia de chamadas associada ao contexto corrente ou 'null'.
+   * @return Cadeia de chamadas associada ao contexto corrente ou
+   *         <code>null</code> .
    */
   CallerChain getJoinedChain();
 
