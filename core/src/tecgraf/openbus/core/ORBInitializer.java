@@ -199,7 +199,7 @@ public class ORBInitializer {
    */
   private static ORB createORB(String[] args, Properties props) {
     ORBBuilder orbBuilder = new ORBBuilder(args, props);
-    orbBuilder.addInitializer(new ORBInitializerInfo(ORBInitializerImpl.class));
+    orbBuilder.addInitializer(new ORBInitializerInfo(InternalJacORBInitializer.class));
     return orbBuilder.build();
   }
 

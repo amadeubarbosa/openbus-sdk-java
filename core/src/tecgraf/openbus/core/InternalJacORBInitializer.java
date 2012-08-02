@@ -5,6 +5,7 @@ import java.util.logging.Logger;
 
 import org.omg.CORBA.INITIALIZE;
 import org.omg.CORBA.LocalObject;
+import org.omg.CORBA.ORB;
 import org.omg.IOP.Codec;
 import org.omg.IOP.CodecFactory;
 import org.omg.IOP.CodecFactoryHelper;
@@ -18,12 +19,23 @@ import org.omg.PortableInterceptor.ORBInitInfoPackage.InvalidName;
 
 import tecgraf.openbus.ConnectionManager;
 
-public final class ORBInitializerImpl extends LocalObject implements
+/**
+ * Classe internar para inicialização o {@link ORB} do JacORB.
+ * <p>
+ * Esta classe não deveria ser visível fora deste pacote, mas o JacORB obriga
+ * que ela seja pública.
+ * 
+ * @author Tecgraf
+ */
+public final class InternalJacORBInitializer extends LocalObject implements
   ORBInitializer {
-  private static final byte ENCODING_CDR_ENCAPS_MAJOR_VERSION = 1;
-  private static final byte ENCODING_CDR_ENCAPS_MINOR_VERSION = 2;
+  /** Instância de logging */
   private static final Logger logger = Logger
-    .getLogger(ORBInitializerImpl.class.getName());
+    .getLogger(InternalJacORBInitializer.class.getName());
+  /** Major da versão do codificador. */
+  private static final byte ENCODING_CDR_ENCAPS_MAJOR_VERSION = 1;
+  /** Minor da versão do codificador. */
+  private static final byte ENCODING_CDR_ENCAPS_MINOR_VERSION = 2;
 
   /**
    * {@inheritDoc}
@@ -71,6 +83,12 @@ public final class ORBInitializerImpl extends LocalObject implements
     this.addServerInterceptors(info, mediator);
   }
 
+  /**
+   * Inclui o interceptador cliente.
+   * 
+   * @param info informação do ORB
+   * @param mediator mediador do ORB
+   */
   private void addClientInterceptor(ORBInitInfo info, ORBMediator mediator) {
     try {
       info.add_client_request_interceptor(new ClientRequestInterceptorImpl(
@@ -83,6 +101,12 @@ public final class ORBInitializerImpl extends LocalObject implements
     }
   }
 
+  /**
+   * Inclui o interceptador servidor.
+   * 
+   * @param info informação do ORB
+   * @param mediator mediador do ORB
+   */
   private void addServerInterceptors(ORBInitInfo info, ORBMediator mediator) {
     try {
       info.add_server_request_interceptor(new ServerRequestInterceptorImpl(
@@ -95,6 +119,12 @@ public final class ORBInitializerImpl extends LocalObject implements
     }
   }
 
+  /**
+   * Recupera o mediador do ORB
+   * 
+   * @param info informações do ORB
+   * @return o mediador.
+   */
   private ORBMediator getMediator(ORBInitInfo info) {
     org.omg.CORBA.Object obj;
     try {
@@ -113,6 +143,12 @@ public final class ORBInitializerImpl extends LocalObject implements
     return (ORBMediator) obj;
   }
 
+  /**
+   * Cria uma instância do Codec a ser utilizado pelos interceptadores.
+   * 
+   * @param info informação do ORB
+   * @return o Codec.
+   */
   private Codec createCodec(ORBInitInfo info) {
     org.omg.CORBA.Object obj;
     try {
