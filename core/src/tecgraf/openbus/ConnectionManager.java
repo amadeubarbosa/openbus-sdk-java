@@ -71,7 +71,8 @@ public interface ConnectionManager {
    *        bytes). Quando essa propriedade não é fornecida, uma chave de acesso
    *        é gerada automaticamente.
    *        <li>legacy.disable: desabilita o suporte a chamadas usando protocolo
-   *        OpenBus 1.5. Por padrão o suporte está habilitado.
+   *        OpenBus 1.5. Por padrão o suporte está habilitado. Valores esperados
+   *        são <code>true</code> ou <code>false</code>.
    *        <li>legacy.delegate: indica como é preenchido o campo 'delegate' das
    *        credenciais enviadas em chamadas usando protocolo OpenBus 1.5. Há
    *        duas formas possíveis (o padrão é 'caller'):
@@ -108,8 +109,8 @@ public interface ConnectionManager {
   /**
    * Devolve a conexão padrão.
    * <p>
-   * 
-   * @see {@link ConnectionManager#setDefaultConnection setDefaultConnection}.
+   * Veja operação {@link ConnectionManager#setDefaultConnection
+   * setDefaultConnection}.
    * 
    * @return Conexão definida como conexão padrão.
    */
