@@ -53,7 +53,7 @@ final class ORBBuilder {
 
   private Properties buildDefaultProperties() {
     Properties props = new Properties();
-    props.setProperty("jacorb.log.default.verbosity", "1"); // ERROR
+    props.setProperty("jacorb.log.default.verbosity", "1"); // nível de ERROR
     props
       .setProperty("jacorb.connection.client.pending_reply_timeout", "30000");
     return props;
