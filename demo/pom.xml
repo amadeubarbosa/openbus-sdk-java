@@ -15,6 +15,7 @@
   <url>http://www.tecgraf.puc-rio.br/openbus</url>
 
   <modules>
+    <module>util</module>
     <module>audit</module>
     <module>chainvalidation</module>
     <module>dedicatedclock</module>
