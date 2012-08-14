@@ -37,7 +37,7 @@ import tecgraf.openbus.exception.InvalidPrivateKey;
  * usada diretamente pela aplicação ao realizar ou receber chamadas, pois as
  * chamadas ocorrem usando proxies e servants de um {@link ORB}. As conexões que
  * são efetivamente usadas nas chamadas do ORB são definidas através do
- * {@link ConnectionManager} associado a este ORB.
+ * {@link ConnectionManager} associado ao ORB.
  * 
  * @author Tecgraf
  */
