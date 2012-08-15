@@ -254,9 +254,6 @@ final class ConnectionImpl implements Connection {
       }
     }
     catch (OBJECT_NOT_EXIST e) {
-      // o tratamento esta no finally
-    }
-    finally {
       if (!existent) {
         throw new InvalidBusAddress(
           "Não foi possível obter uma referência para o barramento.");

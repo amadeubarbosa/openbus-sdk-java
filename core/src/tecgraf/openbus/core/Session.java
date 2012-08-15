@@ -20,22 +20,16 @@ abstract class Session {
    * O segredo compartilhado na sessão
    */
   final protected byte[] secret;
-  /**
-   * Alvo da comunicação.
-   */
-  final private String callee;
 
   /**
    * Construtor.
    * 
    * @param session identificador da sessão
    * @param secret o segredo.
-   * @param callee alvo da comunicação
    */
-  public Session(int session, byte[] secret, String callee) {
+  public Session(int session, byte[] secret) {
     this.session = session;
     this.secret = secret;
-    this.callee = callee;
   }
 
   /**
@@ -57,15 +51,6 @@ abstract class Session {
   }
 
   /**
-   * Recupera a informação do alvo da comunicação
-   * 
-   * @return o alvo da comunicação.
-   */
-  public String getCallee() {
-    return this.callee;
-  }
-
-  /**
    * Representa a sessão do lado servidor.
    * 
    * @author Tecgraf
@@ -75,17 +60,22 @@ abstract class Session {
      * Histórico dos tickets.
      */
     private TicketsHistory ticket;
+    /**
+     * Originador da comunicação.
+     */
+    final private String caller;
 
     /**
      * Construtor.
      * 
      * @param session identificador da sessão
      * @param secret o segredo.
-     * @param callee alvo da comunicação
+     * @param caller originador da comunicação
      */
-    public ServerSideSession(int session, byte[] secret, String callee) {
-      super(session, secret, callee);
+    public ServerSideSession(int session, byte[] secret, String caller) {
+      super(session, secret);
       this.ticket = new TicketsHistory();
+      this.caller = caller;
     }
 
     /**
@@ -97,6 +87,15 @@ abstract class Session {
      */
     public boolean checkTicket(int id) {
       return this.ticket.check(id);
+    }
+
+    /**
+     * Recupera a informação do originador da comunicação
+     * 
+     * @return o originador da comunicação.
+     */
+    public String getCaller() {
+      return this.caller;
     }
 
   }
@@ -111,6 +110,10 @@ abstract class Session {
      * Valor do último ticket utilizado
      */
     private AtomicInteger ticket;
+    /**
+     * Alvo da comunicação.
+     */
+    final private String callee;
 
     /**
      * Construtor.
@@ -120,8 +123,9 @@ abstract class Session {
      * @param callee alvo da comunicação
      */
     public ClientSideSession(int session, byte[] secret, String callee) {
-      super(session, secret, callee);
+      super(session, secret);
       this.ticket = new AtomicInteger(-1);
+      this.callee = callee;
     }
 
     /**
@@ -131,6 +135,15 @@ abstract class Session {
      */
     public int nextTicket() {
       return this.ticket.incrementAndGet();
+    }
+
+    /**
+     * Recupera a informação do alvo da comunicação
+     * 
+     * @return o alvo da comunicação.
+     */
+    public String getCallee() {
+      return this.callee;
     }
 
   }

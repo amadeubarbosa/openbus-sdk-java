@@ -263,6 +263,10 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
               throw new NO_PERMISSION(UnknownBusCode.value,
                 CompletionStatus.COMPLETED_NO);
             }
+            if (!conn.busid().equals(credential.bus)) {
+              throw new NO_PERMISSION(UnknownBusCode.value,
+                CompletionStatus.COMPLETED_NO);
+            }
           }
           if (conn.login() == null) {
             throw new NO_PERMISSION(UnknownBusCode.value,
@@ -385,7 +389,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           logger.finest(String.format(
             "Recebeu chamada sem sessão associda: %s", operation));
           // credencial não é válida. Resetando a credencial da sessão.
-          doResetCredential(ri, orb, conn, pubkey.value);
+          doResetCredential(ri, orb, conn, loginId, pubkey.value);
           throw new NO_PERMISSION(InvalidCredentialCode.value,
             CompletionStatus.COMPLETED_NO);
         }
@@ -422,11 +426,13 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * @param ri informação do request.
    * @param orb o orb.
    * @param conn a conexão.
+   * @param caller identificador do login originador da chamada.
    * @param publicKey a chave pública do requisitante.
    * @throws CryptographyException
    */
   private void doResetCredential(ServerRequestInfo ri, ORB orb,
-    ConnectionImpl conn, byte[] publicKey) throws CryptographyException {
+    ConnectionImpl conn, String caller, byte[] publicKey)
+    throws CryptographyException {
     byte[] newSecret = newSecret();
     Cryptography crypto = Cryptography.getInstance();
     byte[] encriptedSecret =
@@ -434,7 +440,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         .generateRSAPublicKeyFromX509EncodedKey(publicKey));
     int sessionId = conn.nextAvailableSessionId();
     ServerSideSession newSession =
-      new ServerSideSession(sessionId, newSecret, conn.login().id);
+      new ServerSideSession(sessionId, newSecret, caller);
     conn.cache.srvSessions.put(newSession.getSession(), newSession);
     CredentialReset reset =
       new CredentialReset(conn.login().id, sessionId, encriptedSecret);
@@ -472,7 +478,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       return true;
     }
     ServerSideSession session = conn.cache.srvSessions.get(credential.session);
-    if (session != null) {
+    if (session != null && session.getCaller().equals(credential.login)) {
       logger.finest(String.format("sessão utilizada: id = %d ticket = %d",
         session.getSession(), credential.ticket));
       byte[] hash =
@@ -526,7 +532,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
                     "O login não é o mesmo do alvo da cadeia. É necessário refazer a sessão de credencial através de um reset. Operação: %s",
                     ri.operation()));
               // credencial não é válida. Resetando a credencial da sessão.
-              doResetCredential(ri, orb, conn, pubkey.value);
+              doResetCredential(ri, orb, conn, credential.login, pubkey.value);
               throw new NO_PERMISSION(InvalidCredentialCode.value,
                 CompletionStatus.COMPLETED_NO);
             }

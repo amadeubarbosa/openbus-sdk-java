@@ -70,7 +70,6 @@ class LoginCache {
     time = System.currentTimeMillis();
     int[] validitys =
       conn.logins().getValidity(ids.toArray(new String[ids.size()]));
-
     boolean isValid = false;
     for (int i = 0; i < ids.size(); i++) {
       String id = ids.get(i);
@@ -87,7 +86,7 @@ class LoginCache {
         }
         loginEntry.lastTime = time;
         loginEntry.validity = validity;
-        if (id == loginId) {
+        if (id.equals(loginId)) {
           isValid = true;
         }
       }
