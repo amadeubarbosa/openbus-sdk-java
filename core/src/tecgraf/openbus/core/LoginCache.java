@@ -42,59 +42,49 @@ class LoginCache {
    *         caso contrário.
    * @throws ServiceFailure
    */
-  synchronized boolean validateLogin(String loginId, ConnectionImpl conn)
+  boolean validateLogin(String loginId, ConnectionImpl conn)
     throws ServiceFailure {
-    long time = System.currentTimeMillis();
     LoginEntry entry = this.logins.get(loginId);
-    boolean contains = false;
+    long time;
     if (entry != null) {
-      contains = true;
-      Long elapsed = (time - entry.lastTime) / 1000;
-      if (elapsed.intValue() <= entry.validity) {
-        // login é valido
-        return true;
+      synchronized (this.logins) {
+        time = System.currentTimeMillis();
+        Long elapsed = (time - entry.lastTime) / 1000;
+        if (elapsed.intValue() <= entry.validity) {
+          // login é valido
+          return true;
+        }
       }
     }
 
     String busid = conn.busid();
     List<String> ids = new ArrayList<String>();
-    List<LoginEntry> logins = new ArrayList<LoginEntry>(this.logins.values());
-    for (LoginEntry lEntry : logins) {
-      if (lEntry.busId.equals(busid)) {
-        ids.add(lEntry.loginId);
-      }
-    }
-    if (!contains) {
-      ids.add(loginId);
-    }
+    ids.add(loginId);
     time = System.currentTimeMillis();
     int[] validitys =
       conn.logins().getValidity(ids.toArray(new String[ids.size()]));
-    boolean isValid = false;
-    for (int i = 0; i < ids.size(); i++) {
-      String id = ids.get(i);
-      int validity = validitys[i];
-      if (validity > 0) {
-        LoginEntry loginEntry = this.logins.get(id);
-        if (loginEntry == null) {
-          loginEntry = new LoginEntry();
-          loginEntry.loginId = id;
-          loginEntry.busId = busid;
-          loginEntry.lastTime = time;
-          loginEntry.validity = validity;
-          this.logins.put(id, loginEntry);
-        }
+    int validity = validitys[0];
+    synchronized (this.logins) {
+      LoginEntry loginEntry = this.logins.get(loginId);
+      if (loginEntry == null) {
+        loginEntry = new LoginEntry();
+        loginEntry.loginId = loginId;
+        loginEntry.busId = busid;
         loginEntry.lastTime = time;
         loginEntry.validity = validity;
-        if (id.equals(loginId)) {
-          isValid = true;
-        }
+        this.logins.put(loginId, loginEntry);
       }
       else {
-        this.logins.remove(id);
+        if (loginEntry.lastTime < time) {
+          loginEntry.lastTime = time;
+          loginEntry.validity = validity;
+        }
+        else {
+          validity = loginEntry.validity;
+        }
       }
     }
-    return isValid;
+    return validity > 0;
   }
 
   /**
@@ -108,32 +98,36 @@ class LoginCache {
    * @throws InvalidLogins
    * @throws ServiceFailure
    */
-  synchronized String getLoginEntity(String loginId, OctetSeqHolder pubkey,
+  String getLoginEntity(String loginId, OctetSeqHolder pubkey,
     ConnectionImpl conn) throws InvalidLogins, ServiceFailure {
     LoginEntry entry = this.logins.get(loginId);
     if (entry != null) {
-      if (entry.entity != null) {
-        pubkey.value = entry.pubkey;
+      synchronized (this.logins) {
+        if (entry.entity != null) {
+          pubkey.value = entry.pubkey;
+          return entry.entity;
+        }
+      }
+    }
+    LoginInfo info = conn.logins().getLoginInfo(loginId, pubkey);
+    synchronized (this.logins) {
+      entry = this.logins.get(loginId);
+      if (entry == null) {
+        entry = new LoginEntry();
+        entry.busId = conn.busid();
+        entry.loginId = info.id;
+        entry.entity = info.entity;
+        entry.pubkey = pubkey.value;
+        entry.lastTime = System.currentTimeMillis();
+        entry.validity = 0;
+        this.logins.put(loginId, entry);
         return entry.entity;
       }
       else {
-        LoginInfo info = conn.logins().getLoginInfo(loginId, pubkey);
         entry.entity = info.entity;
         entry.pubkey = pubkey.value;
         return entry.entity;
       }
-    }
-    else {
-      LoginInfo info = conn.logins().getLoginInfo(loginId, pubkey);
-      entry = new LoginEntry();
-      entry.busId = conn.busid();
-      entry.loginId = info.id;
-      entry.entity = info.entity;
-      entry.pubkey = pubkey.value;
-      entry.lastTime = System.currentTimeMillis();
-      entry.validity = 0;
-      this.logins.put(loginId, entry);
-      return entry.entity;
     }
   }
 
@@ -154,11 +148,11 @@ class LoginCache {
     /**
      * Tempo de validade.
      */
-    public int validity;
+    public Integer validity;
     /**
      * Tempo em milisegundos de quando as informações foram atualizadas.
      */
-    public long lastTime;
+    public Long lastTime;
     /**
      * Nome da entidade
      */
