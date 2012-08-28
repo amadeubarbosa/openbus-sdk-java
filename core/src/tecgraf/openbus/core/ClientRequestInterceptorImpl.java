@@ -27,7 +27,6 @@ import org.omg.PortableInterceptor.InvalidSlot;
 import org.omg.PortableInterceptor.RequestInfo;
 
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.core.Session.ClientSideSession;
 import tecgraf.openbus.core.v1_05.access_control_service.Credential;
 import tecgraf.openbus.core.v1_05.access_control_service.CredentialHelper;
@@ -90,11 +89,11 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
   public void send_request(ClientRequestInfo ri) {
     String operation = ri.operation();
     ORB orb = this.getMediator().getORB();
-    ConnectionManagerImpl manager;
+    OpenBusContextImpl manager;
     try {
       org.omg.CORBA.Object obj =
-        orb.resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
-      manager = (ConnectionManagerImpl) obj;
+        orb.resolve_initial_references("OpenBusContext");
+      manager = (OpenBusContextImpl) obj;
     }
     catch (InvalidName e) {
       String message = "Falha inesperada ao obter o multiplexador";
@@ -445,7 +444,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    * @return a conexão.
    */
   protected Connection getCurrentConnection(RequestInfo ri) {
-    ConnectionManagerImpl multi = this.getMediator().getConnectionManager();
+    OpenBusContextImpl multi = this.getMediator().getContext();
     Any any;
     try {
       any = ri.get_slot(multi.getCurrentThreadSlotId());

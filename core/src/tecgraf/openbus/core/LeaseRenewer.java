@@ -11,7 +11,6 @@ import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORBPackage.InvalidName;
 
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessControl;
 
 /**
@@ -123,13 +122,13 @@ final class LeaseRenewer {
           this.mustContinue = false;
           break;
         }
-        ConnectionManagerImpl connections = null;
+        OpenBusContextImpl connections = null;
         int lease = -1;
         try {
           connections =
-            (ConnectionManagerImpl) conn.orb().resolve_initial_references(
-              ConnectionManager.INITIAL_REFERENCE_ID);
-          connections.setRequester(conn);
+            (OpenBusContextImpl) conn.orb().resolve_initial_references(
+              "OpenBusContext");
+          connections.setCurrentConnection(conn);
           AccessControl manager = ((ConnectionImpl) conn).access();
           lease = manager.renew();
           this.mustContinue = (lease > 0);
@@ -147,7 +146,7 @@ final class LeaseRenewer {
         }
         finally {
           if (connections != null) {
-            connections.setRequester(null);
+            connections.setCurrentConnection(null);
           }
         }
 

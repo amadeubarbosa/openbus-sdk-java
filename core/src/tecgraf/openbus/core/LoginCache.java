@@ -162,4 +162,11 @@ class LoginCache {
      */
     public byte[] pubkey;
   }
+
+  /**
+   * Limpa a cache de logins.
+   */
+  public void clear() {
+    this.logins.clear();
+  }
 }

@@ -12,7 +12,7 @@ import org.junit.Test;
 import org.omg.CORBA.ORB;
 
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.ConnectionManager;
+import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.util.Cryptography;
 import tecgraf.openbus.util.Utils;
 
@@ -23,7 +23,7 @@ public class MassiveConnectionTest {
   private static String entity;
   private static String password;
   private static ORB orb;
-  private static ConnectionManager connections;
+  private static OpenBusContext connections;
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
@@ -33,8 +33,7 @@ public class MassiveConnectionTest {
     port = Integer.valueOf(properties.getProperty("openbus.host.port"));
     orb = ORBInitializer.initORB();
     connections =
-      (ConnectionManager) orb
-        .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
+      (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
   }
 
   @Test
@@ -55,23 +54,23 @@ public class MassiveConnectionTest {
 
   private static class ConnectThread implements Runnable {
 
-    private ConnectionManager connections;
+    private OpenBusContext context;
     private String entity;
 
-    public ConnectThread(ConnectionManager multiplexer, int id) {
-      this.connections = multiplexer;
+    public ConnectThread(OpenBusContext multiplexer, int id) {
+      this.context = multiplexer;
       this.entity = "Task-" + id;
     }
 
     @Override
     public void run() {
       try {
-        Connection conn = connections.createConnection(host, port);
+        Connection conn = context.createConnection(host, port);
         conn.loginByPassword(entity, entity.getBytes());
-        connections.setRequester(conn);
-        conn.offers().getServices();
-        conn.offers().getServices();
-        connections.setRequester(null);
+        context.setCurrentConnection(conn);
+        context.getOfferRegistry().getServices();
+        context.getOfferRegistry().getServices();
+        context.setCurrentConnection(null);
         conn.logout();
       }
       catch (Exception e) {

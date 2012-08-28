@@ -6,24 +6,24 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import tecgraf.openbus.CallerChain;
-import tecgraf.openbus.Connection;
+import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 import tecgraf.openbus.interop.util.Utils;
 
 public class ForwarderImpl extends ForwarderPOA {
 
-  private Connection conn;
+  private OpenBusContext context;
   private Map<String, ForwardInfo> forwardsOf;
 
-  public ForwarderImpl(Connection conn) {
-    this.conn = conn;
+  public ForwarderImpl(OpenBusContext context) {
+    this.context = context;
     this.forwardsOf =
       Collections.synchronizedMap(new HashMap<String, ForwardInfo>());
   }
 
   @Override
   public void setForward(String to) {
-    CallerChain chain = conn.getCallerChain();
+    CallerChain chain = context.getCallerChain();
     LoginInfo caller = chain.caller();
     LoginInfo[] originators = chain.originators();
     String user = caller.entity;
@@ -34,8 +34,8 @@ public class ForwarderImpl extends ForwarderPOA {
 
   @Override
   public void cancelForward(String to) {
-    LoginInfo caller = conn.getCallerChain().caller();
-    LoginInfo[] originators = conn.getCallerChain().originators();
+    LoginInfo caller = context.getCallerChain().caller();
+    LoginInfo[] originators = context.getCallerChain().originators();
     String user = caller.entity;
     ForwardInfo forward = this.forwardsOf.remove(user);
     if (forward != null) {
@@ -46,7 +46,7 @@ public class ForwarderImpl extends ForwarderPOA {
 
   @Override
   public String getForward() throws NoForward {
-    LoginInfo caller = conn.getCallerChain().caller();
+    LoginInfo caller = context.getCallerChain().caller();
     String user = caller.entity;
     ForwardInfo forward = this.forwardsOf.get(user);
     if (forward == null) {
@@ -73,13 +73,14 @@ public class ForwarderImpl extends ForwarderPOA {
 
     private volatile boolean stop = false;
     private ForwarderImpl forwarder;
-    private Connection conn;
+    private OpenBusContext context;
     private Messenger messenger;
 
-    public Timer(Connection conn, ForwarderImpl forwarder, Messenger messenger) {
+    public Timer(OpenBusContext context, ForwarderImpl forwarder,
+      Messenger messenger) {
       this.forwarder = forwarder;
       this.messenger = messenger;
-      this.conn = conn;
+      this.context = context;
     }
 
     public void stopTimer() {
@@ -101,9 +102,9 @@ public class ForwarderImpl extends ForwarderPOA {
             String user = entry.getKey();
             ForwardInfo info = entry.getValue();
             System.out.println("Verificando mensagens de " + user);
-            conn.joinChain(info.chain);
+            context.joinChain(info.chain);
             PostDesc[] posts = messenger.receivePosts();
-            conn.exitChain();
+            context.exitChain();
             for (PostDesc post : posts) {
               messenger.post(info.to, String.format(
                 "forwarded message by %s:%s", post.from, post.message));

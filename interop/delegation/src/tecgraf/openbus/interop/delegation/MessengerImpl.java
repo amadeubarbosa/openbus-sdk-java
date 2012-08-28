@@ -7,25 +7,25 @@ import java.util.List;
 import java.util.Map;
 
 import tecgraf.openbus.CallerChain;
-import tecgraf.openbus.Connection;
+import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 import tecgraf.openbus.interop.util.Utils;
 
 public class MessengerImpl extends MessengerPOA {
 
-  private Connection conn;
+  private OpenBusContext context;
   private Map<String, List<PostDesc>> inboxOf;
 
-  public MessengerImpl(Connection conn) {
-    this.conn = conn;
+  public MessengerImpl(OpenBusContext context) {
+    this.context = context;
     this.inboxOf =
       Collections.synchronizedMap(new HashMap<String, List<PostDesc>>());
   }
 
   @Override
   public void post(String to, String message) {
-    LoginInfo caller = conn.getCallerChain().caller();
-    LoginInfo[] originators = conn.getCallerChain().originators();
+    LoginInfo caller = context.getCallerChain().caller();
+    LoginInfo[] originators = context.getCallerChain().originators();
     String from = caller.entity;
     System.out.println(String.format("post para '%s' de '%s'", to, Utils
       .chain2str(originators, caller)));
@@ -41,7 +41,7 @@ public class MessengerImpl extends MessengerPOA {
 
   @Override
   public PostDesc[] receivePosts() {
-    CallerChain chain = conn.getCallerChain();
+    CallerChain chain = context.getCallerChain();
     LoginInfo caller = chain.caller();
     LoginInfo[] originators = chain.originators();
     String owner = caller.entity;

@@ -1,7 +1,7 @@
 package demo;
 
 import tecgraf.openbus.CallerChain;
-import tecgraf.openbus.Connection;
+import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 
 /**
@@ -11,17 +11,17 @@ import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
  */
 public final class HelloImpl extends HelloPOA {
   /**
-   * Conexão com o barramento.
+   * Contexto com o barramento.
    */
-  private Connection conn;
+  private OpenBusContext context;
 
   /**
    * Construtor.
    * 
-   * @param conn Conexão com o barramento.
+   * @param context Conexão com o barramento.
    */
-  public HelloImpl(Connection conn) {
-    this.conn = conn;
+  public HelloImpl(OpenBusContext context) {
+    this.context = context;
   }
 
   /**
@@ -30,7 +30,7 @@ public final class HelloImpl extends HelloPOA {
   @Override
   public void sayHello() {
     try {
-      CallerChain callerChain = conn.getCallerChain();
+      CallerChain callerChain = context.getCallerChain();
       LoginInfo caller = callerChain.caller();
       String hello = String.format("Hello %s!", caller.entity);
       System.out.println(hello);

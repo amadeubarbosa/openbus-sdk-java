@@ -9,7 +9,7 @@ import org.omg.CORBA.Any;
 import org.omg.CORBA.ORB;
 
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.ConnectionManager;
+import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginProcessHelper;
@@ -29,11 +29,10 @@ public class SharedAuthClient {
 
       ORB orb = ORBInitializer.initORB();
 
-      ConnectionManager manager =
-        (ConnectionManager) orb
-          .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
-      Connection connection = manager.createConnection(host, port);
-      manager.setDefaultConnection(connection);
+      OpenBusContext context =
+        (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
+      Connection connection = context.createConnection(host, port);
+      context.setDefaultConnection(connection);
 
       File file = new File("sharedauth.dat");
       FileInputStream fstream = new FileInputStream(file);
@@ -59,7 +58,7 @@ public class SharedAuthClient {
       serviceProperties[1] =
         new ServiceProperty("offer.domain", "Interoperability Tests");
       ServiceOfferDesc[] services =
-        connection.offers().findServices(serviceProperties);
+        context.getOfferRegistry().findServices(serviceProperties);
 
       if (services.length < 1) {
         System.err.println("O servidor do demo Hello não foi encontrado");

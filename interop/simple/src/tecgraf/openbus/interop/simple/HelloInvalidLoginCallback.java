@@ -2,13 +2,14 @@ package tecgraf.openbus.interop.simple;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
+import tecgraf.openbus.PrivateKey;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 
 public class HelloInvalidLoginCallback implements InvalidLoginCallback {
   private String entity;
-  private byte[] privKey;
+  private PrivateKey privKey;
 
-  public HelloInvalidLoginCallback(String entity, byte[] privKey) {
+  public HelloInvalidLoginCallback(String entity, PrivateKey privKey) {
     this.entity = entity;
     this.privKey = privKey;
   }

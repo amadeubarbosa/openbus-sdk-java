@@ -2,7 +2,6 @@ package tecgraf.openbus;
 
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
-import org.omg.PortableInterceptor.Current;
 
 import tecgraf.openbus.core.v2_0.OctetSeqHolder;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
@@ -12,11 +11,8 @@ import tecgraf.openbus.core.v2_0.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_0.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_0.services.access_control.UnknownBusCode;
-import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
-import tecgraf.openbus.exception.BusChanged;
 import tecgraf.openbus.exception.InvalidLoginProcess;
-import tecgraf.openbus.exception.InvalidPrivateKey;
 
 /**
  * Objeto que representa uma forma de acesso a um barramento.
@@ -37,27 +33,19 @@ import tecgraf.openbus.exception.InvalidPrivateKey;
  * usada diretamente pela aplicação ao realizar ou receber chamadas, pois as
  * chamadas ocorrem usando proxies e servants de um {@link ORB}. As conexões que
  * são efetivamente usadas nas chamadas do ORB são definidas através do
- * {@link ConnectionManager} associado ao ORB.
+ * {@link OpenBusContext} associado ao ORB.
  * 
  * @author Tecgraf
  */
 public interface Connection {
 
   /**
-   * Recupera o {@link ORB} correspondente ao {@link ConnectionManager} a partir
-   * do qual essa conexão foi criada.
+   * Recupera o {@link ORB} correspondente ao {@link OpenBusContext} a partir do
+   * qual essa conexão foi criada.
    * 
    * @return o ORB
    */
   org.omg.CORBA.ORB orb();
-
-  /**
-   * Recupera a referência do serviço núcleo de registro de ofertas do
-   * barramento ao qual a conexão se refere.
-   * 
-   * @return o serviço de registro de ofertas.
-   */
-  OfferRegistry offers();
 
   /**
    * Recupera o identificador do barramento ao qual essa conexão se refere.
@@ -85,15 +73,13 @@ public interface Connection {
    * @param password Senha de autenticação no barramento da entidade.
    * 
    * @exception AlreadyLoggedIn A conexão já está autenticada.
-   * @exception BusChanged O identificador do barramento mudou. Uma nova conexão
-   *            deve ser criada.
    * @exception AccessDenied Senha fornecida para autenticação da entidade não
    *            foi validada pelo barramento.
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu a autenticação da conexão.
    */
   void loginByPassword(String entity, byte[] password) throws AccessDenied,
-    AlreadyLoggedIn, BusChanged, ServiceFailure;
+    AlreadyLoggedIn, ServiceFailure;
 
   /**
    * Efetua login de uma entidade usando autenticação por certificado.
@@ -105,10 +91,7 @@ public interface Connection {
    * @param privateKey Chave privada correspondente ao certificado registrado a
    *        ser utilizada na autenticação.
    * 
-   * @exception InvalidPrivateKey A chave privada fornecida não é válida.
    * @exception AlreadyLoggedIn A conexão já está autenticada.
-   * @exception BusChanged O identificador do barramento mudou. Uma nova conexão
-   *            deve ser criada.
    * @exception AccessDenied A chave privada fornecida não corresponde ao
    *            certificado da entidade registrado no barramento indicado.
    * @exception MissingCertificate Não há certificado para essa entidade
@@ -116,9 +99,8 @@ public interface Connection {
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu a autenticação da conexão.
    */
-  void loginByCertificate(String entity, byte[] privateKey)
-    throws InvalidPrivateKey, AlreadyLoggedIn, BusChanged, AccessDenied,
-    MissingCertificate, ServiceFailure;
+  void loginByCertificate(String entity, PrivateKey privateKey)
+    throws AlreadyLoggedIn, AccessDenied, MissingCertificate, ServiceFailure;
 
   /**
    * Inicia o processo de login por autenticação compartilhada.
@@ -156,16 +138,13 @@ public interface Connection {
    * @exception InvalidLoginProcess O LoginProcess informado é inválido, por
    *            exemplo depois de ser cancelado ou ter expirado.
    * @exception AlreadyLoggedIn A conexão já está autenticada.
-   * @exception BusChanged O identificador do barramento mudou. Uma nova conexão
-   *            deve ser criada.
    * @exception AccessDenied O segredo fornecido não corresponde ao esperado
    *            pelo barramento.
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu a autenticação da conexão.
    */
   void loginBySharedAuth(LoginProcess process, byte[] secret)
-    throws AlreadyLoggedIn, InvalidLoginProcess, BusChanged, AccessDenied,
-    ServiceFailure;
+    throws AlreadyLoggedIn, InvalidLoginProcess, AccessDenied, ServiceFailure;
 
   /**
    * Efetua logout da conexão, tornando o login atual inválido.
@@ -217,66 +196,5 @@ public interface Connection {
    * @return a callback ou <code>null</code> caso ela não exista.
    */
   InvalidLoginCallback onInvalidLoginCallback();
-
-  /**
-   * Devolve a cadeia de chamadas à qual a execução corrente pertence.
-   * <p>
-   * Caso a contexto corrente (e.g. definido pelo {@link Current}) seja o
-   * contexto de execução de uma chamada remota oriunda do barramento dessa
-   * conexão, essa operação devolve um objeto que representa a cadeia de
-   * chamadas do barramento que esta chamada faz parte. Caso contrário, devolve
-   * <code>null</code>.
-   * 
-   * @return Cadeia da chamada em execução.
-   */
-  CallerChain getCallerChain();
-
-  /**
-   * Associa uma cadeia de chamadas ao contexto corrente.
-   * <p>
-   * Associa uma cadeia de chamadas ao contexto corrente (e.g. definido pelo
-   * {@link Current}), de forma que todas as chamadas remotas seguintes neste
-   * mesmo contexto sejam feitas como parte dessa cadeia de chamadas.
-   * 
-   * @param chain Cadeia de chamadas a ser associada ao contexto corrente.
-   */
-  void joinChain(CallerChain chain);
-
-  /**
-   * Associa a cadeia de chamadas obtida em {@link #getCallerChain()} ao
-   * contexto corrente.
-   * <p>
-   * Associa a cadeia de chamadas obtida em {@link #getCallerChain()} ao
-   * contexto corrente (e.g. definido pelo {@link Current}), de forma que todas
-   * as chamadas remotas seguintes neste mesmo contexto sejam feitas como parte
-   * dessa cadeia de chamadas.
-   */
-  void joinChain();
-
-  /**
-   * Faz com que nenhuma cadeia de chamadas esteja associada ao contexto
-   * corrente.
-   * <p>
-   * Remove a associação da cadeia de chamadas ao contexto corrente (e.g.
-   * definido pelo {@link Current}), fazendo com que todas as chamadas seguintes
-   * feitas neste mesmo contexto deixem de fazer parte da cadeia de chamadas
-   * associada previamente. Ou seja, todas as chamadas passam a iniciar novas
-   * cadeias de chamada.
-   */
-  void exitChain();
-
-  /**
-   * Devolve a cadeia de chamadas associada ao contexto corrente.
-   * <p>
-   * Devolve um objeto que representa a cadeia de chamadas associada ao contexto
-   * corrente (e.g. definido pelo {@link Current}) nesta conexão. A cadeia de
-   * chamadas informada foi associada previamente pela operação
-   * {@link #joinChain(CallerChain) joinChain}. Caso o contexto corrente não
-   * tenha nenhuma cadeia associada, essa operação devolve <code>null</code>.
-   * 
-   * @return Cadeia de chamadas associada ao contexto corrente ou
-   *         <code>null</code> .
-   */
-  CallerChain getJoinedChain();
 
 }

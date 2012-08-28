@@ -6,7 +6,7 @@ import java.util.logging.Level;
 import org.omg.CORBA.ORB;
 
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.ConnectionManager;
+import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
@@ -40,12 +40,11 @@ public class Client {
 
       for (BusAddress busAddr : buses) {
         ORB orb = ORBInitializer.initORB();
-        ConnectionManager manager =
-          (ConnectionManager) orb
-            .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
+        OpenBusContext context =
+          (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
         Connection conn =
-          manager.createConnection(busAddr.hostname, busAddr.port);
-        manager.setDefaultConnection(conn);
+          context.createConnection(busAddr.hostname, busAddr.port);
+        context.setDefaultConnection(conn);
         String login = "interop_multiplexing_java_client";
         conn.loginByPassword(login, login.getBytes());
 
@@ -55,7 +54,7 @@ public class Client {
         serviceProperties[1] =
           new ServiceProperty("offer.domain", "Interoperability Tests");
         ServiceOfferDesc[] services =
-          conn.offers().findServices(serviceProperties);
+          context.getOfferRegistry().findServices(serviceProperties);
         for (ServiceOfferDesc offer : services) {
           for (ServiceProperty prop : offer.properties) {
             if (prop.name.equals("openbus.offer.entity")) {

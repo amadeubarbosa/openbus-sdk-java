@@ -31,6 +31,9 @@ class IsValidCache {
         valid = conn.legacyAccess().isValid(credential);
         this.cache.put(key, valid);
       }
+      else {
+        valid = false;
+      }
     }
     return valid;
   }
@@ -100,6 +103,13 @@ class IsValidCache {
       return IsValidCache.this;
     }
 
+  }
+
+  /**
+   * Limpa a cache de validação de login.
+   */
+  public void clear() {
+    this.cache.clear();
   }
 
 }

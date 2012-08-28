@@ -6,7 +6,7 @@ import java.util.logging.Level;
 import org.omg.CORBA.ORB;
 
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.ConnectionManager;
+import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
@@ -33,11 +33,10 @@ public final class Client {
       Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
       ORB orb = ORBInitializer.initORB();
-      ConnectionManager connections =
-        (ConnectionManager) orb
-          .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
-      Connection connection = connections.createConnection(host, port);
-      connections.setDefaultConnection(connection);
+      OpenBusContext context =
+        (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
+      Connection connection = context.createConnection(host, port);
+      context.setDefaultConnection(connection);
 
       connection.loginByPassword(entity, entity.getBytes(Cryptography.CHARSET));
 
@@ -47,7 +46,7 @@ public final class Client {
       serviceProperties[1] =
         new ServiceProperty("offer.domain", "Interoperability Tests");
       ServiceOfferDesc[] services =
-        connection.offers().findServices(serviceProperties);
+        context.getOfferRegistry().findServices(serviceProperties);
 
       if (services.length < 1) {
         System.err.println("O servidor do demo Hello não foi encontrado");

@@ -5,7 +5,7 @@ import java.util.Properties;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 
-import tecgraf.openbus.ConnectionManager;
+import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidChainCode;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidRemoteCode;
 import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
@@ -31,10 +31,10 @@ public class ORBInitializer {
    * chamadas CORBA ordinárias sem o controle de acesso do OpenBus que permite
    * identificação da origem das chamadas. Esse controle de acesso é feito
    * através conexões, que são obtidas e manipuladas através de um
-   * {@link ConnectionManager}. Cada ORB possui um ConnectionManager associado,
-   * que pode ser obitido através do comando:
+   * {@link OpenBusContext}. Cada ORB possui um OpenBusContext associado, que
+   * pode ser obitido através do comando:
    * {@link ORB#resolve_initial_references(String)
-   * resolve_initial_reference("OpenBusConnectionManager")}
+   * resolve_initial_reference("OpenBusContext")}
    * <p>
    * O ORB é inicializado da mesma forma feita pela operação {@link ORB#init}
    * definida pelo padrão CORBA. Em particular, algumas implementações de CORBA
@@ -82,10 +82,10 @@ public class ORBInitializer {
    * chamadas CORBA ordinárias sem o controle de acesso do OpenBus que permite
    * identificação da origem das chamadas. Esse controle de acesso é feito
    * através conexões, que são obtidas e manipuladas através de um
-   * {@link ConnectionManager}. Cada ORB possui um ConnectionManager associado,
-   * que pode ser obitido através do comando:
+   * {@link OpenBusContext}. Cada ORB possui um OpenBusContext associado, que
+   * pode ser obitido através do comando:
    * {@link ORB#resolve_initial_references(String)
-   * resolve_initial_reference("OpenBusConnectionManager")}
+   * resolve_initial_reference("OpenBusContext")}
    * <p>
    * O ORB é inicializado da mesma forma feita pela operação {@link ORB#init}
    * definida pelo padrão CORBA. Em particular, algumas implementações de CORBA
@@ -137,10 +137,10 @@ public class ORBInitializer {
    * chamadas CORBA ordinárias sem o controle de acesso do OpenBus que permite
    * identificação da origem das chamadas. Esse controle de acesso é feito
    * através conexões, que são obtidas e manipuladas através de um
-   * {@link ConnectionManager}. Cada ORB possui um ConnectionManager associado,
-   * que pode ser obitido através do comando:
+   * {@link OpenBusContext}. Cada ORB possui um OpenBusContext associado, que
+   * pode ser obitido através do comando:
    * {@link ORB#resolve_initial_references(String)
-   * resolve_initial_reference("OpenBusConnectionManager")}
+   * resolve_initial_reference("OpenBusContext")}
    * <p>
    * O ORB é inicializado da mesma forma feita pela operação {@link ORB#init}
    * definida pelo padrão CORBA. Em particular, algumas implementações de CORBA
@@ -185,7 +185,7 @@ public class ORBInitializer {
     ORB orb = createORB(args, props);
     ORBMediator mediator = ORBUtils.getMediator(orb);
     mediator.setORB(orb);
-    ConnectionManagerImpl manager = ORBUtils.getConnectionManager(orb);
+    OpenBusContextImpl manager = ORBUtils.getConnectionManager(orb);
     manager.setORB(orb);
     return orb;
   }
@@ -199,7 +199,8 @@ public class ORBInitializer {
    */
   private static ORB createORB(String[] args, Properties props) {
     ORBBuilder orbBuilder = new ORBBuilder(args, props);
-    orbBuilder.addInitializer(new ORBInitializerInfo(InternalJacORBInitializer.class));
+    orbBuilder.addInitializer(new ORBInitializerInfo(
+      InternalJacORBInitializer.class));
     return orbBuilder.build();
   }
 

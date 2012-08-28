@@ -7,7 +7,7 @@ import org.omg.CORBA.ORB;
 import org.omg.CORBA.TRANSIENT;
 
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.ConnectionManager;
+import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
@@ -15,7 +15,6 @@ import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Utils;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
-import tecgraf.openbus.exception.BusChanged;
 import tecgraf.openbus.util.Cryptography;
 
 /**
@@ -49,11 +48,10 @@ public final class HelloClient {
       // utilizá-la em todos os casos. Para situações diferentes, consulte o 
       // manual do SDK OpenBus e/ou outras demos.
       ORB orb = ORBInitializer.initORB();
-      ConnectionManager manager =
-        (ConnectionManager) orb
-          .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
-      Connection connection = manager.createConnection(host, port);
-      manager.setDefaultConnection(connection);
+      OpenBusContext context =
+        (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
+      Connection connection = context.createConnection(host, port);
+      context.setDefaultConnection(connection);
 
       // Executa o login
       if (login(connection, entity, password)) {
@@ -69,7 +67,7 @@ public final class HelloClient {
       // propriedade definida pelo serviço hello
       serviceProperties[1] =
         new ServiceProperty("offer.domain", "OpenBus Demos");
-      ServiceOfferDesc[] services = findServices(connection, serviceProperties);
+      ServiceOfferDesc[] services = findServices(context, serviceProperties);
 
       // analiza as ofertas encontradas
       Hello hello = getHello(services);
@@ -94,14 +92,14 @@ public final class HelloClient {
   /**
    * Método auxiliar responsável por procurar ofertas do serviço Hello.
    * 
-   * @param connection Conexão com o barramento.
+   * @param context Contexto com o barramento.
    * @param serviceProperties Propriedades do serviço que estamos buscando.
    * @return Descritores com as ofertas dos serviços.
    */
-  private static ServiceOfferDesc[] findServices(Connection connection,
+  private static ServiceOfferDesc[] findServices(OpenBusContext context,
     ServiceProperty[] serviceProperties) {
     try {
-      return connection.offers().findServices(serviceProperties);
+      return context.getOfferRegistry().findServices(serviceProperties);
     }
     catch (ServiceFailure e) {
       System.out
@@ -188,10 +186,6 @@ public final class HelloClient {
       System.out
         .println("Erro ao tentar realizar o login por senha no barramento: a senha fornecida não foi validada para a entidade "
           + entity + ".");
-    }
-    catch (BusChanged e) {
-      System.out
-        .println("Erro ao tentar realizar o login por senha no barramento: o identificador do barramento mudou. Uma nova conexão deve ser criada.");
     }
     catch (ServiceFailure e) {
       System.out

@@ -19,12 +19,14 @@ final class ORBMediator extends LocalObject {
   private final int SIGNED_CHAIN_SLOT_ID;
   /** Identificador do slot de joined chain */
   private final int JOINED_CHAIN_SLOT_ID;
+  /** Identificador do slot de barramento ao qual joined chain pertence */
+  private final int JOINED_BUS_SLOT_ID;
   /** Identificador do slot da caller chain */
-  private final int CONNECTION_SLOT_ID;
+  private final int BUS_SLOT_ID;
   /** o ORB */
   private ORB orb;
   /** o multiplexador */
-  private ConnectionManagerImpl connections;
+  private OpenBusContextImpl connections;
 
   /**
    * Construtor.
@@ -32,15 +34,17 @@ final class ORBMediator extends LocalObject {
    * @param codec a fábrica de codificadores
    * @param signedChainSlotId identificador de slot.
    * @param chainSlotId identificaor de slot.
-   * @param connectionSlotId identificador de slot
+   * @param joinedBusSlotId identificador de slot.
+   * @param busSlotId identificador de slot
    * @param connections gerente de conexões associado.
    */
   ORBMediator(Codec codec, int signedChainSlotId, int chainSlotId,
-    int connectionSlotId, ConnectionManagerImpl connections) {
+    int joinedBusSlotId, int busSlotId, OpenBusContextImpl connections) {
     this.codec = codec;
     this.SIGNED_CHAIN_SLOT_ID = signedChainSlotId;
     this.JOINED_CHAIN_SLOT_ID = chainSlotId;
-    this.CONNECTION_SLOT_ID = connectionSlotId;
+    this.JOINED_BUS_SLOT_ID = joinedBusSlotId;
+    this.BUS_SLOT_ID = busSlotId;
     this.connections = connections;
   }
 
@@ -92,14 +96,23 @@ final class ORBMediator extends LocalObject {
   }
 
   /**
-   * Recupera o identificador do slot onde se informa qual a conexão que
-   * realizou o dispatch e por isso é detentora da Cadeia. Utilizado pelo lado
-   * servidor.
+   * Recupera o identificador do slot onde se informa qual o identificador do
+   * barramento pelo qual a chamada se realiza. Utilizado pelo lado servidor.
    * 
    * @return identificador do slot
    */
-  int getConnectionSlotId() {
-    return this.CONNECTION_SLOT_ID;
+  int getBusSlotId() {
+    return this.BUS_SLOT_ID;
+  }
+
+  /**
+   * Recupera o identificador do slot onde se informa qual o identificador do
+   * barramento a cadeia em que esta encadeado ('joined').
+   * 
+   * @return identificador do slot
+   */
+  int getJoinedBusSlotId() {
+    return this.JOINED_BUS_SLOT_ID;
   }
 
   /**
@@ -107,7 +120,7 @@ final class ORBMediator extends LocalObject {
    * 
    * @return o gerente de conexões.
    */
-  public ConnectionManagerImpl getConnectionManager() {
+  public OpenBusContextImpl getContext() {
     return connections;
   }
 

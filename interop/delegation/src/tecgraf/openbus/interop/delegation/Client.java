@@ -9,7 +9,7 @@ import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
 
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.ConnectionManager;
+import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
@@ -33,17 +33,17 @@ public class Client {
       Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
       ORB orb = ORBInitializer.initORB();
-      ConnectionManager connections =
-        (ConnectionManager) orb
-          .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
-      Connection conn = connections.createConnection(host, port);
+      OpenBusContext context =
+        (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
+      Connection conn = context.createConnection(host, port);
       conn.loginByPassword(entity, entity.getBytes());
-      connections.setDefaultConnection(conn);
+      context.setDefaultConnection(conn);
 
       ServiceProperty[] serviceProperties = new ServiceProperty[1];
       serviceProperties[0] =
         new ServiceProperty("offer.domain", "Interoperability Tests");
-      ServiceOfferDesc[] offers = conn.offers().findServices(serviceProperties);
+      ServiceOfferDesc[] offers =
+        context.getOfferRegistry().findServices(serviceProperties);
       if (offers.length != 3) {
         System.err.println("serviços ofertados errados");
         return;

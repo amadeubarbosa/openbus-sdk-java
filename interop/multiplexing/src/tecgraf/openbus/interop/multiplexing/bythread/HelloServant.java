@@ -1,9 +1,8 @@
 package tecgraf.openbus.interop.multiplexing.bythread;
 
-import java.util.List;
-
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
+import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 import tecgraf.openbus.interop.simple.HelloPOA;
 
@@ -14,17 +13,17 @@ import tecgraf.openbus.interop.simple.HelloPOA;
  */
 public final class HelloServant extends HelloPOA {
   /**
-   * Conexão com o barramento.
+   * Contexto do barramento.
    */
-  private List<Connection> conns;
+  private OpenBusContext context;
 
   /**
    * Construtor.
    * 
    * @param conns Lista de conexões com o barramento.
    */
-  public HelloServant(List<Connection> conns) {
-    this.conns = conns;
+  public HelloServant(OpenBusContext conns) {
+    this.context = conns;
   }
 
   /**
@@ -33,17 +32,16 @@ public final class HelloServant extends HelloPOA {
   @Override
   public String sayHello() {
     try {
-      for (Connection conn : conns) {
-        CallerChain callerChain = conn.getCallerChain();
-        if (callerChain != null) {
-          System.out.println(String.format("Calling in %s @ %s",
-            conn.login().entity, conn.busid()));
-          LoginInfo caller = callerChain.caller();
-          String hello =
-            String.format("Hello %s@%s!", caller.entity, callerChain.busid());
-          System.out.println(hello);
-          return hello;
-        }
+      CallerChain callerChain = context.getCallerChain();
+      Connection conn = context.getCurrentConnection();
+      if (callerChain != null) {
+        System.out.println(String.format("Calling in %s @ %s",
+          conn.login().entity, conn.busid()));
+        LoginInfo caller = callerChain.caller();
+        String hello =
+          String.format("Hello %s@%s!", caller.entity, callerChain.busid());
+        System.out.println(hello);
+        return hello;
       }
     }
     catch (Exception e) {

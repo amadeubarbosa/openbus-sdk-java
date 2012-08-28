@@ -11,9 +11,8 @@ import org.junit.Test;
 import org.omg.CORBA.ORB;
 
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.ConnectionManager;
+import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
-import tecgraf.openbus.exception.InvalidBusAddress;
 import tecgraf.openbus.util.Cryptography;
 import tecgraf.openbus.util.Utils;
 
@@ -24,7 +23,7 @@ public class InternalLoginTest {
   private static String entity;
   private static String password;
   private static ORB orb;
-  private static ConnectionManager manager;
+  private static OpenBusContext manager;
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
@@ -35,9 +34,7 @@ public class InternalLoginTest {
     entity = properties.getProperty("entity.name");
     password = properties.getProperty("entity.password");
     orb = ORBInitializer.initORB();
-    manager =
-      (ConnectionManager) orb
-        .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
+    manager = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
   }
 
   private boolean checkLogin(LoginInfo login1, LoginInfo login2) {
@@ -48,7 +45,7 @@ public class InternalLoginTest {
   }
 
   @Test
-  public void statusTest() throws InvalidBusAddress {
+  public void statusTest() {
     Connection conn = manager.createConnection(host, port);
     InternalLogin internal = new InternalLogin((ConnectionImpl) conn);
     assertNull(internal.login());
@@ -71,7 +68,7 @@ public class InternalLoginTest {
   }
 
   @Test
-  public void loginChangeTest() throws InvalidBusAddress {
+  public void loginChangeTest() {
     Connection conn = manager.createConnection(host, port);
     InternalLogin internal = new InternalLogin((ConnectionImpl) conn);
     LoginInfo login1 = new LoginInfo("id1", "entity1");

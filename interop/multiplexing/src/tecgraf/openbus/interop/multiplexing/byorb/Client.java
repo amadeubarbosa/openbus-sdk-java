@@ -6,7 +6,7 @@ import java.util.logging.Level;
 import org.omg.CORBA.ORB;
 
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.ConnectionManager;
+import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
@@ -33,11 +33,10 @@ public class Client {
       Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
       ORB orb = ORBInitializer.initORB();
-      ConnectionManager connections =
-        (ConnectionManager) orb
-          .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
-      Connection conn = connections.createConnection(host, port);
-      connections.setDefaultConnection(conn);
+      OpenBusContext context =
+        (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
+      Connection conn = context.createConnection(host, port);
+      context.setDefaultConnection(conn);
       String login = "interop_multiplexing_java_client";
       conn.loginByPassword(login, login.getBytes());
 
@@ -47,7 +46,7 @@ public class Client {
       serviceProperties[1] =
         new ServiceProperty("offer.domain", "Interoperability Tests");
       ServiceOfferDesc[] services =
-        conn.offers().findServices(serviceProperties);
+        context.getOfferRegistry().findServices(serviceProperties);
 
       for (ServiceOfferDesc offer : services) {
         for (ServiceProperty prop : offer.properties) {

@@ -5,7 +5,6 @@ import org.omg.CORBA.ORBPackage.InvalidName;
 import org.omg.PortableInterceptor.Current;
 import org.omg.PortableInterceptor.CurrentHelper;
 
-import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.exception.OpenBusInternalException;
 
 /**
@@ -59,16 +58,15 @@ class ORBUtils {
    * @param orb o ORB utilizado.
    * @return o gerente de conexões.
    */
-  static ConnectionManagerImpl getConnectionManager(ORB orb) {
+  static OpenBusContextImpl getConnectionManager(ORB orb) {
     org.omg.CORBA.Object obj;
     try {
-      obj =
-        orb.resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
+      obj = orb.resolve_initial_references("OpenBusContext");
     }
     catch (InvalidName e) {
       String message = "Falha inesperada ao obter o multiplexador";
       throw new OpenBusInternalException(message, e);
     }
-    return (ConnectionManagerImpl) obj;
+    return (OpenBusContextImpl) obj;
   }
 }

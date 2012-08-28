@@ -24,6 +24,13 @@ public interface CallerChain {
   String busid();
 
   /**
+   * Recupera o identificador de login a quem a cadeia se destina.
+   * 
+   * @return Indentificador de login.
+   */
+  String target();
+
+  /**
    * Recupera a lista de informações de login de todas as entidades que
    * originaram as chamadas nessa cadeia. Quando essa lista é vazia isso indica
    * que a chamada não está inclusa em outra cadeia de chamadas.

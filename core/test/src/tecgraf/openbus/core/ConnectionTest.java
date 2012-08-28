@@ -14,23 +14,20 @@ import org.junit.Test;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 
-import tecgraf.openbus.CallerChain;
+import tecgraf.openbus.CallDispatchCallback;
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.ConnectionManager;
 import tecgraf.openbus.InvalidLoginCallback;
+import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.PrivateKey;
 import tecgraf.openbus.core.v2_0.OctetSeqHolder;
-import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_0.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
-import tecgraf.openbus.exception.InvalidBusAddress;
-import tecgraf.openbus.exception.InvalidPrivateKey;
 import tecgraf.openbus.util.Cryptography;
 import tecgraf.openbus.util.Utils;
 
@@ -42,11 +39,11 @@ public final class ConnectionTest {
   private static String password;
   private static String serverEntity;
   private static String privateKeyFile;
-  private static byte[] privateKey;
+  private static OpenBusPrivateKey privateKey;
   private static byte[] wrongPrivateKey;
   private static String entityWithoutCert;
   private static ORB orb;
-  private static ConnectionManager manager;
+  private static OpenBusContext context;
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
@@ -58,28 +55,26 @@ public final class ConnectionTest {
     password = properties.getProperty("entity.password");
     serverEntity = properties.getProperty("server.entity.name");
     privateKeyFile = properties.getProperty("server.private.key");
-    privateKey = crypto.readPrivateKey(privateKeyFile);
+    privateKey = OpenBusPrivateKey.createPrivateKeyFromFile(privateKeyFile);
     entityWithoutCert = properties.getProperty("entity.withoutcert");
     String wrongPrivateKeyFile = properties.getProperty("wrongkey");
     wrongPrivateKey = crypto.readPrivateKey(wrongPrivateKeyFile);
     orb = ORBInitializer.initORB();
-    manager =
-      (ConnectionManager) orb
-        .resolve_initial_references(ConnectionManager.INITIAL_REFERENCE_ID);
+    context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
   }
 
   @Test
   public void orbTest() throws Exception {
-    Connection conn = manager.createConnection(host, port);
+    Connection conn = context.createConnection(host, port);
     assertNotNull(conn.orb());
-    assertEquals(orb, manager.orb());
+    assertEquals(orb, context.orb());
   }
 
   @Test
-  public void offerRegistryTest() throws InvalidBusAddress {
-    Connection conn = manager.createConnection(host, port);
+  public void offerRegistryTest() {
+    Connection conn = context.createConnection(host, port);
     try {
-      OfferRegistry registryService = conn.offers();
+      OfferRegistry registryService = context.getOfferRegistry();
       ServiceProperty[] props =
         new ServiceProperty[] { new ServiceProperty("a", "b") };
       registryService.findServices(props);
@@ -94,7 +89,7 @@ public final class ConnectionTest {
 
   @Test
   public void busIdTest() throws Exception {
-    Connection conn = manager.createConnection(host, port);
+    Connection conn = context.createConnection(host, port);
     String busid = conn.busid();
     assertNotNull(conn.busid());
     conn.loginByPassword(entity, entity.getBytes());
@@ -107,7 +102,7 @@ public final class ConnectionTest {
   @Test
   public void loginTest() throws Exception {
 
-    Connection conn = manager.createConnection(host, port);
+    Connection conn = context.createConnection(host, port);
     assertNull(conn.login());
     conn.loginByPassword(entity, entity.getBytes());
     assertNotNull(conn.login());
@@ -118,7 +113,7 @@ public final class ConnectionTest {
 
   @Test
   public void loginByPasswordTest() throws Exception {
-    Connection conn = manager.createConnection(host, port);
+    Connection conn = context.createConnection(host, port);
 
     // entidade errada
     boolean failed = false;
@@ -173,7 +168,7 @@ public final class ConnectionTest {
 
   @Test
   public void loginByCertificateTest() throws Exception {
-    Connection conn = manager.createConnection(host, port);
+    Connection conn = context.createConnection(host, port);
     // entidade sem certificado cadastrado
     boolean failed = false;
     try {
@@ -192,12 +187,12 @@ public final class ConnectionTest {
     // chave privada corrompida
     failed = false;
     try {
-      conn.loginByCertificate(serverEntity, new byte[0]);
-    }
-    catch (InvalidPrivateKey e) {
-      failed = true;
+      PrivateKey key = OpenBusPrivateKey.createPrivateKeyFromBytes(new byte[0]);
+      conn.loginByCertificate(serverEntity, key);
     }
     catch (Exception e) {
+      // TODO verificar a exceção específica?
+      failed = true;
       fail("A exceção deveria ser CorruptedPrivateKeyException. Exceção recebida: "
         + e);
     }
@@ -207,7 +202,9 @@ public final class ConnectionTest {
     // chave privada inválida
     failed = false;
     try {
-      conn.loginByCertificate(serverEntity, wrongPrivateKey);
+      PrivateKey key =
+        OpenBusPrivateKey.createPrivateKeyFromBytes(wrongPrivateKey);
+      conn.loginByCertificate(serverEntity, key);
     }
     catch (AccessDenied e) {
       failed = true;
@@ -245,8 +242,8 @@ public final class ConnectionTest {
 
   @Test
   public void singleSignOnTest() throws Exception {
-    Connection conn = manager.createConnection(host, port);
-    Connection conn2 = manager.createConnection(host, port);
+    Connection conn = context.createConnection(host, port);
+    Connection conn2 = context.createConnection(host, port);
     conn.loginByPassword(entity, password.getBytes());
 
     // segredo errado
@@ -255,9 +252,9 @@ public final class ConnectionTest {
     LoginProcess login;
 
     try {
-      manager.setRequester(conn);
+      context.setCurrentConnection(conn);
       login = conn.startSharedAuth(secret);
-      manager.setRequester(null);
+      context.setCurrentConnection(null);
       conn2.loginBySharedAuth(login, new byte[0]);
     }
     catch (AccessDenied e) {
@@ -271,21 +268,21 @@ public final class ConnectionTest {
 
     // login válido
     assertNull(conn2.login());
-    manager.setRequester(conn);
+    context.setCurrentConnection(conn);
     login = conn.startSharedAuth(secret);
-    manager.setRequester(null);
+    context.setCurrentConnection(null);
     conn2.loginBySharedAuth(login, secret.value);
     assertNotNull(conn2.login());
     conn2.logout();
     assertNull(conn2.login());
-    manager.setRequester(null);
+    context.setCurrentConnection(null);
 
     // login repetido
     failed = false;
     try {
-      manager.setRequester(conn);
+      context.setCurrentConnection(conn);
       login = conn.startSharedAuth(secret);
-      manager.setRequester(null);
+      context.setCurrentConnection(null);
       conn2.loginBySharedAuth(login, secret.value);
       assertNotNull(conn2.login());
       conn2.loginBySharedAuth(login, secret.value);
@@ -302,25 +299,35 @@ public final class ConnectionTest {
     assertNull(conn2.login());
     conn.logout();
     assertNull(conn.login());
-    manager.setRequester(null);
+    context.setCurrentConnection(null);
   }
 
   @Test
   public void logoutTest() throws Exception {
-    Connection conn = manager.createConnection(host, port);
+    final Connection conn = context.createConnection(host, port);
     assertFalse(conn.logout());
     conn.loginByPassword(entity, password.getBytes());
-    String busId = conn.busid();
-    manager.setDispatcher(conn);
-    assertEquals(manager.getDispatcher(busId), conn);
+    final String busId = conn.busid();
+    context.onCallDispatch(new CallDispatchCallback() {
+
+      @Override
+      public Connection dispatch(OpenBusContext context, String busid,
+        String loginId, byte[] object_id, String operation) {
+        if (busId.equals(busid)) {
+          return conn;
+        }
+        return null;
+      }
+    });
+    //assertEquals(context.getDispatcher(busId), conn);
     assertTrue(conn.logout());
-    assertEquals(manager.getDispatcher(busId), conn);
+    //assertEquals(context.getDispatcher(busId), conn);
     assertNotNull(conn.busid());
     assertNull(conn.login());
     boolean failed = false;
     try {
-      manager.setRequester(conn);
-      conn.offers().findServices(new ServiceProperty[0]);
+      context.setCurrentConnection(conn);
+      context.getOfferRegistry().findServices(new ServiceProperty[0]);
     }
     catch (NO_PERMISSION e) {
       failed = true;
@@ -337,51 +344,11 @@ public final class ConnectionTest {
 
   @Test
   public void onInvalidLoginCallbackTest() throws Exception {
-    Connection conn = manager.createConnection(host, port);
+    Connection conn = context.createConnection(host, port);
     assertNull(conn.onInvalidLoginCallback());
     InvalidLoginCallback callback = new InvalidLoginCallbackMock();
     conn.onInvalidLoginCallback(callback);
     assertEquals(callback, conn.onInvalidLoginCallback());
   }
 
-  @Test
-  public void callerChainTest() throws Exception {
-    Connection conn = manager.createConnection(host, port);
-    assertNull(conn.getCallerChain());
-    //TODO: adicionar testes para caso exista uma callerchain ou os testes de interoperabilidade ja cobrem isso de forma suficiente?
-  }
-
-  @Test
-  public void JoinChainTest() throws InvalidBusAddress {
-    Connection conn = manager.createConnection(host, port);
-    assertNull(conn.getJoinedChain());
-    // adiciona a chain da getCallerChain
-    conn.joinChain(null);
-    assertNull(conn.getJoinedChain());
-
-    //TODO testar caso em que a chain da getCallerChain não é vazia
-    //TODO comparar assinatura do callerchainimpl com a implementação CSHARP
-
-    conn.joinChain(new CallerChainImpl("mock", new LoginInfo("a", "b"),
-      new LoginInfo[0], new SignedCallChain(new byte[256], new byte[0])));
-
-    CallerChain callerChain = conn.getJoinedChain();
-    assertNotNull(callerChain);
-    assertEquals("mock", callerChain.busid());
-    assertEquals("a", callerChain.caller().id);
-    assertEquals("b", callerChain.caller().entity);
-    conn.exitChain();
-  }
-
-  @Test
-  public void ExitChainTest() throws InvalidBusAddress {
-    Connection conn = manager.createConnection(host, port);
-    assertNull(conn.getJoinedChain());
-    conn.exitChain();
-    assertNull(conn.getJoinedChain());
-    conn.joinChain(new CallerChainImpl("mock", new LoginInfo("a", "b"),
-      new LoginInfo[0], new SignedCallChain(new byte[256], new byte[0])));
-    conn.exitChain();
-    assertNull(conn.getJoinedChain());
-  }
 }

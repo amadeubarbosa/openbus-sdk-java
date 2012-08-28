@@ -3,6 +3,7 @@ package tecgraf.openbus.core;
 import java.security.interfaces.RSAPublicKey;
 
 import scs.core.IComponent;
+import scs.core.IComponentHelper;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessControl;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessControlHelper;
 import tecgraf.openbus.core.v2_0.services.access_control.CertificateRegistry;
@@ -21,6 +22,8 @@ import tecgraf.openbus.util.Cryptography;
  * @author Tecgraf
  */
 final class BusInfo {
+
+  private org.omg.CORBA.Object rawObject;
 
   /** Identificador do barramento */
   private String id;
@@ -41,17 +44,42 @@ final class BusInfo {
   /**
    * Construtor.
    * 
-   * @param bus referência para o barramento.
+   * @param obj referência para o barramento.
    */
-  BusInfo(IComponent bus) {
-    this.bus = bus;
+  BusInfo(org.omg.CORBA.Object obj) {
+    this.rawObject = obj;
+    if (rawObject == null) {
+      throw new OpenBusInternalException(
+        "Referência inválida para o barramento.");
+    }
+  }
 
+  /**
+   * Atualiza a referência das facetas
+   */
+  void basicBusInitialization() {
+    boolean existent = false;
+    if (rawObject != null && !rawObject._non_existent()) {
+      existent = true;
+    }
+    if (!existent) {
+      throw new OpenBusInternalException("Barramento não esta acessível.");
+    }
+
+    if (rawObject._is_a(IComponentHelper.id())) {
+      this.bus = IComponentHelper.narrow(rawObject);
+    }
+    if (this.bus == null) {
+      throw new OpenBusInternalException(
+        "Referência obtida não corresponde a um IComponent.");
+    }
     org.omg.CORBA.Object obj = this.bus.getFacet(AccessControlHelper.id());
     this.accessControl = AccessControlHelper.narrow(obj);
+    retrieveBusIdAndKey();
+  }
 
-    this.id = null;
-    this.publicKey = null;
-
+  void fullBusInitialization() {
+    org.omg.CORBA.Object obj;
     obj = bus.getFacet(LoginRegistryHelper.id());
     this.loginRegistry = LoginRegistryHelper.narrow(obj);
 
@@ -60,8 +88,6 @@ final class BusInfo {
 
     obj = bus.getFacet(OfferRegistryHelper.id());
     this.offerRegistry = OfferRegistryHelper.narrow(obj);
-
-    retrieveBusIdAndKey();
   }
 
   /**

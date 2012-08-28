@@ -84,7 +84,7 @@ class InternalLogin {
           }
           catch (Exception ex) {
             logger.log(Level.SEVERE,
-              "Callback gerou um erro durante execução.", ex);
+              "Callback 'onInvalidLogin' gerou um erro durante execução.", ex);
           }
           LoginInfo curr = this.invalid();
           if (curr != null && curr.id.equals(invalid.id)

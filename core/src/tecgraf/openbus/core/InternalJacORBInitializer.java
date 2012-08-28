@@ -17,8 +17,6 @@ import org.omg.PortableInterceptor.ORBInitializer;
 import org.omg.PortableInterceptor.ORBInitInfoPackage.DuplicateName;
 import org.omg.PortableInterceptor.ORBInitInfoPackage.InvalidName;
 
-import tecgraf.openbus.ConnectionManager;
-
 /**
  * Classe internar para inicialização o {@link ORB} do JacORB.
  * <p>
@@ -47,12 +45,12 @@ public final class InternalJacORBInitializer extends LocalObject implements
     int currentThreadSlotId = info.allocate_slot_id();
     int ignoreThreadSlotId = info.allocate_slot_id();
     int joinedChainSlotId = info.allocate_slot_id();
-    int connectionSlotId = info.allocate_slot_id();
-    ConnectionManagerImpl multiplexer =
-      new ConnectionManagerImpl(currentThreadSlotId, ignoreThreadSlotId);
+    int joinedBusSlotId = info.allocate_slot_id();
+    int busSlotId = info.allocate_slot_id();
+    OpenBusContextImpl multiplexer =
+      new OpenBusContextImpl(currentThreadSlotId, ignoreThreadSlotId);
     try {
-      info.register_initial_reference(ConnectionManager.INITIAL_REFERENCE_ID,
-        multiplexer);
+      info.register_initial_reference("OpenBusContext", multiplexer);
     }
     catch (InvalidName e) {
       String message = "Falha inesperada ao registrar o multiplexador";
@@ -61,7 +59,7 @@ public final class InternalJacORBInitializer extends LocalObject implements
     }
     ORBMediator mediator =
       new ORBMediator(codec, signedChainSlotId, joinedChainSlotId,
-        connectionSlotId, multiplexer);
+        joinedBusSlotId, busSlotId, multiplexer);
     try {
       info.register_initial_reference(ORBMediator.INITIAL_REFERENCE_ID,
         mediator);
