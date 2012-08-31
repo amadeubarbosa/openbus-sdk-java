@@ -21,7 +21,7 @@
         <version>1.1</version>
 
         <configuration>
-          <sourceDirectory>${env.OPENBUS_HOME}/idl/v1_05</sourceDirectory>
+          <sourceDirectory>${openbus.legacy.idlpath}</sourceDirectory>
           <sources>
             <source>
               <excludes>
