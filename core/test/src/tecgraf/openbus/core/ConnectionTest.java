@@ -90,25 +90,23 @@ public final class ConnectionTest {
   @Test
   public void busIdTest() throws Exception {
     Connection conn = context.createConnection(host, port);
-    String busid = conn.busid();
-    assertNotNull(conn.busid());
+    assertNull(conn.busid());
     conn.loginByPassword(entity, entity.getBytes());
-    assertEquals(conn.busid(), busid);
+    assertNotNull(conn.busid());
     assertFalse(conn.busid().isEmpty());
     assertTrue(conn.logout());
+    assertNull(conn.busid());
     assertNull(conn.login());
   }
 
   @Test
   public void loginTest() throws Exception {
-
     Connection conn = context.createConnection(host, port);
     assertNull(conn.login());
     conn.loginByPassword(entity, entity.getBytes());
     assertNotNull(conn.login());
     conn.logout();
     assertNull(conn.login());
-
   }
 
   @Test
@@ -193,8 +191,6 @@ public final class ConnectionTest {
     catch (Exception e) {
       // TODO verificar a exceção específica?
       failed = true;
-      fail("A exceção deveria ser CorruptedPrivateKeyException. Exceção recebida: "
-        + e);
     }
     assertTrue("O login de entidade com chave corrompida foi bem-sucedido.",
       failed);
@@ -319,10 +315,8 @@ public final class ConnectionTest {
         return null;
       }
     });
-    //assertEquals(context.getDispatcher(busId), conn);
     assertTrue(conn.logout());
-    //assertEquals(context.getDispatcher(busId), conn);
-    assertNotNull(conn.busid());
+    assertNull(conn.busid());
     assertNull(conn.login());
     boolean failed = false;
     try {

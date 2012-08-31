@@ -109,9 +109,14 @@ final class BusInfo {
   /**
    * Apaga a informação de identificador e chave do barramento.
    */
-  void clearBusIdAndKey() {
+  void clearBusInfos() {
     this.id = null;
     this.publicKey = null;
+    this.bus = null;
+    this.accessControl = null;
+    this.certificateRegistry = null;
+    this.loginRegistry = null;
+    this.offerRegistry = null;
   }
 
   /**

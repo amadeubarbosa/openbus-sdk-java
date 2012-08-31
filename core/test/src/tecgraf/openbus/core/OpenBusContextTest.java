@@ -7,12 +7,26 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Properties;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.omg.CORBA.Any;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.ORBPackage.InvalidName;
+import org.omg.IOP.Codec;
+import org.omg.IOP.CodecFactory;
+import org.omg.IOP.CodecFactoryHelper;
+import org.omg.IOP.ENCODING_CDR_ENCAPS;
+import org.omg.IOP.Encoding;
+import org.omg.IOP.CodecFactoryPackage.UnknownEncoding;
+import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
 
+import scs.core.ComponentContext;
 import tecgraf.openbus.CallDispatchCallback;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
@@ -20,14 +34,18 @@ import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
+import tecgraf.openbus.core.v2_0.services.access_control.CallChain;
+import tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOffer;
+import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.exception.NotLoggedIn;
 import tecgraf.openbus.util.Utils;
 
-public final class ConnectionManagerTest {
+public final class OpenBusContextTest {
   private static String _hostName;
   private static int _hostPort;
   private static String entity;
@@ -46,6 +64,20 @@ public final class ConnectionManagerTest {
     orb = ORBInitializer.initORB();
     _context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
+
+    Logger logger = Logger.getLogger("tecgraf.openbus");
+    logger.setLevel(Level.FINE);
+    logger.setUseParentHandlers(false);
+    ConsoleHandler handler = new ConsoleHandler();
+    handler.setLevel(Level.FINE);
+    logger.addHandler(handler);
+  }
+
+  @Before
+  public void beforeEachTest() {
+    _context.setCurrentConnection(null);
+    _context.setDefaultConnection(null);
+    _context.onCallDispatch(null);
   }
 
   @Test
@@ -203,7 +235,9 @@ public final class ConnectionManagerTest {
         return conn;
       }
     });
-    assertNull(_context.getCurrentConnection());
+    assertNotNull(_context.getCurrentConnection());
+    assertEquals(_context.getCurrentConnection(), _context
+      .getDefaultConnection());
     _context.setCurrentConnection(conn);
     assertEquals(_context.getCurrentConnection(), conn);
     _context.setDefaultConnection(null);
@@ -252,7 +286,78 @@ public final class ConnectionManagerTest {
   }
 
   @Test
-  public void JoinChainTest() {
+  public void getCallerChainInDispatchTest() throws Exception {
+    Connection conn = _context.createConnection(_hostName, _hostPort);
+    conn.loginByPassword(entity, password.getBytes());
+    _context.setDefaultConnection(conn);
+    ComponentContext component = Utils.buildTestCallerChainComponent(_context);
+    ServiceProperty[] props =
+      new ServiceProperty[] { new ServiceProperty("offer.domain",
+        "OpenBusContextTest") };
+    ServiceOffer offer =
+      _context.getOfferRegistry().registerService(component.getIComponent(),
+        props);
+    ServiceOfferDesc[] services =
+      _context.getOfferRegistry().findServices(props);
+    assertEquals(1, services.length);
+    assertNotNull(services[0]);
+    offer.remove();
+    _context.setDefaultConnection(null);
+    conn.logout();
+  }
+
+  @Test
+  public void getConnectionInDispatchTest() throws Exception {
+    Connection conn = _context.createConnection(_hostName, _hostPort);
+    conn.loginByPassword(entity, password.getBytes());
+    _context.setDefaultConnection(conn);
+    ComponentContext component = Utils.buildTestConnectionComponent(_context);
+    ServiceProperty[] props =
+      new ServiceProperty[] { new ServiceProperty("offer.domain",
+        "OpenBusContextTest") };
+    ServiceOffer offer =
+      _context.getOfferRegistry().registerService(component.getIComponent(),
+        props);
+    ServiceOfferDesc[] services =
+      _context.getOfferRegistry().findServices(props);
+    assertEquals(1, services.length);
+    assertNotNull(services[0]);
+    offer.remove();
+    _context.setDefaultConnection(null);
+    conn.logout();
+  }
+
+  @Test
+  public void getConnectionInDispatch2Test() throws Exception {
+    final Connection conn = _context.createConnection(_hostName, _hostPort);
+    conn.loginByPassword(entity, password.getBytes());
+    _context.setCurrentConnection(conn);
+    _context.onCallDispatch(new CallDispatchCallback() {
+      @Override
+      public Connection dispatch(OpenBusContext context, String busid,
+        String loginId, byte[] object_id, String operation) {
+        return conn;
+      }
+    });
+    ComponentContext component = Utils.buildTestConnectionComponent(_context);
+    ServiceProperty[] props =
+      new ServiceProperty[] { new ServiceProperty("offer.domain",
+        "OpenBusContextTest") };
+    ServiceOffer offer =
+      _context.getOfferRegistry().registerService(component.getIComponent(),
+        props);
+    ServiceOfferDesc[] services =
+      _context.getOfferRegistry().findServices(props);
+    assertEquals(1, services.length);
+    assertNotNull(services[0]);
+    offer.remove();
+    _context.setCurrentConnection(null);
+    conn.logout();
+  }
+
+  @Test
+  public void joinChainTest() throws InvalidTypeForEncoding, UnknownEncoding,
+    InvalidName {
     Connection conn = _context.createConnection(_hostName, _hostPort);
     assertNull(_context.getJoinedChain());
     // adiciona a chain da getCallerChain
@@ -261,27 +366,54 @@ public final class ConnectionManagerTest {
 
     //TODO testar caso em que a chain da getCallerChain não é vazia
     //TODO comparar assinatura do callerchainimpl com a implementação CSHARP
+    String busid = "mock";
+    String target = "target";
+    LoginInfo caller = new LoginInfo("a", "b");
+    LoginInfo[] originators = new LoginInfo[0];
 
-    _context.joinChain(new CallerChainImpl("mock", "target", new LoginInfo("a",
-      "b"), new LoginInfo[0], new SignedCallChain(new byte[256], new byte[0])));
+    _context.joinChain(buildFakeCallChain(busid, target, caller, originators));
 
     CallerChain callerChain = _context.getJoinedChain();
     assertNotNull(callerChain);
-    assertEquals("mock", callerChain.busid());
+    assertEquals(busid, callerChain.busid());
+    assertEquals(target, callerChain.target());
     assertEquals("a", callerChain.caller().id);
     assertEquals("b", callerChain.caller().entity);
     _context.exitChain();
   }
 
   @Test
-  public void ExitChainTest() {
+  public void exitChainTest() throws InvalidTypeForEncoding, UnknownEncoding,
+    InvalidName {
     Connection conn = _context.createConnection(_hostName, _hostPort);
     assertNull(_context.getJoinedChain());
     _context.exitChain();
     assertNull(_context.getJoinedChain());
-    _context.joinChain(new CallerChainImpl("mock", "target", new LoginInfo("a",
-      "b"), new LoginInfo[0], new SignedCallChain(new byte[256], new byte[0])));
+    _context.joinChain(buildFakeCallChain("mock", "target", new LoginInfo("a",
+      "b"), new LoginInfo[0]));
     _context.exitChain();
     assertNull(_context.getJoinedChain());
   }
+
+  private Codec getCodec(ORB orb) throws UnknownEncoding, InvalidName {
+    org.omg.CORBA.Object obj;
+    obj = orb.resolve_initial_references("CodecFactory");
+    CodecFactory codecFactory = CodecFactoryHelper.narrow(obj);
+    byte major = 1;
+    byte minor = 2;
+    Encoding encoding = new Encoding(ENCODING_CDR_ENCAPS.value, major, minor);
+    return codecFactory.create_codec(encoding);
+  }
+
+  private CallerChain buildFakeCallChain(String busid, String target,
+    LoginInfo caller, LoginInfo[] originators) throws InvalidTypeForEncoding,
+    UnknownEncoding, InvalidName {
+    CallChain callChain = new CallChain(target, originators, caller);
+    Any anyCallChain = orb.create_any();
+    CallChainHelper.insert(anyCallChain, callChain);
+    byte[] encodedCallChain = getCodec(orb).encode_value(anyCallChain);
+    return new CallerChainImpl(busid, target, caller, originators,
+      new SignedCallChain(new byte[256], encodedCallChain));
+  }
+
 }

@@ -12,6 +12,7 @@ import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.TCKind;
 import org.omg.IOP.Codec;
 import org.omg.IOP.ServiceContext;
 import org.omg.IOP.CodecPackage.FormatMismatch;
@@ -264,7 +265,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         if (!wrapper.isLegacy) {
           conn =
             getConnForDispatch(context, busId, loginId, object_id, operation);
-          setCurrentConnection(ri, conn);
           context.setCurrentConnection(conn);
 
           boolean valid = false;
@@ -302,7 +302,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           boolean valid = false;
           conn =
             getConnForDispatch(context, busId, loginId, object_id, operation);
-          setCurrentConnection(ri, conn);
           context.setCurrentConnection(conn);
           try {
             if (conn.cache.logins.validateLogin(loginId, conn)
@@ -385,6 +384,9 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           throw new NO_PERMISSION(InvalidCredentialCode.value,
             CompletionStatus.COMPLETED_NO);
         }
+        // salva a conexão utilizada no dispatch
+        // CHECK se o bug relatado no finally for verdadeiro, isso pode ser desnecessario
+        setCurrentConnection(ri, conn);
       }
       else {
         logger.fine(String.format("Recebeu chamada fora do barramento: %s",
@@ -403,12 +405,10 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         CompletionStatus.COMPLETED_NO);
     }
     finally {
-      // CHECK deveria setar o currentConnection antigo?
-      removeCurrentConnection(ri);
-
       // Talvez essa operação nao deveria ser necessaria, 
-      // pois o PICurrent deveria acabar junto com a thread de interceptação. 
-      context.setCurrentConnection(null);
+      // pois o PICurrent deveria acabar junto com a thread de interceptação.
+      // CHECK possível bug! Esta operação modifica o valor setado no ri e PICurrent
+      //context.setCurrentConnection(null);
     }
   }
 
@@ -446,12 +446,9 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         throw new NO_PERMISSION(UnknownBusCode.value,
           CompletionStatus.COMPLETED_NO);
       }
-      if (!conn.busid().equals(busId) && !UNKNOWN_BUS.equals(busId)) {
-        throw new NO_PERMISSION(UnknownBusCode.value,
-          CompletionStatus.COMPLETED_NO);
-      }
     }
-    if (conn.login() == null) {
+    if ((!conn.busid().equals(busId) && !UNKNOWN_BUS.equals(busId))
+      || conn.login() == null) {
       throw new NO_PERMISSION(UnknownBusCode.value,
         CompletionStatus.COMPLETED_NO);
     }
@@ -556,7 +553,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
             crypto.verifySignature(busPubKey, chain.encoded, chain.signature);
           if (verified) {
             if (callChain.target.equals(conn.login().id)) {
-
               LoginInfo caller = callChain.caller;
               if (caller.id.equals(credential.login)) {
                 return true;
@@ -597,6 +593,9 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void send_reply(ServerRequestInfo ri) {
+    // CHECK deveria setar o currentConnection antigo?
+    removeCurrentConnection(ri);
+
     // CHECK verificar se preciso limpar mais algum slot
     Any any = this.getMediator().getORB().create_any();
     try {
@@ -644,19 +643,19 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * @param conn a conexão corrente.
    */
   private void setCurrentConnection(ServerRequestInfo ri, Connection conn) {
-    long id = Thread.currentThread().getId();
-    OpenBusContextImpl manager = this.getMediator().getContext();
-    Any any = this.getMediator().getORB().create_any();
-    any.insert_longlong(id);
     try {
-      ri.set_slot(manager.getCurrentThreadSlotId(), any);
+      long id = Thread.currentThread().getId();
+      OpenBusContextImpl context = this.getMediator().getContext();
+      Any any = this.getMediator().getORB().create_any();
+      any.insert_longlong(id);
+      ri.set_slot(context.getCurrentConnectionSlotId(), any);
+      context.setConnectionByThreadId(id, conn);
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao acessar o slot da thread corrente";
       logger.log(Level.SEVERE, message, e);
       throw new INTERNAL(message);
     }
-    manager.setConnectionByThreadId(id, conn);
   }
 
   /**
@@ -665,18 +664,35 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * @param ri a informação do request.
    */
   private void removeCurrentConnection(ServerRequestInfo ri) {
-    long id = Thread.currentThread().getId();
-    OpenBusContextImpl manager = this.getMediator().getContext();
-    Any any = this.getMediator().getORB().create_any();
     try {
-      ri.set_slot(manager.getCurrentThreadSlotId(), any);
+      OpenBusContextImpl context = this.getMediator().getContext();
+      Any slot = ri.get_slot(context.getCurrentConnectionSlotId());
+      if (slot.type().kind().value() != TCKind._tk_null) {
+        long id = slot.extract_longlong();
+        context.setConnectionByThreadId(id, null);
+      }
+      else {
+        // nunca deveria acontecer.
+        String message =
+          "BUG: Falha inesperada ao acessar o slot da conexão corrente";
+        logger.log(Level.SEVERE, message);
+        throw new INTERNAL(message);
+      }
+
+      // limpando informação da conexão
+      // TODO Dúvida:
+      /*
+       * o orb garante que não modificou a informação no PICurrent da thread que
+       * originalmente fez um setCurrentConnection?
+       */
+      Any any = this.getMediator().getORB().create_any();
+      ri.set_slot(context.getCurrentConnectionSlotId(), any);
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao acessar o slot da thread corrente";
       logger.log(Level.SEVERE, message, e);
       throw new INTERNAL(message);
     }
-    manager.setConnectionByThreadId(id, null);
-  }
 
+  }
 }

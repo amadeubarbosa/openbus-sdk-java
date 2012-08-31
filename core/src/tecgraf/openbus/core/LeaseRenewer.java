@@ -130,8 +130,10 @@ final class LeaseRenewer {
               "OpenBusContext");
           connections.setCurrentConnection(conn);
           AccessControl manager = ((ConnectionImpl) conn).access();
-          lease = manager.renew();
-          this.mustContinue = (lease > 0);
+          if (manager != null) {
+            lease = manager.renew();
+            this.mustContinue = (lease > 0);
+          }
         }
         catch (InvalidName e) {
           String message = "Falha inesperada ao obter o multiplexador";

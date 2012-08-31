@@ -47,14 +47,12 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
   private static final Logger logger = Logger
     .getLogger(OpenBusContextImpl.class.getName());
 
-  /** Identificador do slot de thread corrente */
-  private final int CURRENT_THREAD_SLOT_ID;
+  /** Identificador do slot de conexao corrente */
+  private final int CURRENT_CONNECTION_SLOT_ID;
   /** Identificador do slot de interceptação ignorada */
   private final int IGNORE_THREAD_SLOT_ID;
   /** Mapa de conexão por Requester */
   private Map<Long, Connection> connectedThreads;
-  /** Mapa de thread para cadeia de chamada */
-  private Map<Thread, CallerChain> joinedChains;
   /** Conexão padrão */
   private Connection defaultConn;
   /** Callback a ser disparada caso o login se encontre inválido */
@@ -74,15 +72,13 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
   /**
    * Construtor.
    * 
-   * @param currentThreadSlotId identificador do slot da thread corrente
+   * @param currentConnectionSlotId identificador do slot da conexão corrente
    * @param ignoreThreadSlotId identificador do slot de interceptação ignorada.
    */
-  public OpenBusContextImpl(int currentThreadSlotId, int ignoreThreadSlotId) {
+  public OpenBusContextImpl(int currentConnectionSlotId, int ignoreThreadSlotId) {
     this.connectedThreads =
       Collections.synchronizedMap(new HashMap<Long, Connection>());
-    this.joinedChains =
-      Collections.synchronizedMap(new HashMap<Thread, CallerChain>());
-    this.CURRENT_THREAD_SLOT_ID = currentThreadSlotId;
+    this.CURRENT_CONNECTION_SLOT_ID = currentConnectionSlotId;
     this.IGNORE_THREAD_SLOT_ID = ignoreThreadSlotId;
   }
 
@@ -121,12 +117,12 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
   }
 
   /**
-   * Recupera a chave do slot de identificação da thread corrente.
+   * Recupera a chave do slot de identificação da conexão corrente.
    * 
    * @return a chave do slot.s
    */
-  int getCurrentThreadSlotId() {
-    return this.CURRENT_THREAD_SLOT_ID;
+  int getCurrentConnectionSlotId() {
+    return this.CURRENT_CONNECTION_SLOT_ID;
   }
 
   /**
@@ -167,10 +163,12 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
   public Connection setCurrentConnection(Connection conn) {
     long id = Thread.currentThread().getId();
     Any any = this.orb.create_any();
-    any.insert_longlong(id);
+    if (conn != null) {
+      any.insert_longlong(id);
+    }
     Current current = ORBUtils.getPICurrent(orb);
     try {
-      current.set_slot(CURRENT_THREAD_SLOT_ID, any);
+      current.set_slot(CURRENT_CONNECTION_SLOT_ID, any);
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao acessar o slot da thread corrente";
@@ -189,7 +187,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     Current current = ORBUtils.getPICurrent(orb);
     Any any;
     try {
-      any = current.get_slot(CURRENT_THREAD_SLOT_ID);
+      any = current.get_slot(CURRENT_CONNECTION_SLOT_ID);
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao acessar o slot da thread corrente";
@@ -201,7 +199,8 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       long id = any.extract_longlong();
       connection = this.connectedThreads.get(id);
     }
-    else {
+
+    if (connection == null) {
       connection = getDefaultConnection();
     }
     return connection;

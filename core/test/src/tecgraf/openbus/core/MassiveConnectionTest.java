@@ -1,18 +1,25 @@
 package tecgraf.openbus.core;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.omg.CORBA.ORB;
 
+import scs.core.ComponentContext;
+import tecgraf.openbus.CallDispatchCallback;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOffer;
+import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
+import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.util.Cryptography;
 import tecgraf.openbus.util.Utils;
 
@@ -23,7 +30,7 @@ public class MassiveConnectionTest {
   private static String entity;
   private static String password;
   private static ORB orb;
-  private static OpenBusContext connections;
+  private static OpenBusContext context;
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
@@ -32,15 +39,25 @@ public class MassiveConnectionTest {
     host = properties.getProperty("openbus.host.name");
     port = Integer.valueOf(properties.getProperty("openbus.host.port"));
     orb = ORBInitializer.initORB();
-    connections =
-      (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
+    context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
   }
 
   @Test
-  public void massiveTest() throws InterruptedException {
-    ExecutorService threadPool = Executors.newFixedThreadPool(10);
-    for (int i = 0; i < 100; i++) {
-      threadPool.execute(new ConnectThread(connections, i));
+  public void massiveTest() throws Exception {
+    String entity = "dispatcher";
+    final Connection conn = context.createConnection(host, port);
+    conn.loginByPassword(entity, entity.getBytes());
+    context.onCallDispatch(new CallDispatchCallback() {
+      @Override
+      public Connection dispatch(OpenBusContext context, String busid,
+        String loginId, byte[] object_id, String operation) {
+        return conn;
+      }
+    });
+    ExecutorService threadPool = Executors.newFixedThreadPool(3);
+    AtomicBoolean failed = new AtomicBoolean(false);
+    for (int i = 0; i < 10; i++) {
+      threadPool.execute(new ConnectThread(context, i, failed));
     }
     threadPool.shutdown();
     try {
@@ -50,33 +67,54 @@ public class MassiveConnectionTest {
       e.printStackTrace();
       fail(e.getMessage());
     }
+    finally {
+      conn.logout();
+    }
+    assertFalse(failed.get());
   }
 
   private static class ConnectThread implements Runnable {
 
     private OpenBusContext context;
     private String entity;
+    volatile private AtomicBoolean failed;
 
-    public ConnectThread(OpenBusContext multiplexer, int id) {
+    public ConnectThread(OpenBusContext multiplexer, int id,
+      AtomicBoolean failed) {
       this.context = multiplexer;
       this.entity = "Task-" + id;
+      this.failed = failed;
     }
 
     @Override
     public void run() {
       try {
-        Connection conn = context.createConnection(host, port);
+        final Connection conn = context.createConnection(host, port);
         conn.loginByPassword(entity, entity.getBytes());
         context.setCurrentConnection(conn);
-        context.getOfferRegistry().getServices();
-        context.getOfferRegistry().getServices();
+        ComponentContext component = Utils.buildComponent(context);
+        ServiceProperty[] props =
+          new ServiceProperty[] {
+              new ServiceProperty("offer.domain", "Massive Test"),
+              new ServiceProperty("thread.id", entity) };
+        ServiceOffer offer =
+          context.getOfferRegistry().registerService(component.getIComponent(),
+            props);
+        ServiceOfferDesc[] services =
+          context.getOfferRegistry().findServices(props);
+        if (services.length != 1) {
+          failed.set(true);
+        }
+        if (services[0] == null) {
+          failed.set(true);
+        }
+        offer.remove();
         context.setCurrentConnection(null);
         conn.logout();
       }
       catch (Exception e) {
-        e.printStackTrace();
-        fail(e.getMessage());
+        failed.set(true);
       }
     }
-  };
+  }
 }

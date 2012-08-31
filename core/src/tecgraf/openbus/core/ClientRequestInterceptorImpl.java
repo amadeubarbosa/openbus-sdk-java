@@ -444,10 +444,10 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    * @return a conexão.
    */
   protected Connection getCurrentConnection(RequestInfo ri) {
-    OpenBusContextImpl multi = this.getMediator().getContext();
+    OpenBusContextImpl context = this.getMediator().getContext();
     Any any;
     try {
-      any = ri.get_slot(multi.getCurrentThreadSlotId());
+      any = ri.get_slot(context.getCurrentConnectionSlotId());
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao obter o slot da conexão corrente";
@@ -455,12 +455,12 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     }
     if (any.type().kind().value() != TCKind._tk_null) {
       long id = any.extract_longlong();
-      Connection connection = multi.getConnectionByThreadId(id);
+      Connection connection = context.getConnectionByThreadId(id);
       if (connection != null) {
         return connection;
       }
     }
-    Connection connection = multi.getDefaultConnection();
+    Connection connection = context.getDefaultConnection();
     if (connection != null) {
       return connection;
     }

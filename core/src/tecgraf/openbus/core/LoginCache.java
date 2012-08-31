@@ -61,9 +61,7 @@ class LoginCache {
     List<String> ids = new ArrayList<String>();
     ids.add(loginId);
     time = System.currentTimeMillis();
-    int[] validitys =
-      conn.logins().getValidity(ids.toArray(new String[ids.size()]));
-    int validity = validitys[0];
+    int validity = conn.logins().getLoginValidity(loginId);
     synchronized (this.logins) {
       LoginEntry loginEntry = this.logins.get(loginId);
       if (loginEntry == null) {

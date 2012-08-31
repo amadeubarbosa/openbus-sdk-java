@@ -69,7 +69,7 @@ final class ConnectionImpl implements Connection {
   /** ORB associado a esta conexão */
   private ORB orb;
   /** Gerente da conexão. */
-  private OpenBusContextImpl manager;
+  private OpenBusContextImpl context;
   /** Informações sobre o barramento ao qual a conexão pertence */
   private BusInfo bus;
   /** Informações sobre o legacy do barramento ao qual a conexão pertence */
@@ -121,12 +121,12 @@ final class ConnectionImpl implements Connection {
    * 
    * @param host Endereço de rede IP onde o barramento está executando.
    * @param port Porta do processo do barramento no endereço indicado.
-   * @param manager Implementação do multiplexador de conexão.
+   * @param context Implementação do multiplexador de conexão.
    * @param orb ORB que essa conexão ira utilizar;
    * @param props Propriedades da conexão.
    * @throws InvalidPropertyValue Existe uma propriedade com um valor inválido.
    */
-  public ConnectionImpl(String host, int port, OpenBusContextImpl manager,
+  public ConnectionImpl(String host, int port, OpenBusContextImpl context,
     ORB orb, Properties props) throws InvalidPropertyValue {
     if ((host == null) || (host.isEmpty()) || (port < 0)) {
       throw new IllegalArgumentException(
@@ -134,7 +134,7 @@ final class ConnectionImpl implements Connection {
     }
 
     this.orb = orb;
-    this.manager = manager;
+    this.context = context;
     this.cache = new Caches();
     this.bus = null;
     this.legacyBus = null;
@@ -146,11 +146,11 @@ final class ConnectionImpl implements Connection {
     this.legacy = !disabled;
     this.delegate = Property.LEGACY_DELEGATE.getProperty(props);
     try {
-      this.manager.ignoreCurrentThread();
+      this.context.ignoreCurrentThread();
       buildCorbaLoc(host, port);
     }
     finally {
-      this.manager.unignoreCurrentThread();
+      this.context.unignoreCurrentThread();
     }
 
     try {
@@ -248,7 +248,13 @@ final class ConnectionImpl implements Connection {
    * Recupera as demais referências para os serviços oferecidos pelo barramento.
    */
   private void initBusReferencesAfterLogin() {
-    this.bus.fullBusInitialization();
+    Connection old = this.context.setCurrentConnection(this);
+    try {
+      this.bus.fullBusInitialization();
+    }
+    finally {
+      this.context.setCurrentConnection(old);
+    }
   }
 
   /**
@@ -260,7 +266,7 @@ final class ConnectionImpl implements Connection {
     checkLoggedIn();
     LoginInfo newLogin;
     try {
-      this.manager.ignoreCurrentThread();
+      this.context.ignoreCurrentThread();
       initBusReferencesBeforeLogin();
 
       byte[] encryptedLoginAuthenticationInfo =
@@ -282,7 +288,7 @@ final class ConnectionImpl implements Connection {
           + e.message);
     }
     finally {
-      this.manager.unignoreCurrentThread();
+      this.context.unignoreCurrentThread();
     }
     initBusReferencesAfterLogin();
     logger
@@ -333,7 +339,7 @@ final class ConnectionImpl implements Connection {
   public void loginByCertificate(String entity, PrivateKey privateKey)
     throws AlreadyLoggedIn, MissingCertificate, AccessDenied, ServiceFailure {
     checkLoggedIn();
-    this.manager.ignoreCurrentThread();
+    this.context.ignoreCurrentThread();
     initBusReferencesBeforeLogin();
     LoginProcess loginProcess = null;
     LoginInfo newLogin;
@@ -369,7 +375,7 @@ final class ConnectionImpl implements Connection {
           + e.message);
     }
     finally {
-      this.manager.unignoreCurrentThread();
+      this.context.unignoreCurrentThread();
     }
     initBusReferencesAfterLogin();
     logger
@@ -387,9 +393,9 @@ final class ConnectionImpl implements Connection {
     throws ServiceFailure {
     EncryptedBlockHolder challenge = new EncryptedBlockHolder();
     LoginProcess process = null;
-    Connection previousConnection = manager.getCurrentConnection();
+    Connection previousConnection = context.getCurrentConnection();
     try {
-      manager.setCurrentConnection(this);
+      context.setCurrentConnection(this);
       process = this.access().startLoginBySharedAuth(challenge);
       secret.value = crypto.decrypt(challenge.value, this.privateKey);
     }
@@ -399,7 +405,7 @@ final class ConnectionImpl implements Connection {
         "Erro ao descriptografar segredo com chave privada.", e);
     }
     finally {
-      manager.setCurrentConnection(previousConnection);
+      context.setCurrentConnection(previousConnection);
     }
     return process;
   }
@@ -411,7 +417,7 @@ final class ConnectionImpl implements Connection {
   public void loginBySharedAuth(LoginProcess process, byte[] secret)
     throws AlreadyLoggedIn, ServiceFailure, AccessDenied, InvalidLoginProcess {
     checkLoggedIn();
-    this.manager.ignoreCurrentThread();
+    this.context.ignoreCurrentThread();
     initBusReferencesBeforeLogin();
     byte[] encryptedLoginAuthenticationInfo =
       this.generateEncryptedLoginAuthenticationInfo(secret);
@@ -435,7 +441,7 @@ final class ConnectionImpl implements Connection {
           + e.message);
     }
     finally {
-      this.manager.unignoreCurrentThread();
+      this.context.unignoreCurrentThread();
     }
     initBusReferencesAfterLogin();
     logger
@@ -519,9 +525,9 @@ final class ConnectionImpl implements Connection {
       return false;
     }
 
-    Connection previousConnection = manager.getCurrentConnection();
+    Connection previousConnection = context.getCurrentConnection();
     try {
-      manager.setCurrentConnection(this);
+      context.setCurrentConnection(this);
       getBus().getAccessControl().logout();
     }
     catch (NO_PERMISSION e) {
@@ -534,7 +540,7 @@ final class ConnectionImpl implements Connection {
       }
     }
     finally {
-      manager.setCurrentConnection(previousConnection);
+      context.setCurrentConnection(previousConnection);
       localLogout(false);
     }
     return true;
@@ -549,6 +555,7 @@ final class ConnectionImpl implements Connection {
    */
   void localLogout(boolean invalidated) {
     this.cache.clear();
+    this.bus.clearBusInfos();
     stopRenewerThread();
     if (invalidated) {
       this.internalLogin.setInvalid();
@@ -718,6 +725,35 @@ final class ConnectionImpl implements Connection {
     }
     // não deveria chegar neste ponto
     return this.cache.CACHE_SIZE + 1;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public boolean equals(Object obj) {
+    ConnectionImpl other = null;
+    if (obj instanceof ConnectionImpl) {
+      other = (ConnectionImpl) obj;
+      return this.connId.equals(other.connId);
+    }
+    return false;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public int hashCode() {
+    return this.connId.hashCode();
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public String toString() {
+    return this.connId;
   }
 
   /**
