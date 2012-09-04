@@ -25,8 +25,6 @@ import tecgraf.openbus.core.v2_0.services.offer_registry.InvalidService;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.core.v2_0.services.offer_registry.UnauthorizedFacets;
 import tecgraf.openbus.demo.util.Utils;
-import tecgraf.openbus.demo.util.Utils.ORBRunThread;
-import tecgraf.openbus.demo.util.Utils.ShutdownThread;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 
 /**
@@ -85,11 +83,24 @@ public final class HelloServer {
     }
 
     // inicializando e configurando o ORB
-    ORB orb = ORBInitializer.initORB();
+    final ORB orb = ORBInitializer.initORB();
     // - disparando a thread para que o ORB atenda requisições
-    new ORBRunThread(orb).start();
+    Thread run = new Thread() {
+      @Override
+      public void run() {
+        orb.shutdown(true);
+        orb.destroy();
+      }
+    };
+    run.start();
     // - criando thread para parar e destruir o ORB ao fim da execução do processo 
-    ShutdownThread shutdown = new ShutdownThread(orb);
+    Thread shutdown = new Thread() {
+      @Override
+      public void run() {
+        orb.shutdown(true);
+        orb.destroy();
+      }
+    };
     Runtime.getRuntime().addShutdownHook(shutdown);
 
     // recuperando o gerente de contexto de chamadas à barramentos 

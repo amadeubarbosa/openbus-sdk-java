@@ -1,11 +1,5 @@
 package tecgraf.openbus.demo.util;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -19,11 +13,7 @@ import org.omg.IOP.ENCODING_CDR_ENCAPS;
 import org.omg.IOP.Encoding;
 import org.omg.IOP.CodecFactoryPackage.UnknownEncoding;
 
-import tecgraf.openbus.Connection;
-import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOffer;
-import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 
 /**
  * Classe utilitária para os demos Java.
@@ -32,45 +22,23 @@ import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
  */
 public class Utils {
 
-  /**
-   * Lê um arquivo de propriedades.
-   * 
-   * @param fileName o nome do arquivo.
-   * @return as propriedades.
-   * @throws IOException
-   */
-  static public Properties readPropertyFile(String fileName) throws IOException {
-    Properties properties = new Properties();
-    InputStream propertiesStream = Utils.class.getResourceAsStream(fileName);
-    if (propertiesStream == null) {
-      throw new FileNotFoundException(String.format(
-        "O arquivo de propriedades '%s' não foi encontrado", fileName));
-    }
-    try {
-      properties.load(propertiesStream);
-    }
-    finally {
-      try {
-        propertiesStream.close();
-      }
-      catch (IOException e) {
-        System.err
-          .println("Ocorreu um erro ao fechar o arquivo de propriedades");
-        e.printStackTrace();
-      }
-    }
-    return properties;
-  }
+  public static final String clientUsage =
+    "Usage: 'demo' <host> <port> <entity> <privatekeypath> [password] %s\n"
+      + "  - host = é o host do barramento\n"
+      + "  - port = é a porta do barramento\n"
+      + "  - entity = é a entidade a ser autenticada\n"
+      + "  - password = senha (opicional) %s";
 
-  static public String findProperty(ServiceProperty[] props, String key) {
-    for (int i = 0; i < props.length; i++) {
-      ServiceProperty property = props[i];
-      if (property.name.equals(key)) {
-        return property.value;
-      }
-    }
-    return null;
-  }
+  public static final String serverUsage =
+    "Usage: 'demo' <host> <port> <entity> <privatekeypath>\n"
+      + "  - host = é o host do barramento\n"
+      + "  - port = é a porta do barramento\n"
+      + "  - entity = é a entidade a ser autenticada\n"
+      + "  - privatekeypath = é o caminho da chave privada de autenticação da entidade";
+
+  public static final String port = "Valor de <port> deve ser um número";
+  public static final String keypath =
+    "<privatekeypath> deve apontar para uma chave válida.";
 
   static public String chain2str(LoginInfo[] callers, LoginInfo caller) {
     StringBuffer buffer = new StringBuffer();
@@ -101,66 +69,4 @@ public class Utils {
     logger.addHandler(handler);
   }
 
-  public static class ORBRunThread extends Thread {
-    private ORB orb;
-
-    public ORBRunThread(ORB orb) {
-      this.orb = orb;
-    }
-
-    @Override
-    public void run() {
-      this.orb.run();
-    }
-  }
-
-  public static class ShutdownThread extends Thread {
-    private ORB orb;
-    private List<Connection> conns = new ArrayList<Connection>();
-    private List<ServiceOffer> offers = new ArrayList<ServiceOffer>();
-
-    public ShutdownThread(ORB orb) {
-      this.orb = orb;
-    }
-
-    @Override
-    public void run() {
-
-      for (ServiceOffer offer : this.offers) {
-        try {
-          offer.remove();
-        }
-        catch (Exception e) {
-          e.printStackTrace();
-        }
-      }
-
-      for (Connection conn : this.conns) {
-        try {
-          conn.logout();
-        }
-        catch (ServiceFailure e) {
-          e.printStackTrace();
-        }
-      }
-      this.orb.shutdown(true);
-      this.orb.destroy();
-    }
-
-    public void addConnetion(Connection conn) {
-      this.conns.add(conn);
-    }
-
-    public void removeConnetion(Connection conn) {
-      this.conns.remove(conn);
-    }
-
-    public void addOffer(ServiceOffer offer) {
-      this.offers.add(offer);
-    }
-
-    public void removeOffer(ServiceOffer offer) {
-      this.offers.remove(offer);
-    }
-  }
 }

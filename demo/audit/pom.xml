@@ -11,7 +11,7 @@
   <artifactId>openbus-sdk-demo-audit</artifactId>
   <packaging>jar</packaging>
 
-  <name>OpenBus - SDK - Demonstrações - Audit</name>
+  <name>OpenBus - SDK - Demonstraï¿½ï¿½es - Audit</name>
   <url>http://www.tecgraf.puc-rio.br/openbus</url>
 
   <build>
@@ -45,6 +45,12 @@
       <groupId>tecgraf.scs</groupId>
       <artifactId>scs-core</artifactId>
       <version>${scs.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>tecgraf.openbus</groupId>
+      <artifactId>openbus-sdk-demo-util</artifactId>
+      <version>${project.version}</version>
     </dependency>
 
     <dependency>
