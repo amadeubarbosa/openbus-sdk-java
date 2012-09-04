@@ -211,7 +211,7 @@ public final class Cryptography {
    * @return A chave privada RSA.
    * @throws IOException
    */
-  public byte[] readPrivateKey(String privateKeyFileName) throws IOException {
+  public byte[] readKeyFromFile(String privateKeyFileName) throws IOException {
     FileInputStream fis = new FileInputStream(privateKeyFileName);
     FileChannel channel = fis.getChannel();
     ByteBuffer buffer = ByteBuffer.allocate((int) channel.size());
@@ -230,7 +230,7 @@ public final class Cryptography {
    * @throws NoSuchAlgorithmException
    * @throws InvalidKeySpecException
    */
-  public RSAPrivateKey createPrivateKeyFromBytes(byte[] privateKeyBytes)
+  public RSAPrivateKey readKeyFromBytes(byte[] privateKeyBytes)
     throws NoSuchAlgorithmException, InvalidKeySpecException {
     PKCS8EncodedKeySpec encodedKey = new PKCS8EncodedKeySpec(privateKeyBytes);
     KeyFactory kf = KeyFactory.getInstance(KEY_FACTORY);

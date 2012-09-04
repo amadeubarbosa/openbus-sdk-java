@@ -58,7 +58,7 @@ public final class ConnectionTest {
     privateKey = OpenBusPrivateKey.createPrivateKeyFromFile(privateKeyFile);
     entityWithoutCert = properties.getProperty("entity.withoutcert");
     String wrongPrivateKeyFile = properties.getProperty("wrongkey");
-    wrongPrivateKey = crypto.readPrivateKey(wrongPrivateKeyFile);
+    wrongPrivateKey = crypto.readKeyFromFile(wrongPrivateKeyFile);
     orb = ORBInitializer.initORB();
     context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
   }

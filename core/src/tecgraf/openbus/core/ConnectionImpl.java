@@ -141,10 +141,10 @@ final class ConnectionImpl implements Connection {
     if (props == null) {
       props = new Properties();
     }
-    String prop = Property.LEGACY_DISABLE.getProperty(props);
+    String prop = OpenBusProperty.LEGACY_DISABLE.getProperty(props);
     Boolean disabled = Boolean.valueOf(prop);
     this.legacy = !disabled;
-    this.delegate = Property.LEGACY_DELEGATE.getProperty(props);
+    this.delegate = OpenBusProperty.LEGACY_DELEGATE.getProperty(props);
     try {
       this.context.ignoreCurrentThread();
       buildCorbaLoc(host, port);

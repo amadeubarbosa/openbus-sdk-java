@@ -11,7 +11,7 @@ import tecgraf.openbus.exception.InvalidPropertyValue;
  * 
  * @author Tecgraf
  */
-enum Property {
+enum OpenBusProperty {
 
   /**
    * Chave da propriedade que define se o suporte legado deve ser habilitado ou
@@ -37,7 +37,7 @@ enum Property {
    * @param key nome da propriedade.
    * @param value valor padrão.
    */
-  private Property(String key, String value) {
+  private OpenBusProperty(String key, String value) {
     this.key = key;
     this.defaultValue = value;
   }

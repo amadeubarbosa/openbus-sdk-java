@@ -20,14 +20,14 @@ public class OpenBusPrivateKey implements PrivateKey {
     byte[] privateKeyBytes) throws NoSuchAlgorithmException,
     InvalidKeySpecException {
     RSAPrivateKey privateKey =
-      Cryptography.getInstance().createPrivateKeyFromBytes(privateKeyBytes);
+      Cryptography.getInstance().readKeyFromBytes(privateKeyBytes);
     return new OpenBusPrivateKey(privateKey);
   }
 
   static public OpenBusPrivateKey createPrivateKeyFromFile(String privateKeyFile)
     throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
     Cryptography crypto = Cryptography.getInstance();
-    byte[] privKeyBytes = crypto.readPrivateKey(privateKeyFile);
+    byte[] privKeyBytes = crypto.readKeyFromFile(privateKeyFile);
     return createPrivateKeyFromBytes(privKeyBytes);
   }
 
