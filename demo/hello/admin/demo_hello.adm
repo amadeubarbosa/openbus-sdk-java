@@ -15,12 +15,12 @@ Certificate {
 }
 
 Interface {
-  id = "IDL:Hello:1.0",
+  id = "IDL:demo/Hello:1.0",
 }
 
 Grant {
   id = "demo_hello_java",
   interfaces = {
-	"IDL:Hello:1.0",
+	"IDL:demo/Hello:1.0",
   }
 }

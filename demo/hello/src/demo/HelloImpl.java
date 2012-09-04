@@ -29,16 +29,9 @@ public final class HelloImpl extends HelloPOA {
    */
   @Override
   public void sayHello() {
-    try {
-      CallerChain callerChain = context.getCallerChain();
-      LoginInfo caller = callerChain.caller();
-      String hello = String.format("Hello %s!", caller.entity);
-      System.out.println(hello);
-    }
-    catch (Exception e) {
-      System.out
-        .println("Erro no método sayHello ao obter a cadeia de chamadas:");
-      e.printStackTrace(System.out);
-    }
+    CallerChain callerChain = context.getCallerChain();
+    LoginInfo caller = callerChain.caller();
+    String hello = String.format("Hello %s!", caller.entity);
+    System.out.println(hello);
   }
 }

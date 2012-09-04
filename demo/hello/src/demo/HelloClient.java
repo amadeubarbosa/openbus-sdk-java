@@ -1,21 +1,24 @@
 package demo;
 
-import java.util.Properties;
-import java.util.logging.Level;
-
+import org.omg.CORBA.COMM_FAILURE;
+import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.TRANSIENT;
+import org.omg.CORBA.ORBPackage.InvalidName;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
+import tecgraf.openbus.core.v2_0.services.access_control.InvalidRemoteCode;
+import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_0.services.access_control.UnknownBusCode;
+import tecgraf.openbus.core.v2_0.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Utils;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
-import tecgraf.openbus.util.Cryptography;
 
 /**
  * Cliente do demo Hello
@@ -27,176 +30,135 @@ public final class HelloClient {
    * Função principal.
    * 
    * @param args argumentos.
+   * @throws AlreadyLoggedIn
+   * @throws InvalidName
+   * @throws ServiceFailure
    */
-  public static void main(String[] args) {
+  public static void main(String[] args) throws AlreadyLoggedIn, InvalidName,
+    ServiceFailure {
+    // verificando parametros de entrada
+    if (args.length < 3) {
+      System.out.println(String.format(Utils.clientUsage, "", ""));
+      System.exit(1);
+      return;
+    }
+    // - host
+    String host = args[0];
+    // - porta
+    int port;
     try {
-      // Obtém dados de inicialização através do arquivo de propriedades
-      Properties props = Utils.readPropertyFile("/test.properties");
-      String host = props.getProperty("bus.host.name");
-      int port = Integer.valueOf(props.getProperty("bus.host.port"));
-      String entity = props.getProperty("client.entity");
-      String password = props.getProperty("client.password");
-      String serverEntity = props.getProperty("server.entity");
-
-      // Definindo o nivel de log
-      Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
-
-      // Cria conexão e a define como conexão padrão tanto para entrada como saída.
-      //
-      // OBS: O uso exclusivo da conexão padrão (sem uso de requester e dispatcher) 
-      // só é recomendado para aplicações que criem apenas uma conexão e desejem 
-      // utilizá-la em todos os casos. Para situações diferentes, consulte o 
-      // manual do SDK OpenBus e/ou outras demos.
-      ORB orb = ORBInitializer.initORB();
-      OpenBusContext context =
-        (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
-      Connection connection = context.createConnection(host, port);
-      context.setDefaultConnection(connection);
-
-      // Executa o login
-      if (login(connection, entity, password)) {
-        System.exit(1);
-      }
-
-      // Faz busca utilizando propriedades geradas automaticamente e 
-      // propriedades definidas pelo serviço específico
-      ServiceProperty[] serviceProperties = new ServiceProperty[2];
-      // propriedade gerada automaticamente
-      serviceProperties[0] =
-        new ServiceProperty("openbus.offer.entity", serverEntity);
-      // propriedade definida pelo serviço hello
-      serviceProperties[1] =
-        new ServiceProperty("offer.domain", "OpenBus Demos");
-      ServiceOfferDesc[] services = findServices(context, serviceProperties);
-
-      // analiza as ofertas encontradas
-      Hello hello = getHello(services);
-      if (hello == null) {
-        connection.logout();
-        System.exit(1);
-      }
-      else {
-        // utiliza o serviço
-        hello.sayHello();
-      }
-
-      // Faz o logout
-      connection.logout();
-      System.out.println("Fim.");
+      port = Integer.parseInt(args[1]);
     }
-    catch (Exception e) {
-      e.printStackTrace();
+    catch (NumberFormatException e) {
+      System.out.println(Utils.port);
+      System.exit(1);
+      return;
     }
-  }
+    // - entidade
+    String entity = args[2];
+    // - senha (opicional)
+    String password = entity;
+    if (args.length > 3) {
+      password = args[3];
+    }
 
-  /**
-   * Método auxiliar responsável por procurar ofertas do serviço Hello.
-   * 
-   * @param context Contexto com o barramento.
-   * @param serviceProperties Propriedades do serviço que estamos buscando.
-   * @return Descritores com as ofertas dos serviços.
-   */
-  private static ServiceOfferDesc[] findServices(OpenBusContext context,
-    ServiceProperty[] serviceProperties) {
+    // inicializando e configurando o ORB
+    ORB orb = ORBInitializer.initORB();
+    // recuperando o gerente de contexto de chamadas à barramentos 
+    OpenBusContext context =
+      (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
+    // conectando ao barramento.
+    Connection connection = context.createConnection(host, port);
+    context.setDefaultConnection(connection);
+
+    ServiceOfferDesc[] services;
     try {
-      return context.getOfferRegistry().findServices(serviceProperties);
+      // autentica-se no barramento
+      connection.loginByPassword(entity, password.getBytes());
+      // busca por serviço
+      ServiceProperty[] properties = new ServiceProperty[1];
+      properties[0] = new ServiceProperty("offer.domain", "Hello Demo");
+      services = context.getOfferRegistry().findServices(properties);
     }
+    // login by password
+    catch (AccessDenied e) {
+      System.err.println(String.format(
+        "a senha fornecida para a entidade '%s' foi negada", entity));
+      System.exit(1);
+      return;
+    }
+    // bus core
     catch (ServiceFailure e) {
-      System.out
-        .println("Erro ao tentar realizar a busca por um serviço no barramento: Falha no serviço remoto. Causa:");
-      e.printStackTrace(System.out);
+      System.err.println(String.format(
+        "falha severa no barramento em %s:%s : %s", host, port, e.message));
+      System.exit(1);
+      return;
     }
-    catch (Exception e) {
-      System.out
-        .println("Erro inesperado ao tentar realizar a busca por um serviço no barramento:");
-      e.printStackTrace(System.out);
+    catch (TRANSIENT e) {
+      System.err.println(String.format(
+        "o barramento em %s:%s esta inacessível no momento", host, port));
+      System.exit(1);
+      return;
     }
-    return null;
-  }
-
-  /**
-   * Método auxiliar responsável por procurar um serviço ativo entre as ofertas
-   * encontradas.
-   * 
-   * @param services Ofertas de serviço.
-   * @return Serviço ativo ou null se não houver nenhum.
-   */
-  private static Hello getHello(ServiceOfferDesc[] services) {
-    if (services == null || services.length < 1) {
+    catch (COMM_FAILURE e) {
       System.err
-        .println("O servidor do demo Hello não foi encontrado no barramento.");
-      return null;
+        .println("falha de comunicação ao acessar serviços núcleo do barramento");
+      System.exit(1);
+      return;
+    }
+    catch (NO_PERMISSION e) {
+      if (e.minor == NoLoginCode.value) {
+        System.err.println(String.format(
+          "não há um login de '%s' válido no momento", entity));
+      }
+      System.exit(1);
+      return;
     }
 
-    if (services.length > 1) {
-      System.out
-        .println("Existe mais de um serviço Hello no barramento. Tentaremos encontrar uma funcional.");
-    }
-
+    // analiza as ofertas encontradas
     for (ServiceOfferDesc offerDesc : services) {
-      System.out.println("Testando uma das ofertas recebidas...");
-
       try {
         org.omg.CORBA.Object helloObj =
           offerDesc.service_ref.getFacet(HelloHelper.id());
         if (helloObj == null) {
           System.out
-            .println("Não foi possível encontrar uma faceta Hello na oferta.");
+            .println("o serviço encontrado não provê a faceta ofertada");
           continue;
         }
 
         Hello hello = HelloHelper.narrow(helloObj);
-        if (hello == null) {
-          System.out
-            .println("Faceta encontrada na oferta não implementa Hello.");
-          continue;
-        }
-        return hello;
+        hello.sayHello();
       }
       catch (TRANSIENT e) {
-        System.out
-          .println("A oferta é de um serviço inativo. Tentando a próxima.");
+        System.err.println("o serviço encontrado encontra-se indisponível");
+      }
+      catch (COMM_FAILURE e) {
+        System.err.println("falha de comunicação com o serviço encontrado");
+      }
+      catch (NO_PERMISSION e) {
+        switch (e.minor) {
+          case NoLoginCode.value:
+            System.err.println(String.format(
+              "não há um login de '%s' válido no momento", entity));
+            break;
+          case UnknownBusCode.value:
+            System.err
+              .println("o serviço encontrado não está mais logado ao barramento");
+            break;
+          case UnverifiedLoginCode.value:
+            System.err
+              .println("o serviço encontrado não foi capaz de validar a chamada");
+            break;
+          case InvalidRemoteCode.value:
+            System.err
+              .println("integração do serviço encontrado com o barramento está incorreta");
+            break;
+        }
       }
     }
 
-    System.out
-      .println("Não foi encontrada uma oferta com um serviço funcional.");
-    return null;
+    // Faz o logout
+    context.getCurrentConnection().logout();
   }
 
-  /**
-   * Método Auxiliar responsável por fazer o login por password no barramento.
-   * 
-   * @param conn Conexão a ser utilizada.
-   * @param entity Entidade
-   * @param pass Password
-   * @return True quando obtiver de sucesso.
-   */
-  private static boolean login(Connection conn, String entity, String pass) {
-    try {
-      conn.loginByPassword(entity, pass.getBytes(Cryptography.CHARSET));
-      return true;
-    }
-    catch (AlreadyLoggedIn e) {
-      System.out
-        .println("Falha ao tentar realizar o login por senha no barramento: a entidade já está com o login realizado. Esta falha será ignorada.");
-      return true;
-    }
-    catch (AccessDenied e) {
-      System.out
-        .println("Erro ao tentar realizar o login por senha no barramento: a senha fornecida não foi validada para a entidade "
-          + entity + ".");
-    }
-    catch (ServiceFailure e) {
-      System.out
-        .println("Erro ao tentar realizar o login por senha no barramento: Falha no serviço remoto. Causa:");
-      e.printStackTrace(System.out);
-    }
-    catch (Exception e) {
-      System.out
-        .println("Erro inesperado ao tentar realizar o login por senha no barramento:");
-      e.printStackTrace(System.out);
-    }
-    return false;
-  }
 }
