@@ -1,4 +1,4 @@
-package tecgraf.openbus.util;
+package tecgraf.openbus.core;
 
 import java.util.LinkedHashMap;
 
@@ -9,7 +9,7 @@ import java.util.LinkedHashMap;
  * @param <k> Tipo da chave do mapa
  * @param <v> Tipo do valor do mapa
  */
-public class LRUCache<k, v> extends LinkedHashMap<k, v> {
+class LRUCache<k, v> extends LinkedHashMap<k, v> {
 
   /**
    * Tamanho máximo da cache

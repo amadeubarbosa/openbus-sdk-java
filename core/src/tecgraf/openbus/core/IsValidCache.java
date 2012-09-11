@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.Map;
 
 import tecgraf.openbus.core.v1_05.access_control_service.Credential;
-import tecgraf.openbus.util.LRUCache;
 
 class IsValidCache {
 

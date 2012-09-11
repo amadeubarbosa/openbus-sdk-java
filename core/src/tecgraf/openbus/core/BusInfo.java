@@ -14,7 +14,7 @@ import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistryHelper;
 import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.exception.OpenBusInternalException;
-import tecgraf.openbus.util.Cryptography;
+import tecgraf.openbus.security.Cryptography;
 
 /**
  * Classe utiliária para agrupar as informações do barramento.

@@ -49,7 +49,7 @@ import tecgraf.openbus.core.v2_0.services.access_control.LoginInfoHolder;
 import tecgraf.openbus.core.v2_0.services.access_control.NoCredentialCode;
 import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.exception.CryptographyException;
-import tecgraf.openbus.util.Cryptography;
+import tecgraf.openbus.security.Cryptography;
 
 /**
  * Implementação do interceptador cliente.

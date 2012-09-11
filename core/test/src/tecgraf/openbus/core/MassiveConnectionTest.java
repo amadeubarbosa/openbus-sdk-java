@@ -20,7 +20,7 @@ import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOffer;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.util.Cryptography;
+import tecgraf.openbus.security.Cryptography;
 import tecgraf.openbus.util.Utils;
 
 public class MassiveConnectionTest {

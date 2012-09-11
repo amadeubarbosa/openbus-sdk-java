@@ -49,8 +49,7 @@ import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.exception.InvalidLoginProcess;
 import tecgraf.openbus.exception.InvalidPropertyValue;
 import tecgraf.openbus.exception.OpenBusInternalException;
-import tecgraf.openbus.util.Cryptography;
-import tecgraf.openbus.util.LRUCache;
+import tecgraf.openbus.security.Cryptography;
 
 /**
  * Implementação da Interface {@link Connection}

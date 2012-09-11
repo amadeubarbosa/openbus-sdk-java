@@ -19,7 +19,7 @@ import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
 import tecgraf.openbus.core.v2_0.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper;
 import tecgraf.openbus.exception.CryptographyException;
-import tecgraf.openbus.util.Cryptography;
+import tecgraf.openbus.security.Cryptography;
 
 /**
  * Parte comum dos interceptadores cliente e servidor.

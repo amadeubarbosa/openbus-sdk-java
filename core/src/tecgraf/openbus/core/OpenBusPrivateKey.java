@@ -6,7 +6,7 @@ import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
 
 import tecgraf.openbus.PrivateKey;
-import tecgraf.openbus.util.Cryptography;
+import tecgraf.openbus.security.Cryptography;
 
 public class OpenBusPrivateKey implements PrivateKey {
 

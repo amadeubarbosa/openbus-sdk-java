@@ -13,7 +13,7 @@ import org.omg.CORBA.ORB;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
-import tecgraf.openbus.util.Cryptography;
+import tecgraf.openbus.security.Cryptography;
 import tecgraf.openbus.util.Utils;
 
 public class InternalLoginTest {

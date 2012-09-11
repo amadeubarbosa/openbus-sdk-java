@@ -50,7 +50,7 @@ import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_0.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_0.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.exception.CryptographyException;
-import tecgraf.openbus.util.Cryptography;
+import tecgraf.openbus.security.Cryptography;
 
 /**
  * Interceptador servidor.

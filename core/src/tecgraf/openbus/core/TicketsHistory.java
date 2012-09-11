@@ -1,11 +1,11 @@
-package tecgraf.openbus.util;
+package tecgraf.openbus.core;
 
 /**
  * Histórico de tickets
  * 
  * @author Tecgraf
  */
-public class TicketsHistory {
+class TicketsHistory {
 
   /**
    * valor base

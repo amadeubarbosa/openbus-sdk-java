@@ -1,9 +1,11 @@
-package tecgraf.openbus.util;
+package tecgraf.openbus.core;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
+
+import tecgraf.openbus.core.LRUCache;
 
 public class LRUCacheTest {
 

@@ -2,7 +2,6 @@ package tecgraf.openbus.core;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import tecgraf.openbus.util.TicketsHistory;
 
 /**
  * Classe que representa a parte comum entre a sessão do lado servidor e

@@ -1,4 +1,4 @@
-package tecgraf.openbus.util;
+package tecgraf.openbus.security;
 
 import java.io.FileInputStream;
 import java.io.IOException;

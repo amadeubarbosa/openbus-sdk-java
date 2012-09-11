@@ -9,7 +9,6 @@ import tecgraf.openbus.core.v2_0.OctetSeqHolder;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidLogins;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
-import tecgraf.openbus.util.LRUCache;
 
 /**
  * Cache de logins utilizado pelo interceptador cliente.
