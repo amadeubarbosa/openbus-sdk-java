@@ -17,8 +17,12 @@ final class ORBMediator extends LocalObject {
   private Codec codec;
   /** Identificador do slot da cadeia assinada */
   private final int SIGNED_CHAIN_SLOT_ID;
+  /** Identificador do slot do target da cadeia assinada */
+  private final int SIGNED_CHAIN_TARGET_SLOT_ID;
   /** Identificador do slot de joined chain */
   private final int JOINED_CHAIN_SLOT_ID;
+  /** Identificador do slot do target da joined chain */
+  private final int JOINED_CHAIN_TARGET_SLOT_ID;
   /** Identificador do slot de barramento ao qual joined chain pertence */
   private final int JOINED_BUS_SLOT_ID;
   /** Identificador do slot da caller chain */
@@ -33,16 +37,21 @@ final class ORBMediator extends LocalObject {
    * 
    * @param codec a fábrica de codificadores
    * @param signedChainSlotId identificador de slot.
+   * @param signedChainTargetSlotId identificador de slot.
    * @param chainSlotId identificaor de slot.
+   * @param chainTargetSlotId identificador de slot.
    * @param joinedBusSlotId identificador de slot.
    * @param busSlotId identificador de slot
    * @param connections gerente de conexões associado.
    */
-  ORBMediator(Codec codec, int signedChainSlotId, int chainSlotId,
-    int joinedBusSlotId, int busSlotId, OpenBusContextImpl connections) {
+  ORBMediator(Codec codec, int signedChainSlotId, int signedChainTargetSlotId,
+    int chainSlotId, int chainTargetSlotId, int joinedBusSlotId, int busSlotId,
+    OpenBusContextImpl connections) {
     this.codec = codec;
     this.SIGNED_CHAIN_SLOT_ID = signedChainSlotId;
+    this.SIGNED_CHAIN_TARGET_SLOT_ID = signedChainTargetSlotId;
     this.JOINED_CHAIN_SLOT_ID = chainSlotId;
+    this.JOINED_CHAIN_TARGET_SLOT_ID = chainTargetSlotId;
     this.JOINED_BUS_SLOT_ID = joinedBusSlotId;
     this.BUS_SLOT_ID = busSlotId;
     this.connections = connections;
@@ -86,6 +95,16 @@ final class ORBMediator extends LocalObject {
   }
 
   /**
+   * Recupera o identificador do slot onde se guarda o target da cadeia assinada
+   * associada ao request recebido. Utilizado pelo lado servidor.
+   * 
+   * @return identificador do slot
+   */
+  int getSignedChainTargetSlotId() {
+    return this.SIGNED_CHAIN_TARGET_SLOT_ID;
+  }
+
+  /**
    * Recupera o indentificador do slot onde se guarda a cadeia assinada que a
    * requisição de saída esta "joined". Utilizado pelo lado cliente.
    * 
@@ -93,6 +112,17 @@ final class ORBMediator extends LocalObject {
    */
   int getJoinedChainSlotId() {
     return this.JOINED_CHAIN_SLOT_ID;
+  }
+
+  /**
+   * Recupera o indentificador do slot onde se guarda o targer da cadeia
+   * assinada que a requisição de saída esta "joined". Utilizado pelo lado
+   * cliente.
+   * 
+   * @return identificador do slot
+   */
+  int getJoinedChainTargetSlotId() {
+    return this.JOINED_CHAIN_TARGET_SLOT_ID;
   }
 
   /**

@@ -30,6 +30,8 @@ import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
 import tecgraf.openbus.core.v2_0.credential.SignedCallChainHelper;
 import tecgraf.openbus.core.v2_0.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper;
+import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_0.services.access_control.LoginInfoHelper;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
@@ -216,6 +218,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     String busId;
     CallChain callChain;
     SignedCallChain signedChain;
+    LoginInfo target;
     try {
       Any any = current.get_slot(mediator.getBusSlotId());
       if (any.type().kind().value() == TCKind._tk_null) {
@@ -231,6 +234,11 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
         mediator.getCodec().decode_value(signedChain.encoded,
           CallChainHelper.type());
       callChain = CallChainHelper.extract(anyChain);
+      any = current.get_slot(mediator.getSignedChainTargetSlotId());
+      if (any.type().kind().value() == TCKind._tk_null) {
+        return null;
+      }
+      target = LoginInfoHelper.extract(any);
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao obter o slot no PICurrent";
@@ -242,7 +250,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       logger.log(Level.SEVERE, message, e);
       throw new OpenBusInternalException(message, e);
     }
-    return new CallerChainImpl(busId, callChain.target, callChain.caller,
+    return new CallerChainImpl(busId, target, callChain.caller,
       callChain.originators, signedChain);
   }
 
@@ -273,6 +281,9 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       Any busAny = this.orb.create_any();
       busAny.insert_string(chain.busid());
       current.set_slot(mediator.getJoinedBusSlotId(), busAny);
+      Any targetAny = this.orb.create_any();
+      LoginInfoHelper.insert(targetAny, chain.target());
+      current.set_slot(mediator.getJoinedChainTargetSlotId(), targetAny);
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao obter o slot no PICurrent";
@@ -291,6 +302,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       ORBMediator mediator = ORBUtils.getMediator(orb);
       Any any = this.orb.create_any();
       current.set_slot(mediator.getJoinedChainSlotId(), any);
+      current.set_slot(mediator.getJoinedChainTargetSlotId(), any);
       current.set_slot(mediator.getJoinedBusSlotId(), any);
     }
     catch (InvalidSlot e) {
@@ -324,7 +336,12 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
         mediator.getCodec().decode_value(signedChain.encoded,
           CallChainHelper.type());
       CallChain callChain = CallChainHelper.extract(anyChain);
-      return new CallerChainImpl(busId, callChain.target, callChain.caller,
+      any = current.get_slot(mediator.getJoinedChainTargetSlotId());
+      if (any.type().kind().value() == TCKind._tk_null) {
+        return null;
+      }
+      LoginInfo target = LoginInfoHelper.extract(any);
+      return new CallerChainImpl(busId, target, callChain.caller,
         callChain.originators, signedChain);
     }
     catch (InvalidSlot e) {

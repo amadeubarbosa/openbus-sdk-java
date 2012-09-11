@@ -45,6 +45,7 @@ import tecgraf.openbus.core.v2_0.services.access_control.InvalidLoginCode;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidLogins;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidPublicKeyCode;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_0.services.access_control.LoginInfoHelper;
 import tecgraf.openbus.core.v2_0.services.access_control.NoCredentialCode;
 import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_0.services.access_control.UnknownBusCode;
@@ -552,10 +553,24 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           boolean verified =
             crypto.verifySignature(busPubKey, chain.encoded, chain.signature);
           if (verified) {
-            if (callChain.target.equals(conn.login().id)) {
+            LoginInfo loginInfo = conn.login();
+            if (callChain.target.equals(loginInfo.id)) {
               LoginInfo caller = callChain.caller;
               if (caller.id.equals(credential.login)) {
-                return true;
+                try {
+                  ORB orb = this.getMediator().getORB();
+                  Any targetAny = orb.create_any();
+                  LoginInfoHelper.insert(targetAny, loginInfo);
+                  ri.set_slot(this.getMediator().getSignedChainTargetSlotId(),
+                    targetAny);
+                  return true;
+                }
+                catch (InvalidSlot e) {
+                  String message =
+                    "Falha inesperada ao armazenar o target em seu slot";
+                  logger.log(Level.SEVERE, message, e);
+                  throw new INTERNAL(message);
+                }
               }
             }
             else {
@@ -600,6 +615,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     Any any = this.getMediator().getORB().create_any();
     try {
       ri.set_slot(this.getMediator().getSignedChainSlotId(), any);
+      ri.set_slot(this.getMediator().getSignedChainTargetSlotId(), any);
       ri.set_slot(this.getMediator().getBusSlotId(), any);
     }
     catch (InvalidSlot e) {

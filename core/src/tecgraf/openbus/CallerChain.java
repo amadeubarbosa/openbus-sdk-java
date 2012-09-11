@@ -28,7 +28,7 @@ public interface CallerChain {
    * 
    * @return Indentificador de login.
    */
-  String target();
+  LoginInfo target();
 
   /**
    * Recupera a lista de informações de login de todas as entidades que
