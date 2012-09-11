@@ -24,9 +24,9 @@ public interface CallerChain {
   String busid();
 
   /**
-   * Recupera o identificador de login a quem a cadeia se destina.
+   * Recupera a informação de login a quem a cadeia se destina.
    * 
-   * @return Indentificador de login.
+   * @return Informação de login.
    */
   LoginInfo target();
 
