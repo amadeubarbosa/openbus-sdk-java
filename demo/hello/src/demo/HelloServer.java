@@ -88,8 +88,7 @@ public final class HelloServer {
     Thread run = new Thread() {
       @Override
       public void run() {
-        orb.shutdown(true);
-        orb.destroy();
+        orb.run();
       }
     };
     run.start();
