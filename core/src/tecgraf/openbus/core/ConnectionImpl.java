@@ -34,7 +34,6 @@ import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessControl;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_0.services.access_control.CertificateRegistry;
-import tecgraf.openbus.core.v2_0.services.access_control.InvalidLoginCode;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidPublicKey;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginAuthenticationInfo;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginAuthenticationInfoHelper;
@@ -42,6 +41,7 @@ import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_0.services.access_control.MissingCertificate;
+import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_0.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
@@ -530,7 +530,7 @@ final class ConnectionImpl implements Connection {
       getBus().getAccessControl().logout();
     }
     catch (NO_PERMISSION e) {
-      if (e.minor == InvalidLoginCode.value
+      if (e.minor == NoLoginCode.value
         && e.completed.equals(CompletionStatus.COMPLETED_NO)) {
         return false;
       }
