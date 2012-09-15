@@ -77,7 +77,7 @@ public final class HelloClient {
       connection.loginByPassword(entity, password.getBytes());
       // busca por serviço
       ServiceProperty[] properties = new ServiceProperty[1];
-      properties[0] = new ServiceProperty("offer.domain", "Hello Demo");
+      properties[0] = new ServiceProperty("offer.domain", "Demo Hello");
       services = context.getOfferRegistry().findServices(properties);
     }
     // login by password

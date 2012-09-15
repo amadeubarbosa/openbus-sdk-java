@@ -56,7 +56,7 @@ public final class GreetingsServer {
     InvalidProperties {
     // verificando parametros de entrada
     if (args.length < 4) {
-      System.out.println(Utils.serverUsage);
+      System.out.println(String.format(Utils.serverUsage, "", ""));
       System.exit(1);
       return;
     }

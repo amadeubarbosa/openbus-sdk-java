@@ -51,7 +51,7 @@ public final class HelloServer {
     InvalidProperties {
     // verificando parametros de entrada
     if (args.length < 4) {
-      System.out.println(Utils.serverUsage);
+      System.out.println(String.format(Utils.serverUsage, "", ""));
       System.exit(1);
       return;
     }
@@ -127,7 +127,7 @@ public final class HelloServer {
       // registrando serviço no barramento
       ServiceProperty[] serviceProperties =
         new ServiceProperty[] { new ServiceProperty("offer.domain",
-          "Hello Demo") };
+          "Demo Hello") };
       context.getOfferRegistry().registerService(component.getIComponent(),
         serviceProperties);
     }

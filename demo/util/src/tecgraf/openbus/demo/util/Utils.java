@@ -23,18 +23,18 @@ import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 public class Utils {
 
   public static final String clientUsage =
-    "Usage: 'demo' <host> <port> <entity> <privatekeypath> [password] %s\n"
+    "Usage: 'demo' <host> <port> <entity> [password] %s\n"
       + "  - host = é o host do barramento\n"
       + "  - port = é a porta do barramento\n"
       + "  - entity = é a entidade a ser autenticada\n"
       + "  - password = senha (opicional) %s";
 
   public static final String serverUsage =
-    "Usage: 'demo' <host> <port> <entity> <privatekeypath>\n"
+    "Usage: 'demo' <host> <port> <entity> <privatekeypath> %s\n"
       + "  - host = é o host do barramento\n"
       + "  - port = é a porta do barramento\n"
       + "  - entity = é a entidade a ser autenticada\n"
-      + "  - privatekeypath = é o caminho da chave privada de autenticação da entidade";
+      + "  - privatekeypath = é o caminho da chave privada de autenticação da entidade %s";
 
   public static final String port = "Valor de <port> deve ser um número";
   public static final String keypath =

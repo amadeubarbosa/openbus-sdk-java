@@ -15,12 +15,12 @@ Certificate {
 }
 
 Interface {
-  id = "IDL:Clock:1.0",
+  id = "IDL:demo/Clock:1.0",
 }
 
 Grant {
   id = "demo_independentclock_java",
   interfaces = {
-	"IDL:Clock:1.0",
+	"IDL:demo/Clock:1.0",
   }
 }
