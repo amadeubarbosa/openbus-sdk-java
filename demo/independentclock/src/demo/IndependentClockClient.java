@@ -179,10 +179,6 @@ public final class IndependentClockClient {
             System.err.println(String.format(
               "não há um login de '%s' válido no momento", entity));
           }
-          else {
-            System.err.println("NO_PERMISSION inesperado");
-            e.printStackTrace();
-          }
         }
         finally {
           System.out.println("cliente deslogado...");
@@ -243,10 +239,6 @@ public final class IndependentClockClient {
             if (e.minor == NoLoginCode.value) {
               System.err.println(String.format(
                 "não há um login de '%s' válido no momento", entity));
-            }
-            else {
-              System.err.println("NO_PERMISSION inesperado");
-              e.printStackTrace();
             }
           }
           finally {
@@ -313,10 +305,6 @@ public final class IndependentClockClient {
         if (e.minor == NoLoginCode.value) {
           System.err.println(String.format(
             "não há um login de '%s' válido no momento", entity));
-        }
-        else {
-          System.err.println("NO_PERMISSION inesperado");
-          e.printStackTrace();
         }
       }
       finally {
