@@ -98,7 +98,7 @@ public final class IndependentClockServer {
     }
     if (args.length > 4) {
       try {
-        interval = Integer.parseInt(args[1]);
+        interval = Integer.parseInt(args[4]);
       }
       catch (NumberFormatException e) {
         System.out.println("Valor de [interval] deve ser um número");
@@ -192,9 +192,10 @@ public final class IndependentClockServer {
         // autentica-se no barramento
         boolean failed;
         do {
-          failed = false;
+          failed = true;
           try {
             conn.loginByCertificate(entity, privateKey);
+            failed = false;
           }
           catch (AlreadyLoggedIn e) {
             // ignorando exceção
@@ -202,7 +203,6 @@ public final class IndependentClockServer {
           }
           // login by certificate
           catch (AccessDenied e) {
-            failed = true;
             System.err
               .println(String
                 .format(
@@ -210,29 +210,24 @@ public final class IndependentClockServer {
                   entity));
           }
           catch (MissingCertificate e) {
-            failed = true;
             System.err.println(String.format(
               "a entidade %s não possui um certificado registrado", entity));
           }
           // bus core
           catch (ServiceFailure e) {
-            failed = true;
             System.err.println(String
               .format("falha severa no barramento em %s:%s : %s", host, port,
                 e.message));
           }
           catch (TRANSIENT e) {
-            failed = true;
             System.err.println(String.format(
               "o barramento em %s:%s esta inacessível no momento", host, port));
           }
           catch (COMM_FAILURE e) {
-            failed = true;
             System.err
               .println("falha de comunicação ao acessar serviços núcleo do barramento");
           }
           catch (NO_PERMISSION e) {
-            failed = true;
             if (e.minor == NoLoginCode.value) {
               System.err.println(String.format(
                 "não há um login de '%s' válido no momento", entity));
@@ -255,7 +250,7 @@ public final class IndependentClockServer {
         int sleepTime) {
         boolean failed;
         do {
-          failed = false;
+          failed = true;
           try {
             // registrando serviço no barramento
             ServiceProperty[] serviceProperties = new ServiceProperty[1];
@@ -263,11 +258,11 @@ public final class IndependentClockServer {
               new ServiceProperty("offer.domain", "Demo Independent Clock");
             context.getOfferRegistry().registerService(
               component.getIComponent(), serviceProperties);
+            failed = false;
             options.disabled = true;
           }
           // register
           catch (UnauthorizedFacets e) {
-            failed = true;
             StringBuffer interfaces = new StringBuffer();
             for (String facet : e.facets) {
               interfaces.append("\n  - ");
@@ -281,30 +276,25 @@ public final class IndependentClockServer {
           }
           // bus core
           catch (ServiceFailure e) {
-            failed = true;
             System.err.println(String
               .format("falha severa no barramento em %s:%s : %s", host, port,
                 e.message));
           }
           catch (TRANSIENT e) {
-            failed = true;
             System.err.println(String.format(
               "o barramento em %s:%s esta inacessível no momento", host, port));
           }
           catch (COMM_FAILURE e) {
-            failed = true;
             System.err
               .println("falha de comunicação ao acessar serviços núcleo do barramento");
           }
           catch (NO_PERMISSION e) {
-            failed = true;
             if (e.minor == NoLoginCode.value) {
               System.err.println(String.format(
                 "não há um login de '%s' válido no momento", entity));
             }
           }
           catch (InvalidService e) {
-            failed = true;
             System.err
               .println("o serviço ofertado apresentou alguma falha durante o registro.");
           }

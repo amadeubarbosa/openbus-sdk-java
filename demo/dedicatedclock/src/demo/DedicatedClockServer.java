@@ -94,7 +94,7 @@ public final class DedicatedClockServer {
     }
     if (args.length > 4) {
       try {
-        interval = Integer.parseInt(args[1]);
+        interval = Integer.parseInt(args[4]);
       }
       catch (NumberFormatException e) {
         System.out.println("Valor de [interval] deve ser um número");

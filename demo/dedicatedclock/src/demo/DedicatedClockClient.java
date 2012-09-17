@@ -83,7 +83,7 @@ public final class DedicatedClockClient {
     // - intervalo entre falhas
     if (args.length > 4) {
       try {
-        interval = Integer.parseInt(args[1]);
+        interval = Integer.parseInt(args[4]);
       }
       catch (NumberFormatException e) {
         System.out.println("Valor de [interval] deve ser um número");
@@ -94,7 +94,7 @@ public final class DedicatedClockClient {
     // - número máximo de tentativas
     if (args.length > 5) {
       try {
-        retries = Integer.parseInt(args[1]);
+        retries = Integer.parseInt(args[5]);
       }
       catch (NumberFormatException e) {
         System.out.println("Valor de [retries] deve ser um número");

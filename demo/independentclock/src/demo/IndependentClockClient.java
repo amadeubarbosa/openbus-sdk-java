@@ -54,7 +54,7 @@ public final class IndependentClockClient {
     ServiceFailure {
     // verificando parametros de entrada
     if (args.length < 3) {
-      String params = "[interval] [timeout]";
+      String params = "[interval]";
       String desc =
         "\n  - [interval] = Tempo de espera entre tentativas de acesso ao"
           + " barramento em virtude de falhas. Valor padrão é '1'";
@@ -83,7 +83,7 @@ public final class IndependentClockClient {
     // - intervalo entre falhas
     if (args.length > 4) {
       try {
-        interval = Integer.parseInt(args[1]);
+        interval = Integer.parseInt(args[4]);
       }
       catch (NumberFormatException e) {
         System.out.println("Valor de [interval] deve ser um número");
@@ -98,7 +98,7 @@ public final class IndependentClockClient {
     final OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
 
-    new Thread() {
+    Thread client = new Thread() {
       @Override
       public void run() {
         for (int i = 0; i < 10; i++) {
@@ -139,20 +139,24 @@ public final class IndependentClockClient {
                   break;
               }
             }
-            if (timestamp == null) {
-              synchronized (options.lock) {
-                options.found = null;
-                activateSearch(context, interval);
-              }
+          }
+          if (timestamp == null) {
+            synchronized (options.lock) {
+              options.found = null;
+              activateSearch(context, interval);
             }
-            else {
-              // recupera valor independente do barramento
-              timestamp = System.currentTimeMillis();
-            }
+            // recupera valor independente do barramento
+            timestamp = System.currentTimeMillis();
           }
           Date date = new Date(timestamp);
           DateFormat formatter = new SimpleDateFormat("HH:mm:ss:SSS");
           System.out.println(formatter.format(date));
+          try {
+            Thread.sleep(interval * 1000);
+          }
+          catch (InterruptedException e) {
+            // do nothing
+          }
         }
         try {
           context.getCurrentConnection().logout();
@@ -175,12 +179,17 @@ public final class IndependentClockClient {
             System.err.println(String.format(
               "não há um login de '%s' válido no momento", entity));
           }
+          else {
+            System.err.println("NO_PERMISSION inesperado");
+            e.printStackTrace();
+          }
         }
         finally {
           System.out.println("cliente deslogado...");
         }
       };
     };
+    client.start();
 
     // conectando ao barramento.
     Connection connection = context.createConnection(host, port);
@@ -201,10 +210,11 @@ public final class IndependentClockClient {
         // autentica-se no barramento
         boolean failed;
         do {
-          failed = false;
+          failed = true;
           try {
             // autentica-se no barramento
             conn.loginByPassword(entity, password.getBytes());
+            failed = false;
           }
           catch (AlreadyLoggedIn e) {
             // ignorando exceção
@@ -214,30 +224,29 @@ public final class IndependentClockClient {
           catch (AccessDenied e) {
             System.err.println(String.format(
               "a senha fornecida para a entidade '%s' foi negada", entity));
-            failed = true;
           }
           // bus core
           catch (ServiceFailure e) {
-            failed = true;
             System.err.println(String
               .format("falha severa no barramento em %s:%s : %s", host, port,
                 e.message));
           }
           catch (TRANSIENT e) {
-            failed = true;
             System.err.println(String.format(
               "o barramento em %s:%s esta inacessível no momento", host, port));
           }
           catch (COMM_FAILURE e) {
-            failed = true;
             System.err
               .println("falha de comunicação ao acessar serviços núcleo do barramento");
           }
           catch (NO_PERMISSION e) {
-            failed = true;
             if (e.minor == NoLoginCode.value) {
               System.err.println(String.format(
                 "não há um login de '%s' válido no momento", entity));
+            }
+            else {
+              System.err.println("NO_PERMISSION inesperado");
+              e.printStackTrace();
             }
           }
           finally {
@@ -276,37 +285,50 @@ public final class IndependentClockClient {
 
   private static void find(OpenBusContext context, int interval) {
     do {
-      ServiceOfferDesc[] services;
+      ServiceOfferDesc[] services = null;
       Clock clock = null;
+      boolean failed = true;
       try {
         // busca por serviço
         ServiceProperty[] properties = new ServiceProperty[1];
         properties[0] =
-          new ServiceProperty("offer.domain", "Demo Dedicated Clock");
+          new ServiceProperty("offer.domain", "Demo Independent Clock");
         services = context.getOfferRegistry().findServices(properties);
+        failed = false;
       }
       // bus core
       catch (ServiceFailure e) {
         System.err.println(String.format(
           "falha severa no barramento em %s:%s : %s", host, port, e.message));
-        continue;
       }
       catch (TRANSIENT e) {
         System.err.println(String.format(
           "o barramento em %s:%s esta inacessível no momento", host, port));
-        continue;
       }
       catch (COMM_FAILURE e) {
         System.err
           .println("falha de comunicação ao acessar serviços núcleo do barramento");
-        continue;
       }
       catch (NO_PERMISSION e) {
         if (e.minor == NoLoginCode.value) {
           System.err.println(String.format(
             "não há um login de '%s' válido no momento", entity));
         }
-        continue;
+        else {
+          System.err.println("NO_PERMISSION inesperado");
+          e.printStackTrace();
+        }
+      }
+      finally {
+        if (failed) {
+          try {
+            Thread.sleep(interval * 1000);
+          }
+          catch (InterruptedException e) {
+            // do nothing
+          }
+          continue;
+        }
       }
 
       // analiza as ofertas encontradas
@@ -360,7 +382,7 @@ public final class IndependentClockClient {
         break;
       }
       try {
-        Thread.sleep(interval);
+        Thread.sleep(interval * 1000);
       }
       catch (InterruptedException e) {
         // do nothing
