@@ -49,7 +49,7 @@
 
     <dependency>
       <groupId>tecgraf.openbus</groupId>
-      <artifactId>openbus-sdk-interop-util</artifactId>
+      <artifactId>openbus-sdk-demo-util</artifactId>
       <version>${project.version}</version>
     </dependency>
 

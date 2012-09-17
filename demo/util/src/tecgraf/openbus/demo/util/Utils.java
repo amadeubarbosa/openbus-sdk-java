@@ -4,16 +4,10 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.omg.CORBA.ORB;
-import org.omg.CORBA.ORBPackage.InvalidName;
-import org.omg.IOP.Codec;
-import org.omg.IOP.CodecFactory;
-import org.omg.IOP.CodecFactoryHelper;
-import org.omg.IOP.ENCODING_CDR_ENCAPS;
-import org.omg.IOP.Encoding;
-import org.omg.IOP.CodecFactoryPackage.UnknownEncoding;
-
+import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
+import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 
 /**
  * Classe utilitária para os demos Java.
@@ -40,24 +34,24 @@ public class Utils {
   public static final String keypath =
     "<privatekeypath> deve apontar para uma chave válida.";
 
-  static public String chain2str(LoginInfo[] callers, LoginInfo caller) {
+  static public String chain2str(CallerChain chain) {
     StringBuffer buffer = new StringBuffer();
-    for (LoginInfo loginInfo : callers) {
+    for (LoginInfo loginInfo : chain.originators()) {
       buffer.append(loginInfo.entity);
       buffer.append("->");
     }
-    buffer.append(caller.entity);
+    buffer.append(chain.caller().entity);
     return buffer.toString();
   }
 
-  public static Codec getCodec(ORB orb) throws UnknownEncoding, InvalidName {
-    org.omg.CORBA.Object obj;
-    obj = orb.resolve_initial_references("CodecFactory");
-    CodecFactory codecFactory = CodecFactoryHelper.narrow(obj);
-    byte major = 1;
-    byte minor = 2;
-    Encoding encoding = new Encoding(ENCODING_CDR_ENCAPS.value, major, minor);
-    return codecFactory.create_codec(encoding);
+  static public String getProperty(ServiceOfferDesc offer, String prop) {
+    ServiceProperty[] properties = offer.properties;
+    for (int i = 0; i < properties.length; i++) {
+      if (properties[i].name.equals(prop)) {
+        return properties[i].value;
+      }
+    }
+    return null;
   }
 
   public static void setLogLevel(Level level) {

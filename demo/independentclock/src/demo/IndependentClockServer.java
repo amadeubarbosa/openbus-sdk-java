@@ -274,6 +274,21 @@ public final class IndependentClockServer {
                   "a entidade '%s' não foi autorizada pelo administrador do barramento a ofertar os serviços: %s",
                   entity, interfaces.toString()));
           }
+          catch (InvalidService e) {
+            System.err
+              .println("o serviço ofertado apresentou alguma falha durante o registro.");
+          }
+          catch (InvalidProperties e) {
+            StringBuffer props = new StringBuffer();
+            for (ServiceProperty prop : e.properties) {
+              props.append("\n  - ");
+              props.append(String.format("name = %s, value = %s", prop.name,
+                prop.value));
+            }
+            System.err.println(String.format(
+              "tentativa de registrar serviço com propriedades inválidas: %s",
+              props.toString()));
+          }
           // bus core
           catch (ServiceFailure e) {
             System.err.println(String
@@ -293,16 +308,6 @@ public final class IndependentClockServer {
               System.err.println(String.format(
                 "não há um login de '%s' válido no momento", entity));
             }
-          }
-          catch (InvalidService e) {
-            System.err
-              .println("o serviço ofertado apresentou alguma falha durante o registro.");
-          }
-          catch (InvalidProperties e) {
-            // esta exceção nunca deveria ser lançada
-            // sua captura é obrigatoria pois é executado dentro de uma nova Thread
-            System.err.println("BUG: InvalidProperties nunca deveria ocorrer.");
-            System.exit(1);
           }
           finally {
             if (failed) {

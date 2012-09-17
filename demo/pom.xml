@@ -16,8 +16,7 @@
 
   <modules>
     <module>util</module>
-    <module>audit</module>
-    <module>chainvalidation</module>
+    <module>callchain</module>
     <module>dedicatedclock</module>
     <module>greetings</module>
     <module>hello</module>
