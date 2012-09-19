@@ -108,8 +108,10 @@ public final class IndependentClockClient {
             clock = options.found;
           }
           if (clock != null) {
+            boolean failed = true;
             try {
               timestamp = clock.getTimeInTicks();
+              failed = false;
             }
             catch (TRANSIENT e) {
               System.err
@@ -139,10 +141,16 @@ public final class IndependentClockClient {
                   break;
               }
             }
+            finally {
+              if (failed) {
+                synchronized (options.lock) {
+                  options.found = null;
+                }
+              }
+            }
           }
           if (timestamp == null) {
             synchronized (options.lock) {
-              options.found = null;
               activateSearch(context, interval);
             }
             // recupera valor independente do barramento

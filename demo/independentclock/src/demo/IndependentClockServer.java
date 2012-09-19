@@ -56,12 +56,9 @@ public final class IndependentClockServer {
    * @throws SCSException
    * @throws AlreadyLoggedIn
    * @throws ServiceFailure
-   * @throws InvalidService
-   * @throws InvalidProperties
    */
   public static void main(String[] args) throws InvalidName, AdapterInactive,
-    SCSException, AlreadyLoggedIn, ServiceFailure, InvalidService,
-    InvalidProperties {
+    SCSException, AlreadyLoggedIn, ServiceFailure {
     // verificando parametros de entrada
     if (args.length < 4) {
       String params = "[interval]";

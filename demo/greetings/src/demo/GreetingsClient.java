@@ -27,6 +27,13 @@ import demo.GreetingsImpl.Period;
  * @author Tecgraf
  */
 public final class GreetingsClient {
+
+  private static String host;
+  private static int port;
+  private static String entity;
+  private static String password;
+  private static Language language = Language.Portuguese;
+
   /**
    * Função principal.
    * 
@@ -47,9 +54,8 @@ public final class GreetingsClient {
       return;
     }
     // - host
-    String host = args[0];
+    host = args[0];
     // - porta
-    int port;
     try {
       port = Integer.parseInt(args[1]);
     }
@@ -59,9 +65,9 @@ public final class GreetingsClient {
       return;
     }
     // - entidade
-    String entity = args[2];
+    entity = args[2];
     // - senha (opicional)
-    String password = entity;
+    password = entity;
     if (args.length > 3) {
       password = args[3];
     }
@@ -70,14 +76,10 @@ public final class GreetingsClient {
     if (args.length > 4) {
       lang = args[4];
     }
-    Language language = null;
     if (lang.equals(Language.Portuguese.name())
       || lang.equals(Language.English.name())
       || lang.equals(Language.Spanish.name())) {
       language = Language.valueOf(lang);
-    }
-    else {
-      language = Language.Portuguese;
     }
 
     // inicializando e configurando o ORB

@@ -43,12 +43,9 @@ public final class HelloServer {
    * @throws SCSException
    * @throws AlreadyLoggedIn
    * @throws ServiceFailure
-   * @throws InvalidService
-   * @throws InvalidProperties
    */
   public static void main(String[] args) throws InvalidName, AdapterInactive,
-    SCSException, AlreadyLoggedIn, ServiceFailure, InvalidService,
-    InvalidProperties {
+    SCSException, AlreadyLoggedIn, ServiceFailure {
     // verificando parametros de entrada
     if (args.length < 4) {
       System.out.println(String.format(Utils.serverUsage, "", ""));
@@ -121,7 +118,7 @@ public final class HelloServer {
     context.setDefaultConnection(conn);
 
     // autentica-se no barramento
-    boolean failed = false;
+    boolean failed = true;
     try {
       conn.loginByCertificate(entity, privateKey);
       // registrando serviço no barramento
@@ -130,22 +127,20 @@ public final class HelloServer {
           "Demo Hello") };
       context.getOfferRegistry().registerService(component.getIComponent(),
         serviceProperties);
+      failed = false;
     }
     // login by certificate
     catch (AccessDenied e) {
-      failed = true;
       System.err.println(String.format(
         "a chave em '%s' não corresponde ao certificado da entidade '%s'",
         privateKeyFile, entity));
     }
     catch (MissingCertificate e) {
-      failed = true;
       System.err.println(String.format(
         "a entidade %s não possui um certificado registrado", entity));
     }
     // register
     catch (UnauthorizedFacets e) {
-      failed = true;
       StringBuffer interfaces = new StringBuffer();
       for (String facet : e.facets) {
         interfaces.append("\n  - ");
@@ -157,24 +152,35 @@ public final class HelloServer {
             "a entidade '%s' não foi autorizada pelo administrador do barramento a ofertar os serviços: %s",
             entity, interfaces.toString()));
     }
+    catch (InvalidService e) {
+      System.err
+        .println("o serviço ofertado apresentou alguma falha durante o registro.");
+    }
+    catch (InvalidProperties e) {
+      StringBuffer props = new StringBuffer();
+      for (ServiceProperty prop : e.properties) {
+        props.append("\n  - ");
+        props.append(String.format("name = %s, value = %s", prop.name,
+          prop.value));
+      }
+      System.err.println(String.format(
+        "tentativa de registrar serviço com propriedades inválidas: %s", props
+          .toString()));
+    }
     // bus core
     catch (ServiceFailure e) {
-      failed = true;
       System.err.println(String.format(
         "falha severa no barramento em %s:%s : %s", host, port, e.message));
     }
     catch (TRANSIENT e) {
-      failed = true;
       System.err.println(String.format(
         "o barramento em %s:%s esta inacessível no momento", host, port));
     }
     catch (COMM_FAILURE e) {
-      failed = true;
       System.err
         .println("falha de comunicação ao acessar serviços núcleo do barramento");
     }
     catch (NO_PERMISSION e) {
-      failed = true;
       if (e.minor == NoLoginCode.value) {
         System.err.println(String.format(
           "não há um login de '%s' válido no momento", entity));

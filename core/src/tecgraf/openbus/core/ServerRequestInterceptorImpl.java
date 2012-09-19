@@ -448,8 +448,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           CompletionStatus.COMPLETED_NO);
       }
     }
-    if ((!conn.busid().equals(busId) && !UNKNOWN_BUS.equals(busId))
-      || conn.login() == null) {
+    if (conn.login() == null
+      || (!conn.busid().equals(busId) && !UNKNOWN_BUS.equals(busId))) {
       throw new NO_PERMISSION(UnknownBusCode.value,
         CompletionStatus.COMPLETED_NO);
     }

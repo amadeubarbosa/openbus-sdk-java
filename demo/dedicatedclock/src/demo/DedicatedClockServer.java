@@ -52,12 +52,9 @@ public final class DedicatedClockServer {
    * @throws SCSException
    * @throws AlreadyLoggedIn
    * @throws ServiceFailure
-   * @throws InvalidService
-   * @throws InvalidProperties
    */
   public static void main(String[] args) throws InvalidName, AdapterInactive,
-    SCSException, AlreadyLoggedIn, ServiceFailure, InvalidService,
-    InvalidProperties {
+    SCSException, AlreadyLoggedIn, ServiceFailure {
     // verificando parametros de entrada
     if (args.length < 4) {
       String params = "[interval]";
@@ -147,7 +144,9 @@ public final class DedicatedClockServer {
 
       @Override
       public void invalidLogin(Connection conn, LoginInfo login) {
-        options.disabled = false;
+        synchronized (options.lock) {
+          options.disabled = false;
+        }
         // autentica-se no barramento
         login(conn, entity, privateKey, host, port, interval);
         // registrando serviço no barramento
@@ -233,7 +232,7 @@ public final class DedicatedClockServer {
         int sleepTime) {
         boolean failed;
         do {
-          failed = false;
+          failed = true;
           try {
             // registrando serviço no barramento
             ServiceProperty[] serviceProperties = new ServiceProperty[1];
@@ -241,11 +240,13 @@ public final class DedicatedClockServer {
               new ServiceProperty("offer.domain", "Demo Dedicated Clock");
             context.getOfferRegistry().registerService(
               component.getIComponent(), serviceProperties);
-            options.disabled = true;
+            failed = false;
+            synchronized (options.lock) {
+              options.disabled = true;
+            }
           }
           // register
           catch (UnauthorizedFacets e) {
-            failed = true;
             StringBuffer interfaces = new StringBuffer();
             for (String facet : e.facets) {
               interfaces.append("\n  - ");
@@ -257,40 +258,40 @@ public final class DedicatedClockServer {
                   "a entidade '%s' não foi autorizada pelo administrador do barramento a ofertar os serviços: %s",
                   entity, interfaces.toString()));
           }
+          catch (InvalidService e) {
+            System.err
+              .println("o serviço ofertado apresentou alguma falha durante o registro.");
+          }
+          catch (InvalidProperties e) {
+            StringBuffer props = new StringBuffer();
+            for (ServiceProperty prop : e.properties) {
+              props.append("\n  - ");
+              props.append(String.format("name = %s, value = %s", prop.name,
+                prop.value));
+            }
+            System.err.println(String.format(
+              "tentativa de registrar serviço com propriedades inválidas: %s",
+              props.toString()));
+          }
           // bus core
           catch (ServiceFailure e) {
-            failed = true;
             System.err.println(String
               .format("falha severa no barramento em %s:%s : %s", host, port,
                 e.message));
           }
           catch (TRANSIENT e) {
-            failed = true;
             System.err.println(String.format(
               "o barramento em %s:%s esta inacessível no momento", host, port));
           }
           catch (COMM_FAILURE e) {
-            failed = true;
             System.err
               .println("falha de comunicação ao acessar serviços núcleo do barramento");
           }
           catch (NO_PERMISSION e) {
-            failed = true;
             if (e.minor == NoLoginCode.value) {
               System.err.println(String.format(
                 "não há um login de '%s' válido no momento", entity));
             }
-          }
-          catch (InvalidService e) {
-            failed = true;
-            System.err
-              .println("o serviço ofertado apresentou alguma falha durante o registro.");
-          }
-          catch (InvalidProperties e) {
-            // esta exceção nunca deveria ser lançada
-            // sua captura é obrigatoria pois é executado dentro de uma nova Thread
-            System.err.println("BUG: InvalidProperties nunca deveria ocorrer.");
-            System.exit(1);
           }
           finally {
             if (failed) {
@@ -303,7 +304,9 @@ public final class DedicatedClockServer {
             }
           }
         } while (failed);
-        options.active = false;
+        synchronized (options.lock) {
+          options.active = false;
+        }
       }
 
     });
