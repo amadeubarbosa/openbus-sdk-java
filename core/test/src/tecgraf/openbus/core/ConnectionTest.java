@@ -237,7 +237,7 @@ public final class ConnectionTest {
   }
 
   @Test
-  public void singleSignOnTest() throws Exception {
+  public void loginBySharedAuthenticationTest() throws Exception {
     Connection conn = context.createConnection(host, port);
     Connection conn2 = context.createConnection(host, port);
     conn.loginByPassword(entity, password.getBytes());
