@@ -76,7 +76,7 @@ public class HelloFTServer {
     ComponentContext context =
       new ComponentContext(orb, bus.getRootPOA(), new ComponentId("Hello",
         (byte) 1, (byte) 0, (byte) 0, "Java"));
-    context.addFacet("IHello", IHelloHelper.id(), new HelloImpl());
+    context.addFacet("IHello", HelloHelper.id(), new HelloImpl());
 
     IRegistryService registryService =
       bus.connect(entityName, privateKey, acsCertificate);

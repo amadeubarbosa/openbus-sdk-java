@@ -16,9 +16,14 @@ import scs.core.IComponent;
 import scs.core.IComponentHelper;
 import scs.core.exception.SCSException;
 import tecgraf.openbus.Openbus;
+import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
+import tecgraf.openbus.core.v1_05.registry_service.Property;
+import tecgraf.openbus.core.v1_05.registry_service.ServiceOffer;
+import tecgraf.openbus.core.v1_05.registry_service.UnathorizedFacets;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.RSUnavailableException;
 import tecgraf.openbus.util.CryptoUtils;
+import tecgraf.openbus.interop.simple.HelloHelper;
 
 public class HelloServer {
 
@@ -71,7 +76,7 @@ public class HelloServer {
     ComponentContext context =
       new ComponentContext(orb, bus.getRootPOA(), new ComponentId("Hello",
         (byte) 1, (byte) 0, (byte) 0, "Java"));
-    context.addFacet("IHello", IHelloHelper.id(), new HelloImpl());
+    context.addFacet("IHello", HelloHelper.id(), new HelloImpl());
 
     IRegistryService registryService =
       bus.connect(entityName, privateKey, acsCertificate);

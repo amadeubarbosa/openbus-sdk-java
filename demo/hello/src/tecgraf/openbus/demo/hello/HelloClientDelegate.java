@@ -14,9 +14,15 @@ import org.omg.CORBA.UserException;
 
 import scs.core.IComponent;
 import tecgraf.openbus.Openbus;
+import tecgraf.openbus.core.v1_05.access_control_service.Credential;
+import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
+import tecgraf.openbus.core.v1_05.registry_service.Property;
+import tecgraf.openbus.core.v1_05.registry_service.ServiceOffer;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.RSUnavailableException;
 import tecgraf.openbus.util.CryptoUtils;
+import tecgraf.openbus.interop.simple.Hello;
+import tecgraf.openbus.interop.simple.HelloHelper;
 
 public class HelloClientDelegate {
   public static void main(String[] args) throws OpenBusException,
@@ -63,7 +69,7 @@ public class HelloClientDelegate {
     }
 
     String registeredBy = props.getProperty("server.entity.name");
-    String[] facets = new String[] { IHelloHelper.id() };
+    String[] facets = new String[] { HelloHelper.id() };
     Property[] property =
       new Property[] { new Property("registered_by",
         new String[] { registeredBy }) };
@@ -74,14 +80,13 @@ public class HelloClientDelegate {
       System.out.println("O serviço Hello não se encontra no barramento.");
       System.exit(1);
     }
-    if (servicesOffers.length > 1) {
+    if (servicesOffers.length > 1)
       System.out.println("Existe mais de um serviço Hello no barramento.");
-    }
 
     ServiceOffer serviceOffer = servicesOffers[0];
     IComponent component = serviceOffer.member;
     org.omg.CORBA.Object helloObject = component.getFacetByName("IHello");
-    IHello hello = IHelloHelper.narrow(helloObject);
+    Hello hello = HelloHelper.narrow(helloObject);
 
     Credential credential = bus.getCredential();
     Credential newCredential =

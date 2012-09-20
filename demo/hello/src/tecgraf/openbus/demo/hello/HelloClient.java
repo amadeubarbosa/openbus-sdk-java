@@ -8,8 +8,12 @@ import org.omg.CORBA.UserException;
 
 import scs.core.IComponent;
 import tecgraf.openbus.Openbus;
+import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
+import tecgraf.openbus.core.v1_05.registry_service.ServiceOffer;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.RSUnavailableException;
+import tecgraf.openbus.interop.simple.Hello;
+import tecgraf.openbus.interop.simple.HelloHelper;
 
 public class HelloClient {
   public static void main(String[] args) throws OpenBusException,
@@ -47,7 +51,7 @@ public class HelloClient {
     ServiceOffer serviceOffer = servicesOffers[0];
     IComponent component = serviceOffer.member;
     org.omg.CORBA.Object helloObject = component.getFacetByName("IHello");
-    IHello hello = IHelloHelper.narrow(helloObject);
+    Hello hello = HelloHelper.narrow(helloObject);
 
     hello.sayHello();
 

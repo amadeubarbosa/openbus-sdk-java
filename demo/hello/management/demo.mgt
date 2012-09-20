@@ -11,7 +11,7 @@ SystemDeployment {
 }
 
 Interface {
-  id = "IDL:tecgraf/openbus.interop.simple/Hello:1.0"
+  id = "IDL:tecgraf/openbus/interop/simple/Hello:1.0"
 }
 
 Grant {
