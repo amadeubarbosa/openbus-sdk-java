@@ -13,8 +13,8 @@ import tecgraf.openbus.core.v1_05.registry_service.ServiceOffer;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.RSUnavailableException;
 import tecgraf.openbus.fault_tolerance.v1_05.IFaultTolerantService;
-import demoidl.hello.IHello;
-import demoidl.hello.IHelloHelper;
+import tecgraf.openbus.interop.simple.Hello;
+import tecgraf.openbus.interop.simple.HelloHelper;
 
 public class HelloFTClient {
   public static void main(String[] args) throws OpenBusException,

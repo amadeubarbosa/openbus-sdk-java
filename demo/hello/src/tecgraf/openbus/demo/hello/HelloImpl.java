@@ -2,7 +2,7 @@ package tecgraf.openbus.demo.hello;
 
 import tecgraf.openbus.Openbus;
 import tecgraf.openbus.core.v1_05.access_control_service.Credential;
-import demoidl.hello.IHelloPOA;
+import tecgraf.openbus.interop.simple.HelloPOA;
 
 public final class HelloImpl extends IHelloPOA {
   public void sayHello() {

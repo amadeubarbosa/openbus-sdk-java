@@ -8,12 +8,8 @@ import org.omg.CORBA.UserException;
 
 import scs.core.IComponent;
 import tecgraf.openbus.Openbus;
-import tecgraf.openbus.core.v1_05.registry_service.IRegistryService;
-import tecgraf.openbus.core.v1_05.registry_service.ServiceOffer;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.RSUnavailableException;
-import demoidl.hello.IHello;
-import demoidl.hello.IHelloHelper;
 
 public class HelloClient {
   public static void main(String[] args) throws OpenBusException,

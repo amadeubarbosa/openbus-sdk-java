@@ -23,7 +23,7 @@ import tecgraf.openbus.core.v1_05.registry_service.UnathorizedFacets;
 import tecgraf.openbus.exception.OpenBusException;
 import tecgraf.openbus.exception.RSUnavailableException;
 import tecgraf.openbus.util.CryptoUtils;
-import demoidl.hello.IHelloHelper;
+import tecgraf.openbus.interop.simple.HelloHelper;
 
 public class HelloFTServer {
 
