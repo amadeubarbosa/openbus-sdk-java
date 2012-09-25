@@ -5,7 +5,7 @@ import tecgraf.openbus.core.v1_05.access_control_service.Credential;
 import tecgraf.openbus.interop.simple.HelloPOA;
 
 public final class HelloImpl extends HelloPOA {
-  public void sayHello() {
+  public String sayHello() {
     Openbus openbus = Openbus.getInstance();
     Credential credential = openbus.getInterceptedCredential();
     String message;
@@ -18,5 +18,6 @@ public final class HelloImpl extends HelloPOA {
           credential.owner);
     }
     System.out.println(message);
+    return message;
   }
 }
