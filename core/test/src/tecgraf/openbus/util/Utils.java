@@ -4,6 +4,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
@@ -66,7 +69,7 @@ public class Utils {
    */
   public static ComponentContext buildTestCallerChainComponent(
     final OpenBusContext context) throws Exception {
-    ComponentContext component = buildComponent(context);
+    ComponentContext component = buildComponent(context.orb());
     component.updateFacet("IComponent", new IComponentServant(component) {
       /**
        * Método vai lançar uma exceção caso não consiga recuperar uma cadeia
@@ -95,7 +98,7 @@ public class Utils {
    */
   public static ComponentContext buildTestConnectionComponent(
     final OpenBusContext context) throws Exception {
-    ComponentContext component = buildComponent(context);
+    ComponentContext component = buildComponent(context.orb());
     component.updateFacet("IComponent", new IComponentServant(component) {
       /**
        * Método vai lançar uma exceção caso não consiga recuperar uma conexão. O
@@ -118,19 +121,32 @@ public class Utils {
   /**
    * Constrói um componente SCS
    * 
-   * @param context o contexto
+   * @param orb o orb em uso
    * @return um componente
    * @throws SCSException
    * @throws AdapterInactive
    * @throws InvalidName
    */
-  public static ComponentContext buildComponent(OpenBusContext context)
-    throws SCSException, AdapterInactive, InvalidName {
-    ORB orb = context.orb();
+  public static ComponentContext buildComponent(ORB orb) throws SCSException,
+    AdapterInactive, InvalidName {
     POA poa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
     poa.the_POAManager().activate();
     ComponentId id =
-      new ComponentId("CallChainTest", (byte) 1, (byte) 0, (byte) 0, "java");
+      new ComponentId("TestComponent", (byte) 1, (byte) 0, (byte) 0, "java");
     return new ComponentContext(orb, poa, id);
+  }
+
+  /**
+   * Configura o nível de log
+   * 
+   * @param level nível do log.
+   */
+  public static void setLogLevel(Level level) {
+    Logger logger = Logger.getLogger("tecgraf.openbus");
+    logger.setLevel(level);
+    logger.setUseParentHandlers(false);
+    ConsoleHandler handler = new ConsoleHandler();
+    handler.setLevel(level);
+    logger.addHandler(handler);
   }
 }

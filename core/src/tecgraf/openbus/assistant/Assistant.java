@@ -1,11 +1,13 @@
 package tecgraf.openbus.assistant;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Properties;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -18,15 +20,21 @@ import org.omg.CORBA.ORBPackage.InvalidName;
 import scs.core.ComponentContext;
 import scs.core.IComponent;
 import tecgraf.openbus.Connection;
+import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.PrivateKey;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
+import tecgraf.openbus.core.v2_0.services.UnauthorizedOperation;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
+import tecgraf.openbus.core.v2_0.services.access_control.InvalidLoginCode;
+import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_0.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_0.services.offer_registry.InvalidProperties;
 import tecgraf.openbus.core.v2_0.services.offer_registry.InvalidService;
 import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
+import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOffer;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.core.v2_0.services.offer_registry.UnauthorizedFacets;
@@ -61,7 +69,9 @@ public abstract class Assistant {
 
   /** Intervalo de espera entre tentativas */
   private int interval = 5;
+  /** Host com o qual o assistente quer se conectar */
   private String host;
+  /** Porta com a qual o assistente quer se conectar */
   private int port;
   /** ORB utilizado pelo assistente */
   private ORB orb;
@@ -72,21 +82,43 @@ public abstract class Assistant {
   /** Callback para informar os erros ocorridos no uso do assistente */
   private OnFailureCallback callback;
   /** Mapa de ofertas a serem mantidas pelo assistente */
-  private HashMap<ComponentContext, Offer> offers;
-
-  private ExecutorService threadPool = Executors.newCachedThreadPool();;
+  private Map<ComponentContext, Offer> offers = Collections
+    .synchronizedMap(new HashMap<ComponentContext, Offer>());
+  /** Identifica se o assistente deve finalizar */
+  private volatile boolean shutdown = false;
+  /** Controlador do pool de threads utilizadas pelo assistente */
+  private ExecutorService threadPool = Executors.newCachedThreadPool();
 
   /**
-   * Construtor.
+   * Cria um assistente que efetua login no barramento utilizando autenticação
+   * definida pelo método {@link Assistant#onLoginAuthentication()}.
+   * <p>
+   * Assistentes criados com essa operação realizam o login no barramento sempre
+   * utilizando autenticação definida pelo método
+   * {@link Assistant#onLoginAuthentication()} que informa a forma de
+   * autenticação, assim como os dados para realizar essa autenticação.
+   * 
+   * @param host Endereço ou nome de rede onde os serviços núcleo do barramento
+   *        estão executando.
+   * @param port Porta onde os serviços núcleo do barramento estão executando.
    */
   public Assistant(String host, int port) {
     this(host, port, null);
   }
 
   /**
-   * Construtor.
+   * Cria um assistente que efetua login no barramento utilizando autenticação
+   * definida pelo método {@link Assistant#onLoginAuthentication()}.
+   * <p>
+   * Assistentes criados com essa operação realizam o login no barramento sempre
+   * utilizando autenticação definida pelo método
+   * {@link Assistant#onLoginAuthentication()} que informa a forma de
+   * autenticação, assim como os dados para realizar essa autenticação.
    * 
-   * @param params Parâmetros de configuração do assistente.
+   * @param host Endereço ou nome de rede onde os serviços núcleo do barramento
+   *        estão executando.
+   * @param port Porta onde os serviços núcleo do barramento estão executando.
+   * @param params Parâmetros opicionais de configuração do assistente
    */
   public Assistant(String host, int port, AssistantParams params) {
     this.host = host;
@@ -117,7 +149,7 @@ public abstract class Assistant {
       throw new IllegalArgumentException("ORB já está em uso.");
     }
     context.setDefaultConnection(conn);
-    // TODO cadastrar onInvalidLoginCallback
+    conn.onInvalidLoginCallback(new OnInvalidLogin());
     if (params.interval != null) {
       interval = params.interval;
     }
@@ -129,6 +161,106 @@ public abstract class Assistant {
     }
     // realiza o login
     threadPool.execute(new DoLogin(this));
+  }
+
+  /**
+   * Cria um assistente que efetua login no barramento utilizando autenticação
+   * por senha.
+   * <p>
+   * Assistentes criados com essa operação realizam o login no barramento sempre
+   * utilizando autenticação da entidade indicada pelo parâmetro 'entity' e a
+   * senha fornecida pelo parâmetro 'password'.
+   * 
+   * @param host Endereço ou nome de rede onde os serviços núcleo do barramento
+   *        estão executando.
+   * @param port Porta onde os serviços núcleo do barramento estão executando.
+   * @param entity Identificador da entidade a ser autenticada.
+   * @param password Senha de autenticação no barramento da entidade.
+   * 
+   * @return um novo assistente.
+   */
+  public static Assistant createWithPassword(String host, int port,
+    final String entity, final byte[] password) {
+    return createWithPassword(host, port, entity, password, null);
+  }
+
+  /**
+   * Cria um assistente que efetua login no barramento utilizando autenticação
+   * por senha.
+   * <p>
+   * Assistentes criados com essa operação realizam o login no barramento sempre
+   * utilizando autenticação da entidade indicada pelo parâmetro 'entity' e a
+   * senha fornecida pelo parâmetro 'password'.
+   * 
+   * @param host Endereço ou nome de rede onde os serviços núcleo do barramento
+   *        estão executando.
+   * @param port Porta onde os serviços núcleo do barramento estão executando.
+   * @param entity Identificador da entidade a ser autenticada.
+   * @param password Senha de autenticação no barramento da entidade.
+   * @param params Parâmetros opicionais de configuração do assistente
+   * 
+   * @return um novo assistente.
+   */
+  public static Assistant createWithPassword(String host, int port,
+    final String entity, final byte[] password, AssistantParams params) {
+    return new Assistant(host, port, params) {
+
+      @Override
+      public AuthArgs onLoginAuthentication() {
+        return new AuthArgs(entity, password);
+      }
+    };
+  }
+
+  /**
+   * Cria um assistente que efetua login no barramento utilizando autenticação
+   * por certificado.
+   * <p>
+   * Assistentes criados com essa operação realizam o login no barramento sempre
+   * utilizando autenticação da entidade indicada pelo parâmetro 'entity' e a
+   * chave privada fornecida pelo parâmetro 'key'.
+   * 
+   * @param host Endereço ou nome de rede onde os serviços núcleo do barramento
+   *        estão executando.
+   * @param port Porta onde os serviços núcleo do barramento estão executando.
+   * @param entity Identificador da entidade a ser autenticada.
+   * @param key Chave privada correspondente ao certificado registrado a ser
+   *        utilizada na autenticação.
+   * 
+   * @return um novo assistente.
+   */
+  public static Assistant createWithPrivateKey(String host, int port,
+    final String entity, final PrivateKey key) {
+    return createWithPrivateKey(host, port, entity, key, null);
+  }
+
+  /**
+   * Cria um assistente que efetua login no barramento utilizando autenticação
+   * por certificado.
+   * <p>
+   * Assistentes criados com essa operação realizam o login no barramento sempre
+   * utilizando autenticação da entidade indicada pelo parâmetro 'entity' e a
+   * chave privada fornecida pelo parâmetro 'key'.
+   * 
+   * @param host Endereço ou nome de rede onde os serviços núcleo do barramento
+   *        estão executando.
+   * @param port Porta onde os serviços núcleo do barramento estão executando.
+   * @param entity Identificador da entidade a ser autenticada.
+   * @param key Chave privada correspondente ao certificado registrado a ser
+   *        utilizada na autenticação.
+   * @param params Parâmetros opicionais de configuração do assistente
+   * 
+   * @return um novo assistente.
+   */
+  public static Assistant createWithPrivateKey(String host, int port,
+    final String entity, final PrivateKey key, AssistantParams params) {
+    return new Assistant(host, port, params) {
+
+      @Override
+      public AuthArgs onLoginAuthentication() {
+        return new AuthArgs(entity, key);
+      }
+    };
   }
 
   /**
@@ -192,10 +324,7 @@ public abstract class Assistant {
       if (offerDescs != null) {
         return offerDescs;
       }
-      // CHECK devo me preocupar com o "overflow" do contador? 
-      --attempt;
-    } while (attempt > 0 || retries < 0);
-    // CHECK retorna lista vazia ou nulo?
+    } while (retryFind(retries, --attempt));
     return new ServiceOfferDesc[0];
   }
 
@@ -220,10 +349,31 @@ public abstract class Assistant {
       if (offerDescs != null) {
         return offerDescs;
       }
-      --attempt;
-    } while (attempt > 0 || retries < 0);
-    // CHECK retorna lista vazia ou nulo?
+    } while (retryFind(retries, --attempt));
     return new ServiceOfferDesc[0];
+  }
+
+  /**
+   * Verifica se deve realizar uma nova busca
+   * 
+   * @param retries número de tentativas configuradas pelo usuário
+   * @param attempt número de tentativa restantes
+   * @return <code>true</code> caso deva realizar uma nova busca, e
+   *         <code>false</code> caso contrário.
+   */
+  private boolean retryFind(int retries, int attempt) {
+    if (retries < 0 || attempt > 0) {
+      try {
+        Thread.sleep(interval * 1000);
+      }
+      catch (InterruptedException e) {
+        logger.log(Level.SEVERE, "'Find' foi interrompido.", e);
+      }
+    }
+    else {
+      return false;
+    }
+    return true;
   }
 
   /**
@@ -247,6 +397,7 @@ public abstract class Assistant {
    * através da operação 'ORB::shutdown()')
    */
   public void shutdown() {
+    this.shutdown = true;
     threadPool.shutdownNow();
     // Aguarda o término da execução das threads
     try {
@@ -300,8 +451,8 @@ public abstract class Assistant {
 
   /**
    * Método responsável por recuperar os argumentos necessários e realizar o
-   * login junto ao barramento. O método retorna uma indicação se ocorreu alguma
-   * falha durante o login.
+   * login junto ao barramento. O método retorna uma indicação se deveria
+   * retentar o login , dado que ocorreu alguma falha durante o processo.
    * 
    * @return <code>true</code> caso o processo de login tenha falhado, e
    *         <code>false</code> caso seja bem sucedido.
@@ -328,6 +479,7 @@ public abstract class Assistant {
     }
     catch (AlreadyLoggedIn e) {
       // ignorando o erro
+      failed = false;
     }
     catch (MissingCertificate e) {
       ex = e;
@@ -470,67 +622,12 @@ public abstract class Assistant {
     return offerDescs;
   }
 
-  /**
-   * 
-   * Representa um conjunto de parâmetros opcionais que podem ser utilizados
-   * para definir parâmetros de configuração na construção do Assistente.
-   * <p>
-   * Os parâmetros opicionais são descritos abaixo:
-   * <ul>
-   * <li>interval: Tempo em segundos indicando o tempo mínimo de espera antes de
-   * cada nova tentativa após uma falha na execução de uma tarefa. Por exemplo,
-   * depois de uma falha na tentativa de um login ou registro de oferta, o
-   * assistente espera pelo menos o tempo indicado por esse parâmetro antes de
-   * tentar uma nova tentativa.
-   * <li>orb: O ORB a ser utilizado pelo assistente para realizar suas tarefas.
-   * O assistente também configura esse ORB de forma que todas as chamadas
-   * feitas por ele sejam feitas com a identidade do login estabelecido pelo
-   * assistente. Esse ORB deve ser iniciado de acordo com os requisitos do
-   * projeto OpenBus, como feito pela operação 'ORBInitializer::initORB()'.
-   * <li>connprops: Propriedades da conexão a ser criada com o barramento
-   * espeficiado. Para maiores informações sobre essas propriedades, veja a
-   * operação 'OpenBusContext::createConnection()'.
-   * <li>callback: Objeto de callback que recebe notificações de falhas das
-   * tarefas realizadas pelo assistente.
-   * </ul>
-   * 
-   * @author Tecgraf
-   */
-  static public class AssistantParams {
-    /**
-     * Tempo em segundos indicando o tempo mínimo de espera antes de cada nova
-     * tentativa após uma falha na execução de uma tarefa. Por exemplo, depois
-     * de uma falha na tentativa de um login ou registro de oferta, o assistente
-     * espera pelo menos o tempo indicado por esse parâmetro antes de tentar uma
-     * nova tentativa.
-     */
-    public Integer interval;
-    /**
-     * O ORB a ser utilizado pelo assistente para realizar suas tarefas. O
-     * assistente também configura esse ORB de forma que todas as chamadas
-     * feitas por ele sejam feitas com a identidade do login estabelecido pelo
-     * assistente. Esse ORB deve ser iniciado de acordo com os requisitos do
-     * projeto OpenBus, como feito pela operação 'ORBInitializer::initORB()'.
-     */
-    public ORB orb;
-    /**
-     * Propriedades da conexão a ser criada com o barramento espeficiado. Para
-     * maiores informações sobre essas propriedades, veja a operação
-     * 'OpenBusContext::createConnection()'.
-     */
-    public Properties connprops;
-    /**
-     * Objeto de callback que recebe notificações de falhas das tarefas
-     * realizadas pelo assistente.
-     */
-    public OnFailureCallback callback;
-  }
-
-  private static class Offer {
+  private class Offer {
 
     Assistant assist;
     ComponentContext component;
     ServiceProperty[] properties;
+    AtomicReference<ServiceOffer> offer = new AtomicReference<ServiceOffer>();
 
     public Offer(Assistant assist, ComponentContext component,
       List<ServiceProperty> properties) {
@@ -540,12 +637,22 @@ public abstract class Assistant {
         properties.toArray(new ServiceProperty[properties.size()]);
     }
 
+    /**
+     * Método responsável por registrar a oferta de serviço no barramento. O
+     * método retorna uma indicação se deveria retentar o login , dado que
+     * ocorreu alguma falha durante o processo
+     * 
+     * @return <code>true</code> caso o registro tenha falhado, e
+     *         <code>false</code> caso seja bem sucedido.
+     */
     public boolean registryOffer() {
       boolean failed = true;
       Exception ex = null;
       try {
         OfferRegistry offerRegistry = assist.context.getOfferRegistry();
-        offerRegistry.registerService(component.getIComponent(), properties);
+        ServiceOffer theOffer =
+          offerRegistry.registerService(component.getIComponent(), properties);
+        offer.set(theOffer);
         failed = false;
       }
       // CHECK o que fazer em caso de erros inesperados? Capturo Exception?
@@ -616,6 +723,101 @@ public abstract class Assistant {
       }
       return failed;
     }
+
+    public void reset() {
+      this.offer.set(null);
+    }
+
+    public void cancel() {
+      // CHECK: método parece ser desnecessário
+      ServiceOffer theOffer = this.offer.getAndSet(null);
+      if (theOffer != null) {
+        boolean failed = true;
+        Exception ex = null;
+        while (failed && !assist.shutdown) {
+          try {
+            theOffer.remove();
+            failed = false;
+          }
+          catch (UnauthorizedOperation e) {
+            logger.log(Level.SEVERE,
+              "BUG: assistente deveria poder remover a oferta registrada", e);
+          }
+          // bus core
+          catch (ServiceFailure e) {
+            ex = e;
+            logger.log(Level.SEVERE, "Erro ao remover oferta.", e);
+          }
+          catch (TRANSIENT e) {
+            ex = e;
+            logger.log(Level.SEVERE, String.format(
+              "o barramento em %s:%s esta inacessível no momento", assist.host,
+              assist.port));
+          }
+          catch (COMM_FAILURE e) {
+            ex = e;
+            logger.log(Level.SEVERE,
+              "falha de comunicação ao acessar serviços núcleo do barramento");
+          }
+          catch (NO_PERMISSION e) {
+            ex = e;
+            if (e.minor == NoLoginCode.value) {
+              logger.log(Level.SEVERE, "não há um login válido no momento");
+            }
+            else {
+              logger
+                .log(Level.SEVERE, String.format(
+                  "erro de NO_PERMISSION não esperado: minor_code = %s",
+                  e.minor));
+            }
+          }
+          finally {
+            if (failed) {
+              try {
+                Thread.sleep(assist.interval * 1000);
+              }
+              catch (InterruptedException e) {
+                logger.log(Level.SEVERE,
+                  "Thread 'Offer.cancel' foi interrompida.", e);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Callback do assistente a ser chamado quando ocorrer uma exceção
+   * {@link NO_PERMISSION} com minor igual a {@link InvalidLoginCode}
+   * 
+   * @author Tecgraf
+   */
+  private class OnInvalidLogin implements InvalidLoginCallback {
+
+    /**
+     * Refaz o login e dispara threads para registrar as ofertas novamente.
+     * {@inheritDoc}
+     */
+    @Override
+    public void invalidLogin(Connection conn, LoginInfo login) {
+      logger.fine("Iniciando callback 'OnInvalidLogin");
+      synchronized (Assistant.this.offers) {
+        for (Offer aOffer : Assistant.this.offers.values()) {
+          aOffer.reset();
+        }
+      }
+      DoLogin doLogin = new DoLogin(Assistant.this);
+      doLogin.run();
+      synchronized (Assistant.this.offers) {
+        for (Offer aOffer : Assistant.this.offers.values()) {
+          Assistant.this.threadPool.execute(new DoRegister(Assistant.this,
+            aOffer));
+        }
+      }
+      logger.fine("Finalizando callback 'OnInvalidLogin");
+    }
+
   }
 
   /**
@@ -643,21 +845,23 @@ public abstract class Assistant {
     @Override
     public void run() {
       boolean retry = true;
+      logger.fine("Iniciando tarefa 'DoLogin'.");
       if (assist.conn.login() != null) {
         // já possui um login válido
         retry = false;
       }
-      while (retry) {
+      while (retry && !assist.shutdown) {
         retry = assist.login();
         if (retry) {
           try {
             Thread.sleep(assist.interval * 1000);
           }
           catch (InterruptedException e) {
-            // do nothing
+            logger.log(Level.SEVERE, "Thread 'DoLogin' foi interrompida.", e);
           }
         }
       }
+      logger.fine("Finalizando tarefa 'DoLogin'.");
     }
   }
 
@@ -677,6 +881,7 @@ public abstract class Assistant {
      * Construtor
      * 
      * @param assist o assistente em uso.
+     * @param offer a oferta a ser registrada.
      */
     public DoRegister(Assistant assist, Offer offer) {
       this.assist = assist;
@@ -689,18 +894,22 @@ public abstract class Assistant {
     @Override
     public void run() {
       boolean retry = true;
-      while (retry) {
-        retry = offer.registryOffer();
-        retry = assist.login();
+      logger.fine("Iniciando tarefa 'DoRegister'.");
+      while (retry && !assist.shutdown) {
+        if (assist.conn.login() != null) {
+          retry = offer.registryOffer();
+        }
         if (retry) {
           try {
             Thread.sleep(assist.interval * 1000);
           }
           catch (InterruptedException e) {
-            // do nothing
+            logger
+              .log(Level.SEVERE, "Thread 'DoRegister' foi interrompida.", e);
           }
         }
       }
+      logger.fine("Finalizando tarefa 'DoRegister'.");
     }
   }
 
@@ -736,18 +945,6 @@ public abstract class Assistant {
       // do nothing
     }
 
-  }
-
-  /**
-   * @param args
-   */
-  public static void main(String[] args) {
-    Assistant assist = new Assistant("localhost", 2089) {
-      @Override
-      public AuthArgs onLoginAuthentication() {
-        return new AuthArgs("entity", "entity".getBytes());
-      }
-    };
   }
 
 }

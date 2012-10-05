@@ -92,7 +92,7 @@ public class MassiveConnectionTest {
         final Connection conn = context.createConnection(host, port);
         conn.loginByPassword(entity, entity.getBytes());
         context.setCurrentConnection(conn);
-        ComponentContext component = Utils.buildComponent(context);
+        ComponentContext component = Utils.buildComponent(orb);
         ServiceProperty[] props =
           new ServiceProperty[] {
               new ServiceProperty("offer.domain", "Massive Test"),
