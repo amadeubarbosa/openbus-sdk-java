@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -320,9 +321,11 @@ public abstract class Assistant {
     int retries) {
     int attempt = retries;
     do {
-      ServiceOfferDesc[] offerDescs = find(properties);
-      if (offerDescs != null) {
-        return offerDescs;
+      if (conn.login() != null) {
+        ServiceOfferDesc[] offerDescs = find(properties);
+        if (offerDescs != null) {
+          return offerDescs;
+        }
       }
     } while (retryFind(retries, --attempt));
     return new ServiceOfferDesc[0];
@@ -345,9 +348,11 @@ public abstract class Assistant {
   public ServiceOfferDesc[] getServices(int retries) {
     int attempt = retries;
     do {
-      ServiceOfferDesc[] offerDescs = getAllServices();
-      if (offerDescs != null) {
-        return offerDescs;
+      if (conn.login() != null) {
+        ServiceOfferDesc[] offerDescs = getAllServices();
+        if (offerDescs != null) {
+          return offerDescs;
+        }
       }
     } while (retryFind(retries, --attempt));
     return new ServiceOfferDesc[0];
@@ -404,7 +409,7 @@ public abstract class Assistant {
       long timeout = 3 * interval;
       TimeUnit timeUnit = TimeUnit.SECONDS;
       if (!threadPool.awaitTermination(timeout, timeUnit)) {
-        logger.log(Level.SEVERE, String.format(
+        logger.log(Level.WARNING, String.format(
           "pool de threads não finalizou. Timeout = %s s", timeout));
       }
     }
@@ -417,23 +422,23 @@ public abstract class Assistant {
     // bus core
     catch (ServiceFailure e) {
       logger.log(Level.SEVERE, String.format(
-        "falha severa no barramento em %s:%s : %s", host, port, e.message));
+        "falha severa no barramento em %s:%s : %s", host, port, e.message), e);
     }
     catch (TRANSIENT e) {
-      logger.log(Level.SEVERE, String.format(
-        "o barramento em %s:%s esta inacessível no momento", host, port));
+      logger.log(Level.WARNING, String.format(
+        "o barramento em %s:%s esta inacessível no momento", host, port), e);
     }
     catch (COMM_FAILURE e) {
-      logger.log(Level.SEVERE,
-        "falha de comunicação ao acessar serviços núcleo do barramento");
+      logger.log(Level.WARNING,
+        "falha de comunicação ao acessar serviços núcleo do barramento", e);
     }
     catch (NO_PERMISSION e) {
       if (e.minor == NoLoginCode.value) {
-        logger.log(Level.SEVERE, "não há um login válido no momento");
+        logger.log(Level.WARNING, "não há um login válido no momento", e);
       }
       else {
         logger.log(Level.SEVERE, String.format(
-          "erro de NO_PERMISSION não esperado: minor_code = %s", e.minor));
+          "erro de NO_PERMISSION não esperado: minor_code = %s", e.minor), e);
       }
     }
     context.setDefaultConnection(null);
@@ -496,22 +501,22 @@ public abstract class Assistant {
     }
     catch (TRANSIENT e) {
       ex = e;
-      logger.log(Level.SEVERE, String.format(
-        "o barramento em %s:%s esta inacessível no momento", host, port));
+      logger.log(Level.WARNING, String.format(
+        "o barramento em %s:%s esta inacessível no momento", host, port), e);
     }
     catch (COMM_FAILURE e) {
       ex = e;
-      logger.log(Level.SEVERE,
-        "falha de comunicação ao acessar serviços núcleo do barramento");
+      logger.log(Level.WARNING,
+        "falha de comunicação ao acessar serviços núcleo do barramento", e);
     }
     catch (NO_PERMISSION e) {
       ex = e;
       if (e.minor == NoLoginCode.value) {
-        logger.log(Level.SEVERE, "não há um login válido no momento");
+        logger.log(Level.WARNING, "não há um login válido no momento", e);
       }
       else {
         logger.log(Level.SEVERE, String.format(
-          "erro de NO_PERMISSION não esperado: minor_code = %s", e.minor));
+          "erro de NO_PERMISSION não esperado: minor_code = %s", e.minor), e);
       }
     }
     finally {
@@ -547,22 +552,22 @@ public abstract class Assistant {
     }
     catch (TRANSIENT e) {
       ex = e;
-      logger.log(Level.SEVERE, String.format(
-        "o barramento em %s:%s esta inacessível no momento", host, port));
+      logger.log(Level.WARNING, String.format(
+        "o barramento em %s:%s esta inacessível no momento", host, port), e);
     }
     catch (COMM_FAILURE e) {
       ex = e;
-      logger.log(Level.SEVERE,
-        "falha de comunicação ao acessar serviços núcleo do barramento");
+      logger.log(Level.WARNING,
+        "falha de comunicação ao acessar serviços núcleo do barramento", e);
     }
     catch (NO_PERMISSION e) {
       ex = e;
       if (e.minor == NoLoginCode.value) {
-        logger.log(Level.SEVERE, "não há um login válido no momento");
+        logger.log(Level.WARNING, "não há um login válido no momento", e);
       }
       else {
         logger.log(Level.SEVERE, String.format(
-          "erro de NO_PERMISSION não esperado: minor_code = %s", e.minor));
+          "erro de NO_PERMISSION não esperado: minor_code = %s", e.minor), e);
       }
     }
     finally {
@@ -596,22 +601,22 @@ public abstract class Assistant {
     }
     catch (TRANSIENT e) {
       ex = e;
-      logger.log(Level.SEVERE, String.format(
-        "o barramento em %s:%s esta inacessível no momento", host, port));
+      logger.log(Level.WARNING, String.format(
+        "o barramento em %s:%s esta inacessível no momento", host, port), e);
     }
     catch (COMM_FAILURE e) {
       ex = e;
-      logger.log(Level.SEVERE,
-        "falha de comunicação ao acessar serviços núcleo do barramento");
+      logger.log(Level.WARNING,
+        "falha de comunicação ao acessar serviços núcleo do barramento", e);
     }
     catch (NO_PERMISSION e) {
       ex = e;
       if (e.minor == NoLoginCode.value) {
-        logger.log(Level.SEVERE, "não há um login válido no momento");
+        logger.log(Level.WARNING, "não há um login válido no momento", e);
       }
       else {
         logger.log(Level.SEVERE, String.format(
-          "erro de NO_PERMISSION não esperado: minor_code = %s", e.minor));
+          "erro de NO_PERMISSION não esperado: minor_code = %s", e.minor), e);
       }
     }
     finally {
@@ -622,19 +627,59 @@ public abstract class Assistant {
     return offerDescs;
   }
 
+  /**
+   * Classe interna do Assistente que representa uma oferta a se manter
+   * registrada no barramento.
+   * 
+   * @author Tecgraf
+   */
   private class Offer {
 
+    /** O assistente */
     Assistant assist;
+    /** O Componente a ser registrado */
     ComponentContext component;
+    /** Propriedades a serem cadastradas na oferta */
     ServiceProperty[] properties;
-    AtomicReference<ServiceOffer> offer = new AtomicReference<ServiceOffer>();
+    /** Referência para a descrição da oferta */
+    AtomicReference<ServiceOfferDesc> offer =
+      new AtomicReference<ServiceOfferDesc>();
+    /** Lock da oferta */
+    Object lock = new Object();
+    /** Variável condicional que informa que um evento de INVALID LOGIN ocorreu */
+    AtomicBoolean event = new AtomicBoolean(true);
 
+    /**
+     * Construtor.
+     * 
+     * @param assist o assistente
+     * @param component o componente a ser ofertado
+     * @param properties as propriedades com as quais a oferta deve se cadastrar
+     */
     public Offer(Assistant assist, ComponentContext component,
       List<ServiceProperty> properties) {
       this.assist = assist;
       this.component = component;
       this.properties =
         properties.toArray(new ServiceProperty[properties.size()]);
+    }
+
+    /**
+     * Recupera o login da conexão que registrou a oferta.
+     * 
+     * @return o login da conexão que registrou a oferta, ou <code>null</code>
+     *         caso não tenha sido registrada nenhuma vez.
+     */
+    public String loginId() {
+      ServiceOfferDesc desc = offer.get();
+      if (desc != null) {
+        for (ServiceProperty prop : desc.properties) {
+          if (prop.name.equals("openbus.offer.login")) {
+            return prop.value;
+          }
+        }
+      }
+      return null;
     }
 
     /**
@@ -652,7 +697,7 @@ public abstract class Assistant {
         OfferRegistry offerRegistry = assist.context.getOfferRegistry();
         ServiceOffer theOffer =
           offerRegistry.registerService(component.getIComponent(), properties);
-        offer.set(theOffer);
+        offer.set(theOffer.describe());
         failed = false;
       }
       // CHECK o que fazer em caso de erros inesperados? Capturo Exception?
@@ -666,16 +711,16 @@ public abstract class Assistant {
         ex = e;
         logger
           .log(
-            Level.SEVERE,
+            Level.WARNING,
             String
               .format(
                 "a entidade não foi autorizada pelo administrador do barramento a ofertar os serviços: %s",
-                interfaces.toString()));
+                interfaces.toString()), e);
       }
       catch (InvalidService e) {
         ex = e;
-        logger.log(Level.SEVERE,
-          "o serviço ofertado apresentou alguma falha durante o registro.");
+        logger.log(Level.WARNING,
+          "o serviço ofertado apresentou alguma falha durante o registro.", e);
       }
       catch (InvalidProperties e) {
         StringBuffer props = new StringBuffer();
@@ -685,9 +730,9 @@ public abstract class Assistant {
             prop.value));
         }
         ex = e;
-        logger.log(Level.SEVERE, String.format(
+        logger.log(Level.WARNING, String.format(
           "tentativa de registrar serviço com propriedades inválidas: %s",
-          props.toString()));
+          props.toString()), e);
       }
       // bus core
       catch (ServiceFailure e) {
@@ -696,23 +741,23 @@ public abstract class Assistant {
       }
       catch (TRANSIENT e) {
         ex = e;
-        logger.log(Level.SEVERE, String.format(
+        logger.log(Level.WARNING, String.format(
           "o barramento em %s:%s esta inacessível no momento", assist.host,
-          assist.port));
+          assist.port), e);
       }
       catch (COMM_FAILURE e) {
         ex = e;
-        logger.log(Level.SEVERE,
-          "falha de comunicação ao acessar serviços núcleo do barramento");
+        logger.log(Level.WARNING,
+          "falha de comunicação ao acessar serviços núcleo do barramento", e);
       }
       catch (NO_PERMISSION e) {
         ex = e;
         if (e.minor == NoLoginCode.value) {
-          logger.log(Level.SEVERE, "não há um login válido no momento");
+          logger.log(Level.WARNING, "não há um login válido no momento", e);
         }
         else {
           logger.log(Level.SEVERE, String.format(
-            "erro de NO_PERMISSION não esperado: minor_code = %s", e.minor));
+            "erro de NO_PERMISSION não esperado: minor_code = %s", e.minor), e);
         }
       }
       finally {
@@ -724,19 +769,26 @@ public abstract class Assistant {
       return failed;
     }
 
+    /**
+     * Marca a oferta como inválida para que o registro seja refeito.
+     */
     public void reset() {
-      this.offer.set(null);
+      synchronized (this.lock) {
+        this.event.set(true);
+        this.lock.notifyAll();
+        logger.fine("Resetando oferta.");
+      }
     }
 
     public void cancel() {
       // CHECK: método parece ser desnecessário
-      ServiceOffer theOffer = this.offer.getAndSet(null);
+      ServiceOfferDesc theOffer = this.offer.getAndSet(null);
       if (theOffer != null) {
         boolean failed = true;
         Exception ex = null;
         while (failed && !assist.shutdown) {
           try {
-            theOffer.remove();
+            theOffer.ref.remove();
             failed = false;
           }
           catch (UnauthorizedOperation e) {
@@ -750,25 +802,26 @@ public abstract class Assistant {
           }
           catch (TRANSIENT e) {
             ex = e;
-            logger.log(Level.SEVERE, String.format(
+            logger.log(Level.WARNING, String.format(
               "o barramento em %s:%s esta inacessível no momento", assist.host,
-              assist.port));
+              assist.port), e);
           }
           catch (COMM_FAILURE e) {
             ex = e;
-            logger.log(Level.SEVERE,
-              "falha de comunicação ao acessar serviços núcleo do barramento");
+            logger.log(Level.WARNING,
+              "falha de comunicação ao acessar serviços núcleo do barramento",
+              e);
           }
           catch (NO_PERMISSION e) {
             ex = e;
             if (e.minor == NoLoginCode.value) {
-              logger.log(Level.SEVERE, "não há um login válido no momento");
+              logger.log(Level.WARNING, "não há um login válido no momento", e);
             }
             else {
-              logger
-                .log(Level.SEVERE, String.format(
+              logger.log(Level.SEVERE,
+                String.format(
                   "erro de NO_PERMISSION não esperado: minor_code = %s",
-                  e.minor));
+                  e.minor), e);
             }
           }
           finally {
@@ -777,8 +830,7 @@ public abstract class Assistant {
                 Thread.sleep(assist.interval * 1000);
               }
               catch (InterruptedException e) {
-                logger.log(Level.SEVERE,
-                  "Thread 'Offer.cancel' foi interrompida.", e);
+                logger.fine("Thread 'Offer.cancel' foi interrompida.");
               }
             }
           }
@@ -802,17 +854,11 @@ public abstract class Assistant {
     @Override
     public void invalidLogin(Connection conn, LoginInfo login) {
       logger.fine("Iniciando callback 'OnInvalidLogin");
-      synchronized (Assistant.this.offers) {
-        for (Offer aOffer : Assistant.this.offers.values()) {
-          aOffer.reset();
-        }
-      }
       DoLogin doLogin = new DoLogin(Assistant.this);
       doLogin.run();
       synchronized (Assistant.this.offers) {
         for (Offer aOffer : Assistant.this.offers.values()) {
-          Assistant.this.threadPool.execute(new DoRegister(Assistant.this,
-            aOffer));
+          aOffer.reset();
         }
       }
       logger.fine("Finalizando callback 'OnInvalidLogin");
@@ -857,7 +903,7 @@ public abstract class Assistant {
             Thread.sleep(assist.interval * 1000);
           }
           catch (InterruptedException e) {
-            logger.log(Level.SEVERE, "Thread 'DoLogin' foi interrompida.", e);
+            logger.fine("Thread 'DoLogin' foi interrompida.");
           }
         }
       }
@@ -893,19 +939,45 @@ public abstract class Assistant {
      */
     @Override
     public void run() {
-      boolean retry = true;
       logger.fine("Iniciando tarefa 'DoRegister'.");
-      while (retry && !assist.shutdown) {
-        if (assist.conn.login() != null) {
-          retry = offer.registryOffer();
-        }
-        if (retry) {
-          try {
-            Thread.sleep(assist.interval * 1000);
+      while (!assist.shutdown) {
+        boolean retry = true;
+        // espera por notificação de evento
+        synchronized (offer.lock) {
+          while (!offer.event.get() && !assist.shutdown) {
+            try {
+              offer.lock.wait();
+            }
+            catch (InterruptedException e) {
+              logger.fine("Thread 'DoRegister' foi interrompida.");
+              break;
+            }
           }
-          catch (InterruptedException e) {
-            logger
-              .log(Level.SEVERE, "Thread 'DoRegister' foi interrompida.", e);
+          offer.event.set(false);
+        }
+        // tratando 1 evento
+        while (retry && !assist.shutdown) {
+          logger.fine("Thread 'DoRegister' tratando evento");
+          LoginInfo login = assist.conn.login();
+          if (login != null) {
+            if (!login.id.equals(offer.loginId())) {
+              retry = offer.registryOffer();
+            }
+            else {
+              retry = false;
+            }
+          }
+          if (retry) {
+            try {
+              Thread.sleep(assist.interval * 1000);
+            }
+            catch (InterruptedException e) {
+              logger.warning("Thread 'DoRegister' foi interrompida.");
+              break;
+            }
+          }
+          else {
+            logger.fine("Completou atendimento de evento 'DoRegister'.");
           }
         }
       }
