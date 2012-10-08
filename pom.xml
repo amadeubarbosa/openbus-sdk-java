@@ -15,7 +15,7 @@
     <scsidl.version>1.3-SNAPSHOT</scsidl.version>
     <scs.version>1.3.0-SNAPSHOT</scs.version>
     <junit.version>4.6</junit.version>
-    <jacorb.version>3.0</jacorb.version>
+    <jacorb.version>3.1</jacorb.version>
     <project.build.sourceEncoding>ISO-8859-1</project.build.sourceEncoding>
   </properties>
 
@@ -92,7 +92,7 @@
         <dependencies>
           <dependency>
             <groupId>org.jacorb</groupId>
-            <artifactId>idl-compiler</artifactId>
+            <artifactId>jacorb-idl-compiler</artifactId>
             <version>${jacorb.version}</version>
           </dependency>
         </dependencies>

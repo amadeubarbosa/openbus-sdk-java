@@ -18,7 +18,7 @@ class InternalLogin {
     .getName());
 
   /** Informações do login */
-  private LoginInfo login;
+  private LoginInfo login = null;
   /** Informações do login inválido */
   private LoginInfo invalid = null;
   /** A conexão deste login */

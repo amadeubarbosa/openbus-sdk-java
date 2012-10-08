@@ -23,6 +23,7 @@ import tecgraf.openbus.security.Cryptography;
  */
 final class BusInfo {
 
+  /** Referência CORBA::Object do barramento */
   private org.omg.CORBA.Object rawObject;
 
   /** Identificador do barramento */
@@ -55,7 +56,7 @@ final class BusInfo {
   }
 
   /**
-   * Atualiza a referência das facetas
+   * Obtém as referências básicas para realizar o login com o barramento.
    */
   void basicBusInitialization() {
     boolean existent = false;
@@ -78,16 +79,25 @@ final class BusInfo {
     retrieveBusIdAndKey();
   }
 
+  /**
+   * Inicializa todas as referências das demais facetas do barramento
+   */
   void fullBusInitialization() {
     org.omg.CORBA.Object obj;
-    obj = bus.getFacet(LoginRegistryHelper.id());
-    this.loginRegistry = LoginRegistryHelper.narrow(obj);
+    if (this.loginRegistry == null) {
+      obj = bus.getFacet(LoginRegistryHelper.id());
+      this.loginRegistry = LoginRegistryHelper.narrow(obj);
+    }
 
-    obj = bus.getFacet(CertificateRegistryHelper.id());
-    this.certificateRegistry = CertificateRegistryHelper.narrow(obj);
+    if (this.certificateRegistry == null) {
+      obj = bus.getFacet(CertificateRegistryHelper.id());
+      this.certificateRegistry = CertificateRegistryHelper.narrow(obj);
+    }
 
-    obj = bus.getFacet(OfferRegistryHelper.id());
-    this.offerRegistry = OfferRegistryHelper.narrow(obj);
+    if (this.offerRegistry == null) {
+      obj = bus.getFacet(OfferRegistryHelper.id());
+      this.offerRegistry = OfferRegistryHelper.narrow(obj);
+    }
   }
 
   /**
@@ -152,6 +162,9 @@ final class BusInfo {
    * @return o registro de login do barramento.
    */
   LoginRegistry getLoginRegistry() {
+    if (loginRegistry == null) {
+      fullBusInitialization();
+    }
     return loginRegistry;
   }
 
@@ -161,6 +174,9 @@ final class BusInfo {
    * @return o registro de certificado do barramento.
    */
   CertificateRegistry getCertificateRegistry() {
+    if (certificateRegistry == null) {
+      fullBusInitialization();
+    }
     return certificateRegistry;
   }
 
@@ -170,6 +186,9 @@ final class BusInfo {
    * @return o registro de ofertas do barramento.
    */
   OfferRegistry getOfferRegistry() {
+    if (offerRegistry == null) {
+      fullBusInitialization();
+    }
     return offerRegistry;
   }
 

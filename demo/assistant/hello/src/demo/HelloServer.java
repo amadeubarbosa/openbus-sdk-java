@@ -1,8 +1,5 @@
 package demo;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.ORBPackage.InvalidName;
 import org.omg.PortableServer.POA;
@@ -109,8 +106,8 @@ public final class HelloServer {
     component.addFacet("Hello", HelloHelper.id(), new HelloImpl(context));
 
     // registrando serviço no barramento
-    List<ServiceProperty> serviceProperties = new ArrayList<ServiceProperty>();
-    serviceProperties.add(new ServiceProperty("offer.domain", "Demo Hello"));
+    ServiceProperty[] serviceProperties =
+      new ServiceProperty[] { new ServiceProperty("offer.domain", "Demo Hello") };
     assist.registerService(component, serviceProperties);
   }
 }

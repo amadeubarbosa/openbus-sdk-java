@@ -1,8 +1,8 @@
 package tecgraf.openbus.assistant;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -289,7 +289,7 @@ public abstract class Assistant {
    * @param properties Propriedades do serviço sendo ofertado.
    */
   public void registerService(ComponentContext component,
-    List<ServiceProperty> properties) {
+    ServiceProperty[] properties) {
     Offer offer = new Offer(this, component, properties);
     this.offers.put(component, offer);
     // dispara o registro da oferta de serviço
@@ -467,15 +467,22 @@ public abstract class Assistant {
     boolean failed = true;
     Exception ex = null;
     try {
-      switch (args.mode) {
-        case AuthByPassword:
-          conn.loginByPassword(args.entity, args.password);
-        case AuthByCertificate:
-          conn.loginByCertificate(args.entity, args.privkey);
-        case AuthBySharing:
-          conn.loginBySharedAuth(args.attempt, args.secret);
+      if (args != null) {
+        switch (args.mode) {
+          case AuthByPassword:
+            conn.loginByPassword(args.entity, args.password);
+          case AuthByCertificate:
+            conn.loginByCertificate(args.entity, args.privkey);
+          case AuthBySharing:
+            conn.loginBySharedAuth(args.attempt, args.secret);
+        }
+        failed = false;
       }
-      failed = false;
+      else {
+        ex =
+          new NullPointerException(
+            "'onLoginAuthentication' retornou argumentos de login nulos.");
+      }
     }
     // CHECK o que fazer em caso de erros inesperados? Capturo Exception?
     catch (AccessDenied e) {
@@ -657,11 +664,10 @@ public abstract class Assistant {
      * @param properties as propriedades com as quais a oferta deve se cadastrar
      */
     public Offer(Assistant assist, ComponentContext component,
-      List<ServiceProperty> properties) {
+      ServiceProperty[] properties) {
       this.assist = assist;
       this.component = component;
-      this.properties =
-        properties.toArray(new ServiceProperty[properties.size()]);
+      this.properties = Arrays.copyOf(properties, properties.length);
     }
 
     /**

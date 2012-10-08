@@ -1,9 +1,8 @@
 package tecgraf.openbus.assistant;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
 import junit.framework.Assert;
@@ -15,11 +14,14 @@ import org.omg.CORBA.ORBPackage.InvalidName;
 import org.omg.PortableServer.POAManagerPackage.AdapterInactive;
 
 import scs.core.ComponentContext;
+import scs.core.IComponent;
 import scs.core.exception.SCSException;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.OpenBusPrivateKey;
+import tecgraf.openbus.core.v2_0.OctetSeqHolder;
+import tecgraf.openbus.core.v2_0.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.util.Utils;
@@ -33,7 +35,6 @@ public class AssistantTest {
   private static String server;
   private static String privateKeyFile;
   private static OpenBusPrivateKey privateKey;
-  private static ORB orb;
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
@@ -45,12 +46,12 @@ public class AssistantTest {
     server = properties.getProperty("server.entity.name");
     privateKeyFile = properties.getProperty("server.private.key");
     privateKey = OpenBusPrivateKey.createPrivateKeyFromFile(privateKeyFile);
-    orb = ORBInitializer.initORB();
     Utils.setLogLevel(Level.FINE);
   }
 
   @Test
   public void createTest() {
+    ORB orb = ORBInitializer.initORB();
     Assistant assist =
       Assistant.createWithPassword(host, port, entity, password);
     Assert.assertNotSame(assist.orb(), orb);
@@ -68,6 +69,7 @@ public class AssistantTest {
 
   @Test
   public void reuseORBTest() {
+    ORB orb = ORBInitializer.initORB();
     AssistantParams params = new AssistantParams();
     params.orb = orb;
     Assistant assist =
@@ -86,6 +88,7 @@ public class AssistantTest {
 
   @Test
   public void reuseORBbyContextTest() throws Exception {
+    ORB orb = ORBInitializer.initORB();
     AssistantParams params = new AssistantParams();
     params.orb = orb;
     OpenBusContext context =
@@ -116,8 +119,8 @@ public class AssistantTest {
   }
 
   @Test
-  public void registerTest() throws AdapterInactive, InvalidName, SCSException,
-    InterruptedException {
+  public void registerAndFindTest() throws AdapterInactive, InvalidName,
+    SCSException, InterruptedException {
     AssistantParams params = new AssistantParams();
     params.interval = 1;
     Assistant assist =
@@ -126,9 +129,10 @@ public class AssistantTest {
     int index;
     for (index = 0; index < 5; index++) {
       ComponentContext context = Utils.buildComponent(orb);
-      List<ServiceProperty> props = new ArrayList<ServiceProperty>();
-      props.add(new ServiceProperty("offer.domain", "Assistant Test"));
-      props.add(new ServiceProperty("loop.index", Integer.toString(index)));
+      ServiceProperty[] props =
+        new ServiceProperty[] {
+            new ServiceProperty("offer.domain", "Assistant Test"),
+            new ServiceProperty("loop.index", Integer.toString(index)) };
       assist.registerService(context, props);
     }
     Thread.sleep(params.interval * 3 * 1000);
@@ -145,8 +149,151 @@ public class AssistantTest {
   }
 
   @Test
-  public void invalidRegisterTest() {
+  public void registerAndGetAllTest() throws AdapterInactive, InvalidName,
+    SCSException, InterruptedException {
+    AssistantParams params = new AssistantParams();
+    params.interval = 1;
+    Assistant assist =
+      Assistant.createWithPrivateKey(host, port, server, privateKey, params);
+    ORB orb = assist.orb();
+    int index;
+    for (index = 0; index < 5; index++) {
+      ComponentContext context = Utils.buildComponent(orb);
+      ServiceProperty[] props =
+        new ServiceProperty[] {
+            new ServiceProperty("offer.domain", "Assistant Test"),
+            new ServiceProperty("loop.index", Integer.toString(index)) };
+      assist.registerService(context, props);
+    }
+    Thread.sleep(params.interval * 3 * 1000);
+    ServiceOfferDesc[] found = assist.getServices(3);
+    Assert.assertTrue(found.length >= index);
+    assist.shutdown();
+  }
 
+  @Test
+  public void invalidRegisterTest() throws AdapterInactive, InvalidName,
+    SCSException, InterruptedException {
+    final AtomicBoolean failed = new AtomicBoolean(false);
+    AssistantParams params = new AssistantParams();
+    params.interval = 1;
+    params.callback = new OnFailureCallback() {
+
+      @Override
+      public void onRegisterFailure(Assistant assistant, IComponent component,
+        ServiceProperty[] properties, Exception except) {
+        failed.set(true);
+      }
+
+      @Override
+      public void onLoginFailure(Assistant assistant, Exception except) {
+        // do nothing
+      }
+
+      @Override
+      public void onFindFailure(Assistant assistant, Exception except) {
+        // do nothing
+      }
+    };
+    Assistant assist =
+      Assistant.createWithPrivateKey(host, port, server, privateKey, params);
+    ORB orb = assist.orb();
+    ComponentContext context = Utils.buildComponent(orb);
+    context.removeFacet("IMetaInterface");
+    ServiceProperty[] props =
+      new ServiceProperty[] { new ServiceProperty("offer.domain",
+        "Assistant Test") };
+    assist.registerService(context, props);
+    Thread.sleep(params.interval * 3 * 1000);
+    Assert.assertTrue(failed.get());
+    assist.shutdown();
+  }
+
+  @Test
+  public void loginBySharedAuthTest() throws InterruptedException {
+    final AtomicBoolean failed = new AtomicBoolean(false);
+    AssistantParams params = new AssistantParams();
+    params.interval = 1;
+    params.callback = new OnFailureCallback() {
+
+      @Override
+      public void onRegisterFailure(Assistant assistant, IComponent component,
+        ServiceProperty[] properties, Exception except) {
+        // do nothing
+      }
+
+      @Override
+      public void onLoginFailure(Assistant assistant, Exception except) {
+        failed.set(true);
+      }
+
+      @Override
+      public void onFindFailure(Assistant assistant, Exception except) {
+        failed.set(true);
+      }
+    };
+    Assistant assist = new Assistant(host, port, params) {
+
+      @Override
+      public AuthArgs onLoginAuthentication() {
+        try {
+          // connect using basic API
+          OpenBusContext context =
+            (OpenBusContext) orb().resolve_initial_references("OpenBusContext");
+          Connection conn = context.createConnection(host, port);
+          context.setCurrentConnection(conn);
+          conn.loginByPassword(entity, password);
+          OctetSeqHolder secret = new OctetSeqHolder();
+          LoginProcess loginProcess = conn.startSharedAuth(secret);
+          conn.logout();
+          return new AuthArgs(loginProcess, secret.value);
+        }
+        catch (Exception e) {
+          this.shutdown();
+          Assert.fail("Falha durante login.");
+        }
+        return null;
+      }
+    };
+    assist.getServices(0);
+    Assert.assertFalse(failed.get());
+    assist.shutdown();
+  }
+
+  @Test
+  public void nullLoginArgsTest() throws InterruptedException {
+    final AtomicBoolean failed = new AtomicBoolean(false);
+    AssistantParams params = new AssistantParams();
+    params.interval = 1;
+    params.callback = new OnFailureCallback() {
+
+      @Override
+      public void onRegisterFailure(Assistant assistant, IComponent component,
+        ServiceProperty[] properties, Exception except) {
+        // do nothing
+      }
+
+      @Override
+      public void onLoginFailure(Assistant assistant, Exception except) {
+        failed.set(true);
+        except.printStackTrace();
+      }
+
+      @Override
+      public void onFindFailure(Assistant assistant, Exception except) {
+        // do nothing
+      }
+    };
+    Assistant assist = new Assistant(host, port, params) {
+
+      @Override
+      public AuthArgs onLoginAuthentication() {
+        return null;
+      }
+    };
+    Thread.sleep(params.interval * 3 * 1000);
+    Assert.assertTrue(failed.get());
+    assist.shutdown();
   }
 
 }

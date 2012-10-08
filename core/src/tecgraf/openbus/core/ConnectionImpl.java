@@ -272,9 +272,8 @@ final class ConnectionImpl implements Connection {
         this.generateEncryptedLoginAuthenticationInfo(password);
       IntHolder validityHolder = new IntHolder();
       newLogin =
-        getBus().getAccessControl().loginByPassword(entity,
-          this.publicKey.getEncoded(), encryptedLoginAuthenticationInfo,
-          validityHolder);
+        this.access().loginByPassword(entity, this.publicKey.getEncoded(),
+          encryptedLoginAuthenticationInfo, validityHolder);
       localLogin(newLogin, validityHolder.value);
     }
     catch (WrongEncoding e) {
@@ -346,8 +345,7 @@ final class ConnectionImpl implements Connection {
     try {
       EncryptedBlockHolder challengeHolder = new EncryptedBlockHolder();
       loginProcess =
-        getBus().getAccessControl().startLoginByCertificate(entity,
-          challengeHolder);
+        this.access().startLoginByCertificate(entity, challengeHolder);
       byte[] decryptedChallenge =
         crypto.decrypt(challengeHolder.value, privKey.getRSAPrivateKey());
 
@@ -527,7 +525,7 @@ final class ConnectionImpl implements Connection {
     Connection previousConnection = context.getCurrentConnection();
     try {
       context.setCurrentConnection(this);
-      getBus().getAccessControl().logout();
+      this.access().logout();
     }
     catch (NO_PERMISSION e) {
       if (e.minor == NoLoginCode.value
