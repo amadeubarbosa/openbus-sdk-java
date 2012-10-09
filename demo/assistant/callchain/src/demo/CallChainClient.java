@@ -2,15 +2,11 @@ package demo;
 
 import org.omg.CORBA.COMM_FAILURE;
 import org.omg.CORBA.NO_PERMISSION;
-import org.omg.CORBA.ORB;
 import org.omg.CORBA.TRANSIENT;
 import org.omg.CORBA.ORBPackage.InvalidName;
 
-import tecgraf.openbus.Connection;
-import tecgraf.openbus.OpenBusContext;
-import tecgraf.openbus.core.ORBInitializer;
+import tecgraf.openbus.assistant.Assistant;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
-import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidRemoteCode;
 import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_0.services.access_control.UnknownBusCode;
@@ -62,61 +58,17 @@ public final class CallChainClient {
       password = args[3];
     }
 
-    // inicializando e configurando o ORB
-    ORB orb = ORBInitializer.initORB();
-    // recuperando o gerente de contexto de chamadas à barramentos 
-    OpenBusContext context =
-      (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
-    // conectando ao barramento.
-    Connection connection = context.createConnection(host, port);
-    context.setDefaultConnection(connection);
+    // recuperando o assistente
+    final Assistant assist =
+      Assistant.createWithPassword(host, port, entity, password.getBytes());
 
-    ServiceOfferDesc[] services;
-    try {
-      // autentica-se no barramento
-      connection.loginByPassword(entity, password.getBytes());
-      // busca por serviço
-      ServiceProperty[] props =
-        new ServiceProperty[] {
-            new ServiceProperty("offer.domain", "Demo Call Chain"),
-            new ServiceProperty("openbus.component.interface", MessengerHelper
-              .id()), };
-      services = context.getOfferRegistry().findServices(props);
-    }
-    // login by password
-    catch (AccessDenied e) {
-      System.err.println(String.format(
-        "a senha fornecida para a entidade '%s' foi negada", entity));
-      System.exit(1);
-      return;
-    }
-    // bus core
-    catch (ServiceFailure e) {
-      System.err.println(String.format(
-        "falha severa no barramento em %s:%s : %s", host, port, e.message));
-      System.exit(1);
-      return;
-    }
-    catch (TRANSIENT e) {
-      System.err.println(String.format(
-        "o barramento em %s:%s esta inacessível no momento", host, port));
-      System.exit(1);
-      return;
-    }
-    catch (COMM_FAILURE e) {
-      System.err
-        .println("falha de comunicação ao acessar serviços núcleo do barramento");
-      System.exit(1);
-      return;
-    }
-    catch (NO_PERMISSION e) {
-      if (e.minor == NoLoginCode.value) {
-        System.err.println(String.format(
-          "não há um login de '%s' válido no momento", entity));
-      }
-      System.exit(1);
-      return;
-    }
+    // busca por serviço
+    ServiceProperty[] props =
+      new ServiceProperty[] {
+          new ServiceProperty("offer.domain", "Demo Call Chain"),
+          new ServiceProperty("openbus.component.interface", MessengerHelper
+            .id()) };
+    ServiceOfferDesc[] services = assist.findServices(props, -1);
 
     // analiza as ofertas encontradas
     for (ServiceOfferDesc offerDesc : services) {
@@ -172,8 +124,8 @@ public final class CallChainClient {
       }
     }
 
-    // Faz o logout
-    context.getCurrentConnection().logout();
+    // Finaliza o assistente
+    assist.shutdown();
   }
 
 }

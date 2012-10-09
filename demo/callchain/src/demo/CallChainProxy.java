@@ -125,9 +125,6 @@ public class CallChainProxy {
             new ServiceProperty("openbus.component.interface", MessengerHelper
               .id()) };
       ServiceOfferDesc[] offers = offerRegistry.findServices(findProperties);
-      if (offers.length > 0) {
-        System.out.println("ACHOU!!");
-      }
       proxy.setOffers(offers);
 
       // registrando serviço no barramento

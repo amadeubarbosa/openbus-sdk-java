@@ -276,7 +276,6 @@ public class AssistantTest {
       @Override
       public void onLoginFailure(Assistant assistant, Exception except) {
         failed.set(true);
-        except.printStackTrace();
       }
 
       @Override

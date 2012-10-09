@@ -3,21 +3,18 @@ package demo;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.omg.CORBA.COMM_FAILURE;
 import org.omg.CORBA.NO_PERMISSION;
-import org.omg.CORBA.ORB;
 import org.omg.CORBA.TRANSIENT;
 import org.omg.CORBA.ORBPackage.InvalidName;
 
-import tecgraf.openbus.Connection;
-import tecgraf.openbus.InvalidLoginCallback;
-import tecgraf.openbus.OpenBusContext;
-import tecgraf.openbus.core.ORBInitializer;
+import tecgraf.openbus.assistant.Assistant;
+import tecgraf.openbus.assistant.AssistantParams;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
-import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidRemoteCode;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_0.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_0.services.access_control.UnverifiedLoginCode;
@@ -39,8 +36,9 @@ public final class IndependentClockClient {
   private static String password;
   private static int interval = 1;
 
-  /** Variáveis de controle para garantir que não registre réplicas */
-  private static ConcurrencyControl options = new ConcurrencyControl();
+  private static AtomicReference<Clock> clock = new AtomicReference<Clock>();
+  private static AtomicBoolean searching = new AtomicBoolean(false);
+  private static AtomicBoolean shutdown = new AtomicBoolean(false);
 
   /**
    * Função principal.
@@ -92,242 +90,99 @@ public final class IndependentClockClient {
       }
     }
 
-    // inicializando e configurando o ORB
-    ORB orb = ORBInitializer.initORB();
-    // recuperando o gerente de contexto de chamadas à barramentos 
-    final OpenBusContext context =
-      (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
+    // recuperando o assistente
+    AssistantParams params = new AssistantParams();
+    params.interval = interval;
+    final Assistant assist =
+      Assistant.createWithPassword(host, port, entity, password.getBytes(),
+        params);
 
-    Thread client = new Thread() {
-      @Override
-      public void run() {
-        for (int i = 0; i < 10; i++) {
-          Long timestamp = null;
-          Clock clock = null;
-          synchronized (options.lock) {
-            clock = options.found;
-          }
-          if (clock != null) {
-            boolean failed = true;
-            try {
-              timestamp = clock.getTimeInTicks();
-              failed = false;
-            }
-            catch (TRANSIENT e) {
-              System.err
-                .println("o serviço encontrado encontra-se indisponível");
-            }
-            catch (COMM_FAILURE e) {
-              System.err
-                .println("falha de comunicação com o serviço encontrado");
-            }
-            catch (NO_PERMISSION e) {
-              switch (e.minor) {
-                case NoLoginCode.value:
-                  System.err.println(String.format(
-                    "não há um login de '%s' válido no momento", entity));
-                  break;
-                case UnknownBusCode.value:
-                  System.err
-                    .println("o serviço encontrado não está mais logado ao barramento");
-                  break;
-                case UnverifiedLoginCode.value:
-                  System.err
-                    .println("o serviço encontrado não foi capaz de validar a chamada");
-                  break;
-                case InvalidRemoteCode.value:
-                  System.err
-                    .println("integração do serviço encontrado com o barramento está incorreta");
-                  break;
-              }
-            }
-            finally {
-              if (failed) {
-                synchronized (options.lock) {
-                  options.found = null;
-                }
-              }
-            }
-          }
-          if (timestamp == null) {
-            synchronized (options.lock) {
-              activateSearch(context, interval);
-            }
-            // recupera valor independente do barramento
-            timestamp = System.currentTimeMillis();
-          }
-          Date date = new Date(timestamp);
-          DateFormat formatter = new SimpleDateFormat("HH:mm:ss:SSS");
-          System.out.println(formatter.format(date));
-          try {
-            Thread.sleep(interval * 1000);
-          }
-          catch (InterruptedException e) {
-            // do nothing
-          }
-        }
+    activateSearch(assist);
+
+    // thread cliente independente
+    for (int i = 0; i < 20; i++) {
+      // recupera valor independente do barramento
+      Long timestamp = System.currentTimeMillis();
+      Clock aClock = clock.get();
+      if (aClock != null) {
+        boolean failed = true;
         try {
-          context.getCurrentConnection().logout();
-        }
-        // bus core
-        catch (ServiceFailure e) {
-          System.err.println(String.format(
-            "falha severa no barramento em %s:%s : %s", host, port, e.message));
+          // sobrescreve valor com o obtido pelo serviço
+          timestamp = aClock.getTimeInTicks();
+          failed = false;
         }
         catch (TRANSIENT e) {
-          System.err.println(String.format(
-            "o barramento em %s:%s esta inacessível no momento", host, port));
+          System.err.println("o serviço encontrado encontra-se indisponível");
         }
         catch (COMM_FAILURE e) {
-          System.err
-            .println("falha de comunicação ao acessar serviços núcleo do barramento");
+          System.err.println("falha de comunicação com o serviço encontrado");
         }
         catch (NO_PERMISSION e) {
-          if (e.minor == NoLoginCode.value) {
-            System.err.println(String.format(
-              "não há um login de '%s' válido no momento", entity));
+          switch (e.minor) {
+            case NoLoginCode.value:
+              System.err.println(String.format(
+                "não há um login de '%s' válido no momento", entity));
+              break;
+            case UnknownBusCode.value:
+              System.err
+                .println("o serviço encontrado não está mais logado ao barramento");
+              break;
+            case UnverifiedLoginCode.value:
+              System.err
+                .println("o serviço encontrado não foi capaz de validar a chamada");
+              break;
+            case InvalidRemoteCode.value:
+              System.err
+                .println("integração do serviço encontrado com o barramento está incorreta");
+              break;
           }
         }
         finally {
-          System.out.println("cliente deslogado...");
+          if (failed) {
+            clock.set(null);
+            activateSearch(assist);
+          }
         }
-      };
-    };
-    client.start();
-
-    // conectando ao barramento.
-    Connection connection = context.createConnection(host, port);
-    context.setDefaultConnection(connection);
-
-    connection.onInvalidLoginCallback(new InvalidLoginCallback() {
-
-      @Override
-      public void invalidLogin(Connection conn, LoginInfo login) {
-        // autentica-se no barramento
-        login(conn, entity, password, host, port);
-        // buscando serviço no barramento
-        activateSearch(context, interval);
       }
-
-      private void login(Connection conn, String entity, String password,
-        Object host, Object port) {
-        // autentica-se no barramento
-        boolean failed;
-        do {
-          failed = true;
-          try {
-            // autentica-se no barramento
-            conn.loginByPassword(entity, password.getBytes());
-            failed = false;
-          }
-          catch (AlreadyLoggedIn e) {
-            // ignorando exceção
-            failed = false;
-          }
-          // login by password
-          catch (AccessDenied e) {
-            System.err.println(String.format(
-              "a senha fornecida para a entidade '%s' foi negada", entity));
-          }
-          // bus core
-          catch (ServiceFailure e) {
-            System.err.println(String
-              .format("falha severa no barramento em %s:%s : %s", host, port,
-                e.message));
-          }
-          catch (TRANSIENT e) {
-            System.err.println(String.format(
-              "o barramento em %s:%s esta inacessível no momento", host, port));
-          }
-          catch (COMM_FAILURE e) {
-            System.err
-              .println("falha de comunicação ao acessar serviços núcleo do barramento");
-          }
-          catch (NO_PERMISSION e) {
-            if (e.minor == NoLoginCode.value) {
-              System.err.println(String.format(
-                "não há um login de '%s' válido no momento", entity));
-            }
-          }
-          finally {
-            if (failed) {
-              try {
-                Thread.sleep(interval * 1000);
-              }
-              catch (InterruptedException e) {
-                // do nothing
-              }
-            }
-          }
-        } while (failed);
+      Date date = new Date(timestamp);
+      DateFormat formatter = new SimpleDateFormat("HH:mm:ss:SSS");
+      System.out.println(formatter.format(date));
+      try {
+        Thread.sleep(interval * 1000);
       }
+      catch (InterruptedException e) {
+        // do nothing
+      }
+    }
 
-    });
-    connection.onInvalidLoginCallback().invalidLogin(connection, null);
-
+    shutdown.set(true);
+    assist.shutdown();
+    System.out.println("cliente deslogado...");
   }
 
-  private static void activateSearch(final OpenBusContext context,
-    final int interval) {
-    synchronized (options.lock) {
-      if (options.found == null && !options.active) {
-        options.active = true;
-        Thread finder = new Thread() {
-          @Override
-          public void run() {
-            find(context, interval);
-          }
-        };
-        finder.start();
-      }
+  private static void activateSearch(final Assistant assist) {
+    if (searching.compareAndSet(false, true)) {
+      Thread finder = new Thread() {
+        @Override
+        public void run() {
+          find(assist);
+        }
+      };
+      finder.start();
     }
   }
 
-  private static void find(OpenBusContext context, int interval) {
+  private static void find(Assistant assist) {
+    clock.set(null);
     do {
-      ServiceOfferDesc[] services = null;
-      Clock clock = null;
-      boolean failed = true;
-      try {
-        // busca por serviço
-        ServiceProperty[] properties = new ServiceProperty[1];
-        properties[0] =
-          new ServiceProperty("offer.domain", "Demo Independent Clock");
-        services = context.getOfferRegistry().findServices(properties);
-        failed = false;
-      }
-      // bus core
-      catch (ServiceFailure e) {
-        System.err.println(String.format(
-          "falha severa no barramento em %s:%s : %s", host, port, e.message));
-      }
-      catch (TRANSIENT e) {
-        System.err.println(String.format(
-          "o barramento em %s:%s esta inacessível no momento", host, port));
-      }
-      catch (COMM_FAILURE e) {
-        System.err
-          .println("falha de comunicação ao acessar serviços núcleo do barramento");
-      }
-      catch (NO_PERMISSION e) {
-        if (e.minor == NoLoginCode.value) {
-          System.err.println(String.format(
-            "não há um login de '%s' válido no momento", entity));
-        }
-      }
-      finally {
-        if (failed) {
-          try {
-            Thread.sleep(interval * 1000);
-          }
-          catch (InterruptedException e) {
-            // do nothing
-          }
-          continue;
-        }
-      }
+      // busca por serviço
+      ServiceProperty[] properties = new ServiceProperty[1];
+      properties[0] =
+        new ServiceProperty("offer.domain", "Demo Independent Clock");
+      ServiceOfferDesc[] services = assist.findServices(properties, 0);
 
       // analiza as ofertas encontradas
+      boolean failed = true;
       for (ServiceOfferDesc offerDesc : services) {
         try {
           org.omg.CORBA.Object helloObj =
@@ -337,12 +192,11 @@ public final class IndependentClockClient {
               .println("o serviço encontrado não provê a faceta ofertada");
             continue;
           }
-          synchronized (options.lock) {
-            options.found = ClockHelper.narrow(helloObj);
-            clock = options.found;
-          }
+          clock.set(ClockHelper.narrow(helloObj));
+          failed = false;
           break;
         }
+        // Serviço
         catch (TRANSIENT e) {
           System.err.println("o serviço encontrado encontra-se indisponível");
         }
@@ -371,28 +225,17 @@ public final class IndependentClockClient {
         }
       }
 
-      if (clock == null) {
+      if (failed) {
         System.err.println("serviço esperado não foi encontrado.");
+        try {
+          Thread.sleep(interval * 1000);
+        }
+        catch (InterruptedException e) {
+          // do nothing
+        }
       }
-      else {
-        break;
-      }
-      try {
-        Thread.sleep(interval * 1000);
-      }
-      catch (InterruptedException e) {
-        // do nothing
-      }
-    } while (true);
-    synchronized (options.lock) {
-      options.active = false;
-    }
-  }
-
-  public static class ConcurrencyControl {
-    public volatile boolean active = false;
-    public Clock found = null;
-    public Object lock = new Object();
+    } while (clock.get() == null && !shutdown.get());
+    searching.set(false);
   }
 
 }

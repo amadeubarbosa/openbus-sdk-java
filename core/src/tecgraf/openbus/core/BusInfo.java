@@ -42,6 +42,13 @@ final class BusInfo {
   /** Referência para o registro de ofertas do barramento */
   private OfferRegistry offerRegistry;
 
+  /** Lock para cotrole de concorrência no acesso ao registro de logins */
+  private Object lockLogin = new Object();
+  /** Lock para cotrole de concorrência no acesso ao registro de certificados */
+  private Object lockCert = new Object();
+  /** Lock para cotrole de concorrência no acesso ao registro de ofertas */
+  private Object lockOffer = new Object();
+
   /**
    * Construtor.
    * 
@@ -77,27 +84,6 @@ final class BusInfo {
     org.omg.CORBA.Object obj = this.bus.getFacet(AccessControlHelper.id());
     this.accessControl = AccessControlHelper.narrow(obj);
     retrieveBusIdAndKey();
-  }
-
-  /**
-   * Inicializa todas as referências das demais facetas do barramento
-   */
-  void fullBusInitialization() {
-    org.omg.CORBA.Object obj;
-    if (this.loginRegistry == null) {
-      obj = bus.getFacet(LoginRegistryHelper.id());
-      this.loginRegistry = LoginRegistryHelper.narrow(obj);
-    }
-
-    if (this.certificateRegistry == null) {
-      obj = bus.getFacet(CertificateRegistryHelper.id());
-      this.certificateRegistry = CertificateRegistryHelper.narrow(obj);
-    }
-
-    if (this.offerRegistry == null) {
-      obj = bus.getFacet(OfferRegistryHelper.id());
-      this.offerRegistry = OfferRegistryHelper.narrow(obj);
-    }
   }
 
   /**
@@ -162,8 +148,11 @@ final class BusInfo {
    * @return o registro de login do barramento.
    */
   LoginRegistry getLoginRegistry() {
-    if (loginRegistry == null) {
-      fullBusInitialization();
+    synchronized (lockLogin) {
+      if (loginRegistry == null) {
+        org.omg.CORBA.Object obj = bus.getFacet(LoginRegistryHelper.id());
+        loginRegistry = LoginRegistryHelper.narrow(obj);
+      }
     }
     return loginRegistry;
   }
@@ -174,8 +163,11 @@ final class BusInfo {
    * @return o registro de certificado do barramento.
    */
   CertificateRegistry getCertificateRegistry() {
-    if (certificateRegistry == null) {
-      fullBusInitialization();
+    synchronized (lockCert) {
+      if (certificateRegistry == null) {
+        org.omg.CORBA.Object obj = bus.getFacet(CertificateRegistryHelper.id());
+        certificateRegistry = CertificateRegistryHelper.narrow(obj);
+      }
     }
     return certificateRegistry;
   }
@@ -186,8 +178,11 @@ final class BusInfo {
    * @return o registro de ofertas do barramento.
    */
   OfferRegistry getOfferRegistry() {
-    if (offerRegistry == null) {
-      fullBusInitialization();
+    synchronized (lockOffer) {
+      if (offerRegistry == null) {
+        org.omg.CORBA.Object obj = bus.getFacet(OfferRegistryHelper.id());
+        offerRegistry = OfferRegistryHelper.narrow(obj);
+      }
     }
     return offerRegistry;
   }

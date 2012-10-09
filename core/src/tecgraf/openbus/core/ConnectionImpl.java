@@ -244,19 +244,6 @@ final class ConnectionImpl implements Connection {
   }
 
   /**
-   * Recupera as demais referências para os serviços oferecidos pelo barramento.
-   */
-  private void initBusReferencesAfterLogin() {
-    Connection old = this.context.setCurrentConnection(this);
-    try {
-      this.bus.fullBusInitialization();
-    }
-    finally {
-      this.context.setCurrentConnection(old);
-    }
-  }
-
-  /**
    * {@inheritDoc}
    */
   @Override
@@ -288,7 +275,6 @@ final class ConnectionImpl implements Connection {
     finally {
       this.context.unignoreCurrentThread();
     }
-    initBusReferencesAfterLogin();
     logger
       .info(String
         .format(
@@ -374,7 +360,6 @@ final class ConnectionImpl implements Connection {
     finally {
       this.context.unignoreCurrentThread();
     }
-    initBusReferencesAfterLogin();
     logger
       .info(String
         .format(
@@ -440,7 +425,6 @@ final class ConnectionImpl implements Connection {
     finally {
       this.context.unignoreCurrentThread();
     }
-    initBusReferencesAfterLogin();
     logger
       .info(String
         .format(
