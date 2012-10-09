@@ -20,5 +20,6 @@
     <module>greetings</module>
     <module>hello</module>
     <module>independentclock</module>
+    <module>sharedauth</module>
   </modules>
 </project>

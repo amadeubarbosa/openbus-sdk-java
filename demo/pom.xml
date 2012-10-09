@@ -22,6 +22,7 @@
     <module>hello</module>
     <module>independentclock</module>
     <module>multiplexing</module>
+    <module>sharedauth</module>
     <module>assistant</module>
   </modules>
 </project>
