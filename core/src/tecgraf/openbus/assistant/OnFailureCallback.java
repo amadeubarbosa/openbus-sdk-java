@@ -42,4 +42,13 @@ public interface OnFailureCallback {
    */
   void onFindFailure(Assistant assistant, Exception except);
 
+  /**
+   * Callback de notificação de falhas durante a inicialização de autenticação
+   * compartilhada.
+   * 
+   * @param assistant Assistente que chama a callback.
+   * @param except Objeto que descreve a falha ocorrida.
+   */
+  void onStartSharedAuthFailure(Assistant assistant, Exception except);
+
 }

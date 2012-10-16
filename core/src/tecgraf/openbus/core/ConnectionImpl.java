@@ -428,7 +428,7 @@ final class ConnectionImpl implements Connection {
     logger
       .info(String
         .format(
-          "Login por compatilhamento de atutenticação efetuado com sucesso: busid (%s) login (%s) entidade (%s)",
+          "Login por compatilhamento de autenticação efetuado com sucesso: busid (%s) login (%s) entidade (%s)",
           busid(), newLogin.id, newLogin.entity));
   }
 

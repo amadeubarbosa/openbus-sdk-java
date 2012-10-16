@@ -25,11 +25,12 @@ import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.PrivateKey;
 import tecgraf.openbus.core.ORBInitializer;
+import tecgraf.openbus.core.v2_0.OctetSeqHolder;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
-import tecgraf.openbus.core.v2_0.services.UnauthorizedOperation;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidLoginCode;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_0.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_0.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_0.services.offer_registry.InvalidProperties;
@@ -284,6 +285,9 @@ public abstract class Assistant {
    * Para que o registro de serviços seja bem sucedido é necessário que o ORB
    * utilizado pelo assistente esteja processando chamadas, por exemplo, fazendo
    * com que a aplicação chame o método 'ORB::run()'.
+   * <p>
+   * Caso ocorram erros, a callback de tratamento de erro apropriada será
+   * chamada.
    * 
    * @param component Referência do serviço sendo ofertado.
    * @param properties Propriedades do serviço sendo ofertado.
@@ -303,6 +307,10 @@ public abstract class Assistant {
    * propriedades especificadas. As propriedades utilizadas nas buscas podem ser
    * aquelas fornecidas no momento do registro da oferta de serviço, assim como
    * as propriedades automaticamente geradas pelo barramento.
+   * <p>
+   * Caso ocorram erros, a callback de tratamento de erro apropriada será
+   * chamada. Se o número de tentativas se esgotar e não houver sucesso, uma
+   * sequência vazia será retornada.
    * 
    * @param properties Propriedades que as ofertas de serviços encontradas devem
    *        apresentar.
@@ -327,12 +335,16 @@ public abstract class Assistant {
           return offerDescs;
         }
       }
-    } while (retryFind(retries, --attempt));
+    } while (shouldRetry(retries, --attempt));
     return new ServiceOfferDesc[0];
   }
 
   /**
    * Devolve uma lista de todas as ofertas de serviço registradas.
+   * <p>
+   * Caso ocorram erros, a callback de tratamento de erro apropriada será
+   * chamada. Se o número de tentativas se esgotar e não houver sucesso, uma
+   * sequência vazia será retornada.
    * 
    * @param retries Parâmetro opcional indicando o número de novas tentativas de
    *        busca de ofertas em caso de falhas, como o barramento estar
@@ -345,29 +357,67 @@ public abstract class Assistant {
    * 
    * @return Sequência de descrições de ofertas de serviço registradas.
    */
-  public ServiceOfferDesc[] getServices(int retries) {
+  public ServiceOfferDesc[] getAllServices(int retries) {
     int attempt = retries;
     do {
       if (conn.login() != null) {
-        ServiceOfferDesc[] offerDescs = getAllServices();
+        ServiceOfferDesc[] offerDescs = getAll();
         if (offerDescs != null) {
           return offerDescs;
         }
       }
-    } while (retryFind(retries, --attempt));
+    } while (shouldRetry(retries, --attempt));
     return new ServiceOfferDesc[0];
   }
 
   /**
-   * Verifica se deve realizar uma nova busca
+   * Inicia o processo de login por autenticação compartilhada.
+   * <p>
+   * A autenticação compartilhada permite criar um novo login compartilhando a
+   * mesma autenticação do login atual da conexão. Portanto essa operação só
+   * pode ser chamada enquanto a conexão estiver autenticada, caso contrário a
+   * exceção de sistema CORBA::NO_PERMISSION{NoLogin} é lançada. As informações
+   * fornecidas por essa operação devem ser passadas para a operação
+   * 'loginBySharedAuth' para conclusão do processo de login por autenticação
+   * compartilhada. Isso deve ser feito dentro do tempo de lease definido pelo
+   * administrador do barramento. Caso contrário essas informações se tornam
+   * inválidas e não podem mais ser utilizadas para criar um login.
+   * 
+   * @param secret Segredo a ser fornecido na conclusão do processo de login.
+   * @param retries Parâmetro opcional indicando o número de novas tentativas de
+   *        busca de ofertas em caso de falhas, como o barramento estar
+   *        indisponível ou não for possível estabelecer um login até o momento.
+   *        'retries' com o valor 0 implica que a operação retorna imediatamente
+   *        após uma única tentativa. Para tentar indefinidamente o valor de
+   *        'retries' deve ser -1. Entre cada tentativa é feita uma pausa dada
+   *        pelo parâmetro 'interval' fornecido na criação do assistente (veja a
+   *        interface 'AssistantFactory').
+   * 
+   * @return Objeto que representa o processo de login iniciado.
+   */
+  public LoginProcess startSharedAuth(OctetSeqHolder secret, int retries) {
+    int attempt = retries;
+    do {
+      if (conn.login() != null) {
+        LoginProcess process = startSharedAuthentication(secret);
+        if (process != null) {
+          return process;
+        }
+      }
+    } while (shouldRetry(retries, --attempt));
+    return null;
+  }
+
+  /**
+   * Verifica se deve retentar a operação.
    * 
    * @param retries número de tentativas configuradas pelo usuário
    * @param attempt número de tentativa restantes
    * @return <code>true</code> caso deva realizar uma nova busca, e
    *         <code>false</code> caso contrário.
    */
-  private boolean retryFind(int retries, int attempt) {
-    if (retries < 0 || attempt > 0) {
+  private boolean shouldRetry(int retries, int attempt) {
+    if (retries < 0 || attempt >= 0) {
       try {
         Thread.sleep(interval * 1000);
       }
@@ -555,7 +605,7 @@ public abstract class Assistant {
     // bus core
     catch (ServiceFailure e) {
       ex = e;
-      logger.log(Level.SEVERE, "Erro ao realizar login.", e);
+      logger.log(Level.SEVERE, "Erro ao buscar ofertas.", e);
     }
     catch (TRANSIENT e) {
       ex = e;
@@ -586,13 +636,13 @@ public abstract class Assistant {
   }
 
   /**
-   * Método responsável por buscar todos as ofertas de serviço publicadas no
+   * Método responsável por buscar todas as ofertas de serviço publicadas no
    * barramento.
    * 
    * @return as ofertas de serviços encontradas, ou <code>null</code> caso algum
    *         erro tenha ocorrido.
    */
-  private ServiceOfferDesc[] getAllServices() {
+  private ServiceOfferDesc[] getAll() {
     boolean failed = true;
     Exception ex = null;
     ServiceOfferDesc[] offerDescs = null;
@@ -604,7 +654,7 @@ public abstract class Assistant {
     // bus core
     catch (ServiceFailure e) {
       ex = e;
-      logger.log(Level.SEVERE, "Erro ao realizar login.", e);
+      logger.log(Level.SEVERE, "Erro ao recuperar ofertas.", e);
     }
     catch (TRANSIENT e) {
       ex = e;
@@ -632,6 +682,56 @@ public abstract class Assistant {
       }
     }
     return offerDescs;
+  }
+
+  /**
+   * Método responsável por iniciar o processo de compartilhamento de
+   * autenticação.
+   * 
+   * @param secret segredo a ser fornecido na conclusão do porcesso de login.
+   * @return Objeto que representa o processo de login iniciado, ou
+   *         <code>null</code> caso algum erro tenha ocorrido.
+   */
+  private LoginProcess startSharedAuthentication(OctetSeqHolder secret) {
+    boolean failed = true;
+    Exception ex = null;
+    LoginProcess attempt = null;
+    try {
+      attempt = this.conn.startSharedAuth(secret);
+      failed = false;
+    }
+    // bus core
+    catch (ServiceFailure e) {
+      ex = e;
+      logger.log(Level.SEVERE,
+        "Erro ao iniciar processo de autenticação compartilhada.", e);
+    }
+    catch (TRANSIENT e) {
+      ex = e;
+      logger.log(Level.WARNING, String.format(
+        "o barramento em %s:%s esta inacessível no momento", host, port), e);
+    }
+    catch (COMM_FAILURE e) {
+      ex = e;
+      logger.log(Level.WARNING,
+        "falha de comunicação ao acessar serviços núcleo do barramento", e);
+    }
+    catch (NO_PERMISSION e) {
+      ex = e;
+      if (e.minor == NoLoginCode.value) {
+        logger.log(Level.WARNING, "não há um login válido no momento", e);
+      }
+      else {
+        logger.log(Level.SEVERE, String.format(
+          "erro de NO_PERMISSION não esperado: minor_code = %s", e.minor), e);
+      }
+    }
+    finally {
+      if (failed) {
+        callback.onStartSharedAuthFailure(this, ex);
+      }
+    }
+    return attempt;
   }
 
   /**
@@ -783,64 +883,6 @@ public abstract class Assistant {
         this.event.set(true);
         this.lock.notifyAll();
         logger.fine("Resetando oferta.");
-      }
-    }
-
-    public void cancel() {
-      // CHECK: método parece ser desnecessário
-      ServiceOfferDesc theOffer = this.offer.getAndSet(null);
-      if (theOffer != null) {
-        boolean failed = true;
-        Exception ex = null;
-        while (failed && !assist.shutdown) {
-          try {
-            theOffer.ref.remove();
-            failed = false;
-          }
-          catch (UnauthorizedOperation e) {
-            logger.log(Level.SEVERE,
-              "BUG: assistente deveria poder remover a oferta registrada", e);
-          }
-          // bus core
-          catch (ServiceFailure e) {
-            ex = e;
-            logger.log(Level.SEVERE, "Erro ao remover oferta.", e);
-          }
-          catch (TRANSIENT e) {
-            ex = e;
-            logger.log(Level.WARNING, String.format(
-              "o barramento em %s:%s esta inacessível no momento", assist.host,
-              assist.port), e);
-          }
-          catch (COMM_FAILURE e) {
-            ex = e;
-            logger.log(Level.WARNING,
-              "falha de comunicação ao acessar serviços núcleo do barramento",
-              e);
-          }
-          catch (NO_PERMISSION e) {
-            ex = e;
-            if (e.minor == NoLoginCode.value) {
-              logger.log(Level.WARNING, "não há um login válido no momento", e);
-            }
-            else {
-              logger.log(Level.SEVERE,
-                String.format(
-                  "erro de NO_PERMISSION não esperado: minor_code = %s",
-                  e.minor), e);
-            }
-          }
-          finally {
-            if (failed) {
-              try {
-                Thread.sleep(assist.interval * 1000);
-              }
-              catch (InterruptedException e) {
-                logger.fine("Thread 'Offer.cancel' foi interrompida.");
-              }
-            }
-          }
-        }
       }
     }
   }
@@ -1020,6 +1062,14 @@ public abstract class Assistant {
      */
     @Override
     public void onFindFailure(Assistant assistant, Exception exception) {
+      // do nothing
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onStartSharedAuthFailure(Assistant assistant, Exception except) {
       // do nothing
     }
 

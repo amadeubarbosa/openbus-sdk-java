@@ -21,9 +21,14 @@ import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.OpenBusPrivateKey;
 import tecgraf.openbus.core.v2_0.OctetSeqHolder;
+import tecgraf.openbus.core.v2_0.services.ServiceFailure;
+import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
+import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
+import tecgraf.openbus.exception.AlreadyLoggedIn;
+import tecgraf.openbus.exception.InvalidLoginProcess;
 import tecgraf.openbus.util.Utils;
 
 public class AssistantTest {
@@ -166,7 +171,7 @@ public class AssistantTest {
       assist.registerService(context, props);
     }
     Thread.sleep(params.interval * 3 * 1000);
-    ServiceOfferDesc[] found = assist.getServices(3);
+    ServiceOfferDesc[] found = assist.getAllServices(3);
     Assert.assertTrue(found.length >= index);
     assist.shutdown();
   }
@@ -192,6 +197,11 @@ public class AssistantTest {
 
       @Override
       public void onFindFailure(Assistant assistant, Exception except) {
+        // do nothing
+      }
+
+      @Override
+      public void onStartSharedAuthFailure(Assistant assistant, Exception except) {
         // do nothing
       }
     };
@@ -231,6 +241,11 @@ public class AssistantTest {
       public void onFindFailure(Assistant assistant, Exception except) {
         failed.set(true);
       }
+
+      @Override
+      public void onStartSharedAuthFailure(Assistant assistant, Exception except) {
+        // do nothing
+      }
     };
     Assistant assist = new Assistant(host, port, params) {
 
@@ -255,8 +270,56 @@ public class AssistantTest {
         return null;
       }
     };
-    assist.getServices(0);
+    assist.getAllServices(1);
     Assert.assertFalse(failed.get());
+    assist.shutdown();
+  }
+
+  @Test
+  public void startSharedAuthTest() throws InterruptedException, InvalidName,
+    AlreadyLoggedIn, InvalidLoginProcess, AccessDenied, ServiceFailure {
+    final AtomicBoolean failed = new AtomicBoolean(false);
+    AssistantParams params = new AssistantParams();
+    params.interval = 1;
+    params.callback = new OnFailureCallback() {
+
+      @Override
+      public void onRegisterFailure(Assistant assistant, IComponent component,
+        ServiceProperty[] properties, Exception except) {
+        // do nothing
+      }
+
+      @Override
+      public void onLoginFailure(Assistant assistant, Exception except) {
+        failed.set(true);
+      }
+
+      @Override
+      public void onFindFailure(Assistant assistant, Exception except) {
+        // do nothing
+      }
+
+      @Override
+      public void onStartSharedAuthFailure(Assistant assistant, Exception except) {
+        failed.set(true);
+      }
+    };
+    Assistant assist =
+      Assistant.createWithPassword(host, port, entity, password, params);
+    OctetSeqHolder secret = new OctetSeqHolder();
+    LoginProcess attempt = assist.startSharedAuth(secret, 1);
+    Assert.assertFalse(failed.get());
+    Assert.assertNotNull(attempt);
+
+    // connect using basic API
+    OpenBusContext context =
+      (OpenBusContext) assist.orb()
+        .resolve_initial_references("OpenBusContext");
+    Connection conn = context.createConnection(host, port);
+    conn.loginBySharedAuth(attempt, secret.value);
+    LoginInfo loginInfo = conn.login();
+    Assert.assertEquals(entity, loginInfo.entity);
+    conn.logout();
     assist.shutdown();
   }
 
@@ -280,6 +343,11 @@ public class AssistantTest {
 
       @Override
       public void onFindFailure(Assistant assistant, Exception except) {
+        // do nothing
+      }
+
+      @Override
+      public void onStartSharedAuthFailure(Assistant assistant, Exception except) {
         // do nothing
       }
     };
