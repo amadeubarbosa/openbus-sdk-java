@@ -89,7 +89,15 @@ public final class Client {
     try {
       // autentica-se no barramento
       connection.loginByPassword(entity, password.getBytes());
-      // persiste dados de compartilhamento de login
+      // persistindo dados de compartilhamento de autenticação em arquivo
+      /*
+       * OBS: talvez seja mais interessante para a aplicação trocar esses dados
+       * de outra forma. No mínimo, essas informações deveriam ser encriptadas.
+       * Além disso, escreveremos apenas uma vez esses dados, que têm validade
+       * igual ao lease do login atual. Caso o cliente demore a executar, esses
+       * dados não funcionarão, portanto uma outra forma mais dinâmica seria
+       * mais eficaz. No entanto, isso foge ao escopo dessa demo.
+       */
       OctetSeqHolder secret = new OctetSeqHolder();
       LoginProcess process = connection.startSharedAuth(secret);
       PrintWriter out = new PrintWriter(file);

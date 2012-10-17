@@ -113,6 +113,15 @@ public final class Client {
       return;
     }
 
+    // persistindo dados de compartilhamento de autenticação em arquivo
+    /*
+     * OBS: talvez seja mais interessante para a aplicação trocar esses dados de
+     * outra forma. No mínimo, essas informações deveriam ser encriptadas. Além
+     * disso, escreveremos apenas uma vez esses dados, que têm validade igual ao
+     * lease do login atual. Caso o cliente demore a executar, esses dados não
+     * funcionarão, portanto uma outra forma mais dinâmica seria mais eficaz. No
+     * entanto, isso foge ao escopo dessa demo.
+     */
     PrintWriter out = new PrintWriter(file);
     out.println(assist.orb().object_to_string(process));
     out.println(new String(secret.value));

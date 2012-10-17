@@ -60,7 +60,15 @@ public class SharedAuthClient {
 
       @Override
       public AuthArgs onLoginAuthentication() {
-        // recuperando informações do arquivo
+        // recuperando informações de compartilhamento de autenticação
+        /*
+         * OBS: talvez seja mais interessante para a aplicação trocar esses
+         * dados de outra forma. No mínimo, essas informações deveriam estar
+         * encriptadas. Além disso, o cliente escreve apenas uma vez esses
+         * dados, que têm validade igual ao lease do login dele, portanto uma
+         * outra forma mais dinâmica seria mais eficaz. No entanto, isso foge ao
+         * escopo dessa demo.
+         */
         try {
           FileReader freader = new FileReader(file);
           BufferedReader breader = new BufferedReader(freader);
@@ -70,6 +78,7 @@ public class SharedAuthClient {
                 breader.readLine()));
             byte[] secret = breader.readLine().getBytes();
             breader.close();
+            // repassa os argumentos de login
             return new AuthArgs(process, secret);
           }
           finally {
