@@ -108,6 +108,6 @@ public final class HelloServer {
     // registrando serviço no barramento
     ServiceProperty[] serviceProperties =
       new ServiceProperty[] { new ServiceProperty("offer.domain", "Demo Hello") };
-    assist.registerService(component, serviceProperties);
+    assist.registerService(component.getIComponent(), serviceProperties);
   }
 }

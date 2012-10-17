@@ -126,7 +126,7 @@ public final class DedicatedClockServer {
     ServiceProperty[] serviceProperties = new ServiceProperty[1];
     serviceProperties[0] =
       new ServiceProperty("offer.domain", "Demo Dedicated Clock");
-    assist.registerService(component, serviceProperties);
+    assist.registerService(component.getIComponent(), serviceProperties);
   }
 
 }

@@ -120,7 +120,7 @@ public final class GreetingsServer {
         new ServiceProperty("offer.domain", "Demo Greetings");
       serviceProperties[1] =
         new ServiceProperty("greetings.language", language.name());
-      assist.registerService(component, serviceProperties);
+      assist.registerService(component.getIComponent(), serviceProperties);
     }
 
   }

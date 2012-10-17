@@ -1,9 +1,9 @@
 package tecgraf.openbus.assistant;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -19,7 +19,6 @@ import org.omg.CORBA.ORB;
 import org.omg.CORBA.TRANSIENT;
 import org.omg.CORBA.ORBPackage.InvalidName;
 
-import scs.core.ComponentContext;
 import scs.core.IComponent;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
@@ -84,9 +83,9 @@ public abstract class Assistant {
   private Connection conn;
   /** Callback para informar os erros ocorridos no uso do assistente */
   private OnFailureCallback callback;
-  /** Mapa de ofertas a serem mantidas pelo assistente */
-  private Map<ComponentContext, Offer> offers = Collections
-    .synchronizedMap(new HashMap<ComponentContext, Offer>());
+  /** Lista de ofertas a serem mantidas pelo assistente */
+  private List<Offer> offers = Collections
+    .synchronizedList(new ArrayList<Offer>());
   /** Identifica se o assistente deve finalizar */
   private volatile boolean shutdown = false;
 
@@ -305,10 +304,9 @@ public abstract class Assistant {
    * @param component Referência do serviço sendo ofertado.
    * @param properties Propriedades do serviço sendo ofertado.
    */
-  public void registerService(ComponentContext component,
-    ServiceProperty[] properties) {
+  public void registerService(IComponent component, ServiceProperty[] properties) {
     Offer offer = new Offer(this, component, properties);
-    this.offers.put(component, offer);
+    this.offers.add(offer);
     // dispara o registro da oferta de serviço
     threadPool.execute(new DoRegister(this, offer));
   }
@@ -834,7 +832,7 @@ public abstract class Assistant {
     /** O assistente */
     Assistant assist;
     /** O Componente a ser registrado */
-    ComponentContext component;
+    IComponent component;
     /** Propriedades a serem cadastradas na oferta */
     ServiceProperty[] properties;
     /** Referência para a descrição da oferta */
@@ -852,7 +850,7 @@ public abstract class Assistant {
      * @param component o componente a ser ofertado
      * @param properties as propriedades com as quais a oferta deve se cadastrar
      */
-    public Offer(Assistant assist, ComponentContext component,
+    public Offer(Assistant assist, IComponent component,
       ServiceProperty[] properties) {
       this.assist = assist;
       this.component = component;
@@ -891,7 +889,7 @@ public abstract class Assistant {
       try {
         OfferRegistry offerRegistry = assist.context.getOfferRegistry();
         ServiceOffer theOffer =
-          offerRegistry.registerService(component.getIComponent(), properties);
+          offerRegistry.registerService(component, properties);
         offer.set(theOffer.describe());
         failed = false;
       }
@@ -961,8 +959,8 @@ public abstract class Assistant {
       finally {
         if (failed) {
           try {
-            assist.callback.onRegisterFailure(assist,
-              component.getIComponent(), properties, ex);
+            assist.callback
+              .onRegisterFailure(assist, component, properties, ex);
           }
           catch (Throwable e) {
             logger.log(Level.SEVERE, "Erro inesperado ao chamar callback!", e);
@@ -1002,7 +1000,7 @@ public abstract class Assistant {
       DoLogin doLogin = new DoLogin(Assistant.this);
       doLogin.run();
       synchronized (Assistant.this.offers) {
-        for (Offer aOffer : Assistant.this.offers.values()) {
+        for (Offer aOffer : Assistant.this.offers) {
           aOffer.reset();
         }
       }

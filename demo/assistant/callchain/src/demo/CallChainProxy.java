@@ -155,7 +155,7 @@ public class CallChainProxy {
       new ServiceProperty[] {
           new ServiceProperty("offer.role", "proxy messenger"),
           new ServiceProperty("offer.domain", "Demo Call Chain") };
-    assist.registerService(component, serviceProperties);
+    assist.registerService(component.getIComponent(), serviceProperties);
 
   }
 }

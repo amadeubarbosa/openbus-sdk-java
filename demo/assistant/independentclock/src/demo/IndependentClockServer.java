@@ -149,7 +149,7 @@ public final class IndependentClockServer {
     ServiceProperty[] serviceProperties = new ServiceProperty[1];
     serviceProperties[0] =
       new ServiceProperty("offer.domain", "Demo Independent Clock");
-    assist.registerService(component, serviceProperties);
+    assist.registerService(component.getIComponent(), serviceProperties);
   }
 
 }

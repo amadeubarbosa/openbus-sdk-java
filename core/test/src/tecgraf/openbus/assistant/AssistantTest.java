@@ -133,7 +133,7 @@ public class AssistantTest {
         new ServiceProperty[] {
             new ServiceProperty("offer.domain", "Assistant Test"),
             new ServiceProperty("loop.index", Integer.toString(index)) };
-      assist.registerService(context, props);
+      assist.registerService(context.getIComponent(), props);
     }
     Thread.sleep(params.interval * 3 * 1000);
     ServiceProperty[] search =
@@ -162,7 +162,7 @@ public class AssistantTest {
         new ServiceProperty[] {
             new ServiceProperty("offer.domain", "Assistant Test"),
             new ServiceProperty("loop.index", Integer.toString(index)) };
-      assist.registerService(context, props);
+      assist.registerService(context.getIComponent(), props);
     }
     Thread.sleep(params.interval * 3 * 1000);
     ServiceOfferDesc[] found = assist.getAllServices(3);
@@ -207,7 +207,7 @@ public class AssistantTest {
     ServiceProperty[] props =
       new ServiceProperty[] { new ServiceProperty("offer.domain",
         "Assistant Test") };
-    assist.registerService(context, props);
+    assist.registerService(context.getIComponent(), props);
     Thread.sleep(params.interval * 3 * 1000);
     Assert.assertTrue(failed.get());
     assist.shutdown();
