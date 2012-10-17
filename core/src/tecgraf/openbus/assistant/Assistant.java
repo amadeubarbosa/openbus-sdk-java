@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -88,8 +89,20 @@ public abstract class Assistant {
     .synchronizedMap(new HashMap<ComponentContext, Offer>());
   /** Identifica se o assistente deve finalizar */
   private volatile boolean shutdown = false;
+
   /** Controlador do pool de threads utilizadas pelo assistente */
-  private ExecutorService threadPool = Executors.newCachedThreadPool();
+  private ExecutorService threadPool = Executors
+    .newCachedThreadPool(new ThreadFactory() {
+      /**
+       * Cria threads Daemon para serem utilizadas pelo {@link ExecutorService}.
+       */
+      @Override
+      public Thread newThread(Runnable task) {
+        Thread thread = new Thread(task);
+        thread.setDaemon(true);
+        return thread;
+      }
+    });
 
   /**
    * Cria um assistente que efetua login no barramento utilizando autenticação
