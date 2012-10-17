@@ -1,6 +1,9 @@
 package demo;
 
+import org.omg.CORBA.COMM_FAILURE;
+import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.TRANSIENT;
 import org.omg.CORBA.ORBPackage.InvalidName;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
@@ -12,6 +15,8 @@ import scs.core.exception.SCSException;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.assistant.Assistant;
 import tecgraf.openbus.core.OpenBusPrivateKey;
+import tecgraf.openbus.core.v2_0.services.ServiceFailure;
+import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Utils;
@@ -105,7 +110,44 @@ public class CallChainProxy {
           new ServiceProperty("offer.domain", "Demo Call Chain"),
           new ServiceProperty("openbus.component.interface", MessengerHelper
             .id()) };
-    ServiceOfferDesc[] offers = assist.findServices(findProperties, -1);
+    ServiceOfferDesc[] offers;
+    try {
+      offers = assist.findServices(findProperties, -1);
+    }
+    // bus core
+    catch (ServiceFailure e) {
+      System.err.println(String.format(
+        "falha severa no barramento em %s:%s : %s", host, port, e.message));
+      System.exit(1);
+      return;
+    }
+    catch (TRANSIENT e) {
+      System.err.println(String.format(
+        "o barramento em %s:%s esta inacessível no momento", host, port));
+      System.exit(1);
+      return;
+    }
+    catch (COMM_FAILURE e) {
+      System.err
+        .println("falha de comunicação ao acessar serviços núcleo do barramento");
+      System.exit(1);
+      return;
+    }
+    catch (NO_PERMISSION e) {
+      if (e.minor == NoLoginCode.value) {
+        System.err.println(String.format(
+          "não há um login de '%s' válido no momento", entity));
+      }
+      System.exit(1);
+      return;
+    }
+    // erros inesperados
+    catch (Throwable e) {
+      System.err.println("Erro inesperado durante busca de serviços.");
+      e.printStackTrace();
+      System.exit(1);
+      return;
+    }
     proxy.setOffers(offers);
 
     // registrando serviço no barramento

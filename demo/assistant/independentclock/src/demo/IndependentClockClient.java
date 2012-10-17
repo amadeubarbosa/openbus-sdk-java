@@ -179,52 +179,80 @@ public final class IndependentClockClient {
       ServiceProperty[] properties = new ServiceProperty[1];
       properties[0] =
         new ServiceProperty("offer.domain", "Demo Independent Clock");
-      ServiceOfferDesc[] services = assist.findServices(properties, 0);
+      ServiceOfferDesc[] services = null;
+      try {
+        services = assist.findServices(properties, 0);
+      }
+      // bus core
+      catch (ServiceFailure e) {
+        System.err.println(String.format(
+          "falha severa no barramento em %s:%s : %s", host, port, e.message));
+      }
+      catch (TRANSIENT e) {
+        System.err.println(String.format(
+          "o barramento em %s:%s esta inacessível no momento", host, port));
+      }
+      catch (COMM_FAILURE e) {
+        System.err
+          .println("falha de comunicação ao acessar serviços núcleo do barramento");
+      }
+      catch (NO_PERMISSION e) {
+        if (e.minor == NoLoginCode.value) {
+          System.err.println(String.format(
+            "não há um login de '%s' válido no momento", entity));
+        }
+      }
+      // erros inesperados
+      catch (Throwable e) {
+        System.err.println("Erro inesperado durante busca de serviços.");
+        e.printStackTrace();
+      }
 
       // analiza as ofertas encontradas
       boolean failed = true;
-      for (ServiceOfferDesc offerDesc : services) {
-        try {
-          org.omg.CORBA.Object helloObj =
-            offerDesc.service_ref.getFacet(ClockHelper.id());
-          if (helloObj == null) {
-            System.out
-              .println("o serviço encontrado não provê a faceta ofertada");
-            continue;
+      if (services != null) {
+        for (ServiceOfferDesc offerDesc : services) {
+          try {
+            org.omg.CORBA.Object helloObj =
+              offerDesc.service_ref.getFacet(ClockHelper.id());
+            if (helloObj == null) {
+              System.out
+                .println("o serviço encontrado não provê a faceta ofertada");
+              continue;
+            }
+            clock.set(ClockHelper.narrow(helloObj));
+            failed = false;
+            break;
           }
-          clock.set(ClockHelper.narrow(helloObj));
-          failed = false;
-          break;
-        }
-        // Serviço
-        catch (TRANSIENT e) {
-          System.err.println("o serviço encontrado encontra-se indisponível");
-        }
-        catch (COMM_FAILURE e) {
-          System.err.println("falha de comunicação com o serviço encontrado");
-        }
-        catch (NO_PERMISSION e) {
-          switch (e.minor) {
-            case NoLoginCode.value:
-              System.err.println(String.format(
-                "não há um login de '%s' válido no momento", entity));
-              break;
-            case UnknownBusCode.value:
-              System.err
-                .println("o serviço encontrado não está mais logado ao barramento");
-              break;
-            case UnverifiedLoginCode.value:
-              System.err
-                .println("o serviço encontrado não foi capaz de validar a chamada");
-              break;
-            case InvalidRemoteCode.value:
-              System.err
-                .println("integração do serviço encontrado com o barramento está incorreta");
-              break;
+          // Serviço
+          catch (TRANSIENT e) {
+            System.err.println("o serviço encontrado encontra-se indisponível");
+          }
+          catch (COMM_FAILURE e) {
+            System.err.println("falha de comunicação com o serviço encontrado");
+          }
+          catch (NO_PERMISSION e) {
+            switch (e.minor) {
+              case NoLoginCode.value:
+                System.err.println(String.format(
+                  "não há um login de '%s' válido no momento", entity));
+                break;
+              case UnknownBusCode.value:
+                System.err
+                  .println("o serviço encontrado não está mais logado ao barramento");
+                break;
+              case UnverifiedLoginCode.value:
+                System.err
+                  .println("o serviço encontrado não foi capaz de validar a chamada");
+                break;
+              case InvalidRemoteCode.value:
+                System.err
+                  .println("integração do serviço encontrado com o barramento está incorreta");
+                break;
+            }
           }
         }
       }
-
       if (failed) {
         System.err.println("serviço esperado não foi encontrado.");
         try {

@@ -63,4 +63,13 @@ public class Utils {
     logger.addHandler(handler);
   }
 
+  public static void setJacorbLogLevel(Level level) {
+    Logger logger = Logger.getLogger("jacorb");
+    logger.setLevel(level);
+    logger.setUseParentHandlers(false);
+    ConsoleHandler handler = new ConsoleHandler();
+    handler.setLevel(level);
+    logger.addHandler(handler);
+  }
+
 }

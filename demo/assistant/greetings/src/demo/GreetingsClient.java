@@ -87,7 +87,44 @@ public final class GreetingsClient {
     ServiceProperty[] properties = new ServiceProperty[2];
     properties[0] = new ServiceProperty("offer.domain", "Demo Greetings");
     properties[1] = new ServiceProperty("greetings.language", language.name());
-    ServiceOfferDesc[] services = assist.findServices(properties, -1);
+    ServiceOfferDesc[] services;
+    try {
+      services = assist.findServices(properties, -1);
+    }
+    // bus core
+    catch (ServiceFailure e) {
+      System.err.println(String.format(
+        "falha severa no barramento em %s:%s : %s", host, port, e.message));
+      System.exit(1);
+      return;
+    }
+    catch (TRANSIENT e) {
+      System.err.println(String.format(
+        "o barramento em %s:%s esta inacessível no momento", host, port));
+      System.exit(1);
+      return;
+    }
+    catch (COMM_FAILURE e) {
+      System.err
+        .println("falha de comunicação ao acessar serviços núcleo do barramento");
+      System.exit(1);
+      return;
+    }
+    catch (NO_PERMISSION e) {
+      if (e.minor == NoLoginCode.value) {
+        System.err.println(String.format(
+          "não há um login de '%s' válido no momento", entity));
+      }
+      System.exit(1);
+      return;
+    }
+    // erros inesperados
+    catch (Throwable e) {
+      System.err.println("Erro inesperado durante busca de serviços.");
+      e.printStackTrace();
+      System.exit(1);
+      return;
+    }
 
     // analiza as ofertas encontradas
     for (ServiceOfferDesc offerDesc : services) {

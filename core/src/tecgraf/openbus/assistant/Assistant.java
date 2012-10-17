@@ -324,18 +324,29 @@ public abstract class Assistant {
    *        interface 'AssistantFactory').
    * 
    * @return Sequência de descrições de ofertas de serviço encontradas.
+   * @throws Throwable
    */
   public ServiceOfferDesc[] findServices(ServiceProperty[] properties,
-    int retries) {
+    int retries) throws Throwable {
     int attempt = retries;
+    Throwable last;
     do {
+      last = null;
       if (conn.login() != null) {
-        ServiceOfferDesc[] offerDescs = find(properties);
-        if (offerDescs != null) {
-          return offerDescs;
+        try {
+          ServiceOfferDesc[] offerDescs = find(properties);
+          if (offerDescs != null) {
+            return offerDescs;
+          }
+        }
+        catch (Throwable e) {
+          last = e;
         }
       }
     } while (shouldRetry(retries, --attempt));
+    if (last != null) {
+      throw last;
+    }
     return new ServiceOfferDesc[0];
   }
 
@@ -356,17 +367,28 @@ public abstract class Assistant {
    *        interface 'AssistantFactory').
    * 
    * @return Sequência de descrições de ofertas de serviço registradas.
+   * @throws Throwable
    */
-  public ServiceOfferDesc[] getAllServices(int retries) {
+  public ServiceOfferDesc[] getAllServices(int retries) throws Throwable {
     int attempt = retries;
+    Throwable last;
     do {
+      last = null;
       if (conn.login() != null) {
-        ServiceOfferDesc[] offerDescs = getAll();
-        if (offerDescs != null) {
-          return offerDescs;
+        try {
+          ServiceOfferDesc[] offerDescs = getAll();
+          if (offerDescs != null) {
+            return offerDescs;
+          }
+        }
+        catch (Throwable e) {
+          last = e;
         }
       }
     } while (shouldRetry(retries, --attempt));
+    if (last != null) {
+      throw last;
+    }
     return new ServiceOfferDesc[0];
   }
 
@@ -394,17 +416,29 @@ public abstract class Assistant {
    *        interface 'AssistantFactory').
    * 
    * @return Objeto que representa o processo de login iniciado.
+   * @throws Throwable
    */
-  public LoginProcess startSharedAuth(OctetSeqHolder secret, int retries) {
+  public LoginProcess startSharedAuth(OctetSeqHolder secret, int retries)
+    throws Throwable {
     int attempt = retries;
+    Throwable last;
     do {
+      last = null;
       if (conn.login() != null) {
-        LoginProcess process = startSharedAuthentication(secret);
-        if (process != null) {
-          return process;
+        try {
+          LoginProcess process = startSharedAuthentication(secret);
+          if (process != null) {
+            return process;
+          }
+        }
+        catch (Throwable e) {
+          last = e;
         }
       }
     } while (shouldRetry(retries, --attempt));
+    if (last != null) {
+      throw last;
+    }
     return null;
   }
 
@@ -515,7 +549,7 @@ public abstract class Assistant {
   private boolean login() {
     AuthArgs args = onLoginAuthentication();
     boolean failed = true;
-    Exception ex = null;
+    Throwable ex = null;
     try {
       if (args != null) {
         switch (args.mode) {
@@ -534,7 +568,6 @@ public abstract class Assistant {
             "'onLoginAuthentication' retornou argumentos de login nulos.");
       }
     }
-    // CHECK o que fazer em caso de erros inesperados? Capturo Exception?
     catch (AccessDenied e) {
       ex = e;
       logger.log(Level.SEVERE, "Erro ao realizar login.", e);
@@ -576,9 +609,18 @@ public abstract class Assistant {
           "erro de NO_PERMISSION não esperado: minor_code = %s", e.minor), e);
       }
     }
+    catch (Throwable e) {
+      ex = e;
+      logger.log(Level.SEVERE, "Erro inesperado!", e);
+    }
     finally {
       if (failed) {
-        callback.onLoginFailure(this, ex);
+        try {
+          callback.onLoginFailure(this, ex);
+        }
+        catch (Throwable e) {
+          logger.log(Level.SEVERE, "Erro inesperado ao chamar callback!", e);
+        }
       }
     }
     return failed;
@@ -592,10 +634,11 @@ public abstract class Assistant {
    * 
    * @return as ofertas de serviços encontradas, ou <code>null</code> caso algum
    *         erro tenha ocorrido.
+   * @throws Throwable
    */
-  private ServiceOfferDesc[] find(ServiceProperty[] props) {
+  private ServiceOfferDesc[] find(ServiceProperty[] props) throws Throwable {
     boolean failed = true;
-    Exception ex = null;
+    Throwable ex = null;
     ServiceOfferDesc[] offerDescs = null;
     try {
       OfferRegistry offerRegistry = context.getOfferRegistry();
@@ -627,9 +670,19 @@ public abstract class Assistant {
           "erro de NO_PERMISSION não esperado: minor_code = %s", e.minor), e);
       }
     }
+    catch (Throwable e) {
+      ex = e;
+      logger.log(Level.SEVERE, "Erro inesperado!", e);
+    }
     finally {
       if (failed) {
-        callback.onFindFailure(this, ex);
+        try {
+          callback.onFindFailure(this, ex);
+        }
+        catch (Throwable e) {
+          logger.log(Level.SEVERE, "Erro inesperado ao chamar callback!", e);
+        }
+        throw ex;
       }
     }
     return offerDescs;
@@ -641,10 +694,11 @@ public abstract class Assistant {
    * 
    * @return as ofertas de serviços encontradas, ou <code>null</code> caso algum
    *         erro tenha ocorrido.
+   * @throws Throwable
    */
-  private ServiceOfferDesc[] getAll() {
+  private ServiceOfferDesc[] getAll() throws Throwable {
     boolean failed = true;
-    Exception ex = null;
+    Throwable ex = null;
     ServiceOfferDesc[] offerDescs = null;
     try {
       OfferRegistry offerRegistry = context.getOfferRegistry();
@@ -676,9 +730,19 @@ public abstract class Assistant {
           "erro de NO_PERMISSION não esperado: minor_code = %s", e.minor), e);
       }
     }
+    catch (Throwable e) {
+      ex = e;
+      logger.log(Level.SEVERE, "Erro inesperado!", e);
+    }
     finally {
       if (failed) {
-        callback.onFindFailure(this, ex);
+        try {
+          callback.onFindFailure(this, ex);
+        }
+        catch (Throwable e) {
+          logger.log(Level.SEVERE, "Erro inesperado ao chamar callback!", e);
+        }
+        throw ex;
       }
     }
     return offerDescs;
@@ -691,10 +755,12 @@ public abstract class Assistant {
    * @param secret segredo a ser fornecido na conclusão do porcesso de login.
    * @return Objeto que representa o processo de login iniciado, ou
    *         <code>null</code> caso algum erro tenha ocorrido.
+   * @throws Throwable
    */
-  private LoginProcess startSharedAuthentication(OctetSeqHolder secret) {
+  private LoginProcess startSharedAuthentication(OctetSeqHolder secret)
+    throws Throwable {
     boolean failed = true;
-    Exception ex = null;
+    Throwable ex = null;
     LoginProcess attempt = null;
     try {
       attempt = this.conn.startSharedAuth(secret);
@@ -726,9 +792,19 @@ public abstract class Assistant {
           "erro de NO_PERMISSION não esperado: minor_code = %s", e.minor), e);
       }
     }
+    catch (Throwable e) {
+      ex = e;
+      logger.log(Level.SEVERE, "Erro inesperado!", e);
+    }
     finally {
       if (failed) {
-        callback.onStartSharedAuthFailure(this, ex);
+        try {
+          callback.onStartSharedAuthFailure(this, ex);
+        }
+        catch (Throwable e) {
+          logger.log(Level.SEVERE, "Erro inesperado ao chamar callback!", e);
+        }
+        throw ex;
       }
     }
     return attempt;
@@ -798,7 +874,7 @@ public abstract class Assistant {
      */
     public boolean registryOffer() {
       boolean failed = true;
-      Exception ex = null;
+      Throwable ex = null;
       try {
         OfferRegistry offerRegistry = assist.context.getOfferRegistry();
         ServiceOffer theOffer =
@@ -806,7 +882,6 @@ public abstract class Assistant {
         offer.set(theOffer.describe());
         failed = false;
       }
-      // CHECK o que fazer em caso de erros inesperados? Capturo Exception?
       // register
       catch (UnauthorizedFacets e) {
         StringBuffer interfaces = new StringBuffer();
@@ -866,10 +941,19 @@ public abstract class Assistant {
             "erro de NO_PERMISSION não esperado: minor_code = %s", e.minor), e);
         }
       }
+      catch (Throwable e) {
+        ex = e;
+        logger.log(Level.SEVERE, "Erro inesperado!", e);
+      }
       finally {
         if (failed) {
-          assist.callback.onRegisterFailure(assist, component.getIComponent(),
-            properties, ex);
+          try {
+            assist.callback.onRegisterFailure(assist,
+              component.getIComponent(), properties, ex);
+          }
+          catch (Throwable e) {
+            logger.log(Level.SEVERE, "Erro inesperado ao chamar callback!", e);
+          }
         }
       }
       return failed;
@@ -1044,7 +1128,7 @@ public abstract class Assistant {
      * {@inheritDoc}
      */
     @Override
-    public void onLoginFailure(Assistant assistant, Exception exception) {
+    public void onLoginFailure(Assistant assistant, Throwable exception) {
       // do nothing
     }
 
@@ -1053,7 +1137,7 @@ public abstract class Assistant {
      */
     @Override
     public void onRegisterFailure(Assistant assistant, IComponent component,
-      ServiceProperty[] properties, Exception except) {
+      ServiceProperty[] properties, Throwable except) {
       // do nothing
     }
 
@@ -1061,7 +1145,7 @@ public abstract class Assistant {
      * {@inheritDoc}
      */
     @Override
-    public void onFindFailure(Assistant assistant, Exception exception) {
+    public void onFindFailure(Assistant assistant, Throwable exception) {
       // do nothing
     }
 
@@ -1069,10 +1153,9 @@ public abstract class Assistant {
      * {@inheritDoc}
      */
     @Override
-    public void onStartSharedAuthFailure(Assistant assistant, Exception except) {
+    public void onStartSharedAuthFailure(Assistant assistant, Throwable except) {
       // do nothing
     }
 
   }
-
 }

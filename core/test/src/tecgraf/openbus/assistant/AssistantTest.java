@@ -21,14 +21,10 @@ import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.OpenBusPrivateKey;
 import tecgraf.openbus.core.v2_0.OctetSeqHolder;
-import tecgraf.openbus.core.v2_0.services.ServiceFailure;
-import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.exception.AlreadyLoggedIn;
-import tecgraf.openbus.exception.InvalidLoginProcess;
 import tecgraf.openbus.util.Utils;
 
 public class AssistantTest {
@@ -124,8 +120,7 @@ public class AssistantTest {
   }
 
   @Test
-  public void registerAndFindTest() throws AdapterInactive, InvalidName,
-    SCSException, InterruptedException {
+  public void registerAndFindTest() throws Throwable {
     AssistantParams params = new AssistantParams();
     params.interval = 1;
     Assistant assist =
@@ -154,8 +149,7 @@ public class AssistantTest {
   }
 
   @Test
-  public void registerAndGetAllTest() throws AdapterInactive, InvalidName,
-    SCSException, InterruptedException {
+  public void registerAndGetAllTest() throws Throwable {
     AssistantParams params = new AssistantParams();
     params.interval = 1;
     Assistant assist =
@@ -186,22 +180,22 @@ public class AssistantTest {
 
       @Override
       public void onRegisterFailure(Assistant assistant, IComponent component,
-        ServiceProperty[] properties, Exception except) {
+        ServiceProperty[] properties, Throwable except) {
         failed.set(true);
       }
 
       @Override
-      public void onLoginFailure(Assistant assistant, Exception except) {
+      public void onLoginFailure(Assistant assistant, Throwable except) {
         // do nothing
       }
 
       @Override
-      public void onFindFailure(Assistant assistant, Exception except) {
+      public void onFindFailure(Assistant assistant, Throwable except) {
         // do nothing
       }
 
       @Override
-      public void onStartSharedAuthFailure(Assistant assistant, Exception except) {
+      public void onStartSharedAuthFailure(Assistant assistant, Throwable except) {
         // do nothing
       }
     };
@@ -220,7 +214,7 @@ public class AssistantTest {
   }
 
   @Test
-  public void loginBySharedAuthTest() throws InterruptedException {
+  public void loginBySharedAuthTest() throws Throwable {
     final AtomicBoolean failed = new AtomicBoolean(false);
     AssistantParams params = new AssistantParams();
     params.interval = 1;
@@ -228,22 +222,22 @@ public class AssistantTest {
 
       @Override
       public void onRegisterFailure(Assistant assistant, IComponent component,
-        ServiceProperty[] properties, Exception except) {
+        ServiceProperty[] properties, Throwable except) {
         // do nothing
       }
 
       @Override
-      public void onLoginFailure(Assistant assistant, Exception except) {
+      public void onLoginFailure(Assistant assistant, Throwable except) {
         failed.set(true);
       }
 
       @Override
-      public void onFindFailure(Assistant assistant, Exception except) {
+      public void onFindFailure(Assistant assistant, Throwable except) {
         failed.set(true);
       }
 
       @Override
-      public void onStartSharedAuthFailure(Assistant assistant, Exception except) {
+      public void onStartSharedAuthFailure(Assistant assistant, Throwable except) {
         // do nothing
       }
     };
@@ -276,8 +270,7 @@ public class AssistantTest {
   }
 
   @Test
-  public void startSharedAuthTest() throws InterruptedException, InvalidName,
-    AlreadyLoggedIn, InvalidLoginProcess, AccessDenied, ServiceFailure {
+  public void startSharedAuthTest() throws Throwable {
     final AtomicBoolean failed = new AtomicBoolean(false);
     AssistantParams params = new AssistantParams();
     params.interval = 1;
@@ -285,22 +278,22 @@ public class AssistantTest {
 
       @Override
       public void onRegisterFailure(Assistant assistant, IComponent component,
-        ServiceProperty[] properties, Exception except) {
+        ServiceProperty[] properties, Throwable except) {
         // do nothing
       }
 
       @Override
-      public void onLoginFailure(Assistant assistant, Exception except) {
+      public void onLoginFailure(Assistant assistant, Throwable except) {
         failed.set(true);
       }
 
       @Override
-      public void onFindFailure(Assistant assistant, Exception except) {
+      public void onFindFailure(Assistant assistant, Throwable except) {
         // do nothing
       }
 
       @Override
-      public void onStartSharedAuthFailure(Assistant assistant, Exception except) {
+      public void onStartSharedAuthFailure(Assistant assistant, Throwable except) {
         failed.set(true);
       }
     };
@@ -332,22 +325,22 @@ public class AssistantTest {
 
       @Override
       public void onRegisterFailure(Assistant assistant, IComponent component,
-        ServiceProperty[] properties, Exception except) {
+        ServiceProperty[] properties, Throwable except) {
         // do nothing
       }
 
       @Override
-      public void onLoginFailure(Assistant assistant, Exception except) {
+      public void onLoginFailure(Assistant assistant, Throwable except) {
         failed.set(true);
       }
 
       @Override
-      public void onFindFailure(Assistant assistant, Exception except) {
+      public void onFindFailure(Assistant assistant, Throwable except) {
         // do nothing
       }
 
       @Override
-      public void onStartSharedAuthFailure(Assistant assistant, Exception except) {
+      public void onStartSharedAuthFailure(Assistant assistant, Throwable except) {
         // do nothing
       }
     };

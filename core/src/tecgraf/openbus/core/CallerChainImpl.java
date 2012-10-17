@@ -41,6 +41,7 @@ final class CallerChainImpl implements CallerChain {
    * Constutor.
    * 
    * @param busid identificador do barramento.
+   * @param target login para o qual a chamada esta destinada.
    * @param caller Informação de login da entidade que iniciou a chamada.
    * @param originators Lista de informações de login de todas as entidades que
    *        realizaram chamadas que originaram a cadeia de chamadas da qual essa
