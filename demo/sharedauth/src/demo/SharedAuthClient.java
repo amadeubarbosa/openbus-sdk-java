@@ -107,8 +107,7 @@ public class SharedAuthClient {
       return;
     }
     catch (InvalidLoginProcess e) {
-      System.err
-        .println("segredo fornecido não corresponde ao esperado pelo barramento");
+      System.err.println("processo de login inválido");
       System.exit(1);
       return;
     }
