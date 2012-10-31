@@ -77,7 +77,7 @@ public class MassiveConnectionTest {
 
     private OpenBusContext context;
     private String entity;
-    volatile private AtomicBoolean failed;
+    private AtomicBoolean failed;
 
     public ConnectThread(OpenBusContext multiplexer, int id,
       AtomicBoolean failed) {
