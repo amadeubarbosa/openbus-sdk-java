@@ -713,7 +713,7 @@ public abstract class Assistant {
     ServiceOfferDesc[] offerDescs = null;
     try {
       OfferRegistry offerRegistry = context.getOfferRegistry();
-      offerDescs = offerRegistry.getServices();
+      offerDescs = offerRegistry.getAllServices();
       failed = false;
     }
     // bus core
