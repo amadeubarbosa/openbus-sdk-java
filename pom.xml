@@ -5,15 +5,15 @@
   <groupId>tecgraf.openbus</groupId>
   <artifactId>openbus-sdk</artifactId>
   <packaging>pom</packaging>
-  <version>2.0.0-SNAPSHOT</version>
+  <version>2.0.0.0</version>
 
   <name>OpenBus - SDK</name>
   <url>http://www.tecgraf.puc-rio.br/openbus</url>
   
   <properties>
     <java.version>1.6</java.version>
-    <scsidl.version>1.3-SNAPSHOT</scsidl.version>
-    <scs.version>1.3.0-SNAPSHOT</scs.version>
+    <scsidl.version>1.2.1</scsidl.version>
+    <scs.version>1.2.1_0</scs.version>
     <junit.version>4.6</junit.version>
     <jacorb.version>3.1</jacorb.version>
     <project.build.sourceEncoding>ISO-8859-1</project.build.sourceEncoding>
@@ -21,10 +21,10 @@
 
   <scm>
     <developerConnection>
-        scm:svn:https://subversion.tecgraf.puc-rio.br/engdist/openbus/sdk/java/trunk
+        scm:svn:https://subversion.tecgraf.puc-rio.br/engdist/openbus/sdk/java/tags/02_00_00_00
     </developerConnection>
     <url>
-        scm:svn:https://subversion.tecgraf.puc-rio.br/viewvc/engdist/openbus/sdk/java/trunk
+        scm:svn:https://subversion.tecgraf.puc-rio.br/viewvc/engdist/openbus/sdk/java/tags/02_00_00_00
     </url>
   </scm>
 
