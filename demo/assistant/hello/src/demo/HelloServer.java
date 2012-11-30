@@ -10,6 +10,7 @@ import scs.core.ComponentContext;
 import scs.core.ComponentId;
 import scs.core.exception.SCSException;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.PrivateKey;
 import tecgraf.openbus.assistant.Assistant;
 import tecgraf.openbus.core.OpenBusPrivateKey;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
@@ -58,7 +59,7 @@ public final class HelloServer {
     String entity = args[2];
     // - chave privada
     String privateKeyFile = args[3];
-    OpenBusPrivateKey privateKey;
+    PrivateKey privateKey;
     try {
       privateKey = OpenBusPrivateKey.createPrivateKeyFromFile(privateKeyFile);
     }

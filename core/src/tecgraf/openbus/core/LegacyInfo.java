@@ -15,6 +15,7 @@ import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlServiceHe
  */
 final class LegacyInfo {
 
+  /**   */
   private Object rawObject;
   /** Referência para o componente legado */
   private IComponent bus;
