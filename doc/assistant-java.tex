@@ -193,9 +193,8 @@ No SDK Java a comunicação será feita utilizando o \jacorb{}~\cite{web:Jacorb}, e
 Antes de começar a programação, é aconselhável que o usuário coloque em funcionamento a demo Hello que acompanha o pacote do \assistant{}.
 O correto funcionamento da demo elimina uma série de possíveis problemas que o desenvolvedor possa enfrentar durante o seu projeto, como por exemplo: problemas de comunicação com o barramento e ausência de bibliotecas  externas.
 
-%% ATUALIZAR %% >>
-A demo Hello Java do \assistant{} possui um executável servidor e outro cliente e pode ser executada de acordo com as instruções do arquivo README.txt que a acompanha.
-%% ATUALIZAR %% <<
+A demo Hello Java do \assistant{} possui um \emph{jar} com a classe servidor e cliente, e pode ser executada de acordo com as instruções do arquivo README.txt que a acompanha.
+Importante lembrar que, de acordo com a documentação do \jacorb{}, é necessário utilizar o mecanismo de sobrescrita de padrão do Java (\emph{Java Endorsed Standards Override Mechanism}). Isso é feito utilizando a opção \emph{-Djava.endorsed.dirs} da JVM e passando o diretório onde se encontra os \emph{jars} do \jacorb{}. Assim garantimos que a implementação do \jacorb{} e as classes disponibilizadas da OMG são encontradas em preferência a qualquer outra classe já incluída na JVM.
 
 Após a execução do cliente, no terminal do processo servidor a seguinte mensagem deve ser exibida: ``Hello <nome-da-entidade-cliente>!''
 
