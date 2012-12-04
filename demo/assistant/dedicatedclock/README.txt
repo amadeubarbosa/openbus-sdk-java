@@ -63,8 +63,7 @@ A demo deve ser executada na seguinte ordem:
 -------------------------------
 ----------- EXEMPLO -----------
 -------------------------------
-Supondo que os jars que o demo depende estão em um diretório chamado 
-'lib':
+Supondo que os jars que o demo depende estão em um diretório chamado 'lib':
 
 1) java -Djava.endorsed.dirs=./lib/ -cp $(echo lib/*.jar | tr ' ' ':'):openbus-sdk-demo-dedicatedclock-2.0.0.0.jar demo.DedicatedClockServer localhost 2089 demo_dedicatedclock_java DemoDedicatedClock.key
 
