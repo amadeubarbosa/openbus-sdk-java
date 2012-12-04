@@ -71,9 +71,9 @@ A demo deve ser executada na seguinte ordem:
 ----------- EXEMPLO -----------
 -------------------------------
 Supondo que os jars que o demo depende estão em um diretório chamado 
-'dependency':
+'lib':
 
-1) java -Djava.endorsed.dirs=./dependency/ -cp $(echo lib/*.jar | tr ' ' ':'):openbus-sdk-demo-multiplexing-2.0.0.0.jar demo.MultiplexingServer localhost 2089 demo_multiplexing_java DemoMultiplexing.key
+1) java -Djava.endorsed.dirs=./lib/ -cp $(echo lib/*.jar | tr ' ' ':'):openbus-sdk-demo-multiplexing-2.0.0.0.jar demo.MultiplexingServer localhost 2089 demo_multiplexing_java DemoMultiplexing.key
 
-2) java -Djava.endorsed.dirs=./dependency/ -cp $(echo lib/*.jar | tr ' ' ':'):openbus-sdk-demo-multiplexing-2.0.0.0.jar demo.MultiplexingClient localhost 2089 demo_multiplexing_java_client minhasenha
+2) java -Djava.endorsed.dirs=./lib/ -cp $(echo lib/*.jar | tr ' ' ':'):openbus-sdk-demo-multiplexing-2.0.0.0.jar demo.MultiplexingClient localhost 2089 demo_multiplexing_java_client minhasenha
 

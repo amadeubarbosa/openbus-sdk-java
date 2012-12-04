@@ -56,8 +56,8 @@ A demo deve ser executada na seguinte ordem:
 ----------- EXEMPLO -----------
 -------------------------------
 Supondo que os jars que o demo depende estão em um diretório chamado 
-'dependency':
+'lib':
 
-1) java -Djava.endorsed.dirs=./dependency/ -cp $(echo lib/*.jar | tr ' ' ':'):openbus-sdk-demo-hello-2.0.0.0.jar demo.HelloServer localhost 2089 demo_hello_java DemoHello.key
+1) java -Djava.endorsed.dirs=./lib/ -cp $(echo lib/*.jar | tr ' ' ':'):openbus-sdk-demo-hello-2.0.0.0.jar demo.HelloServer localhost 2089 demo_hello_java DemoHello.key
 
-2) java -Djava.endorsed.dirs=./dependency/ -cp $(echo lib/*.jar | tr ' ' ':'):openbus-sdk-demo-hello-2.0.0.0.jar demo.HelloClient localhost 2089 demo_hello_java_client minhasenha
+2) java -Djava.endorsed.dirs=./lib/ -cp $(echo lib/*.jar | tr ' ' ':'):openbus-sdk-demo-hello-2.0.0.0.jar demo.HelloClient localhost 2089 demo_hello_java_client minhasenha
