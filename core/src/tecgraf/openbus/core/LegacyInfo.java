@@ -42,6 +42,9 @@ final class LegacyInfo {
 
   /**
    * Atualiza a referência para as facetas específicas.
+   * 
+   * @return <code>true</code> caso o suporte legado foi encontrado, e
+   *         <code>false</code> caso o suporte legado não esteja ativo.
    */
   boolean activateLegacySuport() {
     boolean existent = false;
