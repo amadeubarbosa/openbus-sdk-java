@@ -15,6 +15,7 @@ import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlServiceHe
  */
 final class LegacyInfo {
 
+  /**   */
   private Object rawObject;
   /** Referência para o componente legado */
   private IComponent bus;
@@ -41,6 +42,9 @@ final class LegacyInfo {
 
   /**
    * Atualiza a referência para as facetas específicas.
+   * 
+   * @return <code>true</code> caso o suporte legado foi encontrado, e
+   *         <code>false</code> caso o suporte legado não esteja ativo.
    */
   boolean activateLegacySuport() {
     boolean existent = false;
