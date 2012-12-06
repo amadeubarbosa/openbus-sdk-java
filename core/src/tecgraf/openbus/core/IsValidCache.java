@@ -5,6 +5,11 @@ import java.util.Map;
 
 import tecgraf.openbus.core.v1_05.access_control_service.Credential;
 
+/**
+ * Cache de verificação de validade de login.
+ * 
+ * @author Tecgraf
+ */
 class IsValidCache {
 
   /**
@@ -22,6 +27,15 @@ class IsValidCache {
       Collections.synchronizedMap(new LRUCache<IsValidKey, Boolean>(cacheSize));
   }
 
+  /**
+   * Verifica se a credencial 1.5 recebida é válida. A conexão passada como
+   * parâmetro será utilizada para fazer a chamada remota para o barramento,
+   * caso a informação não esteja na cache ou esteja inválida.
+   * 
+   * @param credential a credencial a ser validada
+   * @param conn a conexão a ser utilizada na chamada remota
+   * @return indicação se a credencial é válida ou não.
+   */
   boolean isValid(Credential credential, ConnectionImpl conn) {
     IsValidKey key = new IsValidKey(credential.identifier, credential.owner);
     Boolean valid = this.cache.get(key);
@@ -37,11 +51,24 @@ class IsValidCache {
     return valid;
   }
 
+  /**
+   * Classe privada que atua como chave do mapa da cache.
+   * 
+   * @author Tecgraf
+   */
   private class IsValidKey {
 
+    /** Identificador de login da entidade */
     public String id;
+    /** Nome da entidade */
     public String owner;
 
+    /**
+     * Construtor.
+     * 
+     * @param id identificador do login da entidade
+     * @param owner nome da entidade
+     */
     public IsValidKey(String id, String owner) {
       super();
       this.id = id;
@@ -98,6 +125,11 @@ class IsValidCache {
       return true;
     }
 
+    /**
+     * Recupera a referência do objeto.
+     * 
+     * @return o próprio objeto.
+     */
     private IsValidCache getOuterType() {
       return IsValidCache.this;
     }
