@@ -40,11 +40,6 @@
       <artifactId>openbus-sdk-legacy</artifactId>
       <version>${project.version}</version>
     </dependency>
-    
-    <dependency>
-      <groupId>tecgraf.scs</groupId>
-      <artifactId>scs-idl-jacorb</artifactId>
-    </dependency>
 
     <dependency>
       <groupId>tecgraf.scs</groupId>

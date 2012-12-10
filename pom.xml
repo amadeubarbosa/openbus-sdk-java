@@ -12,8 +12,7 @@
   
   <properties>
     <java.version>1.6</java.version>
-    <scsidl.version>1.2.1</scsidl.version>
-    <scs.version>1.2.1_0</scs.version>
+    <scs.version>1.2.1.1</scs.version>
     <junit.version>4.6</junit.version>
     <jacorb.version>3.1</jacorb.version>
     <project.build.sourceEncoding>ISO-8859-1</project.build.sourceEncoding>
@@ -115,12 +114,6 @@
 
   <dependencyManagement>
     <dependencies>
-      <dependency>
-        <groupId>tecgraf.scs</groupId>
-        <artifactId>scs-idl-jacorb</artifactId>
-        <version>${scsidl.version}</version>
-      </dependency>
-
       <dependency>
         <groupId>tecgraf.scs</groupId>
         <artifactId>scs-core</artifactId>

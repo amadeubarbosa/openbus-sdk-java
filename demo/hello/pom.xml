@@ -37,12 +37,6 @@
 
     <dependency>
       <groupId>tecgraf.scs</groupId>
-      <artifactId>scs-idl-jacorb</artifactId>
-      <version>${scsidl.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>tecgraf.scs</groupId>
       <artifactId>scs-core</artifactId>
       <version>${scs.version}</version>
     </dependency>
