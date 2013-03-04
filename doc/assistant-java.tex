@@ -129,7 +129,7 @@ Geralmente um aplicativo que se conecta ao barramento é um de dois tipos, ou um 
 \begin{itemize}
   \item Servidor.
   \item Cliente.
-  \item Híbrido do dois.
+  \item Híbrido dos dois.
 \end{itemize}
 
 Um servidor adiciona ofertas ao barramento, disponibilizando um ou mais serviços através destas ofertas. Um cliente, por outro lado, consulta o barramento por ofertas de serviços que deseja consumir.
@@ -147,11 +147,11 @@ Portanto, os seguintes casos só conseguem ser implementados com o uso da API bás
 \end{itemize}
 
 O \assistant{} recebe as informações de autenticação (como usuário, senha, chave privada, etc) em sua construção, assim como outras informações necessárias para o uso de \corba{}.
-Com essas informações ele se autentica ao barramento de forma assíncrona e mantém válida essa autenticação, renovando-a quando estiver para expirar.
-Também é refaz a autenticação se a mesma ficar inválida por qualquer motivo, como por exemplo erros de rede temporários.
+Com essas informações, ele se autentica ao barramento de forma assíncrona e mantém válida essa autenticação, renovando-a quando estiver para expirar.
+Também refaz a autenticação se a mesma ficar inválida por qualquer motivo, como, por exemplo, erros de rede temporários.
 
 A construção do \assistant{} não implica que a autenticação já tenha ocorrido com sucesso.
-Isso significa que métodos síncronos como \emph{findServices} podem falhar com a exceção \emph{NO\_PERMISSION} com código de erro \emph{NoLogin} pelo fato de a aplicação não estar ainda autenticada no barramento. 
+Isso significa que métodos síncronos, como \emph{findServices}, podem falhar com a exceção \emph{NO\_PERMISSION}, com código de erro \emph{NoLogin}, pelo fato de a aplicação não estar ainda autenticada no barramento. 
 No entanto, alguns mecanismos são oferecidos para facilitar o tratamento desses erros, como veremos na próxima seção.
 
 
@@ -170,11 +170,11 @@ O mesmo ocorre com o registro de ofertas.
 Essa diferença entre o \assistant{} e a API básica é crucial para entender as
 vantagens de se usar o mesmo.
 
-O registro de ofertas ocorre de forma assíncrona e, se por qualquer motivo o registro for invalidado pelo barramento o \assistant{} automaticamente faz um novo registro da oferta.
-Assim, o usuário não precisa se preocupar com os vários casos de erro que possam acontecer num sistema distribuido para garantir que suas ofertas estarão sempre visíveis a outros serviços.
+O registro de ofertas ocorre de forma assíncrona e, se por qualquer motivo o registro for invalidado pelo barramento, o \assistant{} automaticamente faz um novo registro da oferta.
+Assim, o usuário não precisa se preocupar com os vários casos de erro que possam acontecer num sistema distribuído para garantir que suas ofertas estarão sempre visíveis a outros serviços.
 
-Métodos síncronos  da API do \assistant{}, como por exemplo a busca de ofertas, em geral contam com um parâmetro que indica quantas tentativas devem ser feitas, já para evitar que erros como \emph{NO\_PERMISSION} com código de erro \emph{NoLogin} e outros precisem ser capturados.
-É possivel ainda definir um parâmetro opcional do \assistant{} que informa o tempo de espera entre as tentativas.
+Métodos síncronos da API do \assistant{}, como por exemplo a busca de ofertas, em geral contam com um parâmetro que indica quantas tentativas devem ser feitas, já para evitar que erros como \emph{NO\_PERMISSION} com código de erro \emph{NoLogin} e outros precisem ser capturados.
+É possível ainda definir um parâmetro opcional do \assistant{} que informa o tempo de espera entre as tentativas.
 Essas e outras funcionalidades serão explicadas com mais detalhes neste documento em seções posteriores.
 
 Utilizando o \assistant{} precisamos nos preocupar apenas com o conceito da autenticação ao barramento, já que apenas um barramento é utilizado.
@@ -191,9 +191,9 @@ No SDK Java a comunicação será feita utilizando o \jacorb{}~\cite{web:Jacorb}, e
 \subsection{Teste}
 
 Antes de começar a programação, é aconselhável que o usuário coloque em funcionamento a demo Hello que acompanha o pacote do \assistant{}.
-O correto funcionamento da demo elimina uma série de possíveis problemas que o desenvolvedor possa enfrentar durante o seu projeto, como por exemplo: problemas de comunicação com o barramento e ausência de bibliotecas  externas.
+O correto funcionamento da demo elimina uma série de possíveis problemas que o desenvolvedor possa enfrentar durante o seu projeto, como por exemplo: problemas de comunicação com o barramento e ausência de bibliotecas externas.
 
-A demo Hello Java do \assistant{} possui um \emph{jar} com a classe servidor e cliente, e pode ser executada de acordo com as instruções do arquivo README.txt que a acompanha.
+A demo Hello Java do \assistant{} possui um \emph{jar} com as classes servidor e cliente, e pode ser executada de acordo com as instruções do arquivo README.txt que a acompanha.
 Importante lembrar que, de acordo com a documentação do \jacorb{}, é necessário utilizar o mecanismo de sobrescrita de padrão do Java (\emph{Java Endorsed Standards Override Mechanism}). Isso é feito utilizando a opção \emph{-Djava.endorsed.dirs} da JVM e passando o diretório onde se encontra os \emph{jars} do \jacorb{}. Assim garantimos que a implementação do \jacorb{} e as classes disponibilizadas da OMG são encontradas em preferência a qualquer outra classe já incluída na JVM.
 
 Após a execução do cliente, no terminal do processo servidor a seguinte mensagem deve ser exibida: ``Hello <nome-da-entidade-cliente>!''
@@ -240,7 +240,7 @@ O primeiro passo de qualquer aplicação que utilize um barramento \openbus{} atra
 
 O primeiro é destinado normalmente a clientes que estejam acessando o barramento à procura de um serviço.
 O segundo é mais adequado a processos servidor que registrarão um determinado serviço no barramento.
-Já o terceiro é útil para aplicações que dependam de terceiros para realizar uma autenticação, ou seja, não tenham acesso a um par usuário/senha nem a um certificado, mas sim a um  terceiro elemento que se responsabilize pela autenticação dessa entidade.
+Já o terceiro é útil para aplicações que dependam de terceiros para realizar uma autenticação, ou seja, não tenham acesso a um par usuário/senha nem a um certificado, mas sim a um terceiro elemento que se responsabilize pela autenticação dessa entidade.
 
 No caso da autenticação via certificado, o responsável pelo serviço deve previamente encaminhar ao administrador do barramento o certificado do serviço, ou seja, um arquivo especial que contenha a chave pública do serviço.
 
@@ -258,7 +258,7 @@ final Assistant assist =
   Assistant.createWithPrivateKey(host, port, entity, privateKey);
 \end{samplelisting}
 
-Note que estamos utilizando um método estático de fábrica para instânciar o assistente, onde são necessários quatro parâmetros obrigatórios:
+Note que estamos utilizando um método estático de fábrica para instanciar o assistente, onde são necessários quatro parâmetros obrigatórios:
 
 \begin{description}
   \item [host] Endereço do barramento.
@@ -303,7 +303,7 @@ component.addFacet("Hello", HelloHelper.id(), new HelloImpl());
 \end{samplelisting}
 
 A lista de propriedades referentes ao serviço deve ser descrita numa lista de estruturas do tipo \emph{ServiceProperty}.
-Um  exemplo de registro de uma oferta pode ser conferido no Código~\ref{lst:registering}.
+Um exemplo de registro de uma oferta pode ser conferido no Código~\ref{lst:registering}.
 
 \begin{samplelisting}[language=Java]{registering}{Registro de uma Oferta de Serviço}
 // registrando serviço no barramento
@@ -346,7 +346,7 @@ Runtime.getRuntime().addShutdownHook(shutdown);
 \end{samplelisting}
 
 Até este ponto, o servidor basicamente se autenticou ao barramento e registrou seu serviço ``Hello''.
-O último passo necessário para finalizar o código do servidor é habilitar o processo a escutar as requisições CORBA que serão direcionadas para o serviço ofertado, o que pode ser feito diparando o método \emph{run} do \orb{} em uma thread separada, como demonstrado pelo código~\ref{lst:run}.
+O último passo necessário para finalizar o código do servidor é habilitar o processo a escutar as requisições CORBA que serão direcionadas para o serviço ofertado, o que pode ser feito disparando o método \emph{run} do \orb{} em uma thread separada, como demonstrado pelo código~\ref{lst:run}.
 
 \begin{samplelisting}[language=Java]{run}{Exemplo de thread para disparar o método \emph{run} do \orb{}.}
 // - disparando a thread para que o ORB atenda requisições
@@ -385,7 +385,7 @@ Para fazermos uma busca no barramento por serviços, utilizamos o método \emph{fi
 
 Para podermos fazer a busca, precisamos saber o que buscar.
 Sabemos que nosso serviço possui uma faceta chamada ``Hello'', que o mesmo se autenticou no barramento com um nome de entidade específico, e que foi especificado o valor ``Demo Hello'' para a propriedade ``offer.domain''.
-As duas primeiras informações correspondem aos valores das propriedades automáticas ``openbus.offer.entity'' e ``openbus.component.facet'' respectivamente.
+As duas primeiras informações correspondem aos valores das propriedades automáticas ``openbus.offer.entity'' e ``openbus.component.facet'', respectivamente.
 De posse dessa lista de propriedades, podemos realizar a busca.
 Um exemplo pode ser conferido no Código~\ref{lst:clientsearch}.
 
@@ -400,13 +400,13 @@ ServiceOfferDesc[] services = assist.findServices(properties, -1);
 
 O método \emph{findServices} de busca de serviços recebe dois parâmetros:
 uma lista de propriedades e um inteiro que representa o número
-de re-tentativas que a função deve fazer em caso de erros. Esse número
+de retentativas que a função deve fazer em caso de erros. Esse número
 pode ser ``-1'', que indica que a função deve tentar indefinidamente;
 pode ser o número ``0'', que indica que a função deve retornar uma
 exceção se qualquer falha ocorrer e nenhuma nova tentativa se a mesma
 falhar; e qualquer número maior que zero, que indica o número de novas
 tentativas em caso de falhas. 
-Caso o número de re-tentativas se esgote, a última exceção recebida será lançada.
+Caso o número de retentativas se esgote, a última exceção recebida será lançada.
 
 Como visto anteriormente, a oferta de serviço contém uma referência para um componente \scs{} ou, mais especificamente, para sua faceta ``IComponent''.
 Como esse componente pode apresentar diversas facetas, o usuário deve obter a faceta que deseja utilizar.
@@ -473,7 +473,7 @@ Por fim, podemos finalizar o \assistant{} para que seja feito o \emph{logout} no
 assist.shutdown();
 \end{samplelisting}
 
-Nesse ponto, podemos executar o servidor e em seguida o cliente.
+Nesse ponto, podemos executar o servidor e, em seguida, o cliente.
 Assim que o cliente realizar a chamada \emph{sayHello}, o servidor imprimirá na tela a mensagem ``Hello World!''.
 
 \subsubsection{Acessando a cadeia de chamadas para identificar o cliente}
