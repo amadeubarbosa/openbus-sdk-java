@@ -90,7 +90,7 @@ public class CallChainServer {
     };
     Runtime.getRuntime().addShutdownHook(shutdown);
 
-    // recuperando o gerente de contexto de chamadas à barramentos 
+    // recuperando o gerente de contexto de chamadas a barramentos 
     final OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
 

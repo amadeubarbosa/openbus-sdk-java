@@ -34,7 +34,7 @@ public class SharedAuthClient {
       "Usage: 'demo' <host> <port> [file] \n"
         + "  - host = é o host do barramento\n"
         + "  - port = é a porta do barramento\n"
-        + "  - file = arquivo com informações do compartilhamento de autenticação (opicional)";
+        + "  - file = arquivo com informações do compartilhamento de autenticação (opcional)";
     // verificando parametros de entrada
     if (args.length < 2) {
       System.out.println(String.format(help, "", ""));
@@ -61,7 +61,7 @@ public class SharedAuthClient {
 
     // inicializando e configurando o ORB
     ORB orb = ORBInitializer.initORB();
-    // recuperando o gerente de contexto de chamadas à barramentos 
+    // recuperando o gerente de contexto de chamadas a barramentos 
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     // conectando ao barramento.
@@ -145,7 +145,7 @@ public class SharedAuthClient {
       return;
     }
 
-    // analiza as ofertas encontradas
+    // analisa as ofertas encontradas
     for (ServiceOfferDesc offerDesc : services) {
       try {
         org.omg.CORBA.Object helloObj =

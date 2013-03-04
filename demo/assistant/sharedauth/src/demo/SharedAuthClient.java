@@ -27,7 +27,7 @@ public class SharedAuthClient {
       "Usage: 'demo' <host> <port> [file] \n"
         + "  - host = é o host do barramento\n"
         + "  - port = é a porta do barramento\n"
-        + "  - file = arquivo com informações do compartilhamento de autenticação (opicional)";
+        + "  - file = arquivo com informações do compartilhamento de autenticação (opcional)";
     // verificando parametros de entrada
     if (args.length < 2) {
       System.out.println(String.format(help, "", ""));
@@ -134,7 +134,7 @@ public class SharedAuthClient {
       return;
     }
 
-    // analiza as ofertas encontradas
+    // analisa as ofertas encontradas
     for (ServiceOfferDesc offerDesc : services) {
       try {
         org.omg.CORBA.Object helloObj =

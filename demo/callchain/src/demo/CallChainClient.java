@@ -56,7 +56,7 @@ public final class CallChainClient {
     }
     // - entidade
     String entity = args[2];
-    // - senha (opicional)
+    // - senha (opcional)
     String password = entity;
     if (args.length > 3) {
       password = args[3];
@@ -64,7 +64,7 @@ public final class CallChainClient {
 
     // inicializando e configurando o ORB
     ORB orb = ORBInitializer.initORB();
-    // recuperando o gerente de contexto de chamadas à barramentos 
+    // recuperando o gerente de contexto de chamadas a barramentos 
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     // conectando ao barramento.
@@ -118,7 +118,7 @@ public final class CallChainClient {
       return;
     }
 
-    // analiza as ofertas encontradas
+    // analisa as ofertas encontradas
     for (ServiceOfferDesc offerDesc : services) {
       try {
         org.omg.CORBA.Object msgObj =

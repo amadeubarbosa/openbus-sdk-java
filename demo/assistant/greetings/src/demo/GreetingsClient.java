@@ -63,12 +63,12 @@ public final class GreetingsClient {
     }
     // - entidade
     entity = args[2];
-    // - senha (opicional)
+    // - senha (opcional)
     password = entity;
     if (args.length > 3) {
       password = args[3];
     }
-    // - language (opicional)
+    // - language (opcional)
     String lang = "";
     if (args.length > 4) {
       lang = args[4];
@@ -126,7 +126,7 @@ public final class GreetingsClient {
       return;
     }
 
-    // analiza as ofertas encontradas
+    // analisa as ofertas encontradas
     for (ServiceOfferDesc offerDesc : services) {
       try {
         for (Period period : Period.values()) {

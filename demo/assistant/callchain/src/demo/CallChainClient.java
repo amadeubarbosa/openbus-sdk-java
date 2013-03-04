@@ -52,7 +52,7 @@ public final class CallChainClient {
     }
     // - entidade
     String entity = args[2];
-    // - senha (opicional)
+    // - senha (opcional)
     String password = entity;
     if (args.length > 3) {
       password = args[3];
@@ -107,7 +107,7 @@ public final class CallChainClient {
       return;
     }
 
-    // analiza as ofertas encontradas
+    // analisa as ofertas encontradas
     for (ServiceOfferDesc offerDesc : services) {
       try {
         org.omg.CORBA.Object msgObj =
