@@ -37,7 +37,7 @@ public final class Client {
     if (args.length < 3) {
       String params = "[file]";
       String desc =
-        "\n  - [file] = arquivo a ser gerado com informações do compartilhamento de autenticação (opicional)";
+        "\n  - [file] = arquivo a ser gerado com informações do compartilhamento de autenticação (opcional)";
       System.out.println(String.format(Utils.clientUsage, params, desc));
       System.exit(1);
       return;
@@ -56,12 +56,12 @@ public final class Client {
     }
     // - entidade
     String entity = args[2];
-    // - senha (opicional)
+    // - senha (opcional)
     String password = entity;
     if (args.length > 3) {
       password = args[3];
     }
-    // - arquivo (opicional)
+    // - arquivo (opcional)
     String file = "sharedauth.dat";
     if (args.length > 4) {
       file = args[4];
@@ -169,7 +169,7 @@ public final class Client {
       return;
     }
 
-    // analiza as ofertas encontradas
+    // analisa as ofertas encontradas
     for (ServiceOfferDesc offerDesc : services) {
       try {
         org.omg.CORBA.Object helloObj =

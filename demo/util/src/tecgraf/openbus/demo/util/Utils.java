@@ -21,7 +21,7 @@ public class Utils {
       + "  - host = é o host do barramento\n"
       + "  - port = é a porta do barramento\n"
       + "  - entity = é a entidade a ser autenticada\n"
-      + "  - password = senha (opicional) %s";
+      + "  - password = senha (opcional) %s";
 
   public static final String serverUsage =
     "Usage: 'demo' <host> <port> <entity> <privatekeypath> %s\n"

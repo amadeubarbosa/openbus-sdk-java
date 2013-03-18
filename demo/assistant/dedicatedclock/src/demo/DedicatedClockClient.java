@@ -70,7 +70,7 @@ public final class DedicatedClockClient {
     }
     // - entidade
     entity = args[2];
-    // - senha (opicional)
+    // - senha (opcional)
     password = entity;
     if (args.length > 3) {
       password = args[3];
@@ -148,7 +148,7 @@ public final class DedicatedClockClient {
       return;
     }
 
-    // analiza as ofertas encontradas
+    // analisa as ofertas encontradas
     for (ServiceOfferDesc offerDesc : services) {
       try {
         org.omg.CORBA.Object helloObj =

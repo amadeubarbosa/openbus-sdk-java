@@ -73,7 +73,7 @@ public final class IndependentClockClient {
     }
     // - entidade
     entity = args[2];
-    // - senha (opicional)
+    // - senha (opcional)
     password = entity;
     if (args.length > 3) {
       password = args[3];
@@ -208,7 +208,7 @@ public final class IndependentClockClient {
         e.printStackTrace();
       }
 
-      // analiza as ofertas encontradas
+      // analisa as ofertas encontradas
       boolean failed = true;
       if (services != null) {
         for (ServiceOfferDesc offerDesc : services) {

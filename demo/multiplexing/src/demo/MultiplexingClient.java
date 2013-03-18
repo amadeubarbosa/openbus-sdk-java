@@ -72,7 +72,7 @@ public final class MultiplexingClient {
     }
     // - entidade
     entity = args[2];
-    // - senha (opicional)
+    // - senha (opcional)
     password = entity;
     if (args.length > 3) {
       password = args[3];
@@ -103,7 +103,7 @@ public final class MultiplexingClient {
     final POA poa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
     poa.the_POAManager().activate();
 
-    // recuperando o gerente de contexto de chamadas à barramentos 
+    // recuperando o gerente de contexto de chamadas a barramentos 
     final OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
 
@@ -153,11 +153,11 @@ public final class MultiplexingClient {
       return;
     }
 
-    // analiza as ofertas encontradas
+    // analisa as ofertas encontradas
     for (int i = 0; i < services.length; i++) {
       final int index = i;
       final ServiceOfferDesc offerDesc = services[i];
-      // utiliza a oferta em uma thred separada
+      // utiliza a oferta em uma thread separada
       new Thread() {
         @Override
         public void run() {

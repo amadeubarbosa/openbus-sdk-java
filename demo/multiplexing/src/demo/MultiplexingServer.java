@@ -114,7 +114,7 @@ public final class MultiplexingServer {
     };
     Runtime.getRuntime().addShutdownHook(shutdown);
 
-    // recuperando o gerente de contexto de chamadas à barramentos 
+    // recuperando o gerente de contexto de chamadas a barramentos 
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
 
