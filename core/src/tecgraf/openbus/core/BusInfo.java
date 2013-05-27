@@ -67,8 +67,13 @@ final class BusInfo {
    */
   void basicBusInitialization() {
     boolean existent = false;
-    if (rawObject != null && !rawObject._non_existent()) {
-      existent = true;
+    try {
+      if (rawObject != null && !rawObject._non_existent()) {
+        existent = true;
+      }
+    }
+    catch (OBJECT_NOT_EXIST e) {
+      existent = false;
     }
     if (!existent) {
       throw new OpenBusInternalException("Barramento não esta acessível.");
