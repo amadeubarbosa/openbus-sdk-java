@@ -2,6 +2,8 @@ package tecgraf.openbus.core;
 
 import java.security.interfaces.RSAPublicKey;
 
+import org.omg.CORBA.OBJECT_NOT_EXIST;
+
 import scs.core.IComponent;
 import scs.core.IComponentHelper;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessControl;
