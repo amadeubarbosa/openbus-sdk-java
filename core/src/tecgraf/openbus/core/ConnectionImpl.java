@@ -13,11 +13,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import java.util.logging.Logger;
 
 import org.omg.CORBA.Any;
-import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.IntHolder;
-import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.OBJECT_NOT_EXIST;
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.SystemException;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
 
 import tecgraf.openbus.Connection;
@@ -41,7 +40,6 @@ import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_0.services.access_control.MissingCertificate;
-import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_0.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
@@ -511,14 +509,11 @@ final class ConnectionImpl implements Connection {
       context.setCurrentConnection(this);
       this.access().logout();
     }
-    catch (NO_PERMISSION e) {
-      if (e.minor == NoLoginCode.value
-        && e.completed.equals(CompletionStatus.COMPLETED_NO)) {
-        return false;
-      }
-      else {
-        throw e;
-      }
+    catch (SystemException e) {
+      logger.warning(String.format("Erro durante chamada remota de logout: "
+        + "busid (%s) login (%s) entidade (%s)\n" + "EXCEÇÃO: %s", busid(),
+        login.id, login.entity, e.toString()));
+      return false;
     }
     finally {
       context.setCurrentConnection(previousConnection);

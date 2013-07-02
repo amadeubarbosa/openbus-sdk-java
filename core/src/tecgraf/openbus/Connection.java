@@ -159,7 +159,8 @@ public interface Connection {
    * 
    * @return <code>true</code> se o processo de logout for concluído com êxito e
    *         <code>false</code> se a conexão já estiver desautenticada (login
-   *         inválido).
+   *         inválido) ou se houver uma falha durante o processo remoto do
+   *         logout.
    * 
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento durante chamada ao remota.
