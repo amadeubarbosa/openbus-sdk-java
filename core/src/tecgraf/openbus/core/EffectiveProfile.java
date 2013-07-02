@@ -14,7 +14,7 @@ class EffectiveProfile {
   /**
    * Informação do profiler
    */
-  public byte[] profile_data;
+  private byte[] profile_data;
 
   /**
    * Construtor.
@@ -43,6 +43,14 @@ class EffectiveProfile {
   @Override
   public int hashCode() {
     return Arrays.hashCode(this.profile_data);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public String toString() {
+    return new String(this.profile_data);
   }
 
 }

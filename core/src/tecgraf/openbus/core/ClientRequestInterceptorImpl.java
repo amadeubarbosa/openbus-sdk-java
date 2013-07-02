@@ -13,6 +13,7 @@ import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.NO_PERMISSIONHelper;
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.SystemException;
 import org.omg.CORBA.TCKind;
 import org.omg.CORBA.ORBPackage.InvalidName;
 import org.omg.IOP.Codec;
@@ -39,6 +40,7 @@ import tecgraf.openbus.core.v2_0.credential.CredentialResetHelper;
 import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
 import tecgraf.openbus.core.v2_0.credential.SignedCallChainHelper;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
+import tecgraf.openbus.core.v2_0.services.access_control.BusUnavailableCode;
 import tecgraf.openbus.core.v2_0.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidCredentialCode;
@@ -102,8 +104,8 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     }
     Codec codec = this.getMediator().getCodec();
     if (manager.isCurrentThreadIgnored(ri)) {
-      logger.finest(String.format("Realizando chamada fora do barramento: %s",
-        operation));
+      logger.finest(String.format(
+        "Realizando chamada fora do barramento: operação (%s)", operation));
       return;
     }
 
@@ -118,7 +120,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     LoginInfo currLogin = conn.getLogin();
     if (currLogin == null) {
       String message =
-        "Chamada cancelada. Conexão não possui login. Operação: " + operation;
+        String.format(
+          "Chamada cancelada. Conexão não possui login. operação (%s)",
+          operation);
       logger.info(message);
       throw new NO_PERMISSION(message, NoLoginCode.value,
         CompletionStatus.COMPLETED_NO);
@@ -229,16 +233,16 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         byte[] credentialDataHash =
           this.generateCredentialDataHash(ri, secret, ticket);
         SignedCallChain chain = getCallChain(ri, conn, holder, callee);
-        logger
-          .fine(String.format(
-            "Realizando chamada via barramento para '%s': %s", callee,
-            operation));
+        logger.fine(String.format(
+          "Realizando chamada via barramento: callee (%s) operação (%s)",
+          callee, operation));
         return new CredentialData(busId, holder.value.id, session.getSession(),
           ticket, credentialDataHash, chain);
       }
     }
-    logger.finest(String.format("Realizando chamada sem credencial: %s",
-      operation));
+    logger.finest(String.format(
+      "Realizando chamada sem credencial: login (%s) operação (%s)",
+      holder.value.id, operation));
     return new CredentialData(busId, holder.value.id, 0, 0, NULL_HASH_VALUE,
       NULL_SIGNED_CALL_CHAIN);
   }
@@ -275,11 +279,19 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         }
         holder.value = curr;
       }
+      catch (SystemException e) {
+        String message =
+          String
+            .format("Erro durante acesso ao barramento (%s).", conn.busid());
+        logger.log(Level.SEVERE, message, e);
+        throw new NO_PERMISSION(message, BusUnavailableCode.value,
+          CompletionStatus.COMPLETED_NO);
+      }
       catch (ServiceFailure e) {
         String message =
           String
             .format(
-              "Falha inesperada ao assinar uma cadeia de chamadas para a entidade %s",
+              "Falha inesperada ao assinar uma cadeia de chamadas para a entidade '%s'",
               callee);
         logger.log(Level.SEVERE, message, e);
         throw new INTERNAL(message);
@@ -395,6 +407,10 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
           conn.cache.entities.put(ep, callee);
           conn.cache.cltSessions.put(callee, new ClientSideSession(
             reset.session, secret, reset.login));
+          logger.finest(String.format(
+            "Associando profile_data '%s'a entidade '%s'", ep, callee));
+          logger.finest(String.format("Associando entidade '%s'a sessão '%s'",
+            callee, reset.session));
           logger.finest(String.format("ForwardRequest após reset: %s", ri
             .operation()));
           throw new ForwardRequest(ri.target());
