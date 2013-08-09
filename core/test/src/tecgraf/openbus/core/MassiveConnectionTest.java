@@ -20,7 +20,6 @@ import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOffer;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.security.Cryptography;
 import tecgraf.openbus.util.Utils;
 
 public class MassiveConnectionTest {
@@ -34,7 +33,6 @@ public class MassiveConnectionTest {
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
-    Cryptography crypto = Cryptography.getInstance();
     Properties properties = Utils.readPropertyFile("/test.properties");
     host = properties.getProperty("openbus.host.name");
     port = Integer.valueOf(properties.getProperty("openbus.host.port"));

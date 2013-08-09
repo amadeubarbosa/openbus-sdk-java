@@ -367,7 +367,7 @@ public final class OpenBusContextTest {
     //TODO testar caso em que a chain da getCallerChain não é vazia
     //TODO comparar assinatura do callerchainimpl com a implementação CSHARP
     String busid = "mock";
-    LoginInfo target = new LoginInfo("targetId", "target");
+    String target = "target";
     LoginInfo caller = new LoginInfo("a", "b");
     LoginInfo[] originators = new LoginInfo[0];
 
@@ -376,8 +376,7 @@ public final class OpenBusContextTest {
     CallerChain callerChain = _context.getJoinedChain();
     assertNotNull(callerChain);
     assertEquals(busid, callerChain.busid());
-    assertEquals(target.id, callerChain.target().id);
-    assertEquals(target.entity, callerChain.target().entity);
+    assertEquals(target, callerChain.target());
     assertEquals("a", callerChain.caller().id);
     assertEquals("b", callerChain.caller().entity);
     _context.exitChain();
@@ -390,8 +389,8 @@ public final class OpenBusContextTest {
     assertNull(_context.getJoinedChain());
     _context.exitChain();
     assertNull(_context.getJoinedChain());
-    _context.joinChain(buildFakeCallChain("mock", new LoginInfo("targetId",
-      "target"), new LoginInfo("a", "b"), new LoginInfo[0]));
+    _context.joinChain(buildFakeCallChain("mock", "target", new LoginInfo("a",
+      "b"), new LoginInfo[0]));
     _context.exitChain();
     assertNull(_context.getJoinedChain());
   }
@@ -406,10 +405,10 @@ public final class OpenBusContextTest {
     return codecFactory.create_codec(encoding);
   }
 
-  private CallerChain buildFakeCallChain(String busid, LoginInfo target,
+  private CallerChain buildFakeCallChain(String busid, String target,
     LoginInfo caller, LoginInfo[] originators) throws InvalidTypeForEncoding,
     UnknownEncoding, InvalidName {
-    CallChain callChain = new CallChain(target.id, originators, caller);
+    CallChain callChain = new CallChain(target, originators, caller);
     Any anyCallChain = orb.create_any();
     CallChainHelper.insert(anyCallChain, callChain);
     byte[] encodedCallChain = getCodec(orb).encode_value(anyCallChain);

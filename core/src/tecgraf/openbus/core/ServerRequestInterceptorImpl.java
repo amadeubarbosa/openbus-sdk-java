@@ -45,7 +45,6 @@ import tecgraf.openbus.core.v2_0.services.access_control.InvalidLoginCode;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidLogins;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidPublicKeyCode;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginInfoHelper;
 import tecgraf.openbus.core.v2_0.services.access_control.NoCredentialCode;
 import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_0.services.access_control.UnknownBusCode;
@@ -554,13 +553,13 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
             crypto.verifySignature(busPubKey, chain.encoded, chain.signature);
           if (verified) {
             LoginInfo loginInfo = conn.login();
-            if (callChain.target.equals(loginInfo.id)) {
+            if (callChain.target.equals(loginInfo.entity)) {
               LoginInfo caller = callChain.caller;
               if (caller.id.equals(credential.login)) {
                 try {
                   ORB orb = this.getMediator().getORB();
                   Any targetAny = orb.create_any();
-                  LoginInfoHelper.insert(targetAny, loginInfo);
+                  targetAny.insert_string(loginInfo.entity);
                   ri.set_slot(this.getMediator().getSignedChainTargetSlotId(),
                     targetAny);
                   return true;

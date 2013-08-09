@@ -45,7 +45,9 @@ import tecgraf.openbus.core.v2_0.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidCredentialCode;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidLoginCode;
+import tecgraf.openbus.core.v2_0.services.access_control.InvalidLogins;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidRemoteCode;
+import tecgraf.openbus.core.v2_0.services.access_control.InvalidTargetCode;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfoHolder;
 import tecgraf.openbus.core.v2_0.services.access_control.NoCredentialCode;
@@ -222,9 +224,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     String operation = ri.operation();
     String busId = conn.busid();
     EffectiveProfile ep = new EffectiveProfile(ri.effective_profile());
-    String callee = conn.cache.entities.get(ep);
-    if (callee != null) {
-      ClientSideSession session = conn.cache.cltSessions.get(callee);
+    String target = conn.cache.entities.get(ep);
+    if (target != null) {
+      ClientSideSession session = conn.cache.cltSessions.get(target);
       if (session != null) {
         int ticket = session.nextTicket();
         logger.finest(String.format("utilizando sessão: id = %d ticket = %d",
@@ -232,10 +234,10 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         byte[] secret = session.getSecret();
         byte[] credentialDataHash =
           this.generateCredentialDataHash(ri, secret, ticket);
-        SignedCallChain chain = getCallChain(ri, conn, holder, callee);
+        SignedCallChain chain = getCallChain(ri, conn, holder, target);
         logger.fine(String.format(
-          "Realizando chamada via barramento: callee (%s) operação (%s)",
-          callee, operation));
+          "Realizando chamada via barramento: target (%s) operação (%s)",
+          target, operation));
         return new CredentialData(busId, holder.value.id, session.getSession(),
           ticket, credentialDataHash, chain);
       }
@@ -253,13 +255,13 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    * @param ri informação do request
    * @param conn a conexão em uso
    * @param holder o login em uso.
-   * @param callee o alvo do request
+   * @param target o alvo do request
    * @return A cadeia assinada.
    */
   private SignedCallChain getCallChain(ClientRequestInfo ri,
-    ConnectionImpl conn, LoginInfoHolder holder, String callee) {
+    ConnectionImpl conn, LoginInfoHolder holder, String target) {
     SignedCallChain callChain;
-    if (callee.equals(BusLogin.value)) {
+    if (target.equals(BusLogin.value)) {
       callChain = getSignedChain(ri);
     }
     else {
@@ -267,11 +269,11 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         LoginInfo curr = holder.value;
         // checando se existe na cache
         ChainCacheKey key =
-          new ChainCacheKey(curr.id, callee, getSignedChain(ri));
+          new ChainCacheKey(curr.id, target, getSignedChain(ri));
         callChain = conn.cache.chains.get(key);
         if (callChain == null) {
           do {
-            callChain = conn.access().signChainFor(callee);
+            callChain = conn.access().signChainFor(target);
             curr = conn.getLogin();
           } while (!unmarshallSignedChain(callChain, logger).caller.id
             .equals(curr.id));
@@ -287,12 +289,20 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         throw new NO_PERMISSION(message, BusUnavailableCode.value,
           CompletionStatus.COMPLETED_NO);
       }
+      catch (InvalidLogins e) {
+        String message =
+          String.format("Erro ao assinar cadeia para target: (%s)",
+            e.loginIds[0]);
+        logger.log(Level.SEVERE, message, e);
+        throw new NO_PERMISSION(message, InvalidTargetCode.value,
+          CompletionStatus.COMPLETED_NO);
+      }
       catch (ServiceFailure e) {
         String message =
           String
             .format(
-              "Falha inesperada ao assinar uma cadeia de chamadas para a entidade '%s'",
-              callee);
+              "Falha inesperada ao assinar uma cadeia de chamadas para o target (%s)",
+              target);
         logger.log(Level.SEVERE, message, e);
         throw new INTERNAL(message);
       }
@@ -349,6 +359,8 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
   public void receive_exception(ClientRequestInfo ri) throws ForwardRequest {
     Integer requestId = Integer.valueOf(ri.request_id());
     try {
+      logger.finest(String.format("Exception: %s Request: %s", ri
+        .received_exception_id(), ri.operation()));
       if (!ri.received_exception_id().equals(NO_PERMISSIONHelper.id())) {
         return;
       }
@@ -393,7 +405,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
 
           CredentialReset reset =
             CredentialResetHelper.extract(credentialResetAny);
-          String callee = reset.login;
+          String target = reset.target;
           Cryptography crypto = Cryptography.getInstance();
           byte[] secret;
           try {
@@ -404,13 +416,13 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
             logger.log(Level.SEVERE, message, e);
             throw new INTERNAL(message);
           }
-          conn.cache.entities.put(ep, callee);
-          conn.cache.cltSessions.put(callee, new ClientSideSession(
-            reset.session, secret, reset.login));
+          conn.cache.entities.put(ep, target);
+          conn.cache.cltSessions.put(target, new ClientSideSession(
+            reset.session, secret, target));
           logger.finest(String.format(
-            "Associando profile_data '%s'a entidade '%s'", ep, callee));
+            "Associando profile_data '%s'a entidade '%s'", ep, target));
           logger.finest(String.format("Associando entidade '%s'a sessão '%s'",
-            callee, reset.session));
+            target, reset.session));
           logger.finest(String.format("ForwardRequest após reset: %s", ri
             .operation()));
           throw new ForwardRequest(ri.target());

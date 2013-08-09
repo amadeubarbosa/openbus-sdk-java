@@ -4,14 +4,14 @@ Category {
 }
 
 Entity {
-  id = "interop_hello_java_server",
+  id = "interop_reloggedjoin_java_server",
   category = "openbus_interops",
   name = "Teste de Interoperabilidade Hello do SDK Java",
 }
 
 Certificate {
-  id = "interop_rellogedjoin_java_server",
-  certificate = "InteropRellogedJoin.crt",
+  id = "interop_reloggedjoin_java_server",
+  certificate = "InteropReloggedJoin.crt",
 }
 
 Interface {
@@ -19,7 +19,7 @@ Interface {
 }
 
 Grant {
-  id = "interop_rellogedjoin_java_server",
+  id = "interop_reloggedjoin_java_server",
   interfaces = {
     "IDL:tecgraf/openbus/interop/simple/Hello:1.0",
   }
