@@ -20,5 +20,6 @@
     <module>multiplexing</module>
     <module>delegation</module>
     <module>sharedauth</module>
+    <module>reloggedjoin</module>
   </modules>
 </project>

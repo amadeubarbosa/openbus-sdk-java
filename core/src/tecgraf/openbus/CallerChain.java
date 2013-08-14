@@ -24,11 +24,21 @@ public interface CallerChain {
   String busid();
 
   /**
-   * Recupera a informação de login a quem a cadeia se destina.
+   * Recupera entidade para o qual a chamada estava destinada. Só é possível
+   * fazer chamadas dentro dessa cadeia (através do método joinChain da
+   * interface {@link OpenBusContext}) se a entidade da conexão corrente for o
+   * mesmo do target.
+   * <p>
+   * No caso de conexões legadas, este campo será nulo e será possível fazer
+   * qualquer chamada como parte dessa cadeia. Contudo, todas as chamadas feitas
+   * como parte de uma cadeia de uma chamada legada serão feitas utilizando
+   * apenas o protocolo do OpenBus 1.5 (apenas com credenciais legadas) e
+   * portanto serão recusadas por serviços que não aceitem chamadas legadas
+   * (OpenBus 1.5).
    * 
-   * @return Informação de login.
+   * @return Indentificador da entidade para o qual a chamada estava destinada.
    */
-  LoginInfo target();
+  String target();
 
   /**
    * Recupera a lista de informações de login de todas as entidades que

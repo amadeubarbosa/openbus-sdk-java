@@ -16,9 +16,9 @@ final class CallerChainImpl implements CallerChain {
   private String busid;
 
   /**
-   * Identificador de login a quem a cadeia se destina.
+   * Entidade para o qual a chamada esta destinada.
    */
-  private LoginInfo target;
+  private String target;
 
   /**
    * Lista de informações de login de todas as entidades que realizaram chamadas
@@ -41,14 +41,14 @@ final class CallerChainImpl implements CallerChain {
    * Constutor.
    * 
    * @param busid identificador do barramento.
-   * @param target login para o qual a chamada esta destinada.
+   * @param target entidade para o qual a chamada esta destinada.
    * @param caller Informação de login da entidade que iniciou a chamada.
    * @param originators Lista de informações de login de todas as entidades que
    *        realizaram chamadas que originaram a cadeia de chamadas da qual essa
    *        chamada está inclusa.
    * @param signedChain a representação assinada da cadeia.
    */
-  CallerChainImpl(String busid, LoginInfo target, LoginInfo caller,
+  CallerChainImpl(String busid, String target, LoginInfo caller,
     LoginInfo[] originators, SignedCallChain signedChain) {
     this.busid = busid;
     this.target = target;
@@ -69,7 +69,7 @@ final class CallerChainImpl implements CallerChain {
    * {@inheritDoc}
    */
   @Override
-  public LoginInfo target() {
+  public String target() {
     return this.target;
   }
 

@@ -30,8 +30,6 @@ import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
 import tecgraf.openbus.core.v2_0.credential.SignedCallChainHelper;
 import tecgraf.openbus.core.v2_0.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginInfoHelper;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
@@ -218,7 +216,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     String busId;
     CallChain callChain;
     SignedCallChain signedChain;
-    LoginInfo target;
+    String target;
     try {
       Any any = current.get_slot(mediator.getBusSlotId());
       if (any.type().kind().value() == TCKind._tk_null) {
@@ -238,7 +236,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       if (any.type().kind().value() == TCKind._tk_null) {
         return null;
       }
-      target = LoginInfoHelper.extract(any);
+      target = any.extract_string();
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao obter o slot no PICurrent";
@@ -282,7 +280,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       busAny.insert_string(chain.busid());
       current.set_slot(mediator.getJoinedBusSlotId(), busAny);
       Any targetAny = this.orb.create_any();
-      LoginInfoHelper.insert(targetAny, chain.target());
+      targetAny.insert_string(chain.target());
       current.set_slot(mediator.getJoinedChainTargetSlotId(), targetAny);
     }
     catch (InvalidSlot e) {
@@ -340,7 +338,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       if (any.type().kind().value() == TCKind._tk_null) {
         return null;
       }
-      LoginInfo target = LoginInfoHelper.extract(any);
+      String target = any.extract_string();
       return new CallerChainImpl(busId, target, callChain.caller,
         callChain.originators, signedChain);
     }
