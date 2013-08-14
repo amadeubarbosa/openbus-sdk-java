@@ -42,7 +42,7 @@ public final class Proxy {
       String privateKeyFile = "admin/InteropReloggedJoin.key";
       OpenBusPrivateKey privateKey =
         OpenBusPrivateKey.createPrivateKeyFromFile(privateKeyFile);
-      Utils.setLogLevel(Level.parse(props.getProperty("log.level", "FINEST")));
+      Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
       ORB orb = ORBInitializer.initORB(args);
       new ORBRunThread(orb).start();

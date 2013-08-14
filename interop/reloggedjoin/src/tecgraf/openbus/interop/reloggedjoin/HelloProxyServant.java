@@ -17,11 +17,11 @@ import tecgraf.openbus.interop.util.Utils;
  * @author Tecgraf
  */
 public final class HelloProxyServant extends HelloPOA {
-  /**
-   * Contexto do OpenBus em uso.
-   */
+  /** Contexto do OpenBus em uso. */
   private OpenBusContext context;
+  /** Chave privada de autenticação */
   private OpenBusPrivateKey privateKey;
+  /** Nome da entidade. */
   private String entity;
 
   /**
