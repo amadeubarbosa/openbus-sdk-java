@@ -32,7 +32,6 @@ import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessControl;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
-import tecgraf.openbus.core.v2_0.services.access_control.CertificateRegistry;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidPublicKey;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginAuthenticationInfo;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginAuthenticationInfoHelper;
@@ -561,15 +560,6 @@ final class ConnectionImpl implements Connection {
    */
   LoginRegistry logins() {
     return getBus().getLoginRegistry();
-  }
-
-  /**
-   * Recupera o serviço de registro de certificados.
-   * 
-   * @return o serviço de registro de certificados.
-   */
-  CertificateRegistry certificates() {
-    return getBus().getCertificateRegistry();
   }
 
   /**
