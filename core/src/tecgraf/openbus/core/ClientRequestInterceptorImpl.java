@@ -40,7 +40,7 @@ import tecgraf.openbus.core.v2_0.credential.CredentialResetHelper;
 import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
 import tecgraf.openbus.core.v2_0.credential.SignedCallChainHelper;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
-import tecgraf.openbus.core.v2_0.services.access_control.BusUnavailableCode;
+import tecgraf.openbus.core.v2_0.services.access_control.UnavailableBusCode;
 import tecgraf.openbus.core.v2_0.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidCredentialCode;
@@ -286,7 +286,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
           String
             .format("Erro durante acesso ao barramento (%s).", conn.busid());
         logger.log(Level.SEVERE, message, e);
-        throw new NO_PERMISSION(message, BusUnavailableCode.value,
+        throw new NO_PERMISSION(message, UnavailableBusCode.value,
           CompletionStatus.COMPLETED_NO);
       }
       catch (InvalidLogins e) {
