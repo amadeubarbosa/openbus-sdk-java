@@ -8,8 +8,6 @@ import scs.core.IComponent;
 import scs.core.IComponentHelper;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessControl;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessControlHelper;
-import tecgraf.openbus.core.v2_0.services.access_control.CertificateRegistry;
-import tecgraf.openbus.core.v2_0.services.access_control.CertificateRegistryHelper;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginRegistryHelper;
 import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
@@ -39,8 +37,6 @@ final class BusInfo {
   private AccessControl accessControl;
   /** Referência para o registro de login do barramento */
   private LoginRegistry loginRegistry;
-  /** Referência para o registro de certificado do barramento */
-  private CertificateRegistry certificateRegistry;
   /** Referência para o registro de ofertas do barramento */
   private OfferRegistry offerRegistry;
 
@@ -117,7 +113,6 @@ final class BusInfo {
     this.publicKey = null;
     this.bus = null;
     this.accessControl = null;
-    this.certificateRegistry = null;
     this.loginRegistry = null;
     this.offerRegistry = null;
   }
@@ -162,21 +157,6 @@ final class BusInfo {
       }
     }
     return loginRegistry;
-  }
-
-  /**
-   * Recupera a referência para o registro de certificado do barramento.
-   * 
-   * @return o registro de certificado do barramento.
-   */
-  CertificateRegistry getCertificateRegistry() {
-    synchronized (lockCert) {
-      if (certificateRegistry == null) {
-        org.omg.CORBA.Object obj = bus.getFacet(CertificateRegistryHelper.id());
-        certificateRegistry = CertificateRegistryHelper.narrow(obj);
-      }
-    }
-    return certificateRegistry;
   }
 
   /**
