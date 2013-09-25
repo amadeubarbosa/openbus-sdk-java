@@ -40,7 +40,6 @@ import tecgraf.openbus.core.v2_0.credential.CredentialResetHelper;
 import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
 import tecgraf.openbus.core.v2_0.credential.SignedCallChainHelper;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
-import tecgraf.openbus.core.v2_0.services.access_control.UnavailableBusCode;
 import tecgraf.openbus.core.v2_0.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidCredentialCode;
@@ -52,6 +51,7 @@ import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfoHolder;
 import tecgraf.openbus.core.v2_0.services.access_control.NoCredentialCode;
 import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_0.services.access_control.UnavailableBusCode;
 import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.security.Cryptography;
 
