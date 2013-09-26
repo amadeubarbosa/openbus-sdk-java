@@ -42,8 +42,6 @@ final class BusInfo {
 
   /** Lock para cotrole de concorrência no acesso ao registro de logins */
   private Object lockLogin = new Object();
-  /** Lock para cotrole de concorrência no acesso ao registro de certificados */
-  private Object lockCert = new Object();
   /** Lock para cotrole de concorrência no acesso ao registro de ofertas */
   private Object lockOffer = new Object();
 
