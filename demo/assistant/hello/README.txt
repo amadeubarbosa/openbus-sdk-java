@@ -12,9 +12,9 @@ demo.
 ant-1.8.2.jar
 ant-launcher-1.8.2.jar
 jacorb-3.1.jar
-openbus-sdk-core-2.0.0-SNAPSHOT.jar
-openbus-sdk-demo-util-2.0.0-SNAPSHOT.jar
-openbus-sdk-legacy-2.0.0-SNAPSHOT.jar
+openbus-sdk-core-2.0.0.1.jar
+openbus-sdk-demo-util-2.0.0.1.jar
+openbus-sdk-legacy-2.0.0.1.jar
 scs-core-1.2.1.1.jar
 slf4j-api-1.6.4.jar
 slf4j-jdk14-1.6.4.jar
@@ -56,6 +56,6 @@ A demo deve ser executada na seguinte ordem:
 -------------------------------
 Supondo que os jars que o demo depende estão em um diretório chamado 'lib':
 
-1) java -Djava.endorsed.dirs=./lib/ -cp $(echo lib/*.jar | tr ' ' ':'):openbus-sdk-demo-hello-2.0.0.0.jar demo.HelloServer localhost 2089 demo_hello_java DemoHello.key
+1) java -Djava.endorsed.dirs=./lib/ -cp $(echo lib/*.jar | tr ' ' ':'):openbus-sdk-demo-hello-2.0.0.1.jar demo.HelloServer localhost 2089 demo_hello_java DemoHello.key
 
-2) java -Djava.endorsed.dirs=./lib/ -cp $(echo lib/*.jar | tr ' ' ':'):openbus-sdk-demo-hello-2.0.0.0.jar demo.HelloClient localhost 2089 demo_hello_java_client minhasenha
+2) java -Djava.endorsed.dirs=./lib/ -cp $(echo lib/*.jar | tr ' ' ':'):openbus-sdk-demo-hello-2.0.0.1.jar demo.HelloClient localhost 2089 demo_hello_java_client minhasenha
