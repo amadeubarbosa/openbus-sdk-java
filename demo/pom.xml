@@ -20,6 +20,7 @@
     <module>dedicatedclock</module>
     <module>greetings</module>
     <module>hello</module>
+    <module>interceptor</module>
     <module>independentclock</module>
     <module>multiplexing</module>
     <module>sharedauth</module>
