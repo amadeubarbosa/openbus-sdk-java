@@ -526,10 +526,32 @@ O código completo pode ser conferido na demo Hello do \assistant{}.
 
 \subsection{Configurações avançadas}
 
+\subsubsection{Definindo os níveis de log do \jacorb{}}
+
+o \jacorb{} utiliza o SLF4J para realizar seu mecanismo de logging. 
+O SLF4J é uma fachada de logging que pode ser utilizada em conjunto com outras soluções de logging arbitrárias, como Log4J, JCL, ou JDK.
+Para alterar para uma solução de logging diferente, basta incluir a biblioteca no \emph{classpath}.
+O sistema de logging padrão adotado na distribuição do \jacorb{} é o JDK. 
+
+As semânticas associadas aos níveis de log utilizados pelo \jacorb{} são:
+\begin{description}
+  \item [error] Eventos que sugerem um erro no \jacorb{} ou no código do usuário. Isto inclui, mas não restringe, erros fatais que ocasionarão o término do programa.
+  \item [warn] Eventos que demandam atenção mas são tratados corretamente de acordo com a especificação \corba{}. Por exemplo, término inesperado de uma conexão, falta de recurso (fila cheia), entre outros.
+  \item [info] Inicialização e término de subsistemas, realização e finalização de conexões, registro de objetos no POA.
+  \item [debug] Informações que podem ser necessárias para a identifícação de erros no \jacorb{} ou código do usuário. 
+  \item [trace] Não é utilizado pelo \jacorb{}, e é desencorajado pela equipe do SLF4J.
+\end{description}
+
+A propriedade \emph{jacorb.log.default.verbosity} especifica o nível em que as mensagens são registrados. O valor é um número de 0 a 4, onde 0 significa que não há registro, 1 significa apenas mensagens de erro, 2 significa mensagens de aviso (\emph{warning}), 3 significa mensagens de informação, e 4 significa mensagens de depuração. Os níveis mais elevados incluem também níveis mais baixos.
+
+A propriedade \emph{jacorb.logfile} define o arquivo a ser utilizado para registrar as mensagens de log. Caso a propriedade não seja configurada, as mensagens de log são direcionadas para a saída padrão.
+
+Maiores informações e opções sobre o mecanismo de log do \jacorb{} podem ser encontradas em sua documentação.~\cite{web:Jacorb}
+
 \subsubsection{Definindo os níveis de log da API}
 
 A API utiliza o log do Java, que possui os níveis de log descritos na classe \emph{java.util.logging.Level}.
-Para alterar o nível de log da API deve-se chamar o método \emph{setLevel()} enviando o nível desejado como parâmetro.
+Para alterar programaticamente o nível de log da API deve-se chamar o método \emph{setLevel()} enviando o nível desejado como parâmetro.
 Um exemplo de configuração do log é apresentado no Código~\ref{lst:log}.
 Note que recuperamos o logger através do pacote ``tecgraf.openbus'', que é um pacote comum a todas as classes do SDK.
 
