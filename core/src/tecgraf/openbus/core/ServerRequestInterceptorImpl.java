@@ -185,7 +185,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
             originators = new LoginInfo[0];
           }
           CallChain callChain =
-            new CallChain(null, originators, new LoginInfo(loginId, entity));
+            new CallChain("", originators, new LoginInfo(loginId, entity));
           Any anyCallChain = orb.create_any();
           CallChainHelper.insert(anyCallChain, callChain);
           byte[] encodedCallChain = codec.encode_value(anyCallChain);
