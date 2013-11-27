@@ -185,7 +185,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
             originators = new LoginInfo[0];
           }
           CallChain callChain =
-            new CallChain("", originators, new LoginInfo(loginId, entity));
+            new CallChain(null, originators, new LoginInfo(loginId, entity));
           Any anyCallChain = orb.create_any();
           CallChainHelper.insert(anyCallChain, callChain);
           byte[] encodedCallChain = codec.encode_value(anyCallChain);
@@ -258,16 +258,13 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     try {
       CredentialData credential = wrapper.credential;
       if (credential != null) {
-        ConnectionImpl conn = null;
         String busId = credential.bus;
         String loginId = credential.login;
-
+        ConnectionImpl conn =
+          getConnForDispatch(context, busId, loginId, object_id, operation);
+        context.setCurrentConnection(conn);
+        boolean valid = false;
         if (!wrapper.isLegacy) {
-          conn =
-            getConnForDispatch(context, busId, loginId, object_id, operation);
-          context.setCurrentConnection(conn);
-
-          boolean valid = false;
           try {
             valid = conn.cache.logins.validateLogin(loginId, conn);
           }
@@ -299,10 +296,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         }
         else {
           // caso com credencial 1.5
-          boolean valid = false;
-          conn =
-            getConnForDispatch(context, busId, loginId, object_id, operation);
-          context.setCurrentConnection(conn);
           try {
             if (conn.cache.logins.validateLogin(loginId, conn)
               && conn.cache.valids.isValid(wrapper.legacyCredential, conn)) {
@@ -596,6 +589,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       else {
         // cadeia 1.5 é sempre válida
         logger.finest("Cadeia OpenBus 1.5");
+        // Não salvamos o target no slot pois a regra atual é que o 
+        // CallerChain.target será nulo em caso de chamadas legadas.
         return true;
       }
     }
