@@ -234,9 +234,13 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       callChain = CallChainHelper.extract(anyChain);
       any = current.get_slot(mediator.getSignedChainTargetSlotId());
       if (any.type().kind().value() == TCKind._tk_null) {
-        return null;
+        logger.log(Level.FINEST,
+          "[Legacy Mode] Não existe informação de target");
+        target = null;
       }
-      target = any.extract_string();
+      else {
+        target = any.extract_string();
+      }
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao obter o slot no PICurrent";
