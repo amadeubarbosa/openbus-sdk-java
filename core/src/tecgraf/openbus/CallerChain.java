@@ -29,12 +29,11 @@ public interface CallerChain {
    * interface {@link OpenBusContext}) se a entidade da conexão corrente for o
    * mesmo do target.
    * <p>
-   * No caso de conexões legadas, este campo será nulo e será possível fazer
-   * qualquer chamada como parte dessa cadeia. Contudo, todas as chamadas feitas
-   * como parte de uma cadeia de uma chamada legada serão feitas utilizando
-   * apenas o protocolo do OpenBus 1.5 (apenas com credenciais legadas) e
-   * portanto serão recusadas por serviços que não aceitem chamadas legadas
-   * (OpenBus 1.5).
+   * No caso de conexões legadas, este campo conterá o nome da entidade da
+   * conexão que atendeu (validou) a requisição. Todas as chamadas feitas como
+   * parte de uma cadeia de uma chamada legada serão feitas utilizando apenas o
+   * protocolo do OpenBus 1.5 (apenas com credenciais legadas) e portanto serão
+   * recusadas por serviços que não aceitem chamadas legadas (OpenBus 1.5).
    * 
    * @return Indentificador da entidade para o qual a chamada estava destinada.
    */

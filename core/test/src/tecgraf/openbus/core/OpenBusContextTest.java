@@ -110,91 +110,6 @@ public final class OpenBusContextTest {
     }
   }
 
-  //  @Test
-  //  public void getDispatcherTest() throws AccessDenied, AlreadyLoggedIn,
-  //    ServiceFailure, NotLoggedIn {
-  //    Connection conn = _context.createConnection(_hostName, _hostPort);
-  //    conn.loginByPassword(entity, password.getBytes());
-  //
-  //    Connection conn2 = _context.createConnection(_hostName, _hostPort);
-  //    conn2.loginByPassword(entity, password.getBytes());
-  //
-  //    _context.setDefaultConnection(conn);
-  //    assertNull(_context.getDispatcher(conn.busid()));
-  //
-  //    _context.setCurrentConnection(conn2);
-  //    assertNull(_context.getDispatcher(conn.busid()));
-  //
-  //    _context.setDispatcher(conn2);
-  //    assertEquals(_context.getDispatcher(conn.busid()), conn2);
-  //
-  //    _context.clearDispatcher(conn.busid());
-  //    assertNull(_context.getDispatcher(conn2.busid()));
-  //
-  //    _context.setDispatcher(conn2);
-  //    assertTrue(conn2.logout());
-  //
-  //    assertNotNull(_context.getDispatcher(conn.busid()));
-  //    assertEquals(_context.getDispatcher(conn.busid()), conn2);
-  //    _context.setCurrentConnection(null);
-  //    assertTrue(conn.logout());
-  //    _context.setDefaultConnection(null);
-  //    _context.clearDispatcher(conn.busid());
-  //    assertNull(_context.getDispatcher(conn.busid()));
-  //  }
-
-  //  @Test
-  //  public void clearDispatcherTest() throws NotLoggedIn, AccessDenied,
-  //    AlreadyLoggedIn, ServiceFailure {
-  //    Connection conn = _context.createConnection(_hostName, _hostPort);
-  //    Connection conn2 = _context.createConnection(_hostName, _hostPort);
-  //    conn.loginByPassword(entity, password.getBytes());
-  //    conn2.loginByPassword(entity, password.getBytes());
-  //    Connection removed = _context.clearDispatcher(conn.busid());
-  //    assertNull(removed);
-  //    _context.setDefaultConnection(conn);
-  //    _context.setDispatcher(conn2);
-  //    removed = _context.clearDispatcher(conn.busid());
-  //    assertEquals(removed, conn2);
-  //    assertTrue(conn.logout());
-  //    _context.setDefaultConnection(conn2);
-  //    assertTrue(conn2.logout());
-  //    _context.setDefaultConnection(null);
-  //  }
-
-  //  @Test
-  //  public void setDispatcherTest() throws NotLoggedIn, AccessDenied,
-  //    AlreadyLoggedIn, ServiceFailure {
-  //    Connection conn = _context.createConnection(_hostName, _hostPort);
-  //    boolean failed = false;
-  //    try {
-  //      _context.setDispatcher(null);
-  //    }
-  //    catch (NullPointerException e) {
-  //      failed = true;
-  //    }
-  //    assertTrue(failed);
-  //    conn.loginByPassword(entity, password.getBytes());
-  //
-  //    Connection conn2 = _context.createConnection(_hostName, _hostPort);
-  //    conn2.loginByPassword(entity, password.getBytes());
-  //    _context.setDefaultConnection(conn);
-  //    assertNull(_context.getDispatcher(conn.busid()));
-  //    _context.setCurrentConnection(conn);
-  //    assertNull(_context.getDispatcher(conn.busid()));
-  //    _context.setDispatcher(conn2);
-  //    assertEquals(_context.getDispatcher(conn.busid()), conn2);
-  //    _context.setCurrentConnection(conn2);
-  //    assertTrue(conn2.logout());
-  //    assertNotNull(_context.getDispatcher(conn.busid()));
-  //    assertEquals(_context.getDispatcher(conn.busid()), conn2);
-  //    _context.clearDispatcher(conn.busid());
-  //    assertNull(_context.getDispatcher(conn.busid()));
-  //    _context.setCurrentConnection(null);
-  //    assertTrue(conn.logout());
-  //    _context.setDefaultConnection(null);
-  //  }
-
   @Test
   public void defaultConnectionTest() throws NotLoggedIn, AccessDenied,
     AlreadyLoggedIn, ServiceFailure {
@@ -246,7 +161,7 @@ public final class OpenBusContextTest {
     assertEquals(_context.getCurrentConnection(), conn);
     _context.setCurrentConnection(null);
 
-    // tentativa de chamada sem threadrequester setado
+    // tentativa de chamada sem conexão request setada
     conn.loginByPassword(entity, password.getBytes());
     assertNull(_context.getCurrentConnection());
     boolean failed = false;
@@ -267,13 +182,13 @@ public final class OpenBusContextTest {
         + e);
     }
     assertTrue(failed);
-    // tentativa com threadrequester setado
+    // tentativa com conexão de request setada
     _context.setCurrentConnection(conn);
     try {
       _context.getOfferRegistry().findServices(props);
     }
     catch (Exception e) {
-      fail("A chamada com ThreadRequester setado deveria ser bem-sucedida. Exceção recebida: "
+      fail("A chamada com conexão setada deveria ser bem-sucedida. Exceção recebida: "
         + e);
     }
   }
@@ -282,7 +197,7 @@ public final class OpenBusContextTest {
   public void callerChainTest() throws Exception {
     Connection conn = _context.createConnection(_hostName, _hostPort);
     assertNull(_context.getCallerChain());
-    //TODO: adicionar testes para caso exista uma callerchain ou os testes de interoperabilidade ja cobrem isso de forma suficiente?
+    //atualmente os testes de interoperabilidade ja cobrem esses testes
   }
 
   @Test
@@ -364,8 +279,6 @@ public final class OpenBusContextTest {
     _context.joinChain(null);
     assertNull(_context.getJoinedChain());
 
-    //TODO testar caso em que a chain da getCallerChain não é vazia
-    //TODO comparar assinatura do callerchainimpl com a implementação CSHARP
     String busid = "mock";
     String target = "target";
     LoginInfo caller = new LoginInfo("a", "b");
@@ -391,6 +304,7 @@ public final class OpenBusContextTest {
     assertNull(_context.getJoinedChain());
     _context.joinChain(buildFakeCallChain("mock", "target", new LoginInfo("a",
       "b"), new LoginInfo[0]));
+    assertNotNull(_context.getJoinedChain());
     _context.exitChain();
     assertNull(_context.getJoinedChain());
   }
