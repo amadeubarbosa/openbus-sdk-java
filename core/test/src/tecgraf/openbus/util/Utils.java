@@ -19,6 +19,7 @@ import scs.core.ComponentContext;
 import scs.core.ComponentId;
 import scs.core.IComponentServant;
 import scs.core.exception.SCSException;
+import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
 
@@ -78,9 +79,26 @@ public class Utils {
        */
       @Override
       public Object getFacetByName(String arg0) {
-        if (context.getCallerChain() == null) {
+        Connection connection = context.getCurrentConnection();
+        CallerChain chain = context.getCallerChain();
+        if (chain == null) {
           throw new IllegalStateException(
             "CallerChain nunca deveria ser nulo dentro de um método de despacho.");
+        }
+        // verificando dados da cadeia
+        if (!connection.busid().equals(chain.busid())) {
+          throw new IllegalStateException(
+            "Informação de busId da cadeia não é coerente com conexão que atende a requisição.");
+        }
+        if (chain.caller() == null || chain.caller().entity == null
+          || chain.caller().id == null) {
+          throw new IllegalStateException(
+            "Informação de caller da cadeia é inválida.");
+        }
+        if (chain.target() == null
+          || !connection.login().entity.equals(chain.target())) {
+          throw new IllegalStateException(
+            "Informação de target da cadeia não é coerente com conexão que atende a requisição..");
         }
         return super.getFacetByName(arg0);
       }

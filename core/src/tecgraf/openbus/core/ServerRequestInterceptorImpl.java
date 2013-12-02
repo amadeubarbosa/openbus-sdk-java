@@ -118,6 +118,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       try {
         any =
           codec.decode_value(encodedCredential, CredentialDataHelper.type());
+        CredentialData credential = CredentialDataHelper.extract(any);
+        return new CredentialWrapper(false, credential, null);
       }
       catch (TypeMismatch e) {
         String message = "Falha inesperada ao decodificar a credencial";
@@ -126,20 +128,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       }
       catch (FormatMismatch e) {
         String message = "Falha inesperada ao decodificar a credencial";
-        logger.log(Level.SEVERE, message, e);
-        throw new INTERNAL(message);
-      }
-      try {
-        CredentialData credential = CredentialDataHelper.extract(any);
-        SignedCallChain chain = credential.chain;
-        Any singnedAny = orb.create_any();
-        SignedCallChainHelper.insert(singnedAny, chain);
-        ri.set_slot(this.getMediator().getSignedChainSlotId(), singnedAny);
-        return new CredentialWrapper(false, credential, null);
-      }
-      catch (InvalidSlot e) {
-        String message =
-          "Falha inesperada ao armazenar a credencial em seu slot";
         logger.log(Level.SEVERE, message, e);
         throw new INTERNAL(message);
       }
@@ -184,6 +172,11 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           else {
             originators = new LoginInfo[0];
           }
+          /*
+           * campo target só pode ser preenchido após definição da conexão que
+           * tratará o request. Esta definição é feita após a validação da
+           * cadeia
+           */
           CallChain callChain =
             new CallChain("", originators, new LoginInfo(loginId, entity));
           Any anyCallChain = orb.create_any();
@@ -203,6 +196,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           wrapper.isLegacy = true;
           wrapper.credential = credential;
           wrapper.legacyCredential = legacyCredential;
+          return wrapper;
         }
         catch (TypeMismatch e) {
           String message =
@@ -225,17 +219,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
                 .getClass().getSimpleName());
           logger.log(Level.SEVERE, message, e);
           throw new INTERNAL(message, 0, CompletionStatus.COMPLETED_NO);
-        }
-        try {
-          Any signedAny = orb.create_any();
-          SignedCallChainHelper.insert(signedAny, wrapper.credential.chain);
-          ri.set_slot(this.getMediator().getSignedChainSlotId(), signedAny);
-          return wrapper;
-        }
-        catch (InvalidSlot e) {
-          String message = "Falha ao armazenar a credencial em seu slot";
-          logger.log(Level.SEVERE, message, e);
-          throw new INTERNAL(message);
         }
       }
     }
@@ -266,7 +249,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         boolean valid = false;
         if (!wrapper.isLegacy) {
           try {
-            valid = conn.cache.logins.validateLogin(loginId, conn);
+            valid = conn.cache.logins.validateLogin(loginId);
           }
           catch (NO_PERMISSION e) {
             if (e.minor == NoLoginCode.value) {
@@ -297,8 +280,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         else {
           // caso com credencial 1.5
           try {
-            if (conn.cache.logins.validateLogin(loginId, conn)
-              && conn.cache.valids.isValid(wrapper.legacyCredential, conn)) {
+            if (conn.cache.logins.validateLogin(loginId)
+              && conn.cache.valids.isValid(wrapper.legacyCredential)) {
               valid = true;
             }
           }
@@ -317,7 +300,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         OctetSeqHolder pubkey = new OctetSeqHolder();
         String entity;
         try {
-          entity = conn.cache.logins.getLoginEntity(loginId, pubkey, conn);
+          entity = conn.cache.logins.getLoginEntity(loginId, pubkey);
         }
         catch (InvalidLogins e) {
           String message = "Erro ao verificar o login.";
@@ -538,10 +521,12 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     Cryptography crypto = Cryptography.getInstance();
     RSAPublicKey busPubKey = conn.getBusPublicKey();
     SignedCallChain chain = credential.chain;
+    boolean isValid = false;
+
     if (chain != null) {
+      CallChain callChain = unmarshallSignedChain(chain, logger);
       if (!Arrays.equals(chain.signature, LEGACY_ENCRYPTED_BLOCK)) {
         try {
-          CallChain callChain = unmarshallSignedChain(chain, logger);
           boolean verified =
             crypto.verifySignature(busPubKey, chain.encoded, chain.signature);
           if (verified) {
@@ -549,20 +534,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
             if (callChain.target.equals(loginInfo.entity)) {
               LoginInfo caller = callChain.caller;
               if (caller.id.equals(credential.login)) {
-                try {
-                  ORB orb = this.getMediator().getORB();
-                  Any targetAny = orb.create_any();
-                  targetAny.insert_string(loginInfo.entity);
-                  ri.set_slot(this.getMediator().getSignedChainTargetSlotId(),
-                    targetAny);
-                  return true;
-                }
-                catch (InvalidSlot e) {
-                  String message =
-                    "Falha inesperada ao armazenar o target em seu slot";
-                  logger.log(Level.SEVERE, message, e);
-                  throw new INTERNAL(message);
-                }
+                isValid = true;
               }
             }
             else {
@@ -589,12 +561,31 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       else {
         // cadeia 1.5 é sempre válida
         logger.finest("Cadeia OpenBus 1.5");
-        // Não salvamos o target no slot pois a regra atual é que o 
-        // CallerChain.target será nulo em caso de chamadas legadas.
-        return true;
+        /*
+         * Atualizando a informação target da cadeia gerada a partir de
+         * informações 1.5, pois foi necessário aguardar a definição da conexão
+         * que trataria a requisião legada
+         */
+        callChain.target = conn.login().entity;
+        isValid = true;
+      }
+      if (isValid) {
+        try {
+          ORB orb = this.getMediator().getORB();
+          // salvando a cadeia
+          Any singnedAny = orb.create_any();
+          SignedCallChainHelper.insert(singnedAny, chain);
+          ri.set_slot(this.getMediator().getSignedChainSlotId(), singnedAny);
+        }
+        catch (InvalidSlot e) {
+          String message =
+            "Falha inesperada ao armazenar o dados no slot de contexto";
+          logger.log(Level.SEVERE, message, e);
+          throw new INTERNAL(message);
+        }
       }
     }
-    return false;
+    return isValid;
   }
 
   /**
@@ -609,7 +600,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     Any any = this.getMediator().getORB().create_any();
     try {
       ri.set_slot(this.getMediator().getSignedChainSlotId(), any);
-      ri.set_slot(this.getMediator().getSignedChainTargetSlotId(), any);
       ri.set_slot(this.getMediator().getBusSlotId(), any);
     }
     catch (InvalidSlot e) {

@@ -21,13 +21,19 @@ class LoginCache {
    * O mapa da cache de logins.
    */
   private Map<String, LoginEntry> logins;
+  /**
+   * A conexão ao qual o cache esta associado.
+   */
+  private ConnectionImpl conn;
 
   /**
    * Construtor.
    * 
+   * @param conn a conexão ao qual o cache esta associado.
    * @param cacheSize tamanho da cache.
    */
-  LoginCache(int cacheSize) {
+  LoginCache(ConnectionImpl conn, int cacheSize) {
+    this.conn = conn;
     this.logins =
       Collections.synchronizedMap(new LRUCache<String, LoginEntry>(cacheSize));
   }
@@ -36,13 +42,11 @@ class LoginCache {
    * Realiza a validação do Login.
    * 
    * @param loginId o login.
-   * @param conn qual a conexão em uso.
    * @return <code>true</code> caso o login seja válido, e <code>false</code>
    *         caso contrário.
    * @throws ServiceFailure
    */
-  boolean validateLogin(String loginId, ConnectionImpl conn)
-    throws ServiceFailure {
+  boolean validateLogin(String loginId) throws ServiceFailure {
     LoginEntry entry = this.logins.get(loginId);
     long time;
     if (entry != null) {
@@ -89,14 +93,13 @@ class LoginCache {
    * 
    * @param loginId o login.
    * @param pubkey holder para a chave pública do login.
-   * @param conn a conexão em uso.
    * @return O nome da entidade do login e a chave pública do mesmo atráves do
    *         holder de entrada pubkey.
    * @throws InvalidLogins
    * @throws ServiceFailure
    */
-  String getLoginEntity(String loginId, OctetSeqHolder pubkey,
-    ConnectionImpl conn) throws InvalidLogins, ServiceFailure {
+  String getLoginEntity(String loginId, OctetSeqHolder pubkey)
+    throws InvalidLogins, ServiceFailure {
     LoginEntry entry = this.logins.get(loginId);
     if (entry != null) {
       synchronized (this.logins) {

@@ -216,7 +216,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     String busId;
     CallChain callChain;
     SignedCallChain signedChain;
-    String target;
     try {
       Any any = current.get_slot(mediator.getBusSlotId());
       if (any.type().kind().value() == TCKind._tk_null) {
@@ -232,15 +231,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
         mediator.getCodec().decode_value(signedChain.encoded,
           CallChainHelper.type());
       callChain = CallChainHelper.extract(anyChain);
-      any = current.get_slot(mediator.getSignedChainTargetSlotId());
-      if (any.type().kind().value() == TCKind._tk_null) {
-        logger.log(Level.FINEST,
-          "[Legacy Mode] Não existe informação de target");
-        target = null;
-      }
-      else {
-        target = any.extract_string();
-      }
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao obter o slot no PICurrent";
@@ -252,7 +242,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       logger.log(Level.SEVERE, message, e);
       throw new OpenBusInternalException(message, e);
     }
-    return new CallerChainImpl(busId, target, callChain.caller,
+    return new CallerChainImpl(busId, callChain.target, callChain.caller,
       callChain.originators, signedChain);
   }
 

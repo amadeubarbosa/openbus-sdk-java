@@ -16,13 +16,19 @@ class IsValidCache {
    * O mapa da cache de logins.
    */
   private Map<IsValidKey, Boolean> cache;
+  /**
+   * A conexão ao qual o cache esta associado.
+   */
+  private ConnectionImpl conn;
 
   /**
    * Construtor.
    * 
+   * @param conn a conexão ao qual o cache esta associado.
    * @param cacheSize tamanho da cache.
    */
-  IsValidCache(int cacheSize) {
+  IsValidCache(ConnectionImpl conn, int cacheSize) {
+    this.conn = conn;
     this.cache =
       Collections.synchronizedMap(new LRUCache<IsValidKey, Boolean>(cacheSize));
   }
@@ -33,10 +39,9 @@ class IsValidCache {
    * caso a informação não esteja na cache ou esteja inválida.
    * 
    * @param credential a credencial a ser validada
-   * @param conn a conexão a ser utilizada na chamada remota
    * @return indicação se a credencial é válida ou não.
    */
-  boolean isValid(Credential credential, ConnectionImpl conn) {
+  boolean isValid(Credential credential) {
     IsValidKey key = new IsValidKey(credential.identifier, credential.owner);
     Boolean valid = this.cache.get(key);
     if (valid == null) {

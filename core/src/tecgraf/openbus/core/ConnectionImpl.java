@@ -131,7 +131,7 @@ final class ConnectionImpl implements Connection {
 
     this.orb = orb;
     this.context = context;
-    this.cache = new Caches();
+    this.cache = new Caches(this);
     this.bus = null;
     this.legacyBus = null;
     if (props == null) {
@@ -747,8 +747,11 @@ final class ConnectionImpl implements Connection {
 
     /**
      * Construtor.
+     * 
+     * @param conn a referência para a conexão ao qual os caches estão
+     *        referenciados.
      */
-    public Caches() {
+    public Caches(ConnectionImpl conn) {
       this.entities =
         Collections.synchronizedMap(new LRUCache<EffectiveProfile, String>(
           CACHE_SIZE));
@@ -762,8 +765,8 @@ final class ConnectionImpl implements Connection {
       this.srvSessions =
         Collections.synchronizedMap(new LRUCache<Integer, ServerSideSession>(
           CACHE_SIZE));
-      this.logins = new LoginCache(CACHE_SIZE);
-      this.valids = new IsValidCache(CACHE_SIZE);
+      this.logins = new LoginCache(conn, CACHE_SIZE);
+      this.valids = new IsValidCache(conn, CACHE_SIZE);
     }
 
     /**
