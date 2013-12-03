@@ -1,0 +1,70 @@
+Category {
+  id = "openbus_interops",
+  name = "Categoria para testes de interoperabilidade do OpenBus",
+}
+
+Entity {
+  id = "interop_delegation_java_messenger",
+  category = "openbus_interops",
+  name = "Teste de Interoperabilidade Delegation do SDK Java - Messenger",
+}
+
+Certificate {
+  id = "interop_delegation_java_messenger",
+  certificate = "InteropDelegation.crt",
+}
+
+Entity {
+  id = "interop_delegation_java_forwarder",
+  category = "openbus_interops",
+  name = "Teste de Interoperabilidade Delegation do SDK Java - Forwarder",
+}
+
+Certificate {
+  id = "interop_delegation_java_forwarder",
+  certificate = "InteropDelegation.crt",
+}
+
+Entity {
+  id = "interop_delegation_java_broadcaster",
+  category = "openbus_interops",
+  name = "Teste de Interoperabilidade Delegation do SDK Java - Broadcaster",
+}
+
+Certificate {
+  id = "interop_delegation_java_broadcaster",
+  certificate = "InteropDelegation.crt",
+}
+
+Interface {
+  id = "IDL:tecgraf/openbus/interop/delegation/Messenger:1.0",
+}
+
+Interface {
+  id = "IDL:tecgraf/openbus/interop/delegation/Broadcaster:1.0",
+}
+
+Interface {
+  id = "IDL:tecgraf/openbus/interop/delegation/Forwarder:1.0",
+}
+
+Grant {
+  id = "interop_delegation_java_messenger",
+  interfaces = {
+    "IDL:tecgraf/openbus/interop/delegation/Messenger:1.0",
+  }
+}
+
+Grant {
+  id = "interop_delegation_java_broadcaster",
+  interfaces = {
+    "IDL:tecgraf/openbus/interop/delegation/Broadcaster:1.0",
+  }
+}
+
+Grant {
+  id = "interop_delegation_java_forwarder",
+  interfaces = {
+    "IDL:tecgraf/openbus/interop/delegation/Forwarder:1.0",
+  }
+}
