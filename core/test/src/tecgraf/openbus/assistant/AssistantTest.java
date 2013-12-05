@@ -51,6 +51,33 @@ public class AssistantTest {
   }
 
   @Test
+  public void invalidHostTest() {
+    String invHost = "unknown-host";
+    ORB orb = ORBInitializer.initORB();
+    Assistant assist =
+      Assistant.createWithPassword(invHost, port, entity, password);
+    Assert.assertNotSame(assist.orb(), orb);
+    AuthArgs args = assist.onLoginAuthentication();
+    Assert.assertEquals(args.entity, entity);
+    Assert.assertTrue(Arrays.equals(args.password, password));
+    assist.shutdown();
+  }
+
+  @Test
+  public void invalidHostPortTest() {
+    // chutando uma porta inválida
+    int invPort = port + 111;
+    ORB orb = ORBInitializer.initORB();
+    Assistant assist =
+      Assistant.createWithPassword(host, invPort, entity, password);
+    Assert.assertNotSame(assist.orb(), orb);
+    AuthArgs args = assist.onLoginAuthentication();
+    Assert.assertEquals(args.entity, entity);
+    Assert.assertTrue(Arrays.equals(args.password, password));
+    assist.shutdown();
+  }
+
+  @Test
   public void createTest() {
     ORB orb = ORBInitializer.initORB();
     Assistant assist =
