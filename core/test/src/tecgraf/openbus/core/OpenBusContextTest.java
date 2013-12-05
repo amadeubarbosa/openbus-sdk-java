@@ -86,7 +86,7 @@ public final class OpenBusContextTest {
   }
 
   @Test
-  public void createConnectionTest() {
+  public void createConnectionIllegalArgumentTest() {
     // cria conexão válida
     Connection valid = _context.createConnection(_hostName, _hostPort);
     assertNotNull(valid);
@@ -95,7 +95,7 @@ public final class OpenBusContextTest {
     try {
       invalid = _context.createConnection("", _hostPort);
     }
-    catch (Exception e) {
+    catch (IllegalArgumentException e) {
     }
     finally {
       assertNull(invalid);
@@ -103,11 +103,19 @@ public final class OpenBusContextTest {
     try {
       invalid = _context.createConnection(_hostName, -1);
     }
-    catch (Exception e) {
+    catch (IllegalArgumentException e) {
     }
     finally {
       assertNull(invalid);
     }
+  }
+
+  @Test
+  public void createConnectionUknownHostTest() {
+    // tenta criar conexão com hosts desconhecido
+    Connection invalid = _context.createConnection("unknowHost", _hostPort);
+    assertNotNull(invalid);
+    // nenhuma chamada remota deve ser realizada e a conexão deve ser criada
   }
 
   @Test

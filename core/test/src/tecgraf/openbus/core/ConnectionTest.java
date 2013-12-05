@@ -13,6 +13,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.TRANSIENT;
 
 import tecgraf.openbus.CallDispatchCallback;
 import tecgraf.openbus.Connection;
@@ -106,6 +107,35 @@ public final class ConnectionTest {
     conn.loginByPassword(entity, entity.getBytes());
     assertNotNull(conn.login());
     conn.logout();
+    assertNull(conn.login());
+  }
+
+  @Test
+  public void invalidHostPortLoginTest() throws Exception {
+    Connection conn = context.createConnection("unknown-host", port);
+    assertNull(conn.login());
+    try {
+      conn.loginByPassword(entity, entity.getBytes());
+    }
+    catch (TRANSIENT e) {
+      // erro esperado
+    }
+    catch (Exception e) {
+      fail("A exceção deveria ser TRANSIENT. Exceção recebida: " + e);
+    }
+    assertNull(conn.login());
+    // chutando uma porta inválida
+    conn = context.createConnection(host, port + 111);
+    assertNull(conn.login());
+    try {
+      conn.loginByPassword(entity, entity.getBytes());
+    }
+    catch (TRANSIENT e) {
+      // erro esperado
+    }
+    catch (Exception e) {
+      fail("A exceção deveria ser TRANSIENT. Exceção recebida: " + e);
+    }
     assertNull(conn.login());
   }
 
