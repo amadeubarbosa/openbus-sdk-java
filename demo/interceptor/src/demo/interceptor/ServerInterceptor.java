@@ -50,7 +50,7 @@ public class ServerInterceptor extends LocalObject implements
       encodedData = context.context_data;
     }
     catch (BAD_PARAM e) {
-      // BAD_PARAM caso não exista service context com o id especificado
+      // FIXME: BAD_PARAM caso não exista service context com o id especificado
       // CORBA ESPEC define com minor code 26.
       // JacORB define com minor code 23.
       switch (e.minor) {

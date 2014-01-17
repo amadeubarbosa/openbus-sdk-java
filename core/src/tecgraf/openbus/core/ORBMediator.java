@@ -25,10 +25,27 @@ final class ORBMediator extends LocalObject {
   private final int JOINED_BUS_SLOT_ID;
   /** Identificador do slot da caller chain */
   private final int BUS_SLOT_ID;
+  /** Identificador de slot do identificador do request */
+  private int REQUEST_ID_SLOT_ID;
   /** o ORB */
   private ORB orb;
   /** o multiplexador */
   private OpenBusContextImpl connections;
+
+  /** Contador gerador de IDs únicos */
+  private int counter = 0;
+  /** Tamanho máximo do contador */
+  private static final int MAX_COUNTER = 0x0000ffff;
+
+  /**
+   * Gera um identificador a partir do incremento de um contador.
+   * 
+   * @return o identificador gerado.
+   */
+  public synchronized int getUniqueId() {
+    counter = (counter + 1) & MAX_COUNTER;
+    return counter;
+  }
 
   /**
    * Construtor.
@@ -39,17 +56,19 @@ final class ORBMediator extends LocalObject {
    * @param chainTargetSlotId identificador de slot.
    * @param joinedBusSlotId identificador de slot.
    * @param busSlotId identificador de slot
+   * @param requestingConnSlotId identificador de slot.
    * @param connections gerente de conexões associado.
    */
   ORBMediator(Codec codec, int signedChainSlotId, int chainSlotId,
     int chainTargetSlotId, int joinedBusSlotId, int busSlotId,
-    OpenBusContextImpl connections) {
+    int requestingConnSlotId, OpenBusContextImpl connections) {
     this.codec = codec;
     this.SIGNED_CHAIN_SLOT_ID = signedChainSlotId;
     this.JOINED_CHAIN_SLOT_ID = chainSlotId;
     this.JOINED_CHAIN_TARGET_SLOT_ID = chainTargetSlotId;
     this.JOINED_BUS_SLOT_ID = joinedBusSlotId;
     this.BUS_SLOT_ID = busSlotId;
+    this.REQUEST_ID_SLOT_ID = requestingConnSlotId;
     this.connections = connections;
   }
 
@@ -129,6 +148,15 @@ final class ORBMediator extends LocalObject {
    */
   int getJoinedBusSlotId() {
     return this.JOINED_BUS_SLOT_ID;
+  }
+
+  /**
+   * Recupera o identificador do slot onde se informa qual requisição associada.
+   * 
+   * @return identificador do slot
+   */
+  int getRequestIdSlot() {
+    return this.REQUEST_ID_SLOT_ID;
   }
 
   /**

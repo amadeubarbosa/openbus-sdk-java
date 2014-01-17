@@ -23,6 +23,7 @@ import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
 import org.omg.IOP.CodecPackage.TypeMismatch;
 import org.omg.PortableInterceptor.ClientRequestInfo;
 import org.omg.PortableInterceptor.ClientRequestInterceptor;
+import org.omg.PortableInterceptor.Current;
 import org.omg.PortableInterceptor.ForwardRequest;
 import org.omg.PortableInterceptor.InvalidSlot;
 import org.omg.PortableInterceptor.RequestInfo;
@@ -87,11 +88,13 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
   }
 
   /**
-   * {@inheritDoc}
+   * Informa se a requisição está configurada para ignorar a interceptação.
+   * 
+   * @param ri informação da requisição
+   * @return <code>true</code> se a requisição deve ser ignorada e
+   *         <code>false</code> caso contrário.
    */
-  @Override
-  public void send_request(ClientRequestInfo ri) {
-    String operation = ri.operation();
+  private boolean isIgnoringThread(ClientRequestInfo ri) {
     ORB orb = this.getMediator().getORB();
     OpenBusContextImpl manager;
     try {
@@ -104,8 +107,22 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       logger.log(Level.SEVERE, message, e);
       throw new INTERNAL(message);
     }
-    Codec codec = this.getMediator().getCodec();
     if (manager.isCurrentThreadIgnored(ri)) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void send_request(ClientRequestInfo ri) {
+    String operation = ri.operation();
+    ORBMediator mediator = getMediator();
+    ORB orb = mediator.getORB();
+    Codec codec = mediator.getCodec();
+    if (isIgnoringThread(ri)) {
       logger.finest(String.format(
         "Realizando chamada fora do barramento: operação (%s)", operation));
       return;
@@ -206,8 +223,23 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       throw new INTERNAL(message);
     }
     // salvando informações da conexão e login que foram utilizados no request
-    requestId2Conn.put(Integer.valueOf(ri.request_id()), conn);
-    requestId2LoginId.put(Integer.valueOf(ri.request_id()), currLogin.id);
+    int uniqueId = mediator.getUniqueId();
+    Any uniqueAny = orb.create_any();
+    uniqueAny.insert_long(uniqueId);
+    try {
+      Current current = ORBUtils.getPICurrent(orb);
+      current.set_slot(this.getMediator().getRequestIdSlot(), uniqueAny);
+      requestId2Conn.put(uniqueId, conn);
+      requestId2LoginId.put(uniqueId, currLogin.id);
+      logger.finest(String.format(
+        "associando o ID '%d' com o login '%s'. operação (%s)", uniqueId,
+        currLogin.id, ri.operation()));
+    }
+    catch (InvalidSlot e) {
+      String message = "Falha inesperada ao obter o slot de requestId";
+      logger.log(Level.SEVERE, message, e);
+      throw new INTERNAL(message);
+    }
   }
 
   /**
@@ -280,6 +312,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
           conn.cache.chains.put(key, callChain);
         }
         holder.value = curr;
+        logger.finest(String.format(
+          "definido o login '%s' para realizar a operação (%s)", curr.id, ri
+            .operation()));
       }
       catch (SystemException e) {
         String message =
@@ -347,9 +382,15 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void receive_reply(ClientRequestInfo ri) {
-    Integer requestId = Integer.valueOf(ri.request_id());
-    this.requestId2Conn.remove(requestId);
-    this.requestId2LoginId.remove(requestId);
+    if (!isIgnoringThread(ri)) {
+      int uniqueId = getRequestUniqueId();
+      this.requestId2Conn.remove(uniqueId);
+      String login = this.requestId2LoginId.remove(uniqueId);
+      clearRequestUniqueId();
+      logger.finest(String.format(
+        "requisição atendida com sucesso! ID (%d) login (%s) operação (%s)",
+        uniqueId, login, ri.operation()));
+    }
   }
 
   /**
@@ -357,7 +398,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void receive_exception(ClientRequestInfo ri) throws ForwardRequest {
-    Integer requestId = Integer.valueOf(ri.request_id());
+    Integer uniqueId = null;
     try {
       logger.finest(String.format("Exception: %s Request: %s", ri
         .received_exception_id(), ri.operation()));
@@ -371,7 +412,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         return;
       }
 
-      ConnectionImpl conn = requestId2Conn.get(requestId);
+      uniqueId = getRequestUniqueId();
+      ConnectionImpl conn = requestId2Conn.get(uniqueId);
+      String loginId = requestId2LoginId.get(uniqueId);
       switch (exception.minor) {
 
         case InvalidCredentialCode.value:
@@ -428,7 +471,6 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
           throw new ForwardRequest(ri.target());
 
         case InvalidLoginCode.value:
-          String loginId = requestId2LoginId.get(requestId);
           LoginInfo info = conn.login();
           if (info != null && loginId.equals(info.id)) {
             conn.localLogout(true);
@@ -460,8 +502,59 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       }
     }
     finally {
-      this.requestId2Conn.remove(requestId);
-      this.requestId2LoginId.remove(requestId);
+      if (uniqueId != null) {
+        this.requestId2Conn.remove(uniqueId);
+        String login = this.requestId2LoginId.remove(uniqueId);
+        clearRequestUniqueId();
+        logger.finest(String.format(
+          "Descartando associação do ID '%d' com o login '%s'. operação (%s)",
+          uniqueId, login, ri.operation()));
+      }
+    }
+  }
+
+  /**
+   * Recupera o identificador único associado ao request.
+   * 
+   * @return o identificador associado.
+   */
+  private int getRequestUniqueId() {
+    int uniqueId;
+    try {
+      ORB orb = getMediator().getORB();
+      Current current = ORBUtils.getPICurrent(orb);
+      Any uniqueAny = current.get_slot(this.getMediator().getRequestIdSlot());
+      if (uniqueAny.type().kind().value() != TCKind._tk_null) {
+        uniqueId = uniqueAny.extract_long();
+      }
+      else {
+        String message = "Any de chave única de requestId está vazia!";
+        logger.log(Level.SEVERE, message);
+        throw new INTERNAL(message);
+      }
+    }
+    catch (InvalidSlot e) {
+      String message = "Falha inesperada ao obter o slot do request Id";
+      logger.log(Level.SEVERE, message, e);
+      throw new INTERNAL(message);
+    }
+    return uniqueId;
+  }
+
+  /**
+   * Limpa a informação que estava salva no slot de requestId.
+   */
+  private void clearRequestUniqueId() {
+    try {
+      ORB orb = getMediator().getORB();
+      Any emptyAny = orb.create_any();
+      Current current = ORBUtils.getPICurrent(orb);
+      current.set_slot(this.getMediator().getRequestIdSlot(), emptyAny);
+    }
+    catch (InvalidSlot e) {
+      String message = "Falha inesperada ao acessar o slot de requestId";
+      logger.log(Level.SEVERE, message, e);
+      throw new INTERNAL(message);
     }
   }
 
@@ -482,8 +575,8 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       throw new INTERNAL(message);
     }
     if (any.type().kind().value() != TCKind._tk_null) {
-      long id = any.extract_longlong();
-      Connection connection = context.getConnectionByThreadId(id);
+      int id = any.extract_long();
+      Connection connection = context.getConnectionById(id);
       if (connection != null) {
         return connection;
       }
