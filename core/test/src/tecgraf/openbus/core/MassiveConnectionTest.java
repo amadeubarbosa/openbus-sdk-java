@@ -30,6 +30,8 @@ public class MassiveConnectionTest {
   private static String password;
   private static ORB orb;
   private static OpenBusContext context;
+  private static int LOOP_SIZE = 60;
+  private static int THREAD_POOL_SIZE = 5;
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
@@ -52,9 +54,9 @@ public class MassiveConnectionTest {
         return conn;
       }
     });
-    ExecutorService threadPool = Executors.newFixedThreadPool(3);
+    ExecutorService threadPool = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
     AtomicBoolean failed = new AtomicBoolean(false);
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < LOOP_SIZE; i++) {
       threadPool.execute(new ConnectThread(context, i, failed));
     }
     threadPool.shutdown();

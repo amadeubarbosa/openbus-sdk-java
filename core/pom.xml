@@ -32,6 +32,11 @@
         </configuration>
       </plugin>
     </plugins>
+    <testResources>
+      <testResource>
+        <directory>${project.basedir}/test/resources</directory>
+      </testResource>
+    </testResources>
   </build>
 
   <dependencies>

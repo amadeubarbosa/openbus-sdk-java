@@ -52,7 +52,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
   /** Identificador do slot de interceptação ignorada */
   private final int IGNORE_THREAD_SLOT_ID;
   /** Mapa de conexão por Requester */
-  private Map<Long, Connection> connectedThreads;
+  private Map<Integer, Connection> connectedById;
   /** Conexão padrão */
   private Connection defaultConn;
   /** Callback a ser disparada caso o login se encontre inválido */
@@ -76,8 +76,8 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * @param ignoreThreadSlotId identificador do slot de interceptação ignorada.
    */
   public OpenBusContextImpl(int currentConnectionSlotId, int ignoreThreadSlotId) {
-    this.connectedThreads =
-      Collections.synchronizedMap(new HashMap<Long, Connection>());
+    this.connectedById =
+      Collections.synchronizedMap(new HashMap<Integer, Connection>());
     this.CURRENT_CONNECTION_SLOT_ID = currentConnectionSlotId;
     this.IGNORE_THREAD_SLOT_ID = ignoreThreadSlotId;
   }
@@ -161,10 +161,10 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    */
   @Override
   public Connection setCurrentConnection(Connection conn) {
-    long id = Thread.currentThread().getId();
+    int id = ORBUtils.getMediator(orb).getUniqueId();
     Any any = this.orb.create_any();
     if (conn != null) {
-      any.insert_longlong(id);
+      any.insert_long(id);
     }
     Current current = ORBUtils.getPICurrent(orb);
     try {
@@ -175,7 +175,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       logger.log(Level.SEVERE, message, e);
       throw new OpenBusInternalException(message, e);
     }
-    return setConnectionByThreadId(id, conn);
+    return setConnectionById(id, conn);
   }
 
   /**
@@ -196,8 +196,8 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     }
 
     if (any.type().kind().value() != TCKind._tk_null) {
-      long id = any.extract_longlong();
-      connection = this.connectedThreads.get(id);
+      int id = any.extract_long();
+      connection = this.connectedById.get(id);
     }
 
     if (connection == null) {
@@ -349,27 +349,27 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
   }
 
   /**
-   * Recupera a conexão dado a identificação da thread.
+   * Recupera a conexão associada ao identificador.
    * 
-   * @param threadId a identificação da thread
+   * @param id o identificador
    * @return a conexão em uso.
    */
-  Connection getConnectionByThreadId(long threadId) {
-    return this.connectedThreads.get(threadId);
+  Connection getConnectionById(int id) {
+    return this.connectedById.get(id);
   }
 
   /**
-   * Configura a conexão em uso na thread.
+   * Configura a conexão em uso para o identificador especificado..
    * 
-   * @param threadId identificador da thread.
+   * @param id identificador.
    * @param conn a conexão em uso.
    * @return a antiga conexão configurada.
    */
-  Connection setConnectionByThreadId(long threadId, Connection conn) {
-    synchronized (this.connectedThreads) {
-      Connection old = this.connectedThreads.remove(threadId);
+  Connection setConnectionById(int id, Connection conn) {
+    synchronized (this.connectedById) {
+      Connection old = this.connectedById.remove(id);
       if (conn != null) {
-        this.connectedThreads.put(threadId, conn);
+        this.connectedById.put(id, conn);
       }
       return old;
     }
