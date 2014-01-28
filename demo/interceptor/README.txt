@@ -13,9 +13,9 @@ demo.
 ant-1.8.2.jar
 ant-launcher-1.8.2.jar
 jacorb-3.1.jar
-openbus-sdk-core-2.0.0-SNAPSHOT.jar
-openbus-sdk-demo-util-2.0.0-SNAPSHOT.jar
-openbus-sdk-legacy-2.0.0-SNAPSHOT.jar
+openbus-sdk-core-2.0-SNAPSHOT.jar
+openbus-sdk-demo-util-2.0-SNAPSHOT.jar
+openbus-sdk-legacy-2.0-SNAPSHOT.jar
 scs-core-1.2.1.1.jar
 slf4j-api-1.6.4.jar
 slf4j-jdk14-1.6.4.jar
