@@ -66,8 +66,9 @@ public final class Server {
         context));
 
       ServiceProperty[] serviceProperties =
-        new ServiceProperty[] { new ServiceProperty("reloggedjoin.role",
-          "server") };
+        new ServiceProperty[] {
+            new ServiceProperty("reloggedjoin.role", "server"),
+            new ServiceProperty("offer.domain", "Interoperability Tests") };
       OfferRegistry registry = context.getOfferRegistry();
       ServiceOffer offer =
         registry.registerService(component.getIComponent(), serviceProperties);

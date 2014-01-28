@@ -42,8 +42,10 @@ public final class Client {
 
       connection.loginByPassword(entity, entity.getBytes(Cryptography.CHARSET));
 
-      ServiceProperty[] serviceProperties = new ServiceProperty[1];
-      serviceProperties[0] = new ServiceProperty("reloggedjoin.role", "proxy");
+      ServiceProperty[] serviceProperties =
+        new ServiceProperty[] {
+            new ServiceProperty("reloggedjoin.role", "proxy"),
+            new ServiceProperty("offer.domain", "Interoperability Tests") };
       ServiceOfferDesc[] services =
         context.getOfferRegistry().findServices(serviceProperties);
 

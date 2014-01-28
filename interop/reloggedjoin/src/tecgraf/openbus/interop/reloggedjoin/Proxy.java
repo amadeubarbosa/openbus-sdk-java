@@ -66,8 +66,9 @@ public final class Proxy {
         context, entity, privateKey));
 
       ServiceProperty[] serviceProperties =
-        new ServiceProperty[] { new ServiceProperty("reloggedjoin.role",
-          "proxy") };
+        new ServiceProperty[] {
+            new ServiceProperty("reloggedjoin.role", "proxy"),
+            new ServiceProperty("offer.domain", "Interoperability Tests") };
       OfferRegistry registry = context.getOfferRegistry();
       ServiceOffer offer =
         registry.registerService(component.getIComponent(), serviceProperties);
