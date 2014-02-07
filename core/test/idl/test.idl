@@ -1,0 +1,16 @@
+#ifndef __TECGRAF_OPENBUS_TEST_IDL__
+#define __TECGRAF_OPENBUS_TEST_IDL__
+
+module test{
+    
+  typedef sequence<string> CallersSeq;
+  typedef sequence<string> LoginsSeq;
+
+  interface CallerChainInspector {
+    CallersSeq listCallers();
+    LoginsSeq listCallerLogins();
+  };
+
+};
+
+#endif
