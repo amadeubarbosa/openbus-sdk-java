@@ -22,6 +22,7 @@ import scs.core.exception.SCSException;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
+import test.CallerChainInspectorHelper;
 
 /**
  * Classe utilitária para os demos Java.
@@ -66,10 +67,13 @@ public class Utils {
    * 
    * @param context o contexto.
    * @return o componente
-   * @throws Exception
+   * @throws SCSException
+   * @throws InvalidName
+   * @throws AdapterInactive
    */
   public static ComponentContext buildTestCallerChainComponent(
-    final OpenBusContext context) throws Exception {
+    final OpenBusContext context) throws AdapterInactive, InvalidName,
+    SCSException {
     ComponentContext component = buildComponent(context.orb());
     component.updateFacet("IComponent", new IComponentServant(component) {
       /**
@@ -112,10 +116,13 @@ public class Utils {
    * 
    * @param context o contexto.
    * @return o componente
-   * @throws Exception
+   * @throws SCSException
+   * @throws InvalidName
+   * @throws AdapterInactive
    */
   public static ComponentContext buildTestConnectionComponent(
-    final OpenBusContext context) throws Exception {
+    final OpenBusContext context) throws AdapterInactive, InvalidName,
+    SCSException {
     ComponentContext component = buildComponent(context.orb());
     component.updateFacet("IComponent", new IComponentServant(component) {
       /**
@@ -133,6 +140,25 @@ public class Utils {
         return super.getFacetByName(arg0);
       }
     });
+    return component;
+  }
+
+  /**
+   * Constrói um componente que oferece faceta de inspeção de cadeia de
+   * chamadas.
+   * 
+   * @param context o contexto
+   * @return o componente
+   * @throws AdapterInactive
+   * @throws InvalidName
+   * @throws SCSException
+   */
+  public static ComponentContext buildTestCallerChainInspectorComponent(
+    final OpenBusContext context) throws AdapterInactive, InvalidName,
+    SCSException {
+    ComponentContext component = buildComponent(context.orb());
+    component.addFacet("CallerChainInspector", CallerChainInspectorHelper.id(),
+      new CallerChainInspectorImpl(context));
     return component;
   }
 

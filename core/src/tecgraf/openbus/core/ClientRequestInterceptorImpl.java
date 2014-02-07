@@ -228,6 +228,19 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     uniqueAny.insert_long(uniqueId);
     try {
       Current current = ORBUtils.getPICurrent(orb);
+
+      // TODO: DEBUG
+      logger.log(Level.FINEST, "DEBUG: current = " + current);
+
+      // TODO DEBUG
+      Any debugAny = current.get_slot(this.getMediator().getRequestIdSlot());
+      if (debugAny.type().kind().value() != TCKind._tk_null) {
+        int debugId = debugAny.extract_long();
+        logger.finest(String.format(
+          "DEBUG: existia ID '%d' no Current. operação (%s)", debugId, ri
+            .operation()));
+      }
+
       current.set_slot(this.getMediator().getRequestIdSlot(), uniqueAny);
       requestId2Conn.put(uniqueId, conn);
       requestId2LoginId.put(uniqueId, currLogin.id);
@@ -523,6 +536,8 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     try {
       ORB orb = getMediator().getORB();
       Current current = ORBUtils.getPICurrent(orb);
+      // TODO: DEBUG
+      logger.log(Level.FINEST, "DEBUG: current = " + current);
       Any uniqueAny = current.get_slot(this.getMediator().getRequestIdSlot());
       if (uniqueAny.type().kind().value() != TCKind._tk_null) {
         uniqueId = uniqueAny.extract_long();
@@ -550,6 +565,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       Any emptyAny = orb.create_any();
       Current current = ORBUtils.getPICurrent(orb);
       current.set_slot(this.getMediator().getRequestIdSlot(), emptyAny);
+
+      // TODO: DEBUG
+      logger.log(Level.FINEST, "DEBUG: current = " + current);
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao acessar o slot de requestId";

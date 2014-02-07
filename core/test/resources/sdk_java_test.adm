@@ -18,7 +18,14 @@ Interface {
   id = "IDL:tecgraf/openbus/demo/hello/Hello:1.0"
 }
 
+Interface {
+  id = "IDL:test/CallerChainInspector:1.0"
+}
+
 Grant {
   id = "TestEntity",
-  interfaces = {"IDL:tecgraf/openbus/demo/hello/Hello:1.0"}
+  interfaces = {
+    "IDL:tecgraf/openbus/demo/hello/Hello:1.0",
+    "IDL:test/CallerChainInspector:1.0",
+  }
 }

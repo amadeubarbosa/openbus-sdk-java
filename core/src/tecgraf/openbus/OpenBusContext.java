@@ -5,9 +5,14 @@ import java.util.Properties;
 import org.omg.CORBA.ORB;
 import org.omg.PortableInterceptor.Current;
 
+import tecgraf.openbus.core.v2_0.credential.CredentialContextId;
+import tecgraf.openbus.core.v2_0.credential.ExportedCallChain;
+import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.CallChain;
+import tecgraf.openbus.core.v2_0.services.access_control.InvalidLogins;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
+import tecgraf.openbus.exception.InvalidChainStream;
 import tecgraf.openbus.exception.InvalidPropertyValue;
 
 /**
@@ -248,6 +253,61 @@ public interface OpenBusContext {
    *         <code>null</code> .
    */
   CallerChain getJoinedChain();
+
+  /**
+   * Cria uma cadeia de chamadas para a entidade com o identificador de login
+   * especificado.
+   * <p>
+   * Cria uma nova cadeia de chamadas para a entidade especificada, onde o dono
+   * da cadeia é a conexão corrente ({@link #getCurrentConnection()}) e
+   * utiliza-se a cadeia atual ({@link #getJoinedChain()}) como a cadeia que se
+   * deseja dar seguimento ao encadeamento. O identificador de login
+   * especificado deve ser um login atualmente válido para que a operação tenha
+   * sucesso.
+   * 
+   * @param loginId identificador de login da entidade para a qual deseja-se
+   *        enviar a cadeia.
+   * @return a cadeia gerada para ser utilizada pela entidade com o login
+   *         especificado.
+   * 
+   * @throws InvalidLogins Caso o login especificado seja inválido.
+   * @throws ServiceFailure Ocorreu uma falha interna nos serviços do barramento
+   *         que impediu a criação da cadeia.
+   */
+  CallerChain makeChainFor(String loginId) throws InvalidLogins, ServiceFailure;
+
+  /**
+   * Codifica uma cadeia de chamadas ({@link CallerChain}) para um stream de
+   * bytes.
+   * <p>
+   * Codifica uma cadeia de chamadas em um stream de bytes para permitir a
+   * persistência ou transferência da informação. A codificação é realizada em
+   * CDR e possui um identificador de versão concatenado com as informações da
+   * cadeia ({@link CredentialContextId} + {@link ExportedCallChain}). Sendo
+   * assim, a stream só será decodificada com sucesso por alguém que entenda
+   * esta mesma codificação.
+   * 
+   * @param chain a cadeia a ser codificada.
+   * @return a cadeia codificada em um stream de bytes.
+   */
+  byte[] encodeChain(CallerChain chain);
+
+  /**
+   * Decodifica um stream de bytes de uma cadeia para o formato
+   * {@link CallerChain}.
+   * <p>
+   * Decodifica um stream de bytes de uma cadeia para o formato
+   * {@link CallerChain}. Espera-se que a stream de bytes esteja codificada em
+   * CDR e seja formada por um identificador de versão concatenado com as
+   * informações da cadeia ({@link CredentialContextId} +
+   * {@link ExportedCallChain}).
+   * 
+   * @param encoded o stream de bytes que representam a cadeia
+   * @return a cadeia de chamadas no formato {@link CallerChain}.
+   * @throws InvalidChainStream Caso a stream de bytes não seja do formato
+   *         esperado.
+   */
+  CallerChain decodeChain(byte[] encoded) throws InvalidChainStream;
 
   /**
    * Referência ao serviço núcleo de registro de logins do barramento
