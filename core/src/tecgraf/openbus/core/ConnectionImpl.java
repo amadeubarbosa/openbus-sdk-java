@@ -10,6 +10,7 @@ import java.util.UUID;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.omg.CORBA.Any;
@@ -19,6 +20,7 @@ import org.omg.CORBA.ORB;
 import org.omg.CORBA.SystemException;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
 
+import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.PrivateKey;
@@ -504,18 +506,22 @@ final class ConnectionImpl implements Connection {
     }
 
     Connection previousConnection = context.getCurrentConnection();
+    CallerChain previousChain = context.getJoinedChain();
     try {
+      context.exitChain();
       context.setCurrentConnection(this);
       this.access().logout();
     }
     catch (SystemException e) {
-      logger.warning(String.format("Erro durante chamada remota de logout: "
-        + "busid (%s) login (%s) entidade (%s)\n" + "EXCEÇÃO: %s", busid(),
-        login.id, login.entity, e.toString()));
+      logger.log(Level.WARNING, String.format(
+        "Erro durante chamada remota de logout: "
+          + "busid (%s) login (%s) entidade (%s)", busid(), login.id,
+        login.entity), e);
       return false;
     }
     finally {
       context.setCurrentConnection(previousConnection);
+      context.joinChain(previousChain);
       localLogout(false);
     }
     return true;
