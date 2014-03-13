@@ -185,8 +185,8 @@ public class ORBInitializer {
     ORB orb = createORB(args, props);
     ORBMediator mediator = ORBUtils.getMediator(orb);
     mediator.setORB(orb);
-    OpenBusContextImpl manager = ORBUtils.getConnectionManager(orb);
-    manager.setORB(orb);
+    OpenBusContextImpl context = ORBUtils.getOpenBusContext(orb);
+    context.setORB(orb);
     return orb;
   }
 

@@ -58,7 +58,7 @@ class ORBUtils {
    * @param orb o ORB utilizado.
    * @return o gerente de conexões.
    */
-  static OpenBusContextImpl getConnectionManager(ORB orb) {
+  static OpenBusContextImpl getOpenBusContext(ORB orb) {
     org.omg.CORBA.Object obj;
     try {
       obj = orb.resolve_initial_references("OpenBusContext");

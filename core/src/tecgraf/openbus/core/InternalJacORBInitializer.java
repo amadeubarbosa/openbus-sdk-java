@@ -49,10 +49,10 @@ public final class InternalJacORBInitializer extends LocalObject implements
     int joinedBusSlotId = info.allocate_slot_id();
     int busSlotId = info.allocate_slot_id();
     int requestIdSlotId = info.allocate_slot_id();
-    OpenBusContextImpl multiplexer =
+    OpenBusContextImpl context =
       new OpenBusContextImpl(currentThreadSlotId, ignoreThreadSlotId);
     try {
-      info.register_initial_reference("OpenBusContext", multiplexer);
+      info.register_initial_reference("OpenBusContext", context);
     }
     catch (InvalidName e) {
       String message = "Falha inesperada ao registrar o multiplexador";
@@ -62,7 +62,7 @@ public final class InternalJacORBInitializer extends LocalObject implements
     ORBMediator mediator =
       new ORBMediator(codec, signedChainSlotId, joinedChainSlotId,
         joinedChainTargetSlotId, joinedBusSlotId, busSlotId,
-        requestIdSlotId, multiplexer);
+        requestIdSlotId, context);
     try {
       info.register_initial_reference(ORBMediator.INITIAL_REFERENCE_ID,
         mediator);
