@@ -55,6 +55,11 @@
       <groupId>org.jacorb</groupId>
       <artifactId>jacorb</artifactId>
     </dependency>
+    
+    <dependency>
+      <groupId>org.jacorb</groupId>
+      <artifactId>jacorb-idl-compiler</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>junit</groupId>

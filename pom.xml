@@ -127,6 +127,12 @@
       </dependency>
 
       <dependency>
+        <groupId>org.jacorb</groupId>
+        <artifactId>jacorb-idl-compiler</artifactId>
+        <version>${jacorb.version}</version>
+      </dependency>
+
+      <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
         <version>1.3</version>
