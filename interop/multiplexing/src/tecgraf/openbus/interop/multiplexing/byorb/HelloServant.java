@@ -1,6 +1,7 @@
 package tecgraf.openbus.interop.multiplexing.byorb;
 
 import tecgraf.openbus.CallerChain;
+import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 import tecgraf.openbus.interop.simple.HelloPOA;
@@ -35,6 +36,9 @@ public final class HelloServant extends HelloPOA {
       LoginInfo caller = callerChain.caller();
       String hello = String.format("Hello %s!", caller.entity);
       System.out.println(hello);
+      Connection conn = context.getCurrentConnection();
+      System.out.println(String.format("From: %s : %s", conn.login().entity,
+        conn.login().id));
       return hello;
     }
     catch (Exception e) {

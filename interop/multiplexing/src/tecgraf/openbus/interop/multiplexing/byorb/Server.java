@@ -88,7 +88,7 @@ public class Server {
         new ServiceProperty("offer.domain", "Interoperability Tests");
       context1.getOfferRegistry().registerService(component1.getIComponent(),
         serviceProperties);
-      context2.getOfferRegistry().registerService(component1.getIComponent(),
+      context2.getOfferRegistry().registerService(component2.getIComponent(),
         serviceProperties);
 
     }
