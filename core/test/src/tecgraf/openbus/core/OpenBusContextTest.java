@@ -2,6 +2,7 @@ package tecgraf.openbus.core;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -89,6 +90,50 @@ public final class OpenBusContextTest {
   @Test
   public void ORBTest() {
     assertNotNull(context.orb());
+  }
+
+  @Test
+  public void TwoORBsDefaultConnectionTest() throws InvalidName {
+    Connection conn = context.createConnection(hostName, hostPort);
+    assertNull(context.getDefaultConnection());
+    context.setDefaultConnection(conn);
+    assertNotNull(context.getDefaultConnection());
+    assertEquals(conn, context.getDefaultConnection());
+
+    ORB orb2 = ORBInitializer.initORB();
+    assertNotSame(orb, orb2);
+
+    OpenBusContext context2 =
+      (OpenBusContext) orb2.resolve_initial_references("OpenBusContext");
+    Connection conn2 = context2.createConnection(hostName, hostPort);
+    assertNull(context2.getDefaultConnection());
+    try {
+      context2.setDefaultConnection(conn2);
+      assertNotNull(context2.getDefaultConnection());
+      assertEquals(conn2, context2.getDefaultConnection());
+    }
+    finally {
+      context2.setDefaultConnection(null);
+    }
+  }
+
+  @Test
+  public void TwoORBsJoinChainTest() throws InvalidTypeForEncoding,
+    UnknownEncoding, InvalidName, AccessDenied, AlreadyLoggedIn, ServiceFailure {
+    assertNull(context.getJoinedChain());
+    String busid = "mock";
+    String target = "target";
+    LoginInfo caller = new LoginInfo("a", "b");
+    LoginInfo[] originators = new LoginInfo[0];
+    context.joinChain(buildFakeCallChain(busid, target, caller, originators));
+
+    ORB orb2 = ORBInitializer.initORB();
+    assertNotSame(orb, orb2);
+
+    OpenBusContext context2 =
+      (OpenBusContext) orb2.resolve_initial_references("OpenBusContext");
+    assertNull(context2.getJoinedChain());
+    context.exitChain();
   }
 
   @Test
@@ -305,28 +350,6 @@ public final class OpenBusContextTest {
     assertEquals(target, callerChain.target());
     assertEquals("a", callerChain.caller().id);
     assertEquals("b", callerChain.caller().entity);
-    context.exitChain();
-  }
-
-  @Test
-  public void joinChainWith2ORBsTest() throws InvalidTypeForEncoding,
-    UnknownEncoding, InvalidName, AccessDenied, AlreadyLoggedIn, ServiceFailure {
-    Connection conn = context.createConnection(hostName, hostPort);
-    assertNull(context.getJoinedChain());
-
-    String busid = "mock";
-    String target = "target";
-    LoginInfo caller = new LoginInfo("a", "b");
-    LoginInfo[] originators = new LoginInfo[0];
-    context.joinChain(buildFakeCallChain(busid, target, caller, originators));
-
-    ORB orb2 = ORBInitializer.initORB();
-    OpenBusContext context2 =
-      (OpenBusContext) orb2.resolve_initial_references("OpenBusContext");
-    Connection conn2 = context2.createConnection(hostName, hostPort);
-    assertNull(context2.getJoinedChain());
-    conn2.loginByPassword(entity, password.getBytes());
-    assertTrue(conn2.logout());
     context.exitChain();
   }
 
