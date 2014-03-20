@@ -31,7 +31,6 @@
       <groupId>org.jacorb</groupId>
       <artifactId>jacorb</artifactId>
       <version>${jacorb.version}</version>
-      <scope>runtime</scope>
     </dependency> 
   </dependencies>
 </project>
