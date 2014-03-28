@@ -165,7 +165,7 @@ public class AssistantTest {
   }
 
   @Test
-  public void intervalIsValidTest() throws IllegalArgumentException {
+  public void intervalIsValidTest() {
     boolean failed = false;
     Assistant assist = null;
     AssistantParams params = new AssistantParams();
