@@ -146,6 +146,43 @@ public class AssistantTest {
     Assistant.createWithPassword(host, port, entity, password, params);
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void intervalIsZeroTest() throws IllegalArgumentException {
+    AssistantParams params = new AssistantParams();
+    params.interval = 0;
+    Assistant assist =
+      Assistant.createWithPassword(host, port, entity, password, params);
+    assist.shutdown();
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void intervalIsNegativeTest() throws IllegalArgumentException {
+    AssistantParams params = new AssistantParams();
+    params.interval = -1;
+    Assistant assist =
+      Assistant.createWithPassword(host, port, entity, password, params);
+    assist.shutdown();
+  }
+
+  @Test
+  public void intervalIsValidTest() throws IllegalArgumentException {
+    boolean failed = false;
+    Assistant assist = null;
+    AssistantParams params = new AssistantParams();
+    params.interval = 1;
+    try {
+      assist =
+        Assistant.createWithPassword(host, port, entity, password, params);
+    }
+    catch (IllegalArgumentException e) {
+      failed = true;
+    }
+    Assert.assertFalse(failed);
+    if (assist != null) {
+      assist.shutdown();
+    }
+  }
+
   @Test
   public void registerAndFindTest() throws Throwable {
     AssistantParams params = new AssistantParams();

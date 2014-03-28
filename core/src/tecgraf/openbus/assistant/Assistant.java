@@ -162,9 +162,11 @@ public abstract class Assistant {
     if (context.getDefaultConnection() != null) {
       throw new IllegalArgumentException("ORB já está em uso.");
     }
-    context.setDefaultConnection(conn);
-    conn.onInvalidLoginCallback(new OnInvalidLogin());
     if (params.interval != null) {
+      if (params.interval <= 0) {
+        throw new IllegalArgumentException(
+          "O intervalo de espera do assistente deve ser maior do que zero.");
+      }
       interval = params.interval;
     }
     if (params.callback != null) {
@@ -173,6 +175,8 @@ public abstract class Assistant {
     else {
       this.callback = new DefaultFailureCallback();
     }
+    context.setDefaultConnection(conn);
+    conn.onInvalidLoginCallback(new OnInvalidLogin());
     // realiza o login
     threadPool.execute(new DoLogin(this));
   }
