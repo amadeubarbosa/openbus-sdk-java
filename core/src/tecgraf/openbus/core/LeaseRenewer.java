@@ -132,7 +132,7 @@ final class LeaseRenewer {
           AccessControl manager = ((ConnectionImpl) conn).access();
           if (manager != null) {
             lease = manager.renew();
-            this.mustContinue = (lease > 0);
+            this.mustContinue &= (lease > 0);
           }
         }
         catch (InvalidName e) {
