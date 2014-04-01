@@ -34,7 +34,7 @@ public final class IndependentClockClient {
   private static int port;
   private static String entity;
   private static String password;
-  private static int interval = 1;
+  private static float interval = 1.0f;
 
   private static AtomicReference<Clock> clock = new AtomicReference<Clock>();
   private static AtomicBoolean searching = new AtomicBoolean(false);
@@ -81,7 +81,7 @@ public final class IndependentClockClient {
     // - intervalo entre falhas
     if (args.length > 4) {
       try {
-        interval = Integer.parseInt(args[4]);
+        interval = Float.parseFloat(args[4]);
       }
       catch (NumberFormatException e) {
         System.out.println("Valor de [interval] deve ser um número");
@@ -148,7 +148,7 @@ public final class IndependentClockClient {
       DateFormat formatter = new SimpleDateFormat("HH:mm:ss:SSS");
       System.out.println(formatter.format(date));
       try {
-        Thread.sleep(interval * 1000);
+        Thread.sleep((int) (interval * 1000));
       }
       catch (InterruptedException e) {
         // do nothing
@@ -256,7 +256,7 @@ public final class IndependentClockClient {
       if (failed) {
         System.err.println("serviço esperado não foi encontrado.");
         try {
-          Thread.sleep(interval * 1000);
+          Thread.sleep((int) (interval * 1000));
         }
         catch (InterruptedException e) {
           // do nothing

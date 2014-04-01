@@ -38,7 +38,7 @@ public class AssistantParams {
    * espera pelo menos o tempo indicado por esse parâmetro antes de tentar uma
    * nova tentativa.
    */
-  public Integer interval;
+  public Float interval;
   /**
    * O ORB a ser utilizado pelo assistente para realizar suas tarefas. O
    * assistente também configura esse ORB de forma que todas as chamadas feitas

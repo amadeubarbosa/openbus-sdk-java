@@ -32,7 +32,7 @@ public final class IndependentClockServer {
   private static int port;
   private static String entity;
   private static OpenBusPrivateKey privateKey;
-  private static int interval = 1;
+  private static float interval = 1.0f;
 
   /**
    * Função principal.
@@ -82,7 +82,7 @@ public final class IndependentClockServer {
     }
     if (args.length > 4) {
       try {
-        interval = Integer.parseInt(args[4]);
+        interval = Float.parseFloat(args[4]);
       }
       catch (NumberFormatException e) {
         System.out.println("Valor de [interval] deve ser um número");
