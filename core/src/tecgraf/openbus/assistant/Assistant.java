@@ -69,8 +69,8 @@ public abstract class Assistant {
   private static final Logger logger = Logger.getLogger(Assistant.class
     .getName());
 
-  /** Intervalo de espera entre tentativas */
-  private int interval = 5;
+  /** Intervalo de espera entre tentativas em milissegundos */
+  private int mInterval = 5000;
   /** Host com o qual o assistente quer se conectar */
   private String host;
   /** Porta com a qual o assistente quer se conectar */
@@ -163,11 +163,12 @@ public abstract class Assistant {
       throw new IllegalArgumentException("ORB já está em uso.");
     }
     if (params.interval != null) {
-      if (params.interval <= 0) {
+      int pmInterval = (int) (params.interval * 1000);
+      if (pmInterval <= 0) {
         throw new IllegalArgumentException(
-          "O intervalo de espera do assistente deve ser maior do que zero.");
+          "O intervalo de espera especificado é muito pequeno.");
       }
-      interval = params.interval;
+      mInterval = pmInterval;
     }
     if (params.callback != null) {
       this.callback = params.callback;
@@ -468,7 +469,7 @@ public abstract class Assistant {
   private boolean shouldRetry(int retries, int attempt) {
     if (retries < 0 || attempt >= 0) {
       try {
-        Thread.sleep(interval * 1000);
+        Thread.sleep(mInterval);
       }
       catch (InterruptedException e) {
         logger.log(Level.SEVERE, "'Find' foi interrompido.", e);
@@ -505,11 +506,11 @@ public abstract class Assistant {
     threadPool.shutdownNow();
     // Aguarda o término da execução das threads
     try {
-      long timeout = 3 * interval;
-      TimeUnit timeUnit = TimeUnit.SECONDS;
+      long timeout = 3 * mInterval;
+      TimeUnit timeUnit = TimeUnit.MILLISECONDS;
       if (!threadPool.awaitTermination(timeout, timeUnit)) {
         logger.log(Level.WARNING, String.format(
-          "pool de threads não finalizou. Timeout = %s s", timeout));
+          "pool de threads não finalizou. Timeout = %s s", timeout / 1000));
       }
     }
     catch (InterruptedException e) {
@@ -1047,7 +1048,7 @@ public abstract class Assistant {
         retry = assist.login();
         if (retry) {
           try {
-            Thread.sleep(assist.interval * 1000);
+            Thread.sleep(mInterval);
           }
           catch (InterruptedException e) {
             logger.fine("Thread 'DoLogin' foi interrompida.");
@@ -1116,7 +1117,7 @@ public abstract class Assistant {
           }
           if (retry) {
             try {
-              Thread.sleep(assist.interval * 1000);
+              Thread.sleep(mInterval);
             }
             catch (InterruptedException e) {
               logger.warning("Thread 'DoRegister' foi interrompida.");

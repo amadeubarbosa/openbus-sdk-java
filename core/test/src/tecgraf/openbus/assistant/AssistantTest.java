@@ -149,7 +149,7 @@ public class AssistantTest {
   @Test(expected = IllegalArgumentException.class)
   public void intervalIsZeroTest() throws IllegalArgumentException {
     AssistantParams params = new AssistantParams();
-    params.interval = 0;
+    params.interval = 0.0f;
     Assistant assist =
       Assistant.createWithPassword(host, port, entity, password, params);
     assist.shutdown();
@@ -158,7 +158,7 @@ public class AssistantTest {
   @Test(expected = IllegalArgumentException.class)
   public void intervalIsNegativeTest() throws IllegalArgumentException {
     AssistantParams params = new AssistantParams();
-    params.interval = -1;
+    params.interval = -Float.MAX_VALUE;
     Assistant assist =
       Assistant.createWithPassword(host, port, entity, password, params);
     assist.shutdown();
@@ -169,7 +169,7 @@ public class AssistantTest {
     boolean failed = false;
     Assistant assist = null;
     AssistantParams params = new AssistantParams();
-    params.interval = 1;
+    params.interval = 1e-1f;
     try {
       assist =
         Assistant.createWithPassword(host, port, entity, password, params);
@@ -186,7 +186,7 @@ public class AssistantTest {
   @Test
   public void registerAndFindTest() throws Throwable {
     AssistantParams params = new AssistantParams();
-    params.interval = 1;
+    params.interval = 1.0f;
     Assistant assist =
       Assistant.createWithPrivateKey(host, port, server, privateKey, params);
     ORB orb = assist.orb();
@@ -199,7 +199,7 @@ public class AssistantTest {
             new ServiceProperty("loop.index", Integer.toString(index)) };
       assist.registerService(context.getIComponent(), props);
     }
-    Thread.sleep(params.interval * 3 * 1000);
+    Thread.sleep((int) (params.interval * 3 * 1000));
     ServiceProperty[] search =
       new ServiceProperty[] { new ServiceProperty("offer.domain",
         "Assistant Test") };
@@ -215,7 +215,7 @@ public class AssistantTest {
   @Test
   public void registerAndGetAllTest() throws Throwable {
     AssistantParams params = new AssistantParams();
-    params.interval = 1;
+    params.interval = 1.0f;
     Assistant assist =
       Assistant.createWithPrivateKey(host, port, server, privateKey, params);
     ORB orb = assist.orb();
@@ -228,7 +228,7 @@ public class AssistantTest {
             new ServiceProperty("loop.index", Integer.toString(index)) };
       assist.registerService(context.getIComponent(), props);
     }
-    Thread.sleep(params.interval * 3 * 1000);
+    Thread.sleep((int) (params.interval * 3 * 1000));
     ServiceOfferDesc[] found = assist.getAllServices(3);
     Assert.assertTrue(found.length >= index);
     assist.shutdown();
@@ -239,7 +239,7 @@ public class AssistantTest {
     SCSException, InterruptedException {
     final AtomicBoolean failed = new AtomicBoolean(false);
     AssistantParams params = new AssistantParams();
-    params.interval = 1;
+    params.interval = 1.0f;
     params.callback = new OnFailureCallback() {
 
       @Override
@@ -272,7 +272,7 @@ public class AssistantTest {
       new ServiceProperty[] { new ServiceProperty("offer.domain",
         "Assistant Test") };
     assist.registerService(context.getIComponent(), props);
-    Thread.sleep(params.interval * 3 * 1000);
+    Thread.sleep((int) (params.interval * 3 * 1000));
     Assert.assertTrue(failed.get());
     assist.shutdown();
   }
@@ -281,7 +281,7 @@ public class AssistantTest {
   public void loginBySharedAuthTest() throws Throwable {
     final AtomicBoolean failed = new AtomicBoolean(false);
     AssistantParams params = new AssistantParams();
-    params.interval = 1;
+    params.interval = 1.0f;
     params.callback = new OnFailureCallback() {
 
       @Override
@@ -337,7 +337,7 @@ public class AssistantTest {
   public void startSharedAuthTest() throws Throwable {
     final AtomicBoolean failed = new AtomicBoolean(false);
     AssistantParams params = new AssistantParams();
-    params.interval = 1;
+    params.interval = 1.0f;
     params.callback = new OnFailureCallback() {
 
       @Override
@@ -384,7 +384,7 @@ public class AssistantTest {
   public void nullLoginArgsTest() throws InterruptedException {
     final AtomicBoolean failed = new AtomicBoolean(false);
     AssistantParams params = new AssistantParams();
-    params.interval = 1;
+    params.interval = 1.0f;
     params.callback = new OnFailureCallback() {
 
       @Override
@@ -415,7 +415,7 @@ public class AssistantTest {
         return null;
       }
     };
-    Thread.sleep(params.interval * 3 * 1000);
+    Thread.sleep((int) (params.interval * 3 * 1000));
     Assert.assertTrue(failed.get());
     assist.shutdown();
   }

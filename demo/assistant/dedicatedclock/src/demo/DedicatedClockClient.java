@@ -32,7 +32,7 @@ public final class DedicatedClockClient {
   private static int port;
   private static String entity;
   private static String password;
-  private static int interval = 1;
+  private static float interval = 1.0f;
   private static int retries = 10;
 
   /**
@@ -78,7 +78,7 @@ public final class DedicatedClockClient {
     // - intervalo entre falhas
     if (args.length > 4) {
       try {
-        interval = Integer.parseInt(args[4]);
+        interval = Float.parseFloat(args[4]);
       }
       catch (NumberFormatException e) {
         System.out.println("Valor de [interval] deve ser um número");
