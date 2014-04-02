@@ -69,8 +69,8 @@ public abstract class Assistant {
   private static final Logger logger = Logger.getLogger(Assistant.class
     .getName());
 
-  /** Intervalo de espera entre tentativas */
-  private int uInterval;
+  /** Intervalo de espera entre tentativas em milissegundos */
+  private int uInterval = 5000;
   /** Host com o qual o assistente quer se conectar */
   private String host;
   /** Porta com a qual o assistente quer se conectar */
