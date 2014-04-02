@@ -70,7 +70,7 @@ public abstract class Assistant {
     .getName());
 
   /** Intervalo de espera entre tentativas em milissegundos */
-  private int uInterval = 5000;
+  private int mInterval = 5000;
   /** Host com o qual o assistente quer se conectar */
   private String host;
   /** Porta com a qual o assistente quer se conectar */
@@ -163,12 +163,12 @@ public abstract class Assistant {
       throw new IllegalArgumentException("ORB já está em uso.");
     }
     if (params.interval != null) {
-      int puInterval = (int) (params.interval * 1000);
-      if (puInterval <= 0) {
+      int pmInterval = (int) (params.interval * 1000);
+      if (pmInterval <= 0) {
         throw new IllegalArgumentException(
           "O intervalo de espera especificado é muito pequeno.");
       }
-      uInterval = puInterval;
+      mInterval = pmInterval;
     }
     if (params.callback != null) {
       this.callback = params.callback;
@@ -469,7 +469,7 @@ public abstract class Assistant {
   private boolean shouldRetry(int retries, int attempt) {
     if (retries < 0 || attempt >= 0) {
       try {
-        Thread.sleep(uInterval);
+        Thread.sleep(mInterval);
       }
       catch (InterruptedException e) {
         logger.log(Level.SEVERE, "'Find' foi interrompido.", e);
@@ -506,7 +506,7 @@ public abstract class Assistant {
     threadPool.shutdownNow();
     // Aguarda o término da execução das threads
     try {
-      long timeout = 3 * uInterval;
+      long timeout = 3 * mInterval;
       TimeUnit timeUnit = TimeUnit.MILLISECONDS;
       if (!threadPool.awaitTermination(timeout, timeUnit)) {
         logger.log(Level.WARNING, String.format(
@@ -1048,7 +1048,7 @@ public abstract class Assistant {
         retry = assist.login();
         if (retry) {
           try {
-            Thread.sleep(uInterval);
+            Thread.sleep(mInterval);
           }
           catch (InterruptedException e) {
             logger.fine("Thread 'DoLogin' foi interrompida.");
@@ -1117,7 +1117,7 @@ public abstract class Assistant {
           }
           if (retry) {
             try {
-              Thread.sleep(uInterval);
+              Thread.sleep(mInterval);
             }
             catch (InterruptedException e) {
               logger.warning("Thread 'DoRegister' foi interrompida.");
