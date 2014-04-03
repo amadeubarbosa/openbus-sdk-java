@@ -8,7 +8,6 @@ import org.omg.CORBA.LocalObject;
 import org.omg.CORBA.ORB;
 import org.omg.IOP.Codec;
 import org.omg.IOP.CodecFactory;
-import org.omg.IOP.CodecFactoryHelper;
 import org.omg.IOP.ENCODING_CDR_ENCAPS;
 import org.omg.IOP.Encoding;
 import org.omg.IOP.CodecFactoryPackage.UnknownEncoding;
@@ -61,8 +60,8 @@ public final class InternalJacORBInitializer extends LocalObject implements
     }
     ORBMediator mediator =
       new ORBMediator(codec, signedChainSlotId, joinedChainSlotId,
-        joinedChainTargetSlotId, joinedBusSlotId, busSlotId,
-        requestIdSlotId, context);
+        joinedChainTargetSlotId, joinedBusSlotId, busSlotId, requestIdSlotId,
+        context);
     try {
       info.register_initial_reference(ORBMediator.INITIAL_REFERENCE_ID,
         mediator);
@@ -72,6 +71,8 @@ public final class InternalJacORBInitializer extends LocalObject implements
       logger.log(Level.SEVERE, message, e);
       throw new INITIALIZE(message);
     }
+    this.addClientInterceptor(info, mediator);
+    this.addServerInterceptors(info, mediator);
   }
 
   /**
@@ -79,9 +80,7 @@ public final class InternalJacORBInitializer extends LocalObject implements
    */
   @Override
   public void post_init(ORBInitInfo info) {
-    ORBMediator mediator = this.getMediator(info);
-    this.addClientInterceptor(info, mediator);
-    this.addServerInterceptors(info, mediator);
+
   }
 
   /**
@@ -121,47 +120,13 @@ public final class InternalJacORBInitializer extends LocalObject implements
   }
 
   /**
-   * Recupera o mediador do ORB
-   * 
-   * @param info informações do ORB
-   * @return o mediador.
-   */
-  private ORBMediator getMediator(ORBInitInfo info) {
-    org.omg.CORBA.Object obj;
-    try {
-      obj = info.resolve_initial_references(ORBMediator.INITIAL_REFERENCE_ID);
-    }
-    catch (InvalidName e) {
-      String message = "Falha inesperada ao obter o mediador";
-      logger.log(Level.SEVERE, message, e);
-      throw new INITIALIZE(message);
-    }
-    if (obj == null) {
-      String message = "O mediador não foi encontrado";
-      logger.severe(message);
-      throw new INITIALIZE(message);
-    }
-    return (ORBMediator) obj;
-  }
-
-  /**
    * Cria uma instância do Codec a ser utilizado pelos interceptadores.
    * 
    * @param info informação do ORB
    * @return o Codec.
    */
   private Codec createCodec(ORBInitInfo info) {
-    org.omg.CORBA.Object obj;
-    try {
-      obj = info.resolve_initial_references("CodecFactory");
-    }
-    catch (InvalidName e) {
-      String message = "Falha inesperada ao obter a fábrica de codificadores";
-      logger.log(Level.SEVERE, message, e);
-      throw new INITIALIZE(message);
-    }
-    CodecFactory codecFactory = CodecFactoryHelper.narrow(obj);
-
+    CodecFactory codecFactory = info.codec_factory();
     Encoding encoding =
       new Encoding(ENCODING_CDR_ENCAPS.value,
         ENCODING_CDR_ENCAPS_MAJOR_VERSION, ENCODING_CDR_ENCAPS_MINOR_VERSION);
