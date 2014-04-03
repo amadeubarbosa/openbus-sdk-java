@@ -36,7 +36,7 @@ public class AssistantParams {
    * tentativa após uma falha na execução de uma tarefa. Por exemplo, depois de
    * uma falha na tentativa de um login ou registro de oferta, o assistente
    * espera pelo menos o tempo indicado por esse parâmetro antes de tentar uma
-   * nova tentativa.
+   * nova tentativa. Não pode ser menor do que 1 segundo.
    */
   public Float interval;
   /**

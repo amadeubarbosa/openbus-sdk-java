@@ -147,18 +147,36 @@ public class AssistantTest {
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void intervalIsZeroTest() throws IllegalArgumentException {
+  public void intervalIsNaNTest() throws IllegalArgumentException {
     AssistantParams params = new AssistantParams();
-    params.interval = 0.0f;
+    params.interval = Float.NaN;
     Assistant assist =
       Assistant.createWithPassword(host, port, entity, password, params);
     assist.shutdown();
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void intervalIsNegativeTest() throws IllegalArgumentException {
+  public void intervalIsPositiveInfinityTest() throws IllegalArgumentException {
     AssistantParams params = new AssistantParams();
-    params.interval = -Float.MAX_VALUE;
+    params.interval = Float.POSITIVE_INFINITY;
+    Assistant assist =
+      Assistant.createWithPassword(host, port, entity, password, params);
+    assist.shutdown();
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void intervalIsNegativeInfinityTest() throws IllegalArgumentException {
+    AssistantParams params = new AssistantParams();
+    params.interval = Float.NEGATIVE_INFINITY;
+    Assistant assist =
+      Assistant.createWithPassword(host, port, entity, password, params);
+    assist.shutdown();
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void intervalIsLowerTest() throws IllegalArgumentException {
+    AssistantParams params = new AssistantParams();
+    params.interval = 0.0f;
     Assistant assist =
       Assistant.createWithPassword(host, port, entity, password, params);
     assist.shutdown();
@@ -169,7 +187,7 @@ public class AssistantTest {
     boolean failed = false;
     Assistant assist = null;
     AssistantParams params = new AssistantParams();
-    params.interval = 1e-1f;
+    params.interval = 1.0f;
     try {
       assist =
         Assistant.createWithPassword(host, port, entity, password, params);

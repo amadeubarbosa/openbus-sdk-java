@@ -163,12 +163,13 @@ public abstract class Assistant {
       throw new IllegalArgumentException("ORB já está em uso.");
     }
     if (params.interval != null) {
-      int pmInterval = (int) (params.interval * 1000);
-      if (pmInterval <= 0) {
+      if (params.interval.isNaN() ||
+        params.interval.isInfinite() ||
+        params.interval < 1.0f) {
         throw new IllegalArgumentException(
-          "O intervalo de espera especificado é muito pequeno.");
+          "O intervalo de espera do assistente deve ser maior ou igual a 1s.");
       }
-      mInterval = pmInterval;
+      mInterval = (int) Math.ceil(params.interval * 1000.0f);
     }
     if (params.callback != null) {
       this.callback = params.callback;
