@@ -59,7 +59,7 @@
 \newcommand{\jacorb}{\textsc{JacORB}}
 \newcommand{\scs}{\textsc{SCS}}
 \newcommand{\assistant}{\textsc{Assistant}}
-\newcommand{\version}{2.0.0}
+\newcommand{\version}{2.0.1}
 
 
 %\newif\ifpdf
@@ -571,7 +571,7 @@ Ao instanciar o \assistant{} podemos definir um conjunto de propriedades, atravé
 Essa classe fornece uma série de campos opcionais que podem ser configurados antes da instanciação do \assistant{}. São eles:
 
 \begin{description}
-  \item [interval] Tempo em segundos indicando o tempo mínimo de espera antes de cada nova tentativa após uma falha na execução de uma tarefa.
+  \item [interval] Tempo em segundos indicando o tempo mínimo de espera antes de cada nova tentativa após uma falha na execução de uma tarefa; não pode ser menor do que 1 segundo.
   \item [orb] O \orb{} a ser utilizado pelo assistente para realizar suas tarefas.
   \item [connprops] Propriedades opcionais da conexão utilizada internamente. Para mais detalhes, consulte a documentação da API básica.
   \item [callback] Objeto de callback que recebe notificações de falhas das tarefas realizadas pelo assistente.
