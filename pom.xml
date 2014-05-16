@@ -19,6 +19,13 @@
     <project.build.sourceEncoding>ISO-8859-1</project.build.sourceEncoding>
   </properties>
 
+  <distributionManagement>
+    <repository>
+      <id>tecgraf-releases</id>
+      <url>http://nexus.tecgraf.puc-rio.br:8081/nexus/content/repositories/releases</url>
+    </repository>
+  </distributionManagement>
+
   <scm>
     <developerConnection>
         scm:svn:https://subversion.tecgraf.puc-rio.br/engdist/openbus/sdk/java/trunk
