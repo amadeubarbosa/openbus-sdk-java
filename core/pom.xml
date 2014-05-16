@@ -13,13 +13,6 @@
   <name>OpenBus - SDK - Core</name>
   <url>http://www.tecgraf.puc-rio.br/openbus</url>
   
-  <distributionManagement>
-    <repository>
-      <id>tecgraf-releases</id>
-      <url>http://nexus.tecgraf.puc-rio.br:8081/nexus/content/repositories/releases</url>
-    </repository>
-  </distributionManagement>
-
   <build>
     <plugins>
       <plugin>
