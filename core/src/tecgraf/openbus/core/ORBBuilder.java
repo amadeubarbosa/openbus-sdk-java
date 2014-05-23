@@ -53,8 +53,6 @@ final class ORBBuilder {
       this.props = new Properties();
     }
     this.props.setProperty("org.omg.CORBA.ORBClass", "org.jacorb.orb.ORB");
-    this.props.setProperty("org.omg.CORBA.ORBSingletonClass",
-      "org.jacorb.orb.ORBSingleton");
   }
 
   /**
