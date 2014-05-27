@@ -80,8 +80,10 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * {@inheritDoc}
    */
   @Override
-  public void receive_request_service_contexts(ServerRequestInfo arg0)
+  public void receive_request_service_contexts(ServerRequestInfo ri)
     throws ForwardRequest {
+    logger.finest(String.format("[inout] receive_request_service_contexts: %s",
+      ri.operation()));
     // do nothing
   }
 
@@ -233,6 +235,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
   @Override
   public void receive_request(ServerRequestInfo ri) {
     String operation = ri.operation();
+    logger.finest(String.format("[in] receive_request: %s", operation));
     int requestId = ri.request_id();
     byte[] object_id = ri.object_id();
     ORB orb = this.getMediator().getORB();
@@ -410,6 +413,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       // pois o PICurrent deveria acabar junto com a thread de interceptação.
       // CHECK possível bug! Esta operação modifica o valor setado no ri e PICurrent
       //context.setCurrentConnection(null);
+      logger.finest(String.format("[out] receive_request: %s", operation));
     }
   }
 
@@ -624,6 +628,9 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void send_reply(ServerRequestInfo ri) {
+    String operation = ri.operation();
+    logger.finest(String.format("[in] send_reply: %s", operation));
+
     // CHECK deveria setar o currentConnection antigo?
     removeCurrentConnection(ri);
 
@@ -639,7 +646,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       throw new INTERNAL(message);
     }
     String msg = "Chamada atendida: operação (%s) requestId (%d)";
-    logger.fine(String.format(msg, ri.operation(), ri.request_id()));
+    logger.fine(String.format(msg, operation, ri.request_id()));
+    logger.finest(String.format("[out] send_reply: %s", operation));
   }
 
   /**
@@ -647,6 +655,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void send_exception(ServerRequestInfo ri) {
+    logger.finest(String.format("[inout] send_exception: %s", ri.operation()));
   }
 
   /**
@@ -654,6 +663,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void send_other(ServerRequestInfo ri) {
+    logger.finest(String.format("[inout] send_other: %s", ri.operation()));
   }
 
   /**
