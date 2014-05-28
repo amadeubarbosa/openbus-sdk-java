@@ -48,10 +48,14 @@ final class ORBBuilder {
    */
   public ORBBuilder(String[] args, Properties props) {
     this.args = args;
-    this.props = props;
-    if (this.props == null) {
-      this.props = new Properties();
+    this.props = new Properties();
+    // propriedades padrões mas não obrigatórias (podem ser sobrescritas)
+    this.props.put("jacorb.connection.client.disconnect_after_systemexception",
+      false);
+    if (props != null) {
+      this.props.putAll(props);
     }
+    // propriedade obrigatória
     this.props.setProperty("org.omg.CORBA.ORBClass", "org.jacorb.orb.ORB");
   }
 
