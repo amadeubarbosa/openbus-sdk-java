@@ -8,7 +8,6 @@ import org.omg.CORBA.LocalObject;
 import org.omg.CORBA.ORB;
 import org.omg.IOP.Codec;
 import org.omg.IOP.CodecFactory;
-import org.omg.IOP.CodecFactoryHelper;
 import org.omg.IOP.ENCODING_CDR_ENCAPS;
 import org.omg.IOP.Encoding;
 import org.omg.IOP.CodecFactoryPackage.UnknownEncoding;
@@ -56,6 +55,8 @@ public final class PersonalInitializer extends LocalObject implements
       logger.log(Level.SEVERE, message, e);
       throw new INITIALIZE(message);
     }
+    this.addClientInterceptor(info);
+    this.addServerInterceptors(info);
   }
 
   /**
@@ -63,8 +64,7 @@ public final class PersonalInitializer extends LocalObject implements
    */
   @Override
   public void post_init(ORBInitInfo info) {
-    this.addClientInterceptor(info);
-    this.addServerInterceptors(info);
+
   }
 
   /**
@@ -108,16 +108,7 @@ public final class PersonalInitializer extends LocalObject implements
    * @return o Codec.
    */
   private Codec createCodec(ORBInitInfo info) {
-    org.omg.CORBA.Object obj;
-    try {
-      obj = info.resolve_initial_references("CodecFactory");
-    }
-    catch (InvalidName e) {
-      String message = "Falha inesperada ao obter a fábrica de codificadores";
-      logger.log(Level.SEVERE, message, e);
-      throw new INITIALIZE(message);
-    }
-    CodecFactory codecFactory = CodecFactoryHelper.narrow(obj);
+    CodecFactory codecFactory = info.codec_factory();
 
     Encoding encoding =
       new Encoding(ENCODING_CDR_ENCAPS.value,
