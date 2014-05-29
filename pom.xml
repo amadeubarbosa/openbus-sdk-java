@@ -18,6 +18,32 @@
     <project.build.sourceEncoding>ISO-8859-1</project.build.sourceEncoding>
   </properties>
 
+  <distributionManagement>
+    <repository>
+      <id>tecgraf-releases</id>
+      <name>Releases do Tecgraf</name>
+      <url>http://nexus.tecgraf.puc-rio.br:8081/nexus/content/repositories/releases</url>
+    </repository>
+    <snapshotRepository>
+      <id>tecgraf-snapshots</id>
+      <name>Snapshots do Tecgraf</name>
+      <url>http://nexus.tecgraf.puc-rio.br:8081/nexus/content/repositories/snapshots</url>
+    </snapshotRepository>
+  </distributionManagement>
+
+  <repositories>
+    <repository>
+      <id>tecgraf-releases</id>
+      <name>Releases do Tecgraf</name>
+      <url>http://nexus.tecgraf.puc-rio.br:8081/nexus/content/repositories/releases</url>
+    </repository>
+    <repository>
+      <id>tecgraf-snapshots</id>
+      <name>Snapshots do Tecgraf</name>
+      <url>http://nexus.tecgraf.puc-rio.br:8081/nexus/content/repositories/snapshots</url>
+    </repository>
+  </repositories>
+  
   <scm>
     <developerConnection>
         scm:svn:https://subversion.tecgraf.puc-rio.br/engdist/openbus/sdk/java/branches/02_00_00
