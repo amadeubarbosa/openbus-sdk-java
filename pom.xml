@@ -31,19 +31,14 @@
       <url>http://nexus.tecgraf.puc-rio.br:8081/nexus/content/repositories/snapshots</url>
     </snapshotRepository>
   </distributionManagement>
-
+  
   <repositories>
     <repository>
-      <id>tecgraf-releases</id>
-      <name>Releases do Tecgraf</name>
-      <url>http://nexus.tecgraf.puc-rio.br:8081/nexus/content/repositories/releases</url>
-    </repository>
-    <repository>
-      <id>tecgraf-snapshots</id>
-      <name>Snapshots do Tecgraf</name>
-      <url>http://nexus.tecgraf.puc-rio.br:8081/nexus/content/repositories/snapshots</url>
+      <id>nexus</id>
+      <url>http://nexus.tecgraf.puc-rio.br:8081/nexus/content/groups/public</url>
     </repository>
   </repositories>
+
   <scm>
     <developerConnection>
         scm:svn:https://subversion.tecgraf.puc-rio.br/engdist/openbus/sdk/java/trunk
@@ -105,7 +100,7 @@
         <configuration>
           <source>${java.version}</source>
           <target>${java.version}</target>
-          <compilerArgument>-Xbootclasspath/p:${settings.localRepository}/org/jacorb/jacorb/${jacorb.version}/jacorb-${jacorb.version}.jar</compilerArgument>
+          <compilerArgument>-Xbootclasspath/p:${settings.localRepository}/org/jacorb/jacorb-omgapi/${jacorb.version}/jacorb-omgapi-${jacorb.version}.jar</compilerArgument>
         </configuration>
       </plugin>
 
@@ -149,6 +144,12 @@
       <dependency>
         <groupId>org.jacorb</groupId>
         <artifactId>jacorb</artifactId>
+        <version>${jacorb.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.jacorb</groupId>
+        <artifactId>jacorb-omgapi</artifactId>
         <version>${jacorb.version}</version>
       </dependency>
 
