@@ -119,126 +119,133 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
   @Override
   public void send_request(ClientRequestInfo ri) {
     String operation = ri.operation();
-    ORBMediator mediator = getMediator();
-    ORB orb = mediator.getORB();
-    Codec codec = mediator.getCodec();
-    if (isIgnoringThread(ri)) {
-      logger.finest(String.format(
-        "Realizando chamada fora do barramento: operação (%s)", operation));
-      return;
-    }
-
-    boolean joinedToLegacy = false;
-    SignedCallChain joinedChain = getSignedChain(ri);
-    if (Arrays.equals(joinedChain.signature, LEGACY_ENCRYPTED_BLOCK)) {
-      // joined com cadeia 1.5;
-      joinedToLegacy = true;
-    }
-
-    ConnectionImpl conn = (ConnectionImpl) this.getCurrentConnection(ri);
-    LoginInfo currLogin = conn.getLogin();
-    if (currLogin == null) {
-      String message =
-        String.format(
-          "Chamada cancelada. Conexão não possui login. operação (%s)",
-          operation);
-      logger.info(message);
-      throw new NO_PERMISSION(message, NoLoginCode.value,
-        CompletionStatus.COMPLETED_NO);
-    }
-    LoginInfoHolder holder = new LoginInfoHolder();
-    holder.value = currLogin;
-
-    // salvando a conexão e o login utilizado no request.
-
-    // montando credencial 2.0
-    if (!joinedToLegacy) {
-      CredentialData credential = this.generateCredentialData(ri, conn, holder);
-      Any anyCredential = orb.create_any();
-      CredentialDataHelper.insert(anyCredential, credential);
-      byte[] encodedCredential;
-      try {
-        encodedCredential = codec.encode_value(anyCredential);
-      }
-      catch (InvalidTypeForEncoding e) {
-        String message = "Falha ao codificar a credencial";
-        logger.log(Level.SEVERE, message, e);
-        throw new INTERNAL(message);
-      }
-      ServiceContext requestServiceContext =
-        new ServiceContext(CredentialContextId.value, encodedCredential);
-      ri.add_request_service_context(requestServiceContext, false);
-    }
-
-    if (conn.legacy()) {
-      try {
-        // construindo credencial 1.5
-        Credential legacyCredential = new Credential();
-        legacyCredential.identifier = currLogin.id;
-        legacyCredential.owner = currLogin.entity;
-        String delegate = "";
-
-        if (joinedChain != NULL_SIGNED_CALL_CHAIN) {
-          Any anyChain =
-            codec.decode_value(joinedChain.encoded, CallChainHelper.type());
-          CallChain chain = CallChainHelper.extract(anyChain);
-          if (chain.originators != null && chain.originators.length > 0
-            && conn.isLegacyDelegateSetToOriginator()) {
-            delegate = chain.originators[0].entity;
-          }
-          else {
-            delegate = chain.caller.entity;
-          }
-        }
-        legacyCredential.delegate = delegate;
-        Any anyLegacy = orb.create_any();
-        CredentialHelper.insert(anyLegacy, legacyCredential);
-        byte[] encodedLegacy = codec.encode_value(anyLegacy);
-        int legacyContextId = 1234;
-        ServiceContext legacyServiceContext =
-          new ServiceContext(legacyContextId, encodedLegacy);
-        ri.add_request_service_context(legacyServiceContext, false);
-      }
-      catch (TypeMismatch e) {
-        String message = "Falha ao construir a credencial 1.5";
-        logger.log(Level.SEVERE, message, e);
-        throw new INTERNAL(message);
-      }
-      catch (FormatMismatch e) {
-        String message = "Falha ao construir a credencial 1.5";
-        logger.log(Level.SEVERE, message, e);
-        throw new INTERNAL(message);
-      }
-      catch (InvalidTypeForEncoding e) {
-        String message = "Falha ao codificar a credencial 1.5";
-        logger.log(Level.SEVERE, message, e);
-        throw new INTERNAL(message);
-      }
-    }
-
-    if (joinedToLegacy && !conn.legacy()) {
-      String message =
-        "Impossível construir credencial: joined em cadeia 1.5 e sem suporte a legacy";
-      logger.severe(message);
-      throw new INTERNAL(message);
-    }
-    // salvando informações da conexão e login que foram utilizados no request
-    int uniqueId = mediator.getUniqueId();
-    Any uniqueAny = orb.create_any();
-    uniqueAny.insert_long(uniqueId);
+    logger.finest(String.format("[in] send_request: %s", operation));
     try {
-      Current current = ORBUtils.getPICurrent(orb);
-      current.set_slot(this.getMediator().getRequestIdSlot(), uniqueAny);
-      requestId2Conn.put(uniqueId, conn);
-      requestId2LoginId.put(uniqueId, currLogin.id);
-      logger.finest(String.format(
-        "associando o ID '%d' com o login '%s'. operação (%s)", uniqueId,
-        currLogin.id, ri.operation()));
+      ORBMediator mediator = getMediator();
+      ORB orb = mediator.getORB();
+      Codec codec = mediator.getCodec();
+      if (isIgnoringThread(ri)) {
+        logger.finest(String.format(
+          "Realizando chamada fora do barramento: operação (%s)", operation));
+        return;
+      }
+
+      boolean joinedToLegacy = false;
+      SignedCallChain joinedChain = getSignedChain(ri);
+      if (Arrays.equals(joinedChain.signature, LEGACY_ENCRYPTED_BLOCK)) {
+        // joined com cadeia 1.5;
+        joinedToLegacy = true;
+      }
+
+      ConnectionImpl conn = (ConnectionImpl) this.getCurrentConnection(ri);
+      LoginInfo currLogin = conn.getLogin();
+      if (currLogin == null) {
+        String message =
+          String.format(
+            "Chamada cancelada. Conexão não possui login. operação (%s)",
+            operation);
+        logger.info(message);
+        throw new NO_PERMISSION(message, NoLoginCode.value,
+          CompletionStatus.COMPLETED_NO);
+      }
+      LoginInfoHolder holder = new LoginInfoHolder();
+      holder.value = currLogin;
+
+      // salvando a conexão e o login utilizado no request.
+
+      // montando credencial 2.0
+      if (!joinedToLegacy) {
+        CredentialData credential =
+          this.generateCredentialData(ri, conn, holder);
+        Any anyCredential = orb.create_any();
+        CredentialDataHelper.insert(anyCredential, credential);
+        byte[] encodedCredential;
+        try {
+          encodedCredential = codec.encode_value(anyCredential);
+        }
+        catch (InvalidTypeForEncoding e) {
+          String message = "Falha ao codificar a credencial";
+          logger.log(Level.SEVERE, message, e);
+          throw new INTERNAL(message);
+        }
+        ServiceContext requestServiceContext =
+          new ServiceContext(CredentialContextId.value, encodedCredential);
+        ri.add_request_service_context(requestServiceContext, false);
+      }
+
+      if (conn.legacy()) {
+        try {
+          // construindo credencial 1.5
+          Credential legacyCredential = new Credential();
+          legacyCredential.identifier = currLogin.id;
+          legacyCredential.owner = currLogin.entity;
+          String delegate = "";
+
+          if (joinedChain != NULL_SIGNED_CALL_CHAIN) {
+            Any anyChain =
+              codec.decode_value(joinedChain.encoded, CallChainHelper.type());
+            CallChain chain = CallChainHelper.extract(anyChain);
+            if (chain.originators != null && chain.originators.length > 0
+              && conn.isLegacyDelegateSetToOriginator()) {
+              delegate = chain.originators[0].entity;
+            }
+            else {
+              delegate = chain.caller.entity;
+            }
+          }
+          legacyCredential.delegate = delegate;
+          Any anyLegacy = orb.create_any();
+          CredentialHelper.insert(anyLegacy, legacyCredential);
+          byte[] encodedLegacy = codec.encode_value(anyLegacy);
+          int legacyContextId = 1234;
+          ServiceContext legacyServiceContext =
+            new ServiceContext(legacyContextId, encodedLegacy);
+          ri.add_request_service_context(legacyServiceContext, false);
+        }
+        catch (TypeMismatch e) {
+          String message = "Falha ao construir a credencial 1.5";
+          logger.log(Level.SEVERE, message, e);
+          throw new INTERNAL(message);
+        }
+        catch (FormatMismatch e) {
+          String message = "Falha ao construir a credencial 1.5";
+          logger.log(Level.SEVERE, message, e);
+          throw new INTERNAL(message);
+        }
+        catch (InvalidTypeForEncoding e) {
+          String message = "Falha ao codificar a credencial 1.5";
+          logger.log(Level.SEVERE, message, e);
+          throw new INTERNAL(message);
+        }
+      }
+
+      if (joinedToLegacy && !conn.legacy()) {
+        String message =
+          "Impossível construir credencial: joined em cadeia 1.5 e sem suporte a legacy";
+        logger.severe(message);
+        throw new INTERNAL(message);
+      }
+      // salvando informações da conexão e login que foram utilizados no request
+      int uniqueId = mediator.getUniqueId();
+      Any uniqueAny = orb.create_any();
+      uniqueAny.insert_long(uniqueId);
+      try {
+        Current current = ORBUtils.getPICurrent(orb);
+        current.set_slot(this.getMediator().getRequestIdSlot(), uniqueAny);
+        requestId2Conn.put(uniqueId, conn);
+        requestId2LoginId.put(uniqueId, currLogin.id);
+        logger.finest(String.format(
+          "associando o ID '%d' com o login '%s'. operação (%s)", uniqueId,
+          currLogin.id, ri.operation()));
+      }
+      catch (InvalidSlot e) {
+        String message = "Falha inesperada ao obter o slot de requestId";
+        logger.log(Level.SEVERE, message, e);
+        throw new INTERNAL(message);
+      }
     }
-    catch (InvalidSlot e) {
-      String message = "Falha inesperada ao obter o slot de requestId";
-      logger.log(Level.SEVERE, message, e);
-      throw new INTERNAL(message);
+    finally {
+      logger.finest(String.format("[out] send_request: %s", operation));
     }
   }
 
@@ -375,6 +382,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void send_poll(ClientRequestInfo ri) {
+    logger.finest(String.format("[inout] send_pool: %s", ri.operation()));
   }
 
   /**
@@ -382,6 +390,8 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void receive_reply(ClientRequestInfo ri) {
+    String operation = ri.operation();
+    logger.finest(String.format("[in] receive_reply: %s", operation));
     if (!isIgnoringThread(ri)) {
       int uniqueId = getRequestUniqueId();
       this.requestId2Conn.remove(uniqueId);
@@ -391,6 +401,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         "requisição atendida com sucesso! ID (%d) login (%s) operação (%s)",
         uniqueId, login, ri.operation()));
     }
+    logger.finest(String.format("[out] receive_reply: %s", operation));
   }
 
   /**
@@ -398,6 +409,8 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void receive_exception(ClientRequestInfo ri) throws ForwardRequest {
+    String operation = ri.operation();
+    logger.finest(String.format("[in] receive_exception: %s", operation));
     Integer uniqueId = null;
     try {
       logger.finest(String.format("Exception: %s Request: %s", ri
@@ -510,6 +523,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
           "Descartando associação do ID '%d' com o login '%s'. operação (%s)",
           uniqueId, login, ri.operation()));
       }
+      logger.finest(String.format("[out] receive_exception: %s", operation));
     }
   }
 
@@ -593,6 +607,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void receive_other(ClientRequestInfo ri) {
+    logger.finest(String.format("[inout] receive_other: %s", ri.operation()));
   }
 
 }

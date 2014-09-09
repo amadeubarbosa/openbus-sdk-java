@@ -30,8 +30,8 @@ public class MassiveConnectionTest {
   private static String password;
   private static ORB orb;
   private static OpenBusContext context;
-  private static int LOOP_SIZE = 60;
-  private static int THREAD_POOL_SIZE = 5;
+  private static int LOOP_SIZE = 20;
+  private static int THREAD_POOL_SIZE = 6;
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {

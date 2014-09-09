@@ -159,7 +159,7 @@ public final class ConnectionTest {
     // senha errada
     failed = false;
     try {
-      conn.loginByPassword(entity, new byte[0]);
+      conn.loginByPassword("invalid-entity-1", new byte[0]);
     }
     catch (AccessDenied e) {
       failed = true;

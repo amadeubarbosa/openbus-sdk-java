@@ -122,21 +122,21 @@ final class LeaseRenewer {
           this.mustContinue = false;
           break;
         }
-        OpenBusContextImpl connections = null;
+        OpenBusContextImpl context = null;
         int lease = -1;
         try {
-          connections =
+          context =
             (OpenBusContextImpl) conn.orb().resolve_initial_references(
               "OpenBusContext");
-          connections.setCurrentConnection(conn);
-          AccessControl manager = ((ConnectionImpl) conn).access();
-          if (manager != null) {
-            lease = manager.renew();
+          context.setCurrentConnection(conn);
+          AccessControl access = ((ConnectionImpl) conn).access();
+          if (access != null) {
+            lease = access.renew();
             this.mustContinue &= (lease > 0);
           }
         }
         catch (InvalidName e) {
-          String message = "Falha inesperada ao obter o multiplexador";
+          String message = "Falha inesperada ao obter o contexto.";
           logger.log(Level.SEVERE, message, e);
           this.mustContinue = false;
         }
@@ -147,8 +147,8 @@ final class LeaseRenewer {
           logger.log(Level.SEVERE, "Falha na renovação da credencial", e);
         }
         finally {
-          if (connections != null) {
-            connections.setCurrentConnection(null);
+          if (context != null) {
+            context.setCurrentConnection(null);
           }
         }
 
@@ -159,7 +159,9 @@ final class LeaseRenewer {
               time = this.defaultLease;
             }
             this.isSleeping = true;
+            logger.finest("Thread de renovação indo dormir.");
             Thread.sleep(time * 1000);
+            logger.finest("Thread de renovação acordando.");
             this.isSleeping = false;
           }
           catch (InterruptedException e) {
@@ -169,6 +171,7 @@ final class LeaseRenewer {
           }
         }
       }
+      logger.finest("Thread de renovação terminou loop de renovação");
     }
 
     /**
