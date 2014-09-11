@@ -26,23 +26,22 @@ import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.PrivateKey;
 import tecgraf.openbus.core.Session.ClientSideSession;
 import tecgraf.openbus.core.Session.ServerSideSession;
-import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlService;
-import tecgraf.openbus.core.v2_0.BusObjectKey;
-import tecgraf.openbus.core.v2_0.EncryptedBlockHolder;
-import tecgraf.openbus.core.v2_0.OctetSeqHolder;
-import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
-import tecgraf.openbus.core.v2_0.services.ServiceFailure;
-import tecgraf.openbus.core.v2_0.services.access_control.AccessControl;
-import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
-import tecgraf.openbus.core.v2_0.services.access_control.InvalidPublicKey;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginAuthenticationInfo;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginAuthenticationInfoHelper;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginProcess;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginRegistry;
-import tecgraf.openbus.core.v2_0.services.access_control.MissingCertificate;
-import tecgraf.openbus.core.v2_0.services.access_control.WrongEncoding;
-import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
+import tecgraf.openbus.core.v2_1.BusObjectKey;
+import tecgraf.openbus.core.v2_1.EncryptedBlockHolder;
+import tecgraf.openbus.core.v2_1.OctetSeqHolder;
+import tecgraf.openbus.core.v2_1.credential.SignedData;
+import tecgraf.openbus.core.v2_1.services.ServiceFailure;
+import tecgraf.openbus.core.v2_1.services.access_control.AccessControl;
+import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidPublicKey;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginAuthenticationInfo;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginAuthenticationInfoHelper;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginProcess;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry;
+import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
+import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
+import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.exception.InvalidLoginProcess;
@@ -70,8 +69,6 @@ final class ConnectionImpl implements Connection {
   private OpenBusContextImpl context;
   /** Informações sobre o barramento ao qual a conexão pertence */
   private BusInfo bus;
-  /** Informações sobre o legacy do barramento ao qual a conexão pertence */
-  private LegacyInfo legacyBus;
   /** Chave pública do sdk */
   private RSAPublicKey publicKey;
   /** Chave privada do sdk */
@@ -93,12 +90,6 @@ final class ConnectionImpl implements Connection {
 
   /** Caches da conexão */
   Caches cache;
-
-  /* Propriedades da conexão. */
-  /** Informa se o suporte legado esta ativo */
-  private boolean legacy;
-  /** Informa qual o modelo de preenchimento do campo delegate. */
-  private String delegate;
 
   /**
    * Construtor.
@@ -135,14 +126,9 @@ final class ConnectionImpl implements Connection {
     this.context = context;
     this.cache = new Caches(this);
     this.bus = null;
-    this.legacyBus = null;
     if (props == null) {
       props = new Properties();
     }
-    String prop = OpenBusProperty.LEGACY_DISABLE.getProperty(props);
-    Boolean disabled = Boolean.valueOf(prop);
-    this.legacy = !disabled;
-    this.delegate = OpenBusProperty.LEGACY_DELEGATE.getProperty(props);
     try {
       this.context.ignoreCurrentThread();
       buildCorbaLoc(host, port);
@@ -222,13 +208,6 @@ final class ConnectionImpl implements Connection {
       String.format("corbaloc::1.0@%s:%d/%s", host, port, BusObjectKey.value);
     org.omg.CORBA.Object obj = orb.string_to_object(str);
     this.bus = new BusInfo(obj);
-
-    if (this.legacy) {
-      String legacyStr =
-        String.format("corbaloc::1.0@%s:%d/%s", host, port, "openbus_v1_05");
-      org.omg.CORBA.Object legacyObj = orb.string_to_object(legacyStr);
-      this.legacyBus = new LegacyInfo(legacyObj);
-    }
   }
 
   /**
@@ -237,9 +216,6 @@ final class ConnectionImpl implements Connection {
    */
   private void initBusReferencesBeforeLogin() {
     this.bus.basicBusInitialization();
-    if (this.legacy) {
-      this.legacy = this.legacyBus.activateLegacySuport();
-    }
   }
 
   /**
@@ -594,37 +570,6 @@ final class ConnectionImpl implements Connection {
   }
 
   /**
-   * Configura as informações de suporte legado do barramento.
-   * 
-   * @param legacy
-   */
-  void setLegacyInfo(LegacyInfo legacy) {
-    this.legacyBus = legacy;
-  }
-
-  /**
-   * Verifica se o suporte legado esta ativo.
-   * 
-   * @return <code>true</code> caso o suporte esteja ativo, e <code>false</code>
-   *         caso contrário.
-   */
-  boolean legacy() {
-    if (!this.legacy) {
-      return false;
-    }
-    return this.legacyBus != null;
-  }
-
-  /**
-   * Recupera a referência para o controle de acesso do suporte legado.
-   * 
-   * @return o serviço de controle de acesso legado.
-   */
-  IAccessControlService legacyAccess() {
-    return this.legacyBus.getAccessControl();
-  }
-
-  /**
    * Retorna
    * 
    * @return bus
@@ -665,21 +610,6 @@ final class ConnectionImpl implements Connection {
    */
   void setLoginInvalid() {
     this.internalLogin.setInvalid();
-  }
-
-  /**
-   * Verifica se a propriedade "legacy.delegate" da conexão está configurada. Os
-   * valores possíveis são "originator" e "caller", onde "caller" é o valor
-   * default.
-   * 
-   * @return <code>true</code> se a propriedade esta configurada para
-   *         "originator", e <code>false</code> caso contrário.
-   */
-  boolean isLegacyDelegateSetToOriginator() {
-    if (this.delegate.equals("originator")) {
-      return true;
-    }
-    return false;
   }
 
   /**
@@ -742,7 +672,7 @@ final class ConnectionImpl implements Connection {
     /** Cache de sessão: mapa de cliente alvo da chamada para sessão */
     Map<String, ClientSideSession> cltSessions;
     /** Cache de cadeias assinadas */
-    Map<ChainCacheKey, SignedCallChain> chains;
+    Map<ChainCacheKey, SignedData> chains;
     /* Caches servidor da conexão */
     /** Cache de sessão: mapa de cliente alvo da chamada para sessão */
     Map<Integer, ServerSideSession> srvSessions;
@@ -765,9 +695,8 @@ final class ConnectionImpl implements Connection {
         Collections.synchronizedMap(new LRUCache<String, ClientSideSession>(
           CACHE_SIZE));
       this.chains =
-        Collections
-          .synchronizedMap(new LRUCache<ChainCacheKey, SignedCallChain>(
-            CACHE_SIZE));
+        Collections.synchronizedMap(new LRUCache<ChainCacheKey, SignedData>(
+          CACHE_SIZE));
       this.srvSessions =
         Collections.synchronizedMap(new LRUCache<Integer, ServerSideSession>(
           CACHE_SIZE));

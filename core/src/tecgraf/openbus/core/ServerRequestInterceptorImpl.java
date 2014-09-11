@@ -25,29 +25,27 @@ import org.omg.PortableInterceptor.ServerRequestInterceptor;
 
 import tecgraf.openbus.CallDispatchCallback;
 import tecgraf.openbus.core.Session.ServerSideSession;
-import tecgraf.openbus.core.v1_05.access_control_service.Credential;
-import tecgraf.openbus.core.v1_05.access_control_service.CredentialHelper;
-import tecgraf.openbus.core.v2_0.OctetSeqHolder;
-import tecgraf.openbus.core.v2_0.credential.CredentialContextId;
-import tecgraf.openbus.core.v2_0.credential.CredentialData;
-import tecgraf.openbus.core.v2_0.credential.CredentialDataHelper;
-import tecgraf.openbus.core.v2_0.credential.CredentialReset;
-import tecgraf.openbus.core.v2_0.credential.CredentialResetHelper;
-import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
-import tecgraf.openbus.core.v2_0.credential.SignedCallChainHelper;
-import tecgraf.openbus.core.v2_0.services.ServiceFailure;
-import tecgraf.openbus.core.v2_0.services.access_control.CallChain;
-import tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper;
-import tecgraf.openbus.core.v2_0.services.access_control.InvalidChainCode;
-import tecgraf.openbus.core.v2_0.services.access_control.InvalidCredentialCode;
-import tecgraf.openbus.core.v2_0.services.access_control.InvalidLoginCode;
-import tecgraf.openbus.core.v2_0.services.access_control.InvalidLogins;
-import tecgraf.openbus.core.v2_0.services.access_control.InvalidPublicKeyCode;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_0.services.access_control.NoCredentialCode;
-import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
-import tecgraf.openbus.core.v2_0.services.access_control.UnknownBusCode;
-import tecgraf.openbus.core.v2_0.services.access_control.UnverifiedLoginCode;
+import tecgraf.openbus.core.v2_1.OctetSeqHolder;
+import tecgraf.openbus.core.v2_1.credential.CredentialContextId;
+import tecgraf.openbus.core.v2_1.credential.CredentialData;
+import tecgraf.openbus.core.v2_1.credential.CredentialDataHelper;
+import tecgraf.openbus.core.v2_1.credential.CredentialReset;
+import tecgraf.openbus.core.v2_1.credential.CredentialResetHelper;
+import tecgraf.openbus.core.v2_1.credential.SignedData;
+import tecgraf.openbus.core.v2_1.credential.SignedDataHelper;
+import tecgraf.openbus.core.v2_1.services.ServiceFailure;
+import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidChainCode;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidCredentialCode;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidLogins;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidPublicKey;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidPublicKeyCode;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_1.services.access_control.NoCredentialCode;
+import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
+import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.security.Cryptography;
 
@@ -93,7 +91,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * @param ri informação do contexto
    * @return Wrapper para a credencial extraída.
    */
-  private CredentialWrapper retrieveCredential(ServerRequestInfo ri) {
+  private CredentialData retrieveCredential(ServerRequestInfo ri) {
     ORB orb = this.getMediator().getORB();
     Codec codec = this.getMediator().getCodec();
     byte[] encodedCredential = null;
@@ -120,7 +118,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         any =
           codec.decode_value(encodedCredential, CredentialDataHelper.type());
         CredentialData credential = CredentialDataHelper.extract(any);
-        return new CredentialWrapper(false, credential, null);
+        return credential;
       }
       catch (TypeMismatch e) {
         String message = "Falha inesperada ao decodificar a credencial";
@@ -131,96 +129,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         String message = "Falha inesperada ao decodificar a credencial";
         logger.log(Level.SEVERE, message, e);
         throw new INTERNAL(message);
-      }
-    }
-    else {
-      int legacyContextId = 1234;
-      byte[] encodedLegacyCredential = null;
-      try {
-        ServiceContext serviceContext =
-          ri.get_request_service_context(legacyContextId);
-        encodedLegacyCredential = serviceContext.context_data;
-      }
-      catch (BAD_PARAM e) {
-        // FIXME: BAD_PARAM caso não exista service context com o id especificado
-        // CORBA ESPEC define com minor code 26.
-        // JacORB define com minor code 23.
-        switch (e.minor) {
-          case 26:
-          case 23:
-            break;
-          default:
-            throw e;
-        }
-      }
-      if (encodedLegacyCredential != null) {
-        CredentialWrapper wrapper = new CredentialWrapper();
-        try {
-          Any anyLegacy =
-            codec
-              .decode_value(encodedLegacyCredential, CredentialHelper.type());
-          Credential legacyCredential = CredentialHelper.extract(anyLegacy);
-          // extraindo informações da credencial 1.5
-          String loginId = legacyCredential.identifier;
-          String entity = legacyCredential.owner;
-
-          LoginInfo[] originators;
-          if (!legacyCredential.delegate.equals("")) {
-            originators = new LoginInfo[1];
-            originators[0] =
-              new LoginInfo("<unknown>", legacyCredential.delegate);
-          }
-          else {
-            originators = new LoginInfo[0];
-          }
-          /*
-           * campo target só pode ser preenchido após definição da conexão que
-           * tratará o request. Esta definição é feita após a validação da
-           * cadeia
-           */
-          CallChain callChain =
-            new CallChain("", originators, new LoginInfo(loginId, entity));
-          Any anyCallChain = orb.create_any();
-          CallChainHelper.insert(anyCallChain, callChain);
-          byte[] encodedCallChain = codec.encode_value(anyCallChain);
-
-          // construindo uma credencial 2.0
-          CredentialData credential = new CredentialData();
-          credential.bus = UNKNOWN_BUS;
-          credential.login = loginId;
-          credential.session = -1;
-          credential.ticket = -1;
-          credential.hash = LEGACY_HASH;
-          credential.chain =
-            new SignedCallChain(LEGACY_ENCRYPTED_BLOCK, encodedCallChain);
-          // salvando informações no wrapper
-          wrapper.isLegacy = true;
-          wrapper.credential = credential;
-          wrapper.legacyCredential = legacyCredential;
-          return wrapper;
-        }
-        catch (TypeMismatch e) {
-          String message =
-            String.format("Falha ao decodificar a credencial 1.5: %s", e
-              .getClass().getSimpleName());
-          logger.log(Level.SEVERE, message, e);
-          throw new INTERNAL(message, 0, CompletionStatus.COMPLETED_NO);
-        }
-        catch (FormatMismatch e) {
-          String message =
-            String.format("Falha ao decodificar a credencial 1.5: %s", e
-              .getClass().getSimpleName());
-          logger.log(Level.SEVERE, message, e);
-          throw new INTERNAL(message, 0, CompletionStatus.COMPLETED_NO);
-        }
-        catch (InvalidTypeForEncoding e) {
-          String message =
-            String.format(
-              "Falha ao construir credencial 2.0 a partir da 1.5: %s", e
-                .getClass().getSimpleName());
-          logger.log(Level.SEVERE, message, e);
-          throw new INTERNAL(message, 0, CompletionStatus.COMPLETED_NO);
-        }
       }
     }
     String message = "Nenhuma credencial suportada encontrada";
@@ -240,9 +148,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     byte[] object_id = ri.object_id();
     ORB orb = this.getMediator().getORB();
     OpenBusContextImpl context = this.getMediator().getContext();
-    CredentialWrapper wrapper = retrieveCredential(ri);
+    CredentialData credential = retrieveCredential(ri);
     try {
-      CredentialData credential = wrapper.credential;
       if (credential != null) {
         String busId = credential.bus;
         String loginId = credential.login;
@@ -255,61 +162,38 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
               conn.connId(), conn.login().id, operation, requestId));
         context.setCurrentConnection(conn);
         boolean valid = false;
-        if (!wrapper.isLegacy) {
-          try {
-            valid = conn.cache.logins.validateLogin(loginId);
+        try {
+          valid = conn.cache.logins.validateLogin(loginId);
+        }
+        catch (NO_PERMISSION e) {
+          if (e.minor == NoLoginCode.value) {
+            String message =
+              "Erro ao validar o login. Conexão dispatcher está deslogada. operação (%s) requestId (%d)";
+            logger.log(Level.SEVERE, String.format(message, operation,
+              requestId), e);
+            throw new NO_PERMISSION(UnknownBusCode.value,
+              CompletionStatus.COMPLETED_NO);
           }
-          catch (NO_PERMISSION e) {
-            if (e.minor == NoLoginCode.value) {
-              String message =
-                "Erro ao validar o login. Conexão dispatcher está deslogada. operação (%s) requestId (%d)";
-              logger.log(Level.SEVERE, String.format(message, operation,
-                requestId), e);
-              throw new NO_PERMISSION(UnknownBusCode.value,
-                CompletionStatus.COMPLETED_NO);
-            }
-            else {
-              String message =
-                "Erro ao validar o login. operação (%s) requestId (%d)";
-              logger.log(Level.SEVERE, String.format(message, operation,
-                requestId), e);
-              throw new NO_PERMISSION(UnverifiedLoginCode.value,
-                CompletionStatus.COMPLETED_NO);
-            }
-          }
-          catch (Exception e) {
-            String message = "Erro ao validar o login.";
-            logger.log(Level.SEVERE, message, e);
+          else {
+            String message =
+              "Erro ao validar o login. operação (%s) requestId (%d)";
+            logger.log(Level.SEVERE, String.format(message, operation,
+              requestId), e);
             throw new NO_PERMISSION(UnverifiedLoginCode.value,
               CompletionStatus.COMPLETED_NO);
           }
-          if (!valid) {
-            throw new NO_PERMISSION(InvalidLoginCode.value,
-              CompletionStatus.COMPLETED_NO);
-          }
         }
-        else {
-          // caso com credencial 1.5
-          try {
-            if (conn.cache.logins.validateLogin(loginId)
-              && conn.cache.valids.isValid(wrapper.legacyCredential)) {
-              valid = true;
-            }
-          }
-          catch (Exception e) {
-            String message =
-              "Erro ao validar o login 1.5  operação (%s) requestId (%d)";
-            logger.log(Level.SEVERE, String.format(message, operation,
-              requestId), e);
-            throw new NO_PERMISSION(0, CompletionStatus.COMPLETED_NO);
-          }
-          if (!valid) {
-            String msg =
-              "Login de credencial 1.5 não é válido: login (%s) operação (%s) requestId (%d)";
-            logger.fine(String.format(msg, loginId, operation, requestId));
-            throw new NO_PERMISSION(0, CompletionStatus.COMPLETED_NO);
-          }
+        catch (Exception e) {
+          String message = "Erro ao validar o login.";
+          logger.log(Level.SEVERE, message, e);
+          throw new NO_PERMISSION(UnverifiedLoginCode.value,
+            CompletionStatus.COMPLETED_NO);
         }
+        if (!valid) {
+          throw new NO_PERMISSION(InvalidLoginCode.value,
+            CompletionStatus.COMPLETED_NO);
+        }
+
         OctetSeqHolder pubkey = new OctetSeqHolder();
         String entity;
         try {
@@ -317,10 +201,18 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         }
         catch (InvalidLogins e) {
           String message =
-            "Erro ao verificar o login. operação (%s) requestId (%d)";
+            "Login verificado é inválido. operação (%s) requestId (%d)";
           logger.log(Level.SEVERE,
             String.format(message, operation, requestId), e);
           throw new NO_PERMISSION(InvalidLoginCode.value,
+            CompletionStatus.COMPLETED_NO);
+        }
+        catch (InvalidPublicKey e) {
+          String message =
+            "Chave pública associada ao login é inválida. operação (%s) requestId (%d)";
+          logger.log(Level.SEVERE,
+            String.format(message, operation, requestId), e);
+          throw new NO_PERMISSION(InvalidPublicKeyCode.value,
             CompletionStatus.COMPLETED_NO);
         }
         catch (ServiceFailure e) {
@@ -350,8 +242,10 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           }
         }
         catch (Exception e) {
-          String message = "Erro ao verificar o login.";
-          logger.log(Level.SEVERE, message, e);
+          String message =
+            "Erro ao verificar o login. operação (%s) requestId (%d)";
+          logger.log(Level.SEVERE,
+            String.format(message, operation, requestId), e);
           throw new NO_PERMISSION(UnverifiedLoginCode.value,
             CompletionStatus.COMPLETED_NO);
         }
@@ -518,11 +412,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   private boolean validateCredential(CredentialData credential,
     ServerRequestInfo ri, ConnectionImpl conn) {
-    if (Arrays.equals(credential.hash, LEGACY_HASH)) {
-      // credencial OpenBus 1.5
-      logger.finest("Credencial OpenBus 1.5");
-      return true;
-    }
     ServerSideSession session = conn.cache.srvSessions.get(credential.session);
     if (session != null && session.getCaller().equals(credential.login)) {
       logger.finest(String.format("sessão utilizada: id = %d ticket = %d",
@@ -555,61 +444,47 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     OctetSeqHolder pubkey, ServerRequestInfo ri, ConnectionImpl conn) {
     Cryptography crypto = Cryptography.getInstance();
     RSAPublicKey busPubKey = conn.getBusPublicKey();
-    SignedCallChain chain = credential.chain;
+    SignedData chain = credential.chain;
     boolean isValid = false;
 
     if (chain != null) {
       CallChain callChain = unmarshallSignedChain(chain, logger);
-      if (!Arrays.equals(chain.signature, LEGACY_ENCRYPTED_BLOCK)) {
-        try {
-          boolean verified =
-            crypto.verifySignature(busPubKey, chain.encoded, chain.signature);
-          if (verified) {
-            LoginInfo loginInfo = conn.login();
-            if (callChain.target.equals(loginInfo.entity)) {
-              LoginInfo caller = callChain.caller;
-              if (caller.id.equals(credential.login)) {
-                isValid = true;
-              }
-            }
-            else {
-              ORB orb = this.getMediator().getORB();
-              logger
-                .finest(String
-                  .format(
-                    "O login não é o mesmo do alvo da cadeia. É necessário refazer a sessão de credencial através de um reset. Operação: %s",
-                    ri.operation()));
-              // credencial não é válida. Resetando a credencial da sessão.
-              doResetCredential(ri, orb, conn, credential.login, pubkey.value);
-              throw new NO_PERMISSION(InvalidCredentialCode.value,
-                CompletionStatus.COMPLETED_NO);
+      try {
+        boolean verified =
+          crypto.verifySignature(busPubKey, chain.encoded, chain.signature);
+        if (verified) {
+          LoginInfo loginInfo = conn.login();
+          if (callChain.target.equals(loginInfo.entity)) {
+            LoginInfo caller = callChain.caller;
+            if (caller.id.equals(credential.login)) {
+              isValid = true;
             }
           }
-        }
-        catch (CryptographyException e) {
-          String message =
-            "Falha inesperada ao verificar assinatura da cadeia.";
-          logger.log(Level.SEVERE, message, e);
-          throw new INTERNAL(message);
+          else {
+            ORB orb = this.getMediator().getORB();
+            logger
+              .finest(String
+                .format(
+                  "O login não é o mesmo do alvo da cadeia. É necessário refazer a sessão de credencial através de um reset. Operação: %s",
+                  ri.operation()));
+            // credencial não é válida. Resetando a credencial da sessão.
+            doResetCredential(ri, orb, conn, credential.login, pubkey.value);
+            throw new NO_PERMISSION(InvalidCredentialCode.value,
+              CompletionStatus.COMPLETED_NO);
+          }
         }
       }
-      else {
-        // cadeia 1.5 é sempre válida
-        logger.finest("Cadeia OpenBus 1.5");
-        /*
-         * Atualizando a informação target da cadeia gerada a partir de
-         * informações 1.5, pois foi necessário aguardar a definição da conexão
-         * que trataria a requisião legada
-         */
-        callChain.target = conn.login().entity;
-        isValid = true;
+      catch (CryptographyException e) {
+        String message = "Falha inesperada ao verificar assinatura da cadeia.";
+        logger.log(Level.SEVERE, message, e);
+        throw new INTERNAL(message);
       }
       if (isValid) {
         try {
           ORB orb = this.getMediator().getORB();
           // salvando a cadeia
           Any singnedAny = orb.create_any();
-          SignedCallChainHelper.insert(singnedAny, chain);
+          SignedDataHelper.insert(singnedAny, chain);
           ri.set_slot(this.getMediator().getSignedChainSlotId(), singnedAny);
         }
         catch (InvalidSlot e) {

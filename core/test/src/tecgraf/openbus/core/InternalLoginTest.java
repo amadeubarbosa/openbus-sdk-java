@@ -12,7 +12,7 @@ import org.omg.CORBA.ORB;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 import tecgraf.openbus.security.Cryptography;
 import tecgraf.openbus.util.Utils;
 

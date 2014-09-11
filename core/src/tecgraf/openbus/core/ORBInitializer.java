@@ -6,11 +6,11 @@ import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 
 import tecgraf.openbus.OpenBusContext;
-import tecgraf.openbus.core.v2_0.services.access_control.InvalidChainCode;
-import tecgraf.openbus.core.v2_0.services.access_control.InvalidRemoteCode;
-import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
-import tecgraf.openbus.core.v2_0.services.access_control.UnknownBusCode;
-import tecgraf.openbus.core.v2_0.services.access_control.UnverifiedLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidChainCode;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidRemoteCode;
+import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
+import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
 
 /**
  * Inicializador de {@link ORB}s para acesso a barramentos OpenBus.

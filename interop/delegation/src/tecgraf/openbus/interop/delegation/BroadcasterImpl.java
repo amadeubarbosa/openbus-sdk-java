@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.List;
 
 import tecgraf.openbus.OpenBusContext;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 import tecgraf.openbus.interop.util.Utils;
 
 public class BroadcasterImpl extends BroadcasterPOA {

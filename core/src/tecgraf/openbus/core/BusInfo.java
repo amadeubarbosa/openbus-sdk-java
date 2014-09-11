@@ -6,12 +6,12 @@ import org.omg.CORBA.OBJECT_NOT_EXIST;
 
 import scs.core.IComponent;
 import scs.core.IComponentHelper;
-import tecgraf.openbus.core.v2_0.services.access_control.AccessControl;
-import tecgraf.openbus.core.v2_0.services.access_control.AccessControlHelper;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginRegistry;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginRegistryHelper;
-import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
-import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistryHelper;
+import tecgraf.openbus.core.v2_1.services.access_control.AccessControl;
+import tecgraf.openbus.core.v2_1.services.access_control.AccessControlHelper;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginRegistryHelper;
+import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
+import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistryHelper;
 import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.exception.OpenBusInternalException;
 import tecgraf.openbus.security.Cryptography;

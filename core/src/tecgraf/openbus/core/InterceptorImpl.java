@@ -3,7 +3,6 @@ package tecgraf.openbus.core;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.MessageDigest;
-import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -15,9 +14,9 @@ import org.omg.IOP.CodecPackage.TypeMismatch;
 import org.omg.PortableInterceptor.Interceptor;
 import org.omg.PortableInterceptor.RequestInfo;
 
-import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
-import tecgraf.openbus.core.v2_0.services.access_control.CallChain;
-import tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper;
+import tecgraf.openbus.core.v2_1.credential.SignedData;
+import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
+import tecgraf.openbus.core.v2_1.services.access_control.CallChainHelper;
 import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.security.Cryptography;
 
@@ -42,13 +41,8 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
   protected static final byte[] NULL_ENCRYPTED_BLOCK =
     new byte[ENCRYPTED_BLOCK_SIZE];
   /** Cadeia nula assinada. */
-  protected static final SignedCallChain NULL_SIGNED_CALL_CHAIN =
-    new SignedCallChain(NULL_ENCRYPTED_BLOCK, new byte[0]);
-  /** Bloco nulo do suporte legado. */
-  protected static final byte[] LEGACY_ENCRYPTED_BLOCK =
-    new byte[ENCRYPTED_BLOCK_SIZE];
-  /** Hash do suporte legado. */
-  protected static final byte[] LEGACY_HASH = new byte[HASH_VALUE_SIZE];
+  protected static final SignedData NULL_SIGNED_CALL_CHAIN = new SignedData(
+    NULL_ENCRYPTED_BLOCK, new byte[0]);
 
   /** Nome */
   private String name;
@@ -64,8 +58,6 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
   protected InterceptorImpl(String name, ORBMediator mediator) {
     this.name = name;
     this.mediator = mediator;
-    Arrays.fill(LEGACY_ENCRYPTED_BLOCK, (byte) 0xff);
-    Arrays.fill(LEGACY_HASH, (byte) 0xff);
   }
 
   /**
@@ -131,13 +123,13 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
   }
 
   /**
-   * Obtém a {@link CallChain} de uma {@link SignedCallChain}
+   * Obtém a {@link CallChain} de uma {@link SignedData}
    * 
    * @param chain a cadeia assinada
    * @param logger instância de logger.
    * @return a cadeia associada.
    */
-  protected CallChain unmarshallSignedChain(SignedCallChain chain, Logger logger) {
+  protected CallChain unmarshallSignedChain(SignedData chain, Logger logger) {
     try {
       Any any =
         this.getMediator().getCodec().decode_value(chain.encoded,

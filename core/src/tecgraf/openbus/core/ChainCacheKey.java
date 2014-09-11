@@ -2,7 +2,7 @@ package tecgraf.openbus.core;
 
 import java.util.Arrays;
 
-import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
+import tecgraf.openbus.core.v2_1.credential.SignedData;
 
 /**
  * Chave da cache de cadeias assinadas.
@@ -21,7 +21,7 @@ class ChainCacheKey {
   /**
    * A cadeia com a qual esta joined
    */
-  private SignedCallChain joinedChain;
+  private SignedData joinedChain;
 
   /**
    * Construtor.
@@ -30,7 +30,7 @@ class ChainCacheKey {
    * @param callee login do alvo da requisição
    * @param joinedChain cadeia que esta joined
    */
-  public ChainCacheKey(String login, String callee, SignedCallChain joinedChain) {
+  public ChainCacheKey(String login, String callee, SignedData joinedChain) {
     this.login = login;
     this.callee = callee;
     this.joinedChain = joinedChain;

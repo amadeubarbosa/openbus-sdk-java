@@ -28,18 +28,18 @@ import tecgraf.openbus.CallDispatchCallback;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
-import tecgraf.openbus.core.v2_0.credential.CredentialContextId;
-import tecgraf.openbus.core.v2_0.credential.ExportedCallChain;
-import tecgraf.openbus.core.v2_0.credential.ExportedCallChainHelper;
-import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
-import tecgraf.openbus.core.v2_0.credential.SignedCallChainHelper;
-import tecgraf.openbus.core.v2_0.services.ServiceFailure;
-import tecgraf.openbus.core.v2_0.services.access_control.CallChain;
-import tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper;
-import tecgraf.openbus.core.v2_0.services.access_control.InvalidLogins;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginRegistry;
-import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
-import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
+import tecgraf.openbus.core.v2_1.credential.CredentialContextId;
+import tecgraf.openbus.core.v2_1.credential.ExportedCallChain;
+import tecgraf.openbus.core.v2_1.credential.ExportedCallChainHelper;
+import tecgraf.openbus.core.v2_1.credential.SignedData;
+import tecgraf.openbus.core.v2_1.credential.SignedDataHelper;
+import tecgraf.openbus.core.v2_1.services.ServiceFailure;
+import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
+import tecgraf.openbus.core.v2_1.services.access_control.CallChainHelper;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidLogins;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry;
+import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.exception.InvalidChainStream;
 import tecgraf.openbus.exception.InvalidPropertyValue;
 import tecgraf.openbus.exception.OpenBusInternalException;
@@ -108,6 +108,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * {@inheritDoc}
    */
   @Override
+  @Deprecated
   public Connection createConnection(String host, int port) {
     ConnectionImpl conn;
     try {
@@ -125,6 +126,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * {@inheritDoc}
    */
   @Override
+  @Deprecated
   public Connection createConnection(String host, int port, Properties props)
     throws InvalidPropertyValue {
     return new ConnectionImpl(host, port, this, orb, props);
@@ -229,7 +231,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     ORBMediator mediator = ORBUtils.getMediator(orb);
     String busId;
     CallChain callChain;
-    SignedCallChain signedChain;
+    SignedData signedChain;
     try {
       Any any = current.get_slot(mediator.getBusSlotId());
       if (any.type().kind().value() == TCKind._tk_null) {
@@ -240,7 +242,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       if (any.type().kind().value() == TCKind._tk_null) {
         return null;
       }
-      signedChain = SignedCallChainHelper.extract(any);
+      signedChain = SignedDataHelper.extract(any);
       Any anyChain =
         mediator.getCodec().decode_value(signedChain.encoded,
           CallChainHelper.type());
@@ -280,9 +282,9 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     try {
       Current current = ORBUtils.getPICurrent(orb);
       ORBMediator mediator = ORBUtils.getMediator(orb);
-      SignedCallChain signedChain = ((CallerChainImpl) chain).signedCallChain();
+      SignedData signedChain = ((CallerChainImpl) chain).signedCallChain();
       Any any = this.orb.create_any();
-      SignedCallChainHelper.insert(any, signedChain);
+      SignedDataHelper.insert(any, signedChain);
       current.set_slot(mediator.getJoinedChainSlotId(), any);
       Any busAny = this.orb.create_any();
       busAny.insert_string(chain.busid());
@@ -337,7 +339,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       if (any.type().kind().value() == TCKind._tk_null) {
         return null;
       }
-      SignedCallChain signedChain = SignedCallChainHelper.extract(any);
+      SignedData signedChain = SignedDataHelper.extract(any);
       Any anyChain =
         mediator.getCodec().decode_value(signedChain.encoded,
           CallChainHelper.type());
@@ -370,7 +372,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     ServiceFailure {
     ConnectionImpl conn = (ConnectionImpl) getCurrentConnection();
     String busid = conn.busid();
-    SignedCallChain signedChain = conn.access().signChainFor(loginId);
+    SignedData signedChain = conn.access().signChainFor(loginId);
     try {
       ORBMediator mediator = ORBUtils.getMediator(orb);
       Any anyChain =

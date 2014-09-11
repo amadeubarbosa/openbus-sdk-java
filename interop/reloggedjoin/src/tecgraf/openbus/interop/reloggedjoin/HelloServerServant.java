@@ -2,7 +2,7 @@ package tecgraf.openbus.interop.reloggedjoin;
 
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.OpenBusContext;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 import tecgraf.openbus.interop.simple.HelloPOA;
 
 /**

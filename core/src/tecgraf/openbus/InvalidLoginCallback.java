@@ -1,6 +1,6 @@
 package tecgraf.openbus;
 
-import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 
 /**
  * Callback de login inválido.

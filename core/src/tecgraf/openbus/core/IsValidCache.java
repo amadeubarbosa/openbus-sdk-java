@@ -3,8 +3,6 @@ package tecgraf.openbus.core;
 import java.util.Collections;
 import java.util.Map;
 
-import tecgraf.openbus.core.v1_05.access_control_service.Credential;
-
 /**
  * Cache de verificação de validade de login.
  * 
@@ -31,29 +29,6 @@ class IsValidCache {
     this.conn = conn;
     this.cache =
       Collections.synchronizedMap(new LRUCache<IsValidKey, Boolean>(cacheSize));
-  }
-
-  /**
-   * Verifica se a credencial 1.5 recebida é válida. A conexão passada como
-   * parâmetro será utilizada para fazer a chamada remota para o barramento,
-   * caso a informação não esteja na cache ou esteja inválida.
-   * 
-   * @param credential a credencial a ser validada
-   * @return indicação se a credencial é válida ou não.
-   */
-  boolean isValid(Credential credential) {
-    IsValidKey key = new IsValidKey(credential.identifier, credential.owner);
-    Boolean valid = this.cache.get(key);
-    if (valid == null) {
-      if (conn.legacy()) {
-        valid = conn.legacyAccess().isValid(credential);
-        this.cache.put(key, valid);
-      }
-      else {
-        valid = false;
-      }
-    }
-    return valid;
   }
 
   /**

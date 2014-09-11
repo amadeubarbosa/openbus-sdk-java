@@ -3,7 +3,7 @@ package tecgraf.openbus.interop.simple;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.PrivateKey;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 
 public class HelloInvalidLoginCallback implements InvalidLoginCallback {
   private String entity;

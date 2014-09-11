@@ -20,10 +20,10 @@ import org.omg.IOP.Encoding;
 import org.omg.IOP.CodecFactoryPackage.UnknownEncoding;
 
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.core.v2_0.services.ServiceFailure;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOffer;
-import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
+import tecgraf.openbus.core.v2_1.services.ServiceFailure;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
+import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 
 /**
  * Classe utilitária para os demos Java.

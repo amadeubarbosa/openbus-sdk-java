@@ -1,6 +1,5 @@
 package tecgraf.openbus.core;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,29 +29,25 @@ import org.omg.PortableInterceptor.RequestInfo;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.core.Session.ClientSideSession;
-import tecgraf.openbus.core.v1_05.access_control_service.Credential;
-import tecgraf.openbus.core.v1_05.access_control_service.CredentialHelper;
-import tecgraf.openbus.core.v2_0.BusLogin;
-import tecgraf.openbus.core.v2_0.credential.CredentialContextId;
-import tecgraf.openbus.core.v2_0.credential.CredentialData;
-import tecgraf.openbus.core.v2_0.credential.CredentialDataHelper;
-import tecgraf.openbus.core.v2_0.credential.CredentialReset;
-import tecgraf.openbus.core.v2_0.credential.CredentialResetHelper;
-import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
-import tecgraf.openbus.core.v2_0.credential.SignedCallChainHelper;
-import tecgraf.openbus.core.v2_0.services.ServiceFailure;
-import tecgraf.openbus.core.v2_0.services.access_control.CallChain;
-import tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper;
-import tecgraf.openbus.core.v2_0.services.access_control.InvalidCredentialCode;
-import tecgraf.openbus.core.v2_0.services.access_control.InvalidLoginCode;
-import tecgraf.openbus.core.v2_0.services.access_control.InvalidLogins;
-import tecgraf.openbus.core.v2_0.services.access_control.InvalidRemoteCode;
-import tecgraf.openbus.core.v2_0.services.access_control.InvalidTargetCode;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginInfoHolder;
-import tecgraf.openbus.core.v2_0.services.access_control.NoCredentialCode;
-import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
-import tecgraf.openbus.core.v2_0.services.access_control.UnavailableBusCode;
+import tecgraf.openbus.core.v2_1.BusLogin;
+import tecgraf.openbus.core.v2_1.credential.CredentialContextId;
+import tecgraf.openbus.core.v2_1.credential.CredentialData;
+import tecgraf.openbus.core.v2_1.credential.CredentialDataHelper;
+import tecgraf.openbus.core.v2_1.credential.CredentialReset;
+import tecgraf.openbus.core.v2_1.credential.CredentialResetHelper;
+import tecgraf.openbus.core.v2_1.credential.SignedData;
+import tecgraf.openbus.core.v2_1.credential.SignedDataHelper;
+import tecgraf.openbus.core.v2_1.services.ServiceFailure;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidCredentialCode;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidLogins;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidRemoteCode;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidTargetCode;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginInfoHolder;
+import tecgraf.openbus.core.v2_1.services.access_control.NoCredentialCode;
+import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.UnavailableBusCode;
 import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.security.Cryptography;
 
@@ -130,13 +125,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         return;
       }
 
-      boolean joinedToLegacy = false;
-      SignedCallChain joinedChain = getSignedChain(ri);
-      if (Arrays.equals(joinedChain.signature, LEGACY_ENCRYPTED_BLOCK)) {
-        // joined com cadeia 1.5;
-        joinedToLegacy = true;
-      }
-
+      SignedData joinedChain = getSignedChain(ri);
       ConnectionImpl conn = (ConnectionImpl) this.getCurrentConnection(ri);
       LoginInfo currLogin = conn.getLogin();
       if (currLogin == null) {
@@ -154,77 +143,22 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       // salvando a conexão e o login utilizado no request.
 
       // montando credencial 2.0
-      if (!joinedToLegacy) {
-        CredentialData credential =
-          this.generateCredentialData(ri, conn, holder);
-        Any anyCredential = orb.create_any();
-        CredentialDataHelper.insert(anyCredential, credential);
-        byte[] encodedCredential;
-        try {
-          encodedCredential = codec.encode_value(anyCredential);
-        }
-        catch (InvalidTypeForEncoding e) {
-          String message = "Falha ao codificar a credencial";
-          logger.log(Level.SEVERE, message, e);
-          throw new INTERNAL(message);
-        }
-        ServiceContext requestServiceContext =
-          new ServiceContext(CredentialContextId.value, encodedCredential);
-        ri.add_request_service_context(requestServiceContext, false);
+      CredentialData credential = this.generateCredentialData(ri, conn, holder);
+      Any anyCredential = orb.create_any();
+      CredentialDataHelper.insert(anyCredential, credential);
+      byte[] encodedCredential;
+      try {
+        encodedCredential = codec.encode_value(anyCredential);
       }
-
-      if (conn.legacy()) {
-        try {
-          // construindo credencial 1.5
-          Credential legacyCredential = new Credential();
-          legacyCredential.identifier = currLogin.id;
-          legacyCredential.owner = currLogin.entity;
-          String delegate = "";
-
-          if (joinedChain != NULL_SIGNED_CALL_CHAIN) {
-            Any anyChain =
-              codec.decode_value(joinedChain.encoded, CallChainHelper.type());
-            CallChain chain = CallChainHelper.extract(anyChain);
-            if (chain.originators != null && chain.originators.length > 0
-              && conn.isLegacyDelegateSetToOriginator()) {
-              delegate = chain.originators[0].entity;
-            }
-            else {
-              delegate = chain.caller.entity;
-            }
-          }
-          legacyCredential.delegate = delegate;
-          Any anyLegacy = orb.create_any();
-          CredentialHelper.insert(anyLegacy, legacyCredential);
-          byte[] encodedLegacy = codec.encode_value(anyLegacy);
-          int legacyContextId = 1234;
-          ServiceContext legacyServiceContext =
-            new ServiceContext(legacyContextId, encodedLegacy);
-          ri.add_request_service_context(legacyServiceContext, false);
-        }
-        catch (TypeMismatch e) {
-          String message = "Falha ao construir a credencial 1.5";
-          logger.log(Level.SEVERE, message, e);
-          throw new INTERNAL(message);
-        }
-        catch (FormatMismatch e) {
-          String message = "Falha ao construir a credencial 1.5";
-          logger.log(Level.SEVERE, message, e);
-          throw new INTERNAL(message);
-        }
-        catch (InvalidTypeForEncoding e) {
-          String message = "Falha ao codificar a credencial 1.5";
-          logger.log(Level.SEVERE, message, e);
-          throw new INTERNAL(message);
-        }
-      }
-
-      if (joinedToLegacy && !conn.legacy()) {
-        String message =
-          "Impossível construir credencial: joined em cadeia 1.5 e sem suporte a legacy";
-        logger.severe(message);
+      catch (InvalidTypeForEncoding e) {
+        String message = "Falha ao codificar a credencial";
+        logger.log(Level.SEVERE, message, e);
         throw new INTERNAL(message);
       }
+      ServiceContext requestServiceContext =
+        new ServiceContext(CredentialContextId.value, encodedCredential);
+      ri.add_request_service_context(requestServiceContext, false);
+
       // salvando informações da conexão e login que foram utilizados no request
       int uniqueId = mediator.getUniqueId();
       Any uniqueAny = orb.create_any();
@@ -273,7 +207,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         byte[] secret = session.getSecret();
         byte[] credentialDataHash =
           this.generateCredentialDataHash(ri, secret, ticket);
-        SignedCallChain chain = getCallChain(ri, conn, holder, target);
+        SignedData chain = getCallChain(ri, conn, holder, target);
         logger.fine(String.format(
           "Realizando chamada via barramento: target (%s) operação (%s)",
           target, operation));
@@ -297,9 +231,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    * @param target o alvo do request
    * @return A cadeia assinada.
    */
-  private SignedCallChain getCallChain(ClientRequestInfo ri,
-    ConnectionImpl conn, LoginInfoHolder holder, String target) {
-    SignedCallChain callChain;
+  private SignedData getCallChain(ClientRequestInfo ri, ConnectionImpl conn,
+    LoginInfoHolder holder, String target) {
+    SignedData callChain;
     if (target.equals(BusLogin.value)) {
       callChain = getSignedChain(ri);
     }
@@ -358,12 +292,12 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    * @param ri informação do request
    * @return A cadeia que esta joined ou uma cadeia nula.
    */
-  private SignedCallChain getSignedChain(ClientRequestInfo ri) {
-    SignedCallChain callChain;
+  private SignedData getSignedChain(ClientRequestInfo ri) {
+    SignedData callChain;
     try {
       Any any = ri.get_slot(this.getMediator().getJoinedChainSlotId());
       if (any.type().kind().value() != TCKind._tk_null) {
-        callChain = SignedCallChainHelper.extract(any);
+        callChain = SignedDataHelper.extract(any);
       }
       else {
         callChain = NULL_SIGNED_CALL_CHAIN;

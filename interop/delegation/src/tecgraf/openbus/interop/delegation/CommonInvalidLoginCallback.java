@@ -5,8 +5,8 @@ import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.PrivateKey;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 
 public class CommonInvalidLoginCallback implements InvalidLoginCallback {
   private String entity;

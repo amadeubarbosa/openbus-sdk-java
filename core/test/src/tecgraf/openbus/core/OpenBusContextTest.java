@@ -32,21 +32,21 @@ import tecgraf.openbus.CallDispatchCallback;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
-import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
-import tecgraf.openbus.core.v2_0.services.ServiceFailure;
-import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
-import tecgraf.openbus.core.v2_0.services.access_control.CallChain;
-import tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper;
-import tecgraf.openbus.core.v2_0.services.access_control.InvalidLogins;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_0.services.access_control.MissingCertificate;
-import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
-import tecgraf.openbus.core.v2_0.services.offer_registry.InvalidProperties;
-import tecgraf.openbus.core.v2_0.services.offer_registry.InvalidService;
-import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOffer;
-import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
-import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.core.v2_0.services.offer_registry.UnauthorizedFacets;
+import tecgraf.openbus.core.v2_1.credential.SignedData;
+import tecgraf.openbus.core.v2_1.services.ServiceFailure;
+import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
+import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
+import tecgraf.openbus.core.v2_1.services.access_control.CallChainHelper;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidLogins;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
+import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidProperties;
+import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidService;
+import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
+import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
+import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
+import tecgraf.openbus.core.v2_1.services.offer_registry.UnauthorizedFacets;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.exception.InvalidChainStream;
 import tecgraf.openbus.exception.NotLoggedIn;
@@ -625,7 +625,7 @@ public final class OpenBusContextTest {
     CallChainHelper.insert(anyCallChain, callChain);
     byte[] encodedCallChain = getCodec(orb).encode_value(anyCallChain);
     return new CallerChainImpl(busid, target, caller, originators,
-      new SignedCallChain(new byte[256], encodedCallChain));
+      new SignedData(new byte[256], encodedCallChain));
   }
 
 }
