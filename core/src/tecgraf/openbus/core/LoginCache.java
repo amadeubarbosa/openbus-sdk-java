@@ -123,7 +123,7 @@ class LoginCache {
     Cryptography crypto = Cryptography.getInstance();
     if (!crypto.verifySignature(conn.getBusPublicKey(), sdata.encoded,
       sdata.signature)) {
-      throw new InvalidPublicKey("Hash signature don't match.");
+      throw new InvalidPublicKey("Hash signature doesn't match.");
     }
     pubkey.value = sdata.encoded;
     synchronized (this.logins) {
