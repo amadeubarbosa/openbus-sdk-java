@@ -678,8 +678,6 @@ final class ConnectionImpl implements Connection {
     Map<Integer, ServerSideSession> srvSessions;
     /** Cache de login */
     LoginCache logins;
-    /** Cache de validade de credencial 1.5 */
-    IsValidCache valids;
 
     /**
      * Construtor.
@@ -701,7 +699,6 @@ final class ConnectionImpl implements Connection {
         Collections.synchronizedMap(new LRUCache<Integer, ServerSideSession>(
           CACHE_SIZE));
       this.logins = new LoginCache(conn, CACHE_SIZE);
-      this.valids = new IsValidCache(conn, CACHE_SIZE);
     }
 
     /**
@@ -713,7 +710,6 @@ final class ConnectionImpl implements Connection {
       this.chains.clear();
       this.srvSessions.clear();
       this.logins.clear();
-      this.valids.clear();
     }
   }
 }

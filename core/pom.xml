@@ -105,10 +105,15 @@
       <groupId>org.jacorb</groupId>
       <artifactId>jacorb</artifactId>
     </dependency>
-    
+
     <dependency>
       <groupId>org.jacorb</groupId>
       <artifactId>jacorb-idl-compiler</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
     </dependency>
 
     <dependency>

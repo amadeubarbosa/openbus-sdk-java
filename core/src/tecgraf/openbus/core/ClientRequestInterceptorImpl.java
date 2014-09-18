@@ -15,7 +15,6 @@ import org.omg.CORBA.ORB;
 import org.omg.CORBA.SystemException;
 import org.omg.CORBA.TCKind;
 import org.omg.CORBA.ORBPackage.InvalidName;
-import org.omg.IOP.Codec;
 import org.omg.IOP.ServiceContext;
 import org.omg.IOP.CodecPackage.FormatMismatch;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
@@ -64,9 +63,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     .getLogger(ClientRequestInterceptorImpl.class.getName());
 
   /** Mapa interno do interceptador que associa a conexão ao requestId */
-  private Map<Integer, ConnectionImpl> requestId2Conn;
+  private Map<Integer, ConnectionImpl> uniqueId2Conn;
   /** Mapa interno do interceptador que associa o loginId ao requestId */
-  private Map<Integer, String> requestId2LoginId;
+  private Map<Integer, String> uniqueId2LoginId;
 
   /**
    * Construtor.
@@ -76,9 +75,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    */
   ClientRequestInterceptorImpl(String name, ORBMediator mediator) {
     super(name, mediator);
-    this.requestId2Conn =
+    this.uniqueId2Conn =
       Collections.synchronizedMap(new HashMap<Integer, ConnectionImpl>());
-    this.requestId2LoginId =
+    this.uniqueId2LoginId =
       Collections.synchronizedMap(new HashMap<Integer, String>());
   }
 
@@ -90,11 +89,10 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    *         <code>false</code> caso contrário.
    */
   private boolean isIgnoringThread(ClientRequestInfo ri) {
-    ORB orb = this.getMediator().getORB();
     OpenBusContextImpl manager;
     try {
       org.omg.CORBA.Object obj =
-        orb.resolve_initial_references("OpenBusContext");
+        orb().resolve_initial_references("OpenBusContext");
       manager = (OpenBusContextImpl) obj;
     }
     catch (InvalidName e) {
@@ -114,18 +112,13 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
   @Override
   public void send_request(ClientRequestInfo ri) {
     String operation = ri.operation();
-    logger.finest(String.format("[in] send_request: %s", operation));
+    if (isIgnoringThread(ri)) {
+      logger.fine(String.format(
+        "Realizando chamada fora do barramento: operação (%s)", operation));
+      return;
+    }
     try {
-      ORBMediator mediator = getMediator();
-      ORB orb = mediator.getORB();
-      Codec codec = mediator.getCodec();
-      if (isIgnoringThread(ri)) {
-        logger.finest(String.format(
-          "Realizando chamada fora do barramento: operação (%s)", operation));
-        return;
-      }
-
-      SignedData joinedChain = getSignedChain(ri);
+      logger.finest(String.format("[in] send_request: %s", operation));
       ConnectionImpl conn = (ConnectionImpl) this.getCurrentConnection(ri);
       LoginInfo currLogin = conn.getLogin();
       if (currLogin == null) {
@@ -140,46 +133,54 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       LoginInfoHolder holder = new LoginInfoHolder();
       holder.value = currLogin;
 
-      // salvando a conexão e o login utilizado no request.
-
-      // montando credencial 2.0
-      CredentialData credential = this.generateCredentialData(ri, conn, holder);
-      Any anyCredential = orb.create_any();
-      CredentialDataHelper.insert(anyCredential, credential);
-      byte[] encodedCredential;
-      try {
-        encodedCredential = codec.encode_value(anyCredential);
-      }
-      catch (InvalidTypeForEncoding e) {
-        String message = "Falha ao codificar a credencial";
-        logger.log(Level.SEVERE, message, e);
-        throw new INTERNAL(message);
-      }
+      CredentialData credential = this.generateCredential(ri, conn, holder);
+      byte[] encodedCredential = this.encodeCredential(credential);
       ServiceContext requestServiceContext =
         new ServiceContext(CredentialContextId.value, encodedCredential);
       ri.add_request_service_context(requestServiceContext, false);
 
       // salvando informações da conexão e login que foram utilizados no request
+      ORBMediator mediator = mediator();
+      ORB orb = orb();
       int uniqueId = mediator.getUniqueId();
       Any uniqueAny = orb.create_any();
       uniqueAny.insert_long(uniqueId);
       try {
         Current current = ORBUtils.getPICurrent(orb);
-        current.set_slot(this.getMediator().getRequestIdSlot(), uniqueAny);
-        requestId2Conn.put(uniqueId, conn);
-        requestId2LoginId.put(uniqueId, currLogin.id);
+        current.set_slot(mediator.getUniqueIdSlot(), uniqueAny);
+        uniqueId2Conn.put(uniqueId, conn);
+        uniqueId2LoginId.put(uniqueId, holder.value.id);
         logger.finest(String.format(
           "associando o ID '%d' com o login '%s'. operação (%s)", uniqueId,
-          currLogin.id, ri.operation()));
+          holder.value.id, operation));
       }
       catch (InvalidSlot e) {
-        String message = "Falha inesperada ao obter o slot de requestId";
+        String message = "Falha inesperada ao obter o slot de uniqueId";
         logger.log(Level.SEVERE, message, e);
         throw new INTERNAL(message);
       }
     }
     finally {
       logger.finest(String.format("[out] send_request: %s", operation));
+    }
+  }
+
+  /**
+   * Codifica uma credencial
+   * 
+   * @param credential a credencial a ser codificada.
+   * @return a credencial codificada.
+   */
+  private byte[] encodeCredential(CredentialData credential) {
+    Any anyCredential = orb().create_any();
+    CredentialDataHelper.insert(anyCredential, credential);
+    try {
+      return codec().encode_value(anyCredential);
+    }
+    catch (InvalidTypeForEncoding e) {
+      String message = "Falha ao codificar a credencial";
+      logger.log(Level.SEVERE, message, e);
+      throw new INTERNAL(message);
     }
   }
 
@@ -192,7 +193,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    * @return A credencial válida para a sessão, ou uma credencial para forçar o
    *         reset da sessão.
    */
-  private CredentialData generateCredentialData(ClientRequestInfo ri,
+  private CredentialData generateCredential(ClientRequestInfo ri,
     ConnectionImpl conn, LoginInfoHolder holder) {
     String operation = ri.operation();
     String busId = conn.busid();
@@ -202,12 +203,12 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       ClientSideSession session = conn.cache.cltSessions.get(target);
       if (session != null) {
         int ticket = session.nextTicket();
-        logger.finest(String.format("utilizando sessão: id = %d ticket = %d",
-          session.getSession(), ticket));
         byte[] secret = session.getSecret();
         byte[] credentialDataHash =
           this.generateCredentialDataHash(ri, secret, ticket);
         SignedData chain = getCallChain(ri, conn, holder, target);
+        logger.finest(String.format("utilizando sessão: id = %d ticket = %d",
+          session.getSession(), ticket));
         logger.fine(String.format(
           "Realizando chamada via barramento: target (%s) operação (%s)",
           target, operation));
@@ -233,57 +234,47 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    */
   private SignedData getCallChain(ClientRequestInfo ri, ConnectionImpl conn,
     LoginInfoHolder holder, String target) {
-    SignedData callChain;
     if (target.equals(BusLogin.value)) {
-      callChain = getSignedChain(ri);
+      return getJoinedChain(ri);
     }
-    else {
-      try {
-        LoginInfo curr = holder.value;
-        // checando se existe na cache
-        ChainCacheKey key =
-          new ChainCacheKey(curr.id, target, getSignedChain(ri));
-        callChain = conn.cache.chains.get(key);
-        if (callChain == null) {
-          do {
-            callChain = conn.access().signChainFor(target);
-            curr = conn.getLogin();
-          } while (!unmarshallSignedChain(callChain, logger).caller.id
-            .equals(curr.id));
-          conn.cache.chains.put(key, callChain);
-        }
-        holder.value = curr;
-        logger.finest(String.format(
-          "definido o login '%s' para realizar a operação (%s)", curr.id, ri
-            .operation()));
+    try {
+      LoginInfo curr = holder.value;
+      // checando se existe na cache
+      ChainCacheKey key =
+        new ChainCacheKey(curr.id, target, getJoinedChain(ri));
+      SignedData callChain = conn.cache.chains.get(key);
+      if (callChain == null) {
+        do {
+          callChain = conn.access().signChainFor(target);
+          curr = conn.getLogin();
+        } while (!decodeSignedChain(callChain, logger).caller.id
+          .equals(curr.id));
+        conn.cache.chains.put(key, callChain);
       }
-      catch (SystemException e) {
-        String message =
-          String
-            .format("Erro durante acesso ao barramento (%s).", conn.busid());
-        logger.log(Level.SEVERE, message, e);
-        throw new NO_PERMISSION(message, UnavailableBusCode.value,
-          CompletionStatus.COMPLETED_NO);
-      }
-      catch (InvalidLogins e) {
-        String message =
-          String.format("Erro ao assinar cadeia para target: (%s)",
-            e.loginIds[0]);
-        logger.log(Level.SEVERE, message, e);
-        throw new NO_PERMISSION(message, InvalidTargetCode.value,
-          CompletionStatus.COMPLETED_NO);
-      }
-      catch (ServiceFailure e) {
-        String message =
-          String
-            .format(
-              "Falha inesperada ao assinar uma cadeia de chamadas para o target (%s)",
-              target);
-        logger.log(Level.SEVERE, message, e);
-        throw new INTERNAL(message);
-      }
+      holder.value = curr;
+      return callChain;
     }
-    return callChain;
+    catch (SystemException e) {
+      String message =
+        String.format("Erro durante acesso ao barramento (%s).", conn.busid());
+      logger.log(Level.SEVERE, message, e);
+      throw new NO_PERMISSION(message, UnavailableBusCode.value,
+        CompletionStatus.COMPLETED_NO);
+    }
+    catch (InvalidLogins e) {
+      String message =
+        String
+          .format("Erro ao assinar cadeia para target: (%s)", e.loginIds[0]);
+      logger.log(Level.SEVERE, message, e);
+      throw new NO_PERMISSION(message, InvalidTargetCode.value,
+        CompletionStatus.COMPLETED_NO);
+    }
+    catch (ServiceFailure e) {
+      String message =
+        String.format("Erro ao assinar cadeia para target: (%s)", target);
+      logger.log(Level.SEVERE, message, e);
+      throw new INTERNAL(message);
+    }
   }
 
   /**
@@ -292,10 +283,10 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    * @param ri informação do request
    * @return A cadeia que esta joined ou uma cadeia nula.
    */
-  private SignedData getSignedChain(ClientRequestInfo ri) {
+  private SignedData getJoinedChain(ClientRequestInfo ri) {
     SignedData callChain;
     try {
-      Any any = ri.get_slot(this.getMediator().getJoinedChainSlotId());
+      Any any = ri.get_slot(mediator().getJoinedChainSlotId());
       if (any.type().kind().value() != TCKind._tk_null) {
         callChain = SignedDataHelper.extract(any);
       }
@@ -328,10 +319,8 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     logger.finest(String.format("[in] receive_reply: %s", operation));
     if (!isIgnoringThread(ri)) {
       int uniqueId = getRequestUniqueId();
-      this.requestId2Conn.remove(uniqueId);
-      String login = this.requestId2LoginId.remove(uniqueId);
-      clearRequestUniqueId();
-      logger.finest(String.format(
+      String login = clearRequestUniqueId(uniqueId);
+      logger.fine(String.format(
         "requisição atendida com sucesso! ID (%d) login (%s) operação (%s)",
         uniqueId, login, ri.operation()));
     }
@@ -360,8 +349,8 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       }
 
       uniqueId = getRequestUniqueId();
-      ConnectionImpl conn = requestId2Conn.get(uniqueId);
-      String loginId = requestId2LoginId.get(uniqueId);
+      ConnectionImpl conn = uniqueId2Conn.get(uniqueId);
+      String loginId = uniqueId2LoginId.get(uniqueId);
       switch (exception.minor) {
 
         case InvalidCredentialCode.value:
@@ -379,7 +368,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
           Any credentialResetAny = null;
           try {
             credentialResetAny =
-              this.getMediator().getCodec().decode_value(context.context_data,
+              codec().decode_value(context.context_data,
                 CredentialResetHelper.type());
           }
           catch (FormatMismatch e) {
@@ -450,9 +439,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     }
     finally {
       if (uniqueId != null) {
-        this.requestId2Conn.remove(uniqueId);
-        String login = this.requestId2LoginId.remove(uniqueId);
-        clearRequestUniqueId();
+        String login = clearRequestUniqueId(uniqueId);
         logger.finest(String.format(
           "Descartando associação do ID '%d' com o login '%s'. operação (%s)",
           uniqueId, login, ri.operation()));
@@ -467,13 +454,11 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    * @return o identificador associado.
    */
   private int getRequestUniqueId() {
-    int uniqueId;
     try {
-      ORB orb = getMediator().getORB();
-      Current current = ORBUtils.getPICurrent(orb);
-      Any uniqueAny = current.get_slot(this.getMediator().getRequestIdSlot());
+      Current current = ORBUtils.getPICurrent(orb());
+      Any uniqueAny = current.get_slot(this.mediator().getUniqueIdSlot());
       if (uniqueAny.type().kind().value() != TCKind._tk_null) {
-        uniqueId = uniqueAny.extract_long();
+        return uniqueAny.extract_long();
       }
       else {
         String message = "Any de chave única de requestId está vazia!";
@@ -486,24 +471,29 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       logger.log(Level.SEVERE, message, e);
       throw new INTERNAL(message);
     }
-    return uniqueId;
   }
 
   /**
-   * Limpa a informação que estava salva no slot de requestId.
+   * Libera os recursos associados ao identificador.
+   * 
+   * @param uniqueId identificador
+   * @return retorna o identificador de login associado ao identificador.
    */
-  private void clearRequestUniqueId() {
+  private String clearRequestUniqueId(int uniqueId) {
+    uniqueId2Conn.remove(uniqueId);
+    String removed = uniqueId2LoginId.remove(uniqueId);
     try {
-      ORB orb = getMediator().getORB();
+      ORB orb = orb();
       Any emptyAny = orb.create_any();
       Current current = ORBUtils.getPICurrent(orb);
-      current.set_slot(this.getMediator().getRequestIdSlot(), emptyAny);
+      current.set_slot(this.mediator().getUniqueIdSlot(), emptyAny);
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao acessar o slot de requestId";
       logger.log(Level.SEVERE, message, e);
       throw new INTERNAL(message);
     }
+    return removed;
   }
 
   /**
@@ -513,7 +503,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    * @return a conexão.
    */
   protected Connection getCurrentConnection(RequestInfo ri) {
-    OpenBusContextImpl context = this.getMediator().getContext();
+    OpenBusContextImpl context = this.mediator().getContext();
     Any any;
     try {
       any = ri.get_slot(context.getCurrentConnectionSlotId());

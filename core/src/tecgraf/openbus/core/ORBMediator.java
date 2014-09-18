@@ -155,7 +155,7 @@ final class ORBMediator extends LocalObject {
    * 
    * @return identificador do slot
    */
-  int getRequestIdSlot() {
+  int getUniqueIdSlot() {
     return this.REQUEST_ID_SLOT_ID;
   }
 

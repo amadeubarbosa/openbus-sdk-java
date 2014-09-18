@@ -9,8 +9,9 @@ import java.util.logging.Logger;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.LocalObject;
-import org.omg.IOP.CodecPackage.FormatMismatch;
-import org.omg.IOP.CodecPackage.TypeMismatch;
+import org.omg.CORBA.ORB;
+import org.omg.CORBA.UserException;
+import org.omg.IOP.Codec;
 import org.omg.PortableInterceptor.Interceptor;
 import org.omg.PortableInterceptor.RequestInfo;
 
@@ -73,8 +74,26 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
    * 
    * @return o mediador.
    */
-  protected final ORBMediator getMediator() {
+  protected final ORBMediator mediator() {
     return this.mediator;
+  }
+
+  /**
+   * Recupera o ORB associado ao interceptador
+   * 
+   * @return o ORB
+   */
+  protected final ORB orb() {
+    return mediator.getORB();
+  }
+
+  /**
+   * Recupera o codec associado ao interceptador
+   * 
+   * @return o codec
+   */
+  protected final Codec codec() {
+    return mediator.getCodec();
   }
 
   /**
@@ -129,20 +148,13 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
    * @param logger instância de logger.
    * @return a cadeia associada.
    */
-  protected CallChain unmarshallSignedChain(SignedData chain, Logger logger) {
+  protected CallChain decodeSignedChain(SignedData chain, Logger logger) {
     try {
-      Any any =
-        this.getMediator().getCodec().decode_value(chain.encoded,
-          CallChainHelper.type());
+      Any any = codec().decode_value(chain.encoded, CallChainHelper.type());
       CallChain callChain = CallChainHelper.extract(any);
       return callChain;
     }
-    catch (FormatMismatch e) {
-      String message = "Falha inesperada ao decodificar a cadeia";
-      logger.log(Level.SEVERE, message, e);
-      throw new INTERNAL(message);
-    }
-    catch (TypeMismatch e) {
+    catch (UserException e) {
       String message = "Falha inesperada ao decodificar a cadeia";
       logger.log(Level.SEVERE, message, e);
       throw new INTERNAL(message);

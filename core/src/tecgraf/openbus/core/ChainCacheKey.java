@@ -1,6 +1,7 @@
 package tecgraf.openbus.core;
 
-import java.util.Arrays;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 import tecgraf.openbus.core.v2_1.credential.SignedData;
 
@@ -41,17 +42,19 @@ class ChainCacheKey {
    */
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof ChainCacheKey) {
-      ChainCacheKey other = (ChainCacheKey) obj;
-      if (this.callee.equals(other.callee)
-        && this.login.equals(other.login)
-        && Arrays.equals(this.joinedChain.encoded, other.joinedChain.encoded)
-        && Arrays.equals(this.joinedChain.signature,
-          other.joinedChain.signature)) {
-        return true;
-      }
+    if (obj == null) {
+      return false;
     }
-    return false;
+    if (obj == this) {
+      return true;
+    }
+    if (obj.getClass() != getClass()) {
+      return false;
+    }
+    ChainCacheKey other = (ChainCacheKey) obj;
+    return new EqualsBuilder().append(callee, other.callee).append(login,
+      other.login).append(joinedChain.encoded, other.joinedChain.encoded)
+      .append(joinedChain.signature, other.joinedChain.signature).isEquals();
   }
 
   /**
@@ -59,20 +62,8 @@ class ChainCacheKey {
    */
   @Override
   public int hashCode() {
-    // um valor qualquer
-    int BASE = 17;
-    // um valor qualquer
-    int SEED = 37;
-    int hash = BASE;
-    if (this.login != null) {
-      hash = hash * SEED + this.login.hashCode();
-    }
-    if (this.callee != null) {
-      hash = hash * SEED + this.login.hashCode();
-    }
-    hash += Arrays.hashCode(this.joinedChain.encoded);
-    hash += Arrays.hashCode(this.joinedChain.signature);
-    return hash;
+    return new HashCodeBuilder().append(callee).append(login).append(
+      joinedChain.encoded).append(joinedChain.signature).toHashCode();
   }
 
 }

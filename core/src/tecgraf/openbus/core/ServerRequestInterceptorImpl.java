@@ -13,7 +13,6 @@ import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.TCKind;
-import org.omg.IOP.Codec;
 import org.omg.IOP.ServiceContext;
 import org.omg.IOP.CodecPackage.FormatMismatch;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
@@ -61,9 +60,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
   private static final Logger logger = Logger
     .getLogger(ServerRequestInterceptorImpl.class.getName());
 
-  /** Valor de busid desconhecido. */
-  private static final String UNKNOWN_BUS = "";
-
   /**
    * Construtor.
    * 
@@ -89,47 +85,38 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * Recupera a credencial do contexto.
    * 
    * @param ri informação do contexto
-   * @return Wrapper para a credencial extraída.
+   * @return a credencial.
    */
   private CredentialData retrieveCredential(ServerRequestInfo ri) {
-    ORB orb = this.getMediator().getORB();
-    Codec codec = this.getMediator().getCodec();
     byte[] encodedCredential = null;
     try {
       ServiceContext requestServiceContext =
         ri.get_request_service_context(CredentialContextId.value);
       encodedCredential = requestServiceContext.context_data;
+      if (encodedCredential != null) {
+        Any any =
+          codec().decode_value(encodedCredential, CredentialDataHelper.type());
+        CredentialData credential = CredentialDataHelper.extract(any);
+        return credential;
+      }
     }
     catch (BAD_PARAM e) {
-      // FIXME: BAD_PARAM caso não exista service context com o id especificado
-      // CORBA ESPEC define com minor code 26.
-      // JacORB define com minor code 23.
       switch (e.minor) {
         case 26:
-        case 23:
           break;
         default:
           throw e;
       }
     }
-    if (encodedCredential != null) {
-      Any any;
-      try {
-        any =
-          codec.decode_value(encodedCredential, CredentialDataHelper.type());
-        CredentialData credential = CredentialDataHelper.extract(any);
-        return credential;
-      }
-      catch (TypeMismatch e) {
-        String message = "Falha inesperada ao decodificar a credencial";
-        logger.log(Level.SEVERE, message, e);
-        throw new INTERNAL(message);
-      }
-      catch (FormatMismatch e) {
-        String message = "Falha inesperada ao decodificar a credencial";
-        logger.log(Level.SEVERE, message, e);
-        throw new INTERNAL(message);
-      }
+    catch (TypeMismatch e) {
+      String message = "Falha inesperada ao decodificar a credencial";
+      logger.log(Level.SEVERE, message, e);
+      throw new INTERNAL(message);
+    }
+    catch (FormatMismatch e) {
+      String message = "Falha inesperada ao decodificar a credencial";
+      logger.log(Level.SEVERE, message, e);
+      throw new INTERNAL(message);
     }
     String message = "Nenhuma credencial suportada encontrada";
     logger.info(message);
@@ -146,123 +133,36 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     logger.finest(String.format("[in] receive_request: %s", operation));
     int requestId = ri.request_id();
     byte[] object_id = ri.object_id();
-    ORB orb = this.getMediator().getORB();
-    OpenBusContextImpl context = this.getMediator().getContext();
+    OpenBusContextImpl context = mediator().getContext();
     CredentialData credential = retrieveCredential(ri);
     try {
-      if (credential != null) {
-        String busId = credential.bus;
-        String loginId = credential.login;
-        ConnectionImpl conn =
-          getConnForDispatch(context, busId, loginId, object_id, operation);
-        logger
-          .finest(String
-            .format(
-              "Conexão para o dispatch: conexão (%s) login (%s) operação (%s) requestId (%s)",
-              conn.connId(), conn.login().id, operation, requestId));
-        context.setCurrentConnection(conn);
-        boolean valid = false;
-        try {
-          valid = conn.cache.logins.validateLogin(loginId);
-        }
-        catch (NO_PERMISSION e) {
-          if (e.minor == NoLoginCode.value) {
-            String message =
-              "Erro ao validar o login. Conexão dispatcher está deslogada. operação (%s) requestId (%d)";
-            logger.log(Level.SEVERE, String.format(message, operation,
-              requestId), e);
-            throw new NO_PERMISSION(UnknownBusCode.value,
-              CompletionStatus.COMPLETED_NO);
-          }
-          else {
-            String message =
-              "Erro ao validar o login. operação (%s) requestId (%d)";
-            logger.log(Level.SEVERE, String.format(message, operation,
-              requestId), e);
-            throw new NO_PERMISSION(UnverifiedLoginCode.value,
-              CompletionStatus.COMPLETED_NO);
-          }
-        }
-        catch (Exception e) {
-          String message = "Erro ao validar o login.";
-          logger.log(Level.SEVERE, message, e);
-          throw new NO_PERMISSION(UnverifiedLoginCode.value,
-            CompletionStatus.COMPLETED_NO);
-        }
-        if (!valid) {
-          throw new NO_PERMISSION(InvalidLoginCode.value,
-            CompletionStatus.COMPLETED_NO);
-        }
-
+      String busId = credential.bus;
+      String loginId = credential.login;
+      ConnectionImpl conn =
+        getConnForDispatch(context, busId, loginId, object_id, operation);
+      context.setCurrentConnection(conn);
+      if (validateLogin(conn, loginId, ri)) {
         OctetSeqHolder pubkey = new OctetSeqHolder();
-        String entity;
-        try {
-          entity = conn.cache.logins.getLoginEntity(loginId, pubkey);
-        }
-        catch (InvalidLogins e) {
-          String message =
-            "Login verificado é inválido. operação (%s) requestId (%d)";
-          logger.log(Level.SEVERE,
-            String.format(message, operation, requestId), e);
-          throw new NO_PERMISSION(InvalidLoginCode.value,
-            CompletionStatus.COMPLETED_NO);
-        }
-        catch (InvalidPublicKey e) {
-          String message =
-            "Chave pública associada ao login é inválida. operação (%s) requestId (%d)";
-          logger.log(Level.SEVERE,
-            String.format(message, operation, requestId), e);
-          throw new NO_PERMISSION(InvalidPublicKeyCode.value,
-            CompletionStatus.COMPLETED_NO);
-        }
-        catch (ServiceFailure e) {
-          String message =
-            "Erro ao verificar o login. operação (%s) requestId (%d)";
-          logger.log(Level.SEVERE,
-            String.format(message, operation, requestId), e);
-          throw new NO_PERMISSION(UnverifiedLoginCode.value,
-            CompletionStatus.COMPLETED_NO);
-        }
-        catch (NO_PERMISSION e) {
-          if (e.minor == NoLoginCode.value) {
-            String message =
-              "Erro ao verificar o login. Conexão dispatcher está deslogada. operação (%s) requestId (%d)";
-            logger.log(Level.SEVERE, String.format(message, operation,
-              requestId), e);
-            throw new NO_PERMISSION(UnknownBusCode.value,
-              CompletionStatus.COMPLETED_NO);
-          }
-          else {
-            String message =
-              "Erro ao verificar o login. operação (%s) requestId (%d)";
-            logger.log(Level.SEVERE, String.format(message, operation,
-              requestId), e);
-            throw new NO_PERMISSION(UnverifiedLoginCode.value,
-              CompletionStatus.COMPLETED_NO);
-          }
-        }
-        catch (Exception e) {
-          String message =
-            "Erro ao verificar o login. operação (%s) requestId (%d)";
-          logger.log(Level.SEVERE,
-            String.format(message, operation, requestId), e);
-          throw new NO_PERMISSION(UnverifiedLoginCode.value,
-            CompletionStatus.COMPLETED_NO);
-        }
+        String entity = getLoginInfo(conn, loginId, pubkey, ri);
         if (validateCredential(credential, ri, conn)) {
           if (validateChain(credential, pubkey, ri, conn)) {
             // salvando informação do barramento que atendeu a requisição
+            ORB orb = mediator().getORB();
             Any any = orb.create_any();
             any.insert_string(conn.busid());
-            ri.set_slot(this.getMediator().getBusSlotId(), any);
+            ri.set_slot(mediator().getBusSlotId(), any);
             String msg =
               "Recebendo chamada pelo barramento: login (%s) entidade (%s) operação (%s) requestId (%d)";
             logger.fine(String.format(msg, loginId, entity, operation,
               requestId));
+            // salva a conexão utilizada no dispatch
+            // CHECK se o bug relatado no finally for verdadeiro, isso pode ser desnecessario
+            setCurrentConnection(ri, conn);
+            return;
           }
           else {
             logger
-              .finest(String
+              .fine(String
                 .format(
                   "Recebeu chamada com cadeia inválida: operação (%s) requestId (%d)",
                   operation, requestId));
@@ -272,23 +172,19 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         }
         else {
           logger
-            .finest(String
+            .fine(String
               .format(
                 "Recebeu chamada sem sessão associda: operação (%s) requestId (%d)",
                 operation, requestId));
           // credencial não é válida. Resetando a credencial da sessão.
-          doResetCredential(ri, orb, conn, loginId, pubkey.value);
+          doResetCredential(ri, conn, loginId, pubkey.value);
           throw new NO_PERMISSION(InvalidCredentialCode.value,
             CompletionStatus.COMPLETED_NO);
         }
-        // salva a conexão utilizada no dispatch
-        // CHECK se o bug relatado no finally for verdadeiro, isso pode ser desnecessario
-        setCurrentConnection(ri, conn);
       }
       else {
-        logger.fine(String.format(
-          "Recebeu chamada fora do barramento: operação (%s) requestId (%d)",
-          operation, requestId));
+        throw new NO_PERMISSION(InvalidLoginCode.value,
+          CompletionStatus.COMPLETED_NO);
       }
     }
     catch (InvalidSlot e) {
@@ -337,7 +233,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         logger.log(Level.SEVERE,
           "Callback 'onCallDispatch' gerou um erro durante execução.", e);
       }
-      // CHECK caso callback gere um erro, busco a conexao default ou NO_PERMISSION?
+      //TODO caso callback gere um erro, busco a conexao default ou NO_PERMISSION?
     }
     if (conn == null) {
       conn = (ConnectionImpl) context.getDefaultConnection();
@@ -346,8 +242,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           CompletionStatus.COMPLETED_NO);
       }
     }
-    if (conn.login() == null
-      || (!conn.busid().equals(busId) && !UNKNOWN_BUS.equals(busId))) {
+    if (conn.login() == null || !conn.busid().equals(busId)) {
       throw new NO_PERMISSION(UnknownBusCode.value,
         CompletionStatus.COMPLETED_NO);
     }
@@ -358,15 +253,13 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * Realiza o protocolo de reiniciar a credencial da sessão.
    * 
    * @param ri informação do request.
-   * @param orb o orb.
    * @param conn a conexão.
    * @param caller identificador do login originador da chamada.
    * @param publicKey a chave pública do requisitante.
    * @throws CryptographyException
    */
-  private void doResetCredential(ServerRequestInfo ri, ORB orb,
-    ConnectionImpl conn, String caller, byte[] publicKey)
-    throws CryptographyException {
+  private void doResetCredential(ServerRequestInfo ri, ConnectionImpl conn,
+    String caller, byte[] publicKey) throws CryptographyException {
     byte[] newSecret = newSecret();
     Cryptography crypto = Cryptography.getInstance();
     byte[] encriptedSecret =
@@ -378,11 +271,11 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     conn.cache.srvSessions.put(newSession.getSession(), newSession);
     CredentialReset reset =
       new CredentialReset(conn.login().id, sessionId, encriptedSecret);
-    Any any = orb.create_any();
+    Any any = orb().create_any();
     CredentialResetHelper.insert(any, reset);
     byte[] encodedCredential;
     try {
-      encodedCredential = this.getMediator().getCodec().encode_value(any);
+      encodedCredential = codec().encode_value(any);
     }
     catch (InvalidTypeForEncoding e) {
       String message =
@@ -393,12 +286,118 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       logger.log(Level.SEVERE, message, e);
       throw new INTERNAL(message);
     }
-    logger.finest(String.format(
+    logger.fine(String.format(
       "Resetando a credencial: operação (%s) requestId (%d)", ri.operation(),
       ri.request_id()));
     ServiceContext requestServiceContext =
       new ServiceContext(CredentialContextId.value, encodedCredential);
     ri.add_reply_service_context(requestServiceContext, false);
+  }
+
+  /**
+   * Verifica a validade do login.
+   * 
+   * @param conn conexão em uso
+   * @param loginId identificador do login
+   * @param ri informações da requisição
+   * @return <code>true</code> caso o login seja válido, ou <code>false</code>
+   *         caso contrário.
+   */
+  private boolean validateLogin(ConnectionImpl conn, String loginId,
+    ServerRequestInfo ri) {
+    try {
+      return conn.cache.logins.validateLogin(loginId);
+    }
+    catch (NO_PERMISSION e) {
+      String operation = ri.operation();
+      int requestId = ri.request_id();
+      if (e.minor == NoLoginCode.value) {
+        String message =
+          "Erro ao validar o login. Conexão dispatcher está deslogada. operação (%s) requestId (%d)";
+        logger.log(Level.SEVERE, String.format(message, operation, requestId),
+          e);
+        throw new NO_PERMISSION(UnknownBusCode.value,
+          CompletionStatus.COMPLETED_NO);
+      }
+      else {
+        String message =
+          "Erro ao validar o login. operação (%s) requestId (%d)";
+        logger.log(Level.SEVERE, String.format(message, operation, requestId),
+          e);
+        throw new NO_PERMISSION(UnverifiedLoginCode.value,
+          CompletionStatus.COMPLETED_NO);
+      }
+    }
+    catch (Exception e) {
+      String message = "Erro ao validar o login.";
+      logger.log(Level.SEVERE, message, e);
+      throw new NO_PERMISSION(UnverifiedLoginCode.value,
+        CompletionStatus.COMPLETED_NO);
+    }
+  }
+
+  /**
+   * Recupera informações do login
+   * 
+   * @param conn conexão em uso
+   * @param loginId identifador do login de interesse
+   * @param pubkey holder da chave pública do login
+   * @param ri informações da requisição
+   * @return o nome da entidade associada ao login
+   */
+  private String getLoginInfo(ConnectionImpl conn, String loginId,
+    OctetSeqHolder pubkey, ServerRequestInfo ri) {
+    String operation = ri.operation();
+    int requestId = ri.request_id();
+    try {
+      return conn.cache.logins.getLoginEntity(loginId, pubkey);
+    }
+    catch (InvalidLogins e) {
+      String message =
+        "Login verificado é inválido. operação (%s) requestId (%d)";
+      logger.log(Level.SEVERE, String.format(message, operation, requestId), e);
+      throw new NO_PERMISSION(InvalidLoginCode.value,
+        CompletionStatus.COMPLETED_NO);
+    }
+    catch (InvalidPublicKey e) {
+      String message =
+        "Chave pública associada ao login é inválida. operação (%s) requestId (%d)";
+      logger.log(Level.SEVERE, String.format(message, operation, requestId), e);
+      throw new NO_PERMISSION(InvalidPublicKeyCode.value,
+        CompletionStatus.COMPLETED_NO);
+    }
+    catch (ServiceFailure e) {
+      String message =
+        "Erro ao verificar o login. operação (%s) requestId (%d)";
+      logger.log(Level.SEVERE, String.format(message, operation, requestId), e);
+      throw new NO_PERMISSION(UnverifiedLoginCode.value,
+        CompletionStatus.COMPLETED_NO);
+    }
+    catch (NO_PERMISSION e) {
+      if (e.minor == NoLoginCode.value) {
+        String message =
+          "Erro ao verificar o login. Conexão dispatcher está deslogada. operação (%s) requestId (%d)";
+        logger.log(Level.SEVERE, String.format(message, operation, requestId),
+          e);
+        throw new NO_PERMISSION(UnknownBusCode.value,
+          CompletionStatus.COMPLETED_NO);
+      }
+      else {
+        String message =
+          "Erro ao verificar o login. operação (%s) requestId (%d)";
+        logger.log(Level.SEVERE, String.format(message, operation, requestId),
+          e);
+        throw new NO_PERMISSION(UnverifiedLoginCode.value,
+          CompletionStatus.COMPLETED_NO);
+      }
+    }
+    catch (Exception e) {
+      String message =
+        "Erro ao verificar o login. operação (%s) requestId (%d)";
+      logger.log(Level.SEVERE, String.format(message, operation, requestId), e);
+      throw new NO_PERMISSION(UnverifiedLoginCode.value,
+        CompletionStatus.COMPLETED_NO);
+    }
   }
 
   /**
@@ -445,10 +444,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     Cryptography crypto = Cryptography.getInstance();
     RSAPublicKey busPubKey = conn.getBusPublicKey();
     SignedData chain = credential.chain;
-    boolean isValid = false;
-
     if (chain != null) {
-      CallChain callChain = unmarshallSignedChain(chain, logger);
+      CallChain callChain = decodeSignedChain(chain, logger);
       try {
         boolean verified =
           crypto.verifySignature(busPubKey, chain.encoded, chain.signature);
@@ -457,18 +454,18 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           if (callChain.target.equals(loginInfo.entity)) {
             LoginInfo caller = callChain.caller;
             if (caller.id.equals(credential.login)) {
-              isValid = true;
+              // salvando a cadeia
+              Any singnedAny = orb().create_any();
+              SignedDataHelper.insert(singnedAny, chain);
+              ri.set_slot(this.mediator().getSignedChainSlotId(), singnedAny);
+              return true;
             }
           }
           else {
-            ORB orb = this.getMediator().getORB();
-            logger
-              .finest(String
-                .format(
-                  "O login não é o mesmo do alvo da cadeia. É necessário refazer a sessão de credencial através de um reset. Operação: %s",
-                  ri.operation()));
+            logger.fine(String.format("Resetando credencial: operação (%s)", ri
+              .operation()));
             // credencial não é válida. Resetando a credencial da sessão.
-            doResetCredential(ri, orb, conn, credential.login, pubkey.value);
+            doResetCredential(ri, conn, credential.login, pubkey.value);
             throw new NO_PERMISSION(InvalidCredentialCode.value,
               CompletionStatus.COMPLETED_NO);
           }
@@ -479,23 +476,14 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         logger.log(Level.SEVERE, message, e);
         throw new INTERNAL(message);
       }
-      if (isValid) {
-        try {
-          ORB orb = this.getMediator().getORB();
-          // salvando a cadeia
-          Any singnedAny = orb.create_any();
-          SignedDataHelper.insert(singnedAny, chain);
-          ri.set_slot(this.getMediator().getSignedChainSlotId(), singnedAny);
-        }
-        catch (InvalidSlot e) {
-          String message =
-            "Falha inesperada ao armazenar o dados no slot de contexto";
-          logger.log(Level.SEVERE, message, e);
-          throw new INTERNAL(message);
-        }
+      catch (InvalidSlot e) {
+        String message =
+          "Falha inesperada ao armazenar o dados no slot de contexto";
+        logger.log(Level.SEVERE, message, e);
+        throw new INTERNAL(message);
       }
     }
-    return isValid;
+    return false;
   }
 
   /**
@@ -510,10 +498,10 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     removeCurrentConnection(ri);
 
     // CHECK verificar se preciso limpar mais algum slot
-    Any any = this.getMediator().getORB().create_any();
+    Any any = orb().create_any();
     try {
-      ri.set_slot(this.getMediator().getSignedChainSlotId(), any);
-      ri.set_slot(this.getMediator().getBusSlotId(), any);
+      ri.set_slot(mediator().getSignedChainSlotId(), any);
+      ri.set_slot(mediator().getBusSlotId(), any);
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao limpar informações nos slots";
@@ -562,11 +550,10 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   private void setCurrentConnection(ServerRequestInfo ri, ConnectionImpl conn) {
     try {
-      ORBMediator mediator = this.getMediator();
-      int id = mediator.getUniqueId();
-      OpenBusContextImpl context = this.getMediator().getContext();
-      Any any = mediator.getORB().create_any();
+      int id = mediator().getUniqueId();
+      Any any = orb().create_any();
       any.insert_long(id);
+      OpenBusContextImpl context = mediator().getContext();
       ri.set_slot(context.getCurrentConnectionSlotId(), any);
       context.setConnectionById(id, conn);
       logger
@@ -589,7 +576,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   private void removeCurrentConnection(ServerRequestInfo ri) {
     try {
-      OpenBusContextImpl context = this.getMediator().getContext();
+      OpenBusContextImpl context = mediator().getContext();
       Any slot = ri.get_slot(context.getCurrentConnectionSlotId());
       if (slot.type().kind().value() != TCKind._tk_null) {
         int id = slot.extract_long();
@@ -609,7 +596,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
        * o orb garante que não modificou a informação no PICurrent da thread que
        * originalmente fez um setCurrentConnection?
        */
-      Any any = this.getMediator().getORB().create_any();
+      Any any = orb().create_any();
       ri.set_slot(context.getCurrentConnectionSlotId(), any);
     }
     catch (InvalidSlot e) {
