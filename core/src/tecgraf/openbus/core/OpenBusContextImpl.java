@@ -28,6 +28,7 @@ import tecgraf.openbus.CallDispatchCallback;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.core.v2_1.BusObjectKey;
 import tecgraf.openbus.core.v2_1.credential.CredentialContextId;
 import tecgraf.openbus.core.v2_1.credential.ExportedCallChain;
 import tecgraf.openbus.core.v2_1.credential.ExportedCallChainHelper;
@@ -108,14 +109,12 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * {@inheritDoc}
    */
   @Override
-  @Deprecated
-  public Connection createConnection(String host, int port) {
-    ConnectionImpl conn;
+  public Connection connectByAddress(String host, int port) {
+    Connection conn;
     try {
-      conn = new ConnectionImpl(host, port, this, orb);
+      conn = connectByAddress(host, port, new Properties());
     }
     catch (InvalidPropertyValue e) {
-      // Nunca deveria acontecer
       throw new OpenBusInternalException(
         "BUG: Este erro nunca deveria ocorrer.", e);
     }
@@ -126,10 +125,70 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * {@inheritDoc}
    */
   @Override
+  public Connection connectByAddress(String host, int port, Properties props)
+    throws InvalidPropertyValue {
+    if ((host == null) || (host.isEmpty()) || (port < 0)) {
+      throw new IllegalArgumentException(
+        "Os parametros host e/ou port não são validos");
+    }
+    try {
+      ignoreCurrentThread();
+      String str =
+        String.format("corbaloc::1.0@%s:%d/%s", host, port, BusObjectKey.value);
+      org.omg.CORBA.Object obj = orb.string_to_object(str);
+      BusInfo info = new BusInfo(obj);
+      return new ConnectionImpl(info, this, orb, props);
+    }
+    finally {
+      unignoreCurrentThread();
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public Connection connectByReference(org.omg.CORBA.Object reference) {
+    Connection conn;
+    try {
+      conn = connectByReference(reference, new Properties());
+    }
+    catch (InvalidPropertyValue e) {
+      throw new OpenBusInternalException(
+        "BUG: Este erro nunca deveria ocorrer.", e);
+    }
+    return conn;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public Connection connectByReference(org.omg.CORBA.Object reference,
+    Properties props) throws InvalidPropertyValue {
+    if (reference == null) {
+      throw new IllegalArgumentException(
+        "Referência inválida para o barramento.");
+    }
+    BusInfo bus = new BusInfo(reference);
+    return new ConnectionImpl(bus, this, orb, props);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  @Deprecated
+  public Connection createConnection(String host, int port) {
+    return connectByAddress(host, port);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   @Deprecated
   public Connection createConnection(String host, int port, Properties props)
     throws InvalidPropertyValue {
-    return new ConnectionImpl(host, port, this, orb, props);
+    return connectByAddress(host, port, props);
   }
 
   /**

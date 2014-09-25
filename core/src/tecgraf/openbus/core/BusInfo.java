@@ -52,10 +52,6 @@ final class BusInfo {
    */
   BusInfo(org.omg.CORBA.Object obj) {
     this.rawObject = obj;
-    if (rawObject == null) {
-      throw new OpenBusInternalException(
-        "Referência inválida para o barramento.");
-    }
   }
 
   /**

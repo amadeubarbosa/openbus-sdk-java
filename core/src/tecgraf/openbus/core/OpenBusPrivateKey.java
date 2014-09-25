@@ -1,11 +1,11 @@
 package tecgraf.openbus.core;
 
 import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
 
 import tecgraf.openbus.PrivateKey;
+import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.security.Cryptography;
 
 /**
@@ -33,14 +33,14 @@ public class OpenBusPrivateKey implements PrivateKey {
    * 
    * @param privateKeyBytes a chave em formato de array de bytes.
    * @return a chave privada no formato reconhecível pela API do OpenBus.
-   * @throws NoSuchAlgorithmException
    * @throws InvalidKeySpecException
+   * @throws CryptographyException
    */
   static public OpenBusPrivateKey createPrivateKeyFromBytes(
-    byte[] privateKeyBytes) throws NoSuchAlgorithmException,
-    InvalidKeySpecException {
+    byte[] privateKeyBytes) throws InvalidKeySpecException,
+    CryptographyException {
     RSAPrivateKey privateKey =
-      Cryptography.getInstance().readKeyFromBytes(privateKeyBytes);
+      Cryptography.getInstance().readPrivateKeyFromBytes(privateKeyBytes);
     return new OpenBusPrivateKey(privateKey);
   }
 
@@ -51,11 +51,11 @@ public class OpenBusPrivateKey implements PrivateKey {
    * @param privateKeyFile o caminho da chave em formato de arquivo
    * @return a chave privada no formato reconhecível pela API do OpenBus.
    * @throws IOException
-   * @throws NoSuchAlgorithmException
+   * @throws CryptographyException
    * @throws InvalidKeySpecException
    */
   static public OpenBusPrivateKey createPrivateKeyFromFile(String privateKeyFile)
-    throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+    throws IOException, CryptographyException, InvalidKeySpecException {
     Cryptography crypto = Cryptography.getInstance();
     byte[] privKeyBytes = crypto.readKeyFromFile(privateKeyFile);
     return createPrivateKeyFromBytes(privKeyBytes);

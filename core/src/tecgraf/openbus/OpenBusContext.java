@@ -88,6 +88,8 @@ public interface OpenBusContext {
   CallDispatchCallback onCallDispatch();
 
   /**
+   * Cria uma conexão para um barramento indicado por um endereço de rede.
+   * <p>
    * Cria uma conexão para um barramento. O barramento é indicado por um nome ou
    * endereço de rede e um número de porta, onde os serviços núcleo daquele
    * barramento estão executando.
@@ -98,6 +100,93 @@ public interface OpenBusContext {
    * 
    * @return Conexão criada.
    */
+  Connection connectByAddress(String host, int port);
+
+  /**
+   * Cria uma conexão para um barramento indicado por um endereço de rede.
+   * <p>
+   * Cria uma conexão para um barramento. O barramento é indicado por um nome ou
+   * endereço de rede e um número de porta, onde os serviços núcleo daquele
+   * barramento estão executando.
+   * 
+   * @param host Endereço ou nome de rede onde os serviços núcleo do barramento
+   *        estão executando.
+   * @param port Porta onde os serviços núcleo do barramento estão executando.
+   * @param props Lista opcional de propriedades que definem algumas
+   *        configurações sobre a forma que as chamadas realizadas ou validadas
+   *        com essa conexão são feitas. A seguir são listadas as propriedades
+   *        válidas:
+   *        <ul>
+   *        <li>access.key: chave de acesso a ser utiliza internamente para a
+   *        geração de credenciais que identificam as chamadas através do
+   *        barramento. A chave deve ser uma chave privada RSA de 2048 bits (256
+   *        bytes). Quando essa propriedade não é fornecida, uma chave de acesso
+   *        é gerada automaticamente.
+   *        </ul>
+   * 
+   * @return Conexão criada.
+   * 
+   * @throws InvalidPropertyValue O valor de uma propriedade não é válido.
+   */
+  Connection connectByAddress(String host, int port, Properties props)
+    throws InvalidPropertyValue;
+
+  /**
+   * Cria uma conexão para um barramento indicado por um endereço de rede.
+   * <p>
+   * Cria uma conexão para um barramento. O barramento é indicado por um nome ou
+   * endereço de rede e um número de porta, onde os serviços núcleo daquele
+   * barramento estão executando.
+   * 
+   * @param reference Referência CORBA a um componente SCS que representa os
+   *        serviços núcleo do barramento.
+   * 
+   * @return Conexão criada.
+   */
+  Connection connectByReference(org.omg.CORBA.Object reference);
+
+  /**
+   * Cria uma conexão para um barramento indicado por um endereço de rede.
+   * <p>
+   * Cria uma conexão para um barramento. O barramento é indicado por uma
+   * referência CORBA a um componente SCS que representa os serviços núcleo do
+   * barramento. Essa função deve ser utilizada ao invés da
+   * {@link OpenBusContext#connectByAddress} para permitir o uso de SSL nas
+   * comunicações com o núcleo do barramento.
+   * 
+   * @param reference Referência CORBA a um componente SCS que representa os
+   *        serviços núcleo do barramento.
+   * @param props Lista opcional de propriedades que definem algumas
+   *        configurações sobre a forma que as chamadas realizadas ou validadas
+   *        com essa conexão são feitas. A seguir são listadas as propriedades
+   *        válidas:
+   *        <ul>
+   *        <li>access.key: chave de acesso a ser utiliza internamente para a
+   *        geração de credenciais que identificam as chamadas através do
+   *        barramento. A chave deve ser uma chave privada RSA de 2048 bits (256
+   *        bytes). Quando essa propriedade não é fornecida, uma chave de acesso
+   *        é gerada automaticamente.
+   *        </ul>
+   * 
+   * @return Conexão criada.
+   * 
+   * @throws InvalidPropertyValue O valor de uma propriedade não é válido.
+   */
+  Connection connectByReference(org.omg.CORBA.Object reference, Properties props)
+    throws InvalidPropertyValue;
+
+  /**
+   * Cria uma conexão para um barramento. O barramento é indicado por um nome ou
+   * endereço de rede e um número de porta, onde os serviços núcleo daquele
+   * barramento estão executando.
+   * 
+   * @param host Endereço ou nome de rede onde os serviços núcleo do barramento
+   *        estão executando.
+   * @param port Porta onde os serviços núcleo do barramento estão executando.
+   * 
+   * @return Conexão criada.
+   */
+  @Deprecated
   Connection createConnection(String host, int port);
 
   /**
@@ -118,25 +207,13 @@ public interface OpenBusContext {
    *        barramento. A chave deve ser uma chave privada RSA de 2048 bits (256
    *        bytes). Quando essa propriedade não é fornecida, uma chave de acesso
    *        é gerada automaticamente.
-   *        <li>legacy.disable: desabilita o suporte a chamadas usando protocolo
-   *        OpenBus 1.5. Por padrão o suporte está habilitado. Valores esperados
-   *        são <code>true</code> ou <code>false</code>.
-   *        <li>legacy.delegate: indica como é preenchido o campo 'delegate' das
-   *        credenciais enviadas em chamadas usando protocolo OpenBus 1.5. Há
-   *        duas formas possíveis (o padrão é 'caller'):
-   *        <ul>
-   *        <li>caller: o campo 'delegate' é preenchido sempre com a entidade do
-   *        campo 'caller' da cadeia de chamadas.
-   *        <li>originator: o campo 'delegate' é preenchido sempre com a
-   *        entidade que originou a cadeia de chamadas, que é o primeiro login
-   *        do campo 'originators' ou o campo 'caller' quando este é vazio.
-   *        </ul>
    *        </ul>
    * 
    * @return Conexão criada.
    * 
    * @throws InvalidPropertyValue O valor de uma propriedade não é válido.
    */
+  @Deprecated
   Connection createConnection(String host, int port, Properties props)
     throws InvalidPropertyValue;
 

@@ -14,17 +14,15 @@ import tecgraf.openbus.exception.InvalidPropertyValue;
 enum OpenBusProperty {
 
   /**
-   * Chave da propriedade que define se o suporte legado deve ser habilitado ou
-   * não. Os valores possíveis são: <code>true</code> e <code>false</code>, onde
-   * o padrão é <code>true</code>
+   * Chave da propriedade que define arquivo da chave privada a ser utilizada
+   * pela conexão.
    */
-  LEGACY_DISABLE("legacy.disable", "false"),
+  ACCESS_KEY("access.key", null),
   /**
-   * Chave da propriedade que define como o campo delegate do suporte legado
-   * deve ser construído a partir de uma credencial 2.0. Os valores possíveis
-   * são: "originator" e "caller", onde o padrão é "caller".
+   * Chave da propriedade que define tamanho de cada cache utilizada pela
+   * conexão.
    */
-  LEGACY_DELEGATE("legacy.delegate", "caller");
+  CACHE_SIZE("cache.size", "30");
 
   /** Nome da propriedade */
   private final String key;
@@ -43,6 +41,15 @@ enum OpenBusProperty {
   }
 
   /**
+   * Recupera o nome da chave associado a esta propriedade.
+   * 
+   * @return o nome da chave.
+   */
+  public String getKey() {
+    return key;
+  }
+
+  /**
    * Recupera a propriedade na lista de propriedades passada. Caso a mesma não
    * esteja especificada na lista, retorna-se o seu valor padrão.
    * 
@@ -51,24 +58,15 @@ enum OpenBusProperty {
    * @throws InvalidPropertyValue
    */
   String getProperty(Properties props) throws InvalidPropertyValue {
-    String value = props.getProperty(this.key, this.defaultValue);
-    value = value.toLowerCase();
     switch (this) {
-      case LEGACY_DISABLE:
-        if (value.equals("true") || value.equals("false")) {
-          return value;
-        }
-        break;
+      case ACCESS_KEY:
+        return props.getProperty(this.key);
 
-      case LEGACY_DELEGATE:
-        if (value.equals("caller") || value.equals("originator")) {
-          return value;
-        }
-        break;
+      case CACHE_SIZE:
+        return props.getProperty(this.key, this.defaultValue);
 
       default:
         return null;
     }
-    throw new InvalidPropertyValue(this.key, value);
   }
 }

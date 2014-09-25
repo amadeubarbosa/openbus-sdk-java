@@ -1,8 +1,10 @@
 package tecgraf.openbus.core;
 
+import java.io.IOException;
 import java.security.KeyPair;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
@@ -26,7 +28,6 @@ import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.PrivateKey;
 import tecgraf.openbus.core.Session.ClientSideSession;
 import tecgraf.openbus.core.Session.ServerSideSession;
-import tecgraf.openbus.core.v2_1.BusObjectKey;
 import tecgraf.openbus.core.v2_1.EncryptedBlockHolder;
 import tecgraf.openbus.core.v2_1.OctetSeqHolder;
 import tecgraf.openbus.core.v2_1.credential.SignedData;
@@ -55,6 +56,7 @@ import tecgraf.openbus.security.Cryptography;
  * @author Tecgraf
  */
 final class ConnectionImpl implements Connection {
+
   /** Identificador da conexão */
   private final String connId = UUID.randomUUID().toString();
   /** Instância do logger */
@@ -94,59 +96,82 @@ final class ConnectionImpl implements Connection {
   /**
    * Construtor.
    * 
-   * @param host Endereço de rede IP onde o barramento está executando.
-   * @param port Porta do processo do barramento no endereço indicado.
+   * @param bus referêcia para o barramento
    * @param manager Implementação do multiplexador de conexão.
    * @param orb ORB que essa conexão ira utilizar;
    * @throws InvalidPropertyValue Existe uma propriedade com um valor inválido.
    */
-  public ConnectionImpl(String host, int port, OpenBusContextImpl manager,
-    ORB orb) throws InvalidPropertyValue {
-    this(host, port, manager, orb, new Properties());
+  public ConnectionImpl(BusInfo bus, OpenBusContextImpl manager, ORB orb)
+    throws InvalidPropertyValue {
+    this(bus, manager, orb, new Properties());
   }
 
   /**
    * Construtor.
    * 
-   * @param host Endereço de rede IP onde o barramento está executando.
-   * @param port Porta do processo do barramento no endereço indicado.
+   * @param bus referêcia para o barramento
    * @param context Implementação do multiplexador de conexão.
    * @param orb ORB que essa conexão ira utilizar;
    * @param props Propriedades da conexão.
    * @throws InvalidPropertyValue Existe uma propriedade com um valor inválido.
    */
-  public ConnectionImpl(String host, int port, OpenBusContextImpl context,
-    ORB orb, Properties props) throws InvalidPropertyValue {
-    if ((host == null) || (host.isEmpty()) || (port < 0)) {
-      throw new IllegalArgumentException(
-        "Os parametros host e/ou port não são validos");
-    }
-
+  public ConnectionImpl(BusInfo bus, OpenBusContextImpl context, ORB orb,
+    Properties props) throws InvalidPropertyValue {
     this.orb = orb;
     this.context = context;
-    this.cache = new Caches(this);
-    this.bus = null;
+    this.bus = bus;
     if (props == null) {
       props = new Properties();
     }
+    // verificando por valor de tamanho de cache 
+    String ssize = OpenBusProperty.CACHE_SIZE.getProperty(props);
     try {
-      this.context.ignoreCurrentThread();
-      buildCorbaLoc(host, port);
+      int size = Integer.parseInt(ssize);
+      if (size <= 0) {
+        throw new InvalidPropertyValue(OpenBusProperty.CACHE_SIZE.getKey(),
+          ssize);
+      }
+      this.cache = new Caches(this, size);
     }
-    finally {
-      this.context.unignoreCurrentThread();
+    catch (NumberFormatException e) {
+      throw new InvalidPropertyValue(OpenBusProperty.CACHE_SIZE.getKey(),
+        ssize, e);
     }
 
-    try {
-      this.crypto = Cryptography.getInstance();
-      KeyPair keyPair = crypto.generateRSAKeyPair();
-      this.publicKey = (RSAPublicKey) keyPair.getPublic();
-      this.privateKey = (RSAPrivateKey) keyPair.getPrivate();
+    // verificando por definicao de chaves em propriedades
+    String path = OpenBusProperty.ACCESS_KEY.getProperty(props);
+    KeyPair keyPair;
+    if (path != null) {
+      try {
+        this.crypto = Cryptography.getInstance();
+        keyPair = crypto.readKeyPairFromBytes(crypto.readKeyFromFile(path));
+      }
+      catch (InvalidKeySpecException e) {
+        throw new InvalidPropertyValue(OpenBusProperty.ACCESS_KEY.getKey(),
+          path, e);
+      }
+      catch (IOException e) {
+        throw new InvalidPropertyValue(OpenBusProperty.ACCESS_KEY.getKey(),
+          path, e);
+      }
+      catch (CryptographyException e) {
+        throw new OpenBusInternalException(
+          "Erro inexperado ao carregar chave privada.", e);
+      }
     }
-    catch (CryptographyException e) {
-      throw new OpenBusInternalException(
-        "Erro inexperado na geração do par de chaves.", e);
+    else {
+      // cria par de chaves
+      try {
+        this.crypto = Cryptography.getInstance();
+        keyPair = crypto.generateRSAKeyPair();
+      }
+      catch (CryptographyException e) {
+        throw new OpenBusInternalException(
+          "Erro inexperado na geração do par de chaves.", e);
+      }
     }
+    this.publicKey = (RSAPublicKey) keyPair.getPublic();
+    this.privateKey = (RSAPrivateKey) keyPair.getPrivate();
     this.internalLogin = new InternalLogin(this);
   }
 
@@ -195,19 +220,6 @@ final class ConnectionImpl implements Connection {
     if (login != null) {
       throw new AlreadyLoggedIn();
     }
-  }
-
-  /**
-   * Constrói o corbaloc para acessar o barramento.
-   * 
-   * @param host Endereço de rede IP onde o barramento está executando.
-   * @param port Porta do processo do barramento no endereço indicado.
-   */
-  private void buildCorbaLoc(String host, int port) {
-    String str =
-      String.format("corbaloc::1.0@%s:%d/%s", host, port, BusObjectKey.value);
-    org.omg.CORBA.Object obj = orb.string_to_object(str);
-    this.bus = new BusInfo(obj);
   }
 
   /**
@@ -665,7 +677,7 @@ final class ConnectionImpl implements Connection {
    */
   class Caches {
     /** Tamanho das caches dos interceptadores */
-    final int CACHE_SIZE = 30;
+    final int CACHE_SIZE;
     /* Caches Cliente da conexão */
     /** Mapa de profile do interceptador para o cliente alvo da chamanha */
     Map<EffectiveProfile, String> entities;
@@ -685,7 +697,8 @@ final class ConnectionImpl implements Connection {
      * @param conn a referência para a conexão ao qual os caches estão
      *        referenciados.
      */
-    public Caches(ConnectionImpl conn) {
+    public Caches(ConnectionImpl conn, int size) {
+      this.CACHE_SIZE = size;
       this.entities =
         Collections.synchronizedMap(new LRUCache<EffectiveProfile, String>(
           CACHE_SIZE));

@@ -45,7 +45,7 @@ public class MassiveConnectionTest {
   @Test
   public void massiveTest() throws Exception {
     String entity = "dispatcher";
-    final Connection conn = context.createConnection(host, port);
+    final Connection conn = context.connectByAddress(host, port);
     conn.loginByPassword(entity, entity.getBytes());
     context.onCallDispatch(new CallDispatchCallback() {
       @Override
@@ -89,7 +89,7 @@ public class MassiveConnectionTest {
     @Override
     public void run() {
       try {
-        final Connection conn = context.createConnection(host, port);
+        final Connection conn = context.connectByAddress(host, port);
         conn.loginByPassword(entity, entity.getBytes());
         context.setCurrentConnection(conn);
         ComponentContext component = Utils.buildComponent(orb);

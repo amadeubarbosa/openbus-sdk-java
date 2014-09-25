@@ -14,6 +14,28 @@ Certificate {
   certificate = "TestEntity.crt",
 }
 
+Entity {
+  id = "test_entity_registration_first",
+  category = "sdk_java_2_test",
+  name = "Servidor da aplicação de teste do SDK Java",
+}
+
+Certificate {
+  id = "test_entity_registration_first",
+  certificate = "TestEntity.crt",
+}
+
+Entity {
+  id = "test_entity_registration_second",
+  category = "sdk_java_2_test",
+  name = "Servidor da aplicação de teste do SDK Java",
+}
+
+Certificate {
+  id = "test_entity_registration_second",
+  certificate = "TestEntity.crt",
+}
+
 Interface {
   id = "IDL:tecgraf/openbus/demo/hello/Hello:1.0"
 }
@@ -26,6 +48,20 @@ Grant {
   id = "TestEntity",
   interfaces = {
     "IDL:tecgraf/openbus/demo/hello/Hello:1.0",
+    "IDL:test/CallerChainInspector:1.0",
+  }
+}
+
+Grant {
+  id = "test_entity_registration_first",
+  interfaces = {
+    "IDL:test/CallerChainInspector:1.0",
+  }
+}
+
+Grant {
+  id = "test_entity_registration_second",
+  interfaces = {
     "IDL:test/CallerChainInspector:1.0",
   }
 }

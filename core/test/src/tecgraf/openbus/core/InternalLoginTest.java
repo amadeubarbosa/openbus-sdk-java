@@ -46,7 +46,7 @@ public class InternalLoginTest {
 
   @Test
   public void statusTest() {
-    Connection conn = manager.createConnection(host, port);
+    Connection conn = manager.connectByAddress(host, port);
     InternalLogin internal = new InternalLogin((ConnectionImpl) conn);
     assertNull(internal.login());
     LoginInfo login = new LoginInfo("id1", "entity1");
@@ -69,7 +69,7 @@ public class InternalLoginTest {
 
   @Test
   public void loginChangeTest() {
-    Connection conn = manager.createConnection(host, port);
+    Connection conn = manager.connectByAddress(host, port);
     InternalLogin internal = new InternalLogin((ConnectionImpl) conn);
     LoginInfo login1 = new LoginInfo("id1", "entity1");
     internal.setLoggedIn(login1);

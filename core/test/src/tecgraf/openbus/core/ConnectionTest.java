@@ -9,12 +9,14 @@ import static org.junit.Assert.fail;
 
 import java.util.Properties;
 
+import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.TRANSIENT;
 
+import scs.core.ComponentContext;
 import tecgraf.openbus.CallDispatchCallback;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
@@ -27,8 +29,10 @@ import tecgraf.openbus.core.v2_1.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
+import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
+import tecgraf.openbus.exception.InvalidPropertyValue;
 import tecgraf.openbus.security.Cryptography;
 import tecgraf.openbus.util.Utils;
 
@@ -64,16 +68,24 @@ public final class ConnectionTest {
     context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
   }
 
+  @After
+  public void afterEachTest() {
+    context.setCurrentConnection(null);
+    context.setDefaultConnection(null);
+    context.onCallDispatch(null);
+    context.exitChain();
+  }
+
   @Test
   public void orbTest() throws Exception {
-    Connection conn = context.createConnection(host, port);
+    Connection conn = context.connectByAddress(host, port);
     assertNotNull(conn.orb());
     assertEquals(orb, context.orb());
   }
 
   @Test
-  public void offerRegistryTest() {
-    Connection conn = context.createConnection(host, port);
+  public void offerRegistryNoLoginTest() {
+    Connection conn = context.connectByAddress(host, port);
     try {
       OfferRegistry registryService = context.getOfferRegistry();
       ServiceProperty[] props =
@@ -90,7 +102,7 @@ public final class ConnectionTest {
 
   @Test
   public void busIdTest() throws Exception {
-    Connection conn = context.createConnection(host, port);
+    Connection conn = context.connectByAddress(host, port);
     assertNull(conn.busid());
     conn.loginByPassword(entity, entity.getBytes());
     assertNotNull(conn.busid());
@@ -102,7 +114,7 @@ public final class ConnectionTest {
 
   @Test
   public void loginTest() throws Exception {
-    Connection conn = context.createConnection(host, port);
+    Connection conn = context.connectByAddress(host, port);
     assertNull(conn.login());
     conn.loginByPassword(entity, entity.getBytes());
     assertNotNull(conn.login());
@@ -111,8 +123,28 @@ public final class ConnectionTest {
   }
 
   @Test
+  public void accessKeyPropTest() throws Exception {
+    Properties properties = new Properties();
+    properties.put(OpenBusProperty.ACCESS_KEY.getKey(), privateKeyFile);
+    Connection conn = context.connectByAddress(host, port, properties);
+    assertNull(conn.login());
+    conn.loginByPassword(entity, entity.getBytes());
+    assertNotNull(conn.login());
+    conn.logout();
+    assertNull(conn.login());
+  }
+
+  @Test(expected = InvalidPropertyValue.class)
+  public void invalidAccessKeyPropTest() throws Exception {
+    Properties properties = new Properties();
+    properties.put(OpenBusProperty.ACCESS_KEY.getKey(),
+      "/invalid/path/to/access.key");
+    Connection conn = context.connectByAddress(host, port, properties);
+  }
+
+  @Test
   public void invalidHostPortLoginTest() throws Exception {
-    Connection conn = context.createConnection("unknown-host", port);
+    Connection conn = context.connectByAddress("unknown-host", port);
     assertNull(conn.login());
     try {
       conn.loginByPassword(entity, entity.getBytes());
@@ -125,7 +157,7 @@ public final class ConnectionTest {
     }
     assertNull(conn.login());
     // chutando uma porta inválida
-    conn = context.createConnection(host, port + 111);
+    conn = context.connectByAddress(host, port + 111);
     assertNull(conn.login());
     try {
       conn.loginByPassword(entity, entity.getBytes());
@@ -141,7 +173,7 @@ public final class ConnectionTest {
 
   @Test
   public void loginByPasswordTest() throws Exception {
-    Connection conn = context.createConnection(host, port);
+    Connection conn = context.connectByAddress(host, port);
 
     // entidade errada
     boolean failed = false;
@@ -196,7 +228,7 @@ public final class ConnectionTest {
 
   @Test
   public void loginByCertificateTest() throws Exception {
-    Connection conn = context.createConnection(host, port);
+    Connection conn = context.connectByAddress(host, port);
     // entidade sem certificado cadastrado
     boolean failed = false;
     try {
@@ -219,7 +251,6 @@ public final class ConnectionTest {
       conn.loginByCertificate(serverEntity, key);
     }
     catch (Exception e) {
-      // TODO verificar a exceção específica?
       failed = true;
     }
     assertTrue("O login de entidade com chave corrompida foi bem-sucedido.",
@@ -268,8 +299,8 @@ public final class ConnectionTest {
 
   @Test
   public void loginBySharedAuthenticationTest() throws Exception {
-    Connection conn = context.createConnection(host, port);
-    Connection conn2 = context.createConnection(host, port);
+    Connection conn = context.connectByAddress(host, port);
+    Connection conn2 = context.connectByAddress(host, port);
     conn.loginByPassword(entity, password.getBytes());
 
     // segredo errado
@@ -330,7 +361,7 @@ public final class ConnectionTest {
 
   @Test
   public void logoutTest() throws Exception {
-    final Connection conn = context.createConnection(host, port);
+    final Connection conn = context.connectByAddress(host, port);
     assertFalse(conn.logout());
     conn.loginByPassword(entity, password.getBytes());
     final String busId = conn.busid();
@@ -368,11 +399,55 @@ public final class ConnectionTest {
 
   @Test
   public void onInvalidLoginCallbackTest() throws Exception {
-    Connection conn = context.createConnection(host, port);
+    Connection conn = context.connectByAddress(host, port);
     assertNull(conn.onInvalidLoginCallback());
     InvalidLoginCallback callback = new InvalidLoginCallbackMock();
     conn.onInvalidLoginCallback(callback);
     assertEquals(callback, conn.onInvalidLoginCallback());
   }
 
+  @Test
+  public void registerAndFindTest() throws Exception {
+    Connection conn1 = context.connectByAddress(host, port);
+    Connection conn2 = context.connectByAddress(host, port);
+    try {
+      String sys1 = "test_entity_registration_first";
+      String sys2 = "test_entity_registration_second";
+      conn1.loginByCertificate(sys1, privateKey);
+      assertNotNull(conn1.login());
+      conn2.loginByCertificate(sys2, privateKey);
+      assertNotNull(conn2.login());
+      ServiceProperty[] props =
+        new ServiceProperty[] { new ServiceProperty("offer.domain", "testing") };
+      ComponentContext comp1 =
+        Utils.buildTestCallerChainInspectorComponent(context);
+
+      // conn1
+      context.setDefaultConnection(conn1);
+      context.getOfferRegistry().registerService(comp1.getIComponent(), props);
+      // conn2
+      context.setCurrentConnection(conn2);
+      context.getOfferRegistry().registerService(comp1.getIComponent(), props);
+      context.setCurrentConnection(null);
+
+      props =
+        new ServiceProperty[] { new ServiceProperty("offer.domain", "testing"),
+            new ServiceProperty("openbus.offer.entity", sys1) };
+      ServiceOfferDesc[] services =
+        context.getOfferRegistry().findServices(props);
+      assertEquals(1, services.length);
+      // invert property list order
+      props =
+        new ServiceProperty[] {
+            new ServiceProperty("openbus.offer.entity", sys1),
+            new ServiceProperty("offer.domain", "testing") };
+      services = context.getOfferRegistry().findServices(props);
+      assertEquals(1, services.length);
+    }
+    finally {
+      context.setDefaultConnection(null);
+      conn1.logout();
+      conn2.logout();
+    }
+  }
 }

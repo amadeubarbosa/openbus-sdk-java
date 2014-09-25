@@ -333,11 +333,6 @@ public final class MultiplexingClient {
       if (pend == 0) {
         try {
           context.getDefaultConnection().logout();
-          // TODO: investigar o BUG
-          // ao realizar o shuthwond o jacorb parece estar limpando os slots,
-          // gerando uma exceção minha de INTERNAL_EXCEPTION
-          // ORB orb = context.orb();
-          // orb.shutdown(false);
         }
         // bus core
         catch (ServiceFailure e) {

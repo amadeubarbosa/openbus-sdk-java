@@ -14,11 +14,13 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
 import javax.crypto.Cipher;
@@ -212,14 +214,22 @@ public final class Cryptography {
    * @throws IOException
    */
   public byte[] readKeyFromFile(String privateKeyFileName) throws IOException {
-    FileInputStream fis = new FileInputStream(privateKeyFileName);
-    FileChannel channel = fis.getChannel();
-    ByteBuffer buffer = ByteBuffer.allocate((int) channel.size());
-    int size = channel.read(buffer);
-    if (size != (int) channel.size()) {
-      throw new IOException("Não foi possível ler todo o arquivo.");
+    FileInputStream fis = null;
+    try {
+      fis = new FileInputStream(privateKeyFileName);
+      FileChannel channel = fis.getChannel();
+      ByteBuffer buffer = ByteBuffer.allocate((int) channel.size());
+      int size = channel.read(buffer);
+      if (size != (int) channel.size()) {
+        throw new IOException("Não foi possível ler todo o arquivo.");
+      }
+      return buffer.array();
     }
-    return buffer.array();
+    finally {
+      if (fis != null) {
+        fis.close();
+      }
+    }
   }
 
   /**
@@ -227,15 +237,48 @@ public final class Cryptography {
    * 
    * @param privateKeyBytes bytes da chave privada
    * @return A chave privada RSA.
-   * @throws NoSuchAlgorithmException
    * @throws InvalidKeySpecException
+   * @throws CryptographyException
    */
-  public RSAPrivateKey readKeyFromBytes(byte[] privateKeyBytes)
-    throws NoSuchAlgorithmException, InvalidKeySpecException {
+  public RSAPrivateKey readPrivateKeyFromBytes(byte[] privateKeyBytes)
+    throws InvalidKeySpecException, CryptographyException {
     PKCS8EncodedKeySpec encodedKey = new PKCS8EncodedKeySpec(privateKeyBytes);
-    KeyFactory kf = KeyFactory.getInstance(KEY_FACTORY);
-    synchronized (kf) {
-      return (RSAPrivateKey) kf.generatePrivate(encodedKey);
+    try {
+      KeyFactory kf = KeyFactory.getInstance(KEY_FACTORY);
+      synchronized (kf) {
+        RSAPrivateKey privKey = (RSAPrivateKey) kf.generatePrivate(encodedKey);
+        return privKey;
+      }
+    }
+    catch (NoSuchAlgorithmException e) {
+      throw new CryptographyException(e);
+    }
+  }
+
+  /**
+   * Recupera a chave privada a partir de um array de bytes.
+   * 
+   * @param privateKeyBytes bytes da chave privada
+   * @return A chave privada RSA.
+   * @throws InvalidKeySpecException
+   * @throws CryptographyException
+   */
+  public KeyPair readKeyPairFromBytes(byte[] privateKeyBytes)
+    throws InvalidKeySpecException, CryptographyException {
+    RSAPrivateCrtKey privKey =
+      (RSAPrivateCrtKey) readPrivateKeyFromBytes(privateKeyBytes);
+    try {
+      KeyFactory kf = KeyFactory.getInstance(KEY_FACTORY);
+      synchronized (kf) {
+        RSAPublicKey pubKey =
+          (RSAPublicKey) kf.generatePublic(new RSAPublicKeySpec(privKey
+            .getModulus(), privKey.getPublicExponent()));
+        KeyPair keyPair = new KeyPair(pubKey, privKey);
+        return keyPair;
+      }
+    }
+    catch (NoSuchAlgorithmException e) {
+      throw new CryptographyException(e);
     }
   }
 

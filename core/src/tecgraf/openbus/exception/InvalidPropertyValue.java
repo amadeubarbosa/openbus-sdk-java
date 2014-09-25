@@ -26,6 +26,20 @@ public final class InvalidPropertyValue extends OpenBusException {
   }
 
   /**
+   * Construtor.
+   * 
+   * @param prop nome da propriedade
+   * @param value valor inválido atribuído.
+   * @param e exceção associada.
+   */
+  public InvalidPropertyValue(String prop, String value, Throwable e) {
+    super(String
+      .format("Valor da propriedade '%s' é inválido: %s", prop, value), e);
+    this.prop = prop;
+    this.value = value;
+  }
+
+  /**
    * Recupera o nome da propriedade.
    * 
    * @return o nome da propriedade.
