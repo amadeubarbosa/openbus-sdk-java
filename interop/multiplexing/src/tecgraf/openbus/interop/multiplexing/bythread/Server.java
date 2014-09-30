@@ -51,9 +51,9 @@ public class Server {
       OpenBusContext context =
         (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
 
-      final Connection conn1AtBus1 = context.createConnection(host, port);
-      Connection conn2AtBus1 = context.createConnection(host, port);
-      final Connection connAtBus2 = context.createConnection(host2, port2);
+      final Connection conn1AtBus1 = context.connectByAddress(host, port);
+      Connection conn2AtBus1 = context.connectByAddress(host, port);
+      final Connection connAtBus2 = context.connectByAddress(host2, port2);
 
       List<Connection> conns = new ArrayList<Connection>();
       conns.add(conn1AtBus1);

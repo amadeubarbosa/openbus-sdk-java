@@ -16,6 +16,7 @@ import tecgraf.openbus.core.OpenBusPrivateKey;
 import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
+import tecgraf.openbus.interop.util.PrivateKeyInvalidLoginCallback;
 import tecgraf.openbus.interop.util.Utils;
 import tecgraf.openbus.interop.util.Utils.ORBRunThread;
 import tecgraf.openbus.interop.util.Utils.ShutdownThread;
@@ -50,11 +51,12 @@ public final class Server {
 
       OpenBusContext context =
         (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
-      Connection conn = context.createConnection(host, port);
+      Connection conn = context.connectByAddress(host, port);
       context.setDefaultConnection(conn);
       conn.loginByCertificate(entity, privateKey);
-      conn.onInvalidLoginCallback(new HelloInvalidLoginCallback(entity,
-        privateKey));
+      PrivateKeyInvalidLoginCallback callback =
+        new PrivateKeyInvalidLoginCallback(entity, privateKey);
+      conn.onInvalidLoginCallback(callback);
 
       shutdown.addConnetion(conn);
 
@@ -71,8 +73,8 @@ public final class Server {
       OfferRegistry registry = context.getOfferRegistry();
       ServiceOffer offer =
         registry.registerService(component.getIComponent(), serviceProperties);
+      callback.addOffer(component.getIComponent(), serviceProperties);
       shutdown.addOffer(offer);
-
     }
     catch (Exception e) {
       e.printStackTrace();

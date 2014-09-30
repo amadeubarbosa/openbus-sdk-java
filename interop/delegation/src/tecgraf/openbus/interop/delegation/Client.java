@@ -35,7 +35,7 @@ public class Client {
       ORB orb = ORBInitializer.initORB();
       OpenBusContext context =
         (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
-      Connection conn = context.createConnection(host, port);
+      Connection conn = context.connectByAddress(host, port);
       conn.loginByPassword(entity, entity.getBytes());
       context.setDefaultConnection(conn);
 

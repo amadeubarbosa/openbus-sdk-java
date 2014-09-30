@@ -39,7 +39,7 @@ public class Client {
         ORB orb = ORBInitializer.initORB();
         OpenBusContext context =
           (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
-        Connection conn = context.createConnection(host, port);
+        Connection conn = context.connectByAddress(host, port);
         context.setDefaultConnection(conn);
         String login = "interop_multiplexing_java_client";
         conn.loginByPassword(login, login.getBytes());

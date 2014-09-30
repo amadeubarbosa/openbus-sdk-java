@@ -1,4 +1,4 @@
-package tecgraf.openbus.interop.delegation;
+package tecgraf.openbus.interop.chaining;
 
 import java.util.Properties;
 import java.util.logging.Level;
@@ -9,33 +9,42 @@ import org.omg.PortableServer.POAHelper;
 
 import scs.core.ComponentContext;
 import scs.core.ComponentId;
-import scs.core.IComponent;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.OpenBusPrivateKey;
+import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.util.PrivateKeyInvalidLoginCallback;
 import tecgraf.openbus.interop.util.Utils;
 import tecgraf.openbus.interop.util.Utils.ORBRunThread;
 import tecgraf.openbus.interop.util.Utils.ShutdownThread;
 
-public class BroadcasterServer {
+/**
+ * Parte proxy do teste de interoperabilidade Chaining
+ * 
+ * @author Tecgraf
+ */
+public final class ChainingProxy {
 
+  /**
+   * Função principal.
+   * 
+   * @param args argumentos.
+   */
   public static void main(String[] args) {
     try {
       Properties props = Utils.readPropertyFile("/test.properties");
       String host = props.getProperty("bus.host.name");
       int port = Integer.valueOf(props.getProperty("bus.host.port"));
-      String entity = "interop_delegation_java_broadcaster";
-      String privateKeyFile = "admin/InteropDelegation.key";
+      String entity = "interop_chaining_java_proxy";
+      String privateKeyFile = "admin/InteropChaining.key";
       OpenBusPrivateKey privateKey =
         OpenBusPrivateKey.createPrivateKeyFromFile(privateKeyFile);
       Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
-      final ORB orb = ORBInitializer.initORB(args);
+      ORB orb = ORBInitializer.initORB(args);
       new ORBRunThread(orb).start();
       ShutdownThread shutdown = new ShutdownThread(orb);
       Runtime.getRuntime().addShutdownHook(shutdown);
@@ -47,45 +56,25 @@ public class BroadcasterServer {
       conn.loginByCertificate(entity, privateKey);
       PrivateKeyInvalidLoginCallback callback =
         new PrivateKeyInvalidLoginCallback(entity, privateKey);
-      conn.onInvalidLoginCallback(callback);
+      conn.onInvalidLoginCallback();
+
       shutdown.addConnetion(conn);
-
-      ServiceProperty[] messengerProps = new ServiceProperty[2];
-      messengerProps[0] =
-        new ServiceProperty("openbus.component.interface", MessengerHelper.id());
-      messengerProps[1] =
-        new ServiceProperty("offer.domain", "Interoperability Tests");
-      ServiceOfferDesc[] services =
-        context.getOfferRegistry().findServices(messengerProps);
-
-      if (services.length <= 0) {
-        System.err.println("não encontrou o serviço messenger");
-        System.exit(1);
-      }
-      if (services.length > 1) {
-        System.out.println("Foram encontrados vários serviços de messenger");
-      }
-
-      Messenger messenger =
-        MessengerHelper.narrow(services[0].service_ref.getFacet(MessengerHelper
-          .id()));
 
       POA poa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
       poa.the_POAManager().activate();
-      ComponentContext component =
-        new ComponentContext(orb, poa, new ComponentId("Broadcaster", (byte) 1,
-          (byte) 0, (byte) 0, "java"));
-      component.addFacet("broadcaster", BroadcasterHelper.id(),
-        new BroadcasterImpl(context, messenger));
+      ComponentId id =
+        new ComponentId("HelloProxy", (byte) 1, (byte) 0, (byte) 0, "java");
+      ComponentContext component = new ComponentContext(orb, poa, id);
+      component.addFacet("HelloProxy", HelloProxyHelper.id(), new ProxyImpl(
+        context));
 
-      ServiceProperty[] serviceProperties = new ServiceProperty[1];
-      serviceProperties[0] =
-        new ServiceProperty("offer.domain", "Interoperability Tests");
-
-      IComponent ic = component.getIComponent();
+      ServiceProperty[] serviceProperties =
+        new ServiceProperty[] { new ServiceProperty("offer.domain",
+          "Interoperability Tests") };
+      OfferRegistry registry = context.getOfferRegistry();
       ServiceOffer offer =
-        context.getOfferRegistry().registerService(ic, serviceProperties);
-      callback.addOffer(ic, serviceProperties);
+        registry.registerService(component.getIComponent(), serviceProperties);
+      callback.addOffer(component.getIComponent(), serviceProperties);
       shutdown.addOffer(offer);
     }
     catch (Exception e) {

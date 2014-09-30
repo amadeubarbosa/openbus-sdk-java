@@ -14,7 +14,9 @@ import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.OpenBusPrivateKey;
+import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
+import tecgraf.openbus.interop.util.PrivateKeyInvalidLoginCallback;
 import tecgraf.openbus.interop.util.Utils;
 import tecgraf.openbus.interop.util.Utils.ORBRunThread;
 import tecgraf.openbus.interop.util.Utils.ShutdownThread;
@@ -33,14 +35,18 @@ public class MessengerServer {
 
       final ORB orb = ORBInitializer.initORB(args);
       new ORBRunThread(orb).start();
-      Runtime.getRuntime().addShutdownHook(new ShutdownThread(orb));
+      ShutdownThread shutdown = new ShutdownThread(orb);
+      Runtime.getRuntime().addShutdownHook(shutdown);
 
       OpenBusContext context =
         (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
-      Connection conn = context.createConnection(host, port);
+      Connection conn = context.connectByAddress(host, port);
       context.setDefaultConnection(conn);
-
       conn.loginByCertificate(entity, privateKey);
+      PrivateKeyInvalidLoginCallback callback =
+        new PrivateKeyInvalidLoginCallback(entity, privateKey);
+      conn.onInvalidLoginCallback(callback);
+      shutdown.addConnetion(conn);
 
       POA poa1 = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
       poa1.the_POAManager().activate();
@@ -55,10 +61,11 @@ public class MessengerServer {
         new ServiceProperty("offer.domain", "Interoperability Tests");
 
       IComponent ic = ctx.getIComponent();
-      context.getOfferRegistry().registerService(ctx.getIComponent(),
-        serviceProperties);
-      conn.onInvalidLoginCallback(new CommonInvalidLoginCallback(entity,
-        privateKey, ic, serviceProperties));
+      ServiceOffer offer =
+        context.getOfferRegistry().registerService(ctx.getIComponent(),
+          serviceProperties);
+      callback.addOffer(ic, serviceProperties);
+      shutdown.addOffer(offer);
     }
     catch (Exception e) {
       e.printStackTrace();

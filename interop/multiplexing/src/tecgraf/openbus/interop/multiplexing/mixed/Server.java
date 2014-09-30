@@ -59,12 +59,12 @@ public class Server {
         (OpenBusContext) orb2.resolve_initial_references("OpenBusContext");
 
       final Connection conn1AtBus1WithOrb1 =
-        context1.createConnection(host, port);
-      Connection conn2AtBus1WithOrb1 = context1.createConnection(host, port);
+        context1.connectByAddress(host, port);
+      Connection conn2AtBus1WithOrb1 = context1.connectByAddress(host, port);
       final Connection conn1AtBus2WithOrb1 =
-        context1.createConnection(host2, port2);
+        context1.connectByAddress(host2, port2);
       final Connection conn3AtBus1WithOrb2 =
-        context2.createConnection(host, port);
+        context2.connectByAddress(host, port);
 
       List<Connection> conns = new ArrayList<Connection>();
       conns.add(conn1AtBus1WithOrb1);

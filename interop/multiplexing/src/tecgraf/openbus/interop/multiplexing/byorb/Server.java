@@ -49,12 +49,12 @@ public class Server {
       // connect to the bus
       OpenBusContext context1 =
         (OpenBusContext) orb1.resolve_initial_references("OpenBusContext");
-      Connection conn1 = context1.createConnection(host, port);
+      Connection conn1 = context1.connectByAddress(host, port);
       context1.setDefaultConnection(conn1);
 
       OpenBusContext context2 =
         (OpenBusContext) orb2.resolve_initial_references("OpenBusContext");
-      Connection conn2 = context2.createConnection(host, port);
+      Connection conn2 = context2.connectByAddress(host, port);
       context2.setDefaultConnection(conn2);
 
       // setup action on login termination

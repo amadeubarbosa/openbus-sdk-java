@@ -14,6 +14,7 @@ import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.OpenBusPrivateKey;
+import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.delegation.ForwarderImpl.Timer;
@@ -35,14 +36,16 @@ public class ForwardServer {
 
       final ORB orb = ORBInitializer.initORB(args);
       new ORBRunThread(orb).start();
-      Runtime.getRuntime().addShutdownHook(new ShutdownThread(orb));
+      ShutdownThread shutdown = new ShutdownThread(orb);
+      Runtime.getRuntime().addShutdownHook(shutdown);
 
       OpenBusContext context =
         (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
-      Connection conn = context.createConnection(host, port);
+      Connection conn = context.connectByAddress(host, port);
       context.setDefaultConnection(conn);
 
       conn.loginByCertificate(entity, privateKey);
+      shutdown.addConnetion(conn);
 
       ServiceProperty[] messengerProps = new ServiceProperty[2];
       messengerProps[0] =
@@ -79,10 +82,11 @@ public class ForwardServer {
       serviceProperties[0] =
         new ServiceProperty("offer.domain", "Interoperability Tests");
       IComponent ic = ctx.getIComponent();
-      context.getOfferRegistry().registerService(ic, serviceProperties);
+      ServiceOffer offer =
+        context.getOfferRegistry().registerService(ic, serviceProperties);
       conn.onInvalidLoginCallback(new ForwarderInvalidLoginCallback(entity,
         privateKey, ic, serviceProperties, timer));
-
+      shutdown.addOffer(offer);
     }
     catch (Exception e) {
       e.printStackTrace();
