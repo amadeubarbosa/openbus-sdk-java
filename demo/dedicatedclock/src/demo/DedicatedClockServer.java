@@ -135,7 +135,7 @@ public final class DedicatedClockServer {
     component.addFacet("Clock", ClockHelper.id(), new ClockImpl());
 
     // conectando ao barramento.
-    Connection conn = context.createConnection(host, port);
+    Connection conn = context.connectByAddress(host, port);
     context.setDefaultConnection(conn);
     conn.onInvalidLoginCallback(new InvalidLoginCallback() {
 

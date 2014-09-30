@@ -65,7 +65,7 @@ public class SharedAuthClient {
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     // conectando ao barramento.
-    Connection connection = context.createConnection(host, port);
+    Connection connection = context.connectByAddress(host, port);
     context.setDefaultConnection(connection);
 
     // recuperando informações de compartilhamento de autenticação

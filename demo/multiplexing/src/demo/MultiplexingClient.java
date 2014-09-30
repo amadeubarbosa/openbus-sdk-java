@@ -292,7 +292,7 @@ public final class MultiplexingClient {
   private static Connection newLogin(OpenBusContext context)
     throws AccessDenied, AlreadyLoggedIn, ServiceFailure {
     // conectando ao barramento.
-    Connection connection = context.createConnection(host, port);
+    Connection connection = context.connectByAddress(host, port);
     // autentica-se no barramento
     connection.loginByPassword(entity, password.getBytes());
     return connection;

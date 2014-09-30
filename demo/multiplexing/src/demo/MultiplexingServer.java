@@ -156,7 +156,7 @@ public final class MultiplexingServer {
       TimerImpl timer = new TimerImpl(context);
       component.addFacet("Timer", TimerHelper.id(), timer);
       // conectando ao barramento.
-      Connection conn = context.createConnection(host, port);
+      Connection conn = context.connectByAddress(host, port);
       context.setCurrentConnection(conn);
 
       // preenche o mapa utilizado pela callback onCallDispatch

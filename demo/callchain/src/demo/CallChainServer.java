@@ -106,7 +106,7 @@ public class CallChainServer {
       context, entity));
 
     // conectando ao barramento.
-    Connection conn = context.createConnection(host, port);
+    Connection conn = context.connectByAddress(host, port);
     context.setDefaultConnection(conn);
 
     // autentica-se no barramento

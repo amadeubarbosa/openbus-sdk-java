@@ -118,7 +118,7 @@ public final class HelloServer {
     component.addFacet("Hello", HelloHelper.id(), new HelloImpl(context));
 
     // conectando ao barramento.
-    Connection conn = context.createConnection(host, port);
+    Connection conn = context.connectByAddress(host, port);
     context.setDefaultConnection(conn);
 
     // autentica-se no barramento

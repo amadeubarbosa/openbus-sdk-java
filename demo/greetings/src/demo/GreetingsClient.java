@@ -88,7 +88,7 @@ public final class GreetingsClient {
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     // conectando ao barramento.
-    context.setDefaultConnection(context.createConnection(host, port));
+    context.setDefaultConnection(context.connectByAddress(host, port));
 
     ServiceOfferDesc[] services;
     try {

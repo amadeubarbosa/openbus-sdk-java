@@ -108,7 +108,7 @@ public class CallChainProxy {
     component.addFacet("Messenger", MessengerHelper.id(), proxy);
 
     // conectando ao barramento.
-    Connection conn = context.createConnection(host, port);
+    Connection conn = context.connectByAddress(host, port);
     context.setDefaultConnection(conn);
 
     boolean failed = true;

@@ -196,7 +196,7 @@ public final class IndependentClockClient {
     client.start();
 
     // conectando ao barramento.
-    Connection connection = context.createConnection(host, port);
+    Connection connection = context.connectByAddress(host, port);
     context.setDefaultConnection(connection);
 
     connection.onInvalidLoginCallback(new InvalidLoginCallback() {
