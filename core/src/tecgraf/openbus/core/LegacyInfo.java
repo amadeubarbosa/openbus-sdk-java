@@ -47,10 +47,9 @@ final class LegacyInfo {
    *         <code>false</code> caso o suporte legado não esteja ativo.
    */
   boolean activateLegacySuport() {
-    boolean existent = false;
     try {
-      if (rawObject != null && !rawObject._non_existent()) {
-        existent = true;
+      if (rawObject != null && rawObject._non_existent()) {
+        return false;
       }
     }
     catch (OBJECT_NOT_EXIST e) {
@@ -65,6 +64,6 @@ final class LegacyInfo {
     org.omg.CORBA.Object obj =
       this.bus.getFacet(IAccessControlServiceHelper.id());
     this.accessControl = IAccessControlServiceHelper.narrow(obj);
-    return existent;
+    return true;
   }
 }
