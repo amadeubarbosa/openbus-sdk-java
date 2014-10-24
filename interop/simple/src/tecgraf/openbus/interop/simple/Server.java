@@ -1,5 +1,6 @@
 package tecgraf.openbus.interop.simple;
 
+import java.security.interfaces.RSAPrivateKey;
 import java.util.Properties;
 import java.util.logging.Level;
 
@@ -12,13 +13,13 @@ import scs.core.ComponentId;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.ORBInitializer;
-import tecgraf.openbus.core.OpenBusPrivateKey;
 import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOffer;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.util.Utils;
 import tecgraf.openbus.interop.util.Utils.ORBRunThread;
 import tecgraf.openbus.interop.util.Utils.ShutdownThread;
+import tecgraf.openbus.security.Cryptography;
 
 /**
  * Parte servidora do demo Hello
@@ -39,8 +40,8 @@ public final class Server {
       int port = Integer.valueOf(props.getProperty("bus.host.port"));
       String entity = "interop_hello_java_server";
       String privateKeyFile = "admin/InteropHello.key";
-      OpenBusPrivateKey privateKey =
-        OpenBusPrivateKey.createPrivateKeyFromFile(privateKeyFile);
+      RSAPrivateKey privateKey =
+        Cryptography.getInstance().readKeyFromFile(privateKeyFile);
       Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
       ORB orb = ORBInitializer.initORB(args);

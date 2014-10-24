@@ -1,5 +1,6 @@
 package tecgraf.openbus.interop.delegation;
 
+import java.security.interfaces.RSAPrivateKey;
 import java.util.Properties;
 import java.util.logging.Level;
 
@@ -13,13 +14,13 @@ import scs.core.IComponent;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.ORBInitializer;
-import tecgraf.openbus.core.OpenBusPrivateKey;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.delegation.ForwarderImpl.Timer;
 import tecgraf.openbus.interop.util.Utils;
 import tecgraf.openbus.interop.util.Utils.ORBRunThread;
 import tecgraf.openbus.interop.util.Utils.ShutdownThread;
+import tecgraf.openbus.security.Cryptography;
 
 public class ForwardServer {
   public static void main(String[] args) {
@@ -29,8 +30,8 @@ public class ForwardServer {
       int port = Integer.valueOf(props.getProperty("bus.host.port"));
       String entity = "interop_delegation_java_forwarder";
       String privateKeyFile = "admin/InteropDelegation.key";
-      OpenBusPrivateKey privateKey =
-        OpenBusPrivateKey.createPrivateKeyFromFile(privateKeyFile);
+      RSAPrivateKey privateKey =
+        Cryptography.getInstance().readKeyFromFile(privateKeyFile);
       Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
       final ORB orb = ORBInitializer.initORB(args);

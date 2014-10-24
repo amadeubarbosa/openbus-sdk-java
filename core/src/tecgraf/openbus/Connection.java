@@ -1,5 +1,7 @@
 package tecgraf.openbus;
 
+import java.security.interfaces.RSAPrivateKey;
+
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 
@@ -99,7 +101,7 @@ public interface Connection {
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu a autenticação da conexão.
    */
-  void loginByCertificate(String entity, PrivateKey privateKey)
+  void loginByCertificate(String entity, RSAPrivateKey privateKey)
     throws AlreadyLoggedIn, AccessDenied, MissingCertificate, ServiceFailure;
 
   /**

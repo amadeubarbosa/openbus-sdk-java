@@ -1,5 +1,7 @@
 package demo;
 
+import java.security.interfaces.RSAPrivateKey;
+
 import org.omg.CORBA.COMM_FAILURE;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
@@ -15,7 +17,6 @@ import scs.core.exception.SCSException;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.ORBInitializer;
-import tecgraf.openbus.core.OpenBusPrivateKey;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_0.services.access_control.MissingCertificate;
@@ -28,12 +29,13 @@ import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.core.v2_0.services.offer_registry.UnauthorizedFacets;
 import tecgraf.openbus.demo.util.Utils;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
+import tecgraf.openbus.security.Cryptography;
 
 public class CallChainProxy {
   private static String host;
   private static int port;
   private static String entity;
-  private static OpenBusPrivateKey privateKey;
+  private static RSAPrivateKey privateKey;
 
   public static void main(String[] args) throws InvalidName, AdapterInactive,
     SCSException, AlreadyLoggedIn {
@@ -63,7 +65,7 @@ public class CallChainProxy {
     // - chave privada
     String privateKeyFile = args[3];
     try {
-      privateKey = OpenBusPrivateKey.createPrivateKeyFromFile(privateKeyFile);
+      privateKey = Cryptography.getInstance().readKeyFromFile(privateKeyFile);
     }
     catch (Exception e) {
       System.out.println(Utils.keypath);

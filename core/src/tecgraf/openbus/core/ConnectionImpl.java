@@ -23,7 +23,6 @@ import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
-import tecgraf.openbus.PrivateKey;
 import tecgraf.openbus.core.Session.ClientSideSession;
 import tecgraf.openbus.core.Session.ServerSideSession;
 import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlService;
@@ -319,20 +318,19 @@ final class ConnectionImpl implements Connection {
    * {@inheritDoc}
    */
   @Override
-  public void loginByCertificate(String entity, PrivateKey privateKey)
+  public void loginByCertificate(String entity, RSAPrivateKey privateKey)
     throws AlreadyLoggedIn, MissingCertificate, AccessDenied, ServiceFailure {
     checkLoggedIn();
     this.context.ignoreCurrentThread();
     initBusReferencesBeforeLogin();
     LoginProcess loginProcess = null;
     LoginInfo newLogin;
-    OpenBusPrivateKey privKey = (OpenBusPrivateKey) privateKey;
     try {
       EncryptedBlockHolder challengeHolder = new EncryptedBlockHolder();
       loginProcess =
         this.access().startLoginByCertificate(entity, challengeHolder);
       byte[] decryptedChallenge =
-        crypto.decrypt(challengeHolder.value, privKey.getRSAPrivateKey());
+        crypto.decrypt(challengeHolder.value, privateKey);
 
       byte[] encryptedLoginAuthenticationInfo =
         this.generateEncryptedLoginAuthenticationInfo(decryptedChallenge);

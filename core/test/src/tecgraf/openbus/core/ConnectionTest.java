@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.security.interfaces.RSAPrivateKey;
 import java.util.Properties;
 
 import org.junit.BeforeClass;
@@ -19,7 +20,6 @@ import tecgraf.openbus.CallDispatchCallback;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.OpenBusContext;
-import tecgraf.openbus.PrivateKey;
 import tecgraf.openbus.core.v2_0.OctetSeqHolder;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
@@ -40,8 +40,8 @@ public final class ConnectionTest {
   private static String password;
   private static String serverEntity;
   private static String privateKeyFile;
-  private static OpenBusPrivateKey privateKey;
-  private static byte[] wrongPrivateKey;
+  private static RSAPrivateKey privateKey;
+  private static RSAPrivateKey wrongPrivateKey;
   private static String entityWithoutCert;
   private static ORB orb;
   private static OpenBusContext context;
@@ -56,7 +56,7 @@ public final class ConnectionTest {
     password = properties.getProperty("entity.password");
     serverEntity = properties.getProperty("server.entity.name");
     privateKeyFile = properties.getProperty("server.private.key");
-    privateKey = OpenBusPrivateKey.createPrivateKeyFromFile(privateKeyFile);
+    privateKey = crypto.readKeyFromFile(privateKeyFile);
     entityWithoutCert = properties.getProperty("entity.withoutcert");
     String wrongPrivateKeyFile = properties.getProperty("wrongkey");
     wrongPrivateKey = crypto.readKeyFromFile(wrongPrivateKeyFile);
@@ -215,7 +215,8 @@ public final class ConnectionTest {
     // chave privada corrompida
     failed = false;
     try {
-      PrivateKey key = OpenBusPrivateKey.createPrivateKeyFromBytes(new byte[0]);
+      RSAPrivateKey key =
+        Cryptography.getInstance().readKeyFromBytes(new byte[0]);
       conn.loginByCertificate(serverEntity, key);
     }
     catch (Exception e) {
@@ -228,9 +229,7 @@ public final class ConnectionTest {
     // chave privada inválida
     failed = false;
     try {
-      PrivateKey key =
-        OpenBusPrivateKey.createPrivateKeyFromBytes(wrongPrivateKey);
-      conn.loginByCertificate(serverEntity, key);
+      conn.loginByCertificate(serverEntity, wrongPrivateKey);
     }
     catch (AccessDenied e) {
       failed = true;

@@ -205,21 +205,29 @@ public final class Cryptography {
   }
 
   /**
-   * Recupera um array de bytes da chave privada contida no arquivo fornecido.
+   * Recupera a chave privada contida no arquivo fornecido.
    * 
    * @param privateKeyFileName o path para o arquivo.
    * @return A chave privada RSA.
    * @throws IOException
+   * @throws InvalidKeySpecException
+   * @throws NoSuchAlgorithmException
    */
-  public byte[] readKeyFromFile(String privateKeyFileName) throws IOException {
+  public RSAPrivateKey readKeyFromFile(String privateKeyFileName)
+    throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
     FileInputStream fis = new FileInputStream(privateKeyFileName);
-    FileChannel channel = fis.getChannel();
-    ByteBuffer buffer = ByteBuffer.allocate((int) channel.size());
-    int size = channel.read(buffer);
-    if (size != (int) channel.size()) {
-      throw new IOException("Não foi possível ler todo o arquivo.");
+    try {
+      FileChannel channel = fis.getChannel();
+      ByteBuffer buffer = ByteBuffer.allocate((int) channel.size());
+      int size = channel.read(buffer);
+      if (size != (int) channel.size()) {
+        throw new IOException("Não foi possível ler todo o arquivo.");
+      }
+      return readKeyFromBytes(buffer.array());
     }
-    return buffer.array();
+    finally {
+      fis.close();
+    }
   }
 
   /**
