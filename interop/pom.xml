@@ -24,6 +24,7 @@
     <module>simple</module>
     <module>multiplexing</module>
     <module>delegation</module>
+    <module>chaining</module>
     <module>sharedauth</module>
     <module>reloggedjoin</module>
   </modules>
