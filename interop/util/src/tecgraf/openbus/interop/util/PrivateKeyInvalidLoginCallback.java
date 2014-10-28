@@ -1,5 +1,6 @@
 package tecgraf.openbus.interop.util;
 
+import java.security.interfaces.RSAPrivateKey;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,17 +12,16 @@ import scs.core.IComponent;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.OpenBusContext;
-import tecgraf.openbus.PrivateKey;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 
 public class PrivateKeyInvalidLoginCallback implements InvalidLoginCallback {
   private String entity;
-  private PrivateKey privKey;
+  private RSAPrivateKey privKey;
   private List<ToRegister> offers;
 
-  public PrivateKeyInvalidLoginCallback(String entity, PrivateKey privKey) {
+  public PrivateKeyInvalidLoginCallback(String entity, RSAPrivateKey privKey) {
     this.entity = entity;
     this.privKey = privKey;
     this.offers = new ArrayList<PrivateKeyInvalidLoginCallback.ToRegister>();

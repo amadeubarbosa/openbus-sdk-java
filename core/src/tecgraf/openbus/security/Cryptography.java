@@ -207,28 +207,28 @@ public final class Cryptography {
   }
 
   /**
-   * Recupera um array de bytes da chave privada contida no arquivo fornecido.
+   * Recupera a chave privada contida no arquivo fornecido.
    * 
    * @param privateKeyFileName o path para o arquivo.
    * @return A chave privada RSA.
    * @throws IOException
+   * @throws InvalidKeySpecException
+   * @throws CryptographyException
    */
-  public byte[] readKeyFromFile(String privateKeyFileName) throws IOException {
-    FileInputStream fis = null;
+  public RSAPrivateKey readKeyFromFile(String privateKeyFileName)
+    throws IOException, InvalidKeySpecException, CryptographyException {
+    FileInputStream fis = new FileInputStream(privateKeyFileName);
     try {
-      fis = new FileInputStream(privateKeyFileName);
       FileChannel channel = fis.getChannel();
       ByteBuffer buffer = ByteBuffer.allocate((int) channel.size());
       int size = channel.read(buffer);
       if (size != (int) channel.size()) {
         throw new IOException("Não foi possível ler todo o arquivo.");
       }
-      return buffer.array();
+      return readKeyFromBytes(buffer.array());
     }
     finally {
-      if (fis != null) {
-        fis.close();
-      }
+      fis.close();
     }
   }
 
@@ -240,7 +240,7 @@ public final class Cryptography {
    * @throws InvalidKeySpecException
    * @throws CryptographyException
    */
-  public RSAPrivateKey readPrivateKeyFromBytes(byte[] privateKeyBytes)
+  public RSAPrivateKey readKeyFromBytes(byte[] privateKeyBytes)
     throws InvalidKeySpecException, CryptographyException {
     PKCS8EncodedKeySpec encodedKey = new PKCS8EncodedKeySpec(privateKeyBytes);
     try {
@@ -256,18 +256,19 @@ public final class Cryptography {
   }
 
   /**
-   * Recupera a chave privada a partir de um array de bytes.
+   * Recupera o par de chaves a partir de um array do path para uma chave
+   * privada.
    * 
-   * @param privateKeyBytes bytes da chave privada
+   * @param path bytes da chave privada
    * @return A chave privada RSA.
    * @throws InvalidKeySpecException
    * @throws CryptographyException
+   * @throws IOException
    */
-  public KeyPair readKeyPairFromBytes(byte[] privateKeyBytes)
-    throws InvalidKeySpecException, CryptographyException {
-    RSAPrivateCrtKey privKey =
-      (RSAPrivateCrtKey) readPrivateKeyFromBytes(privateKeyBytes);
+  public KeyPair readKeyPairFromFile(String path)
+    throws InvalidKeySpecException, CryptographyException, IOException {
     try {
+      RSAPrivateCrtKey privKey = (RSAPrivateCrtKey) readKeyFromFile(path);
       KeyFactory kf = KeyFactory.getInstance(KEY_FACTORY);
       synchronized (kf) {
         RSAPublicKey pubKey =

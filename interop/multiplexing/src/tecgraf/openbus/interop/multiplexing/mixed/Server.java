@@ -1,5 +1,6 @@
 package tecgraf.openbus.interop.multiplexing.mixed;
 
+import java.security.interfaces.RSAPrivateKey;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -17,13 +18,13 @@ import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.ORBInitializer;
-import tecgraf.openbus.core.OpenBusPrivateKey;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.simple.HelloHelper;
 import tecgraf.openbus.interop.util.Utils;
 import tecgraf.openbus.interop.util.Utils.ORBRunThread;
 import tecgraf.openbus.interop.util.Utils.ShutdownThread;
+import tecgraf.openbus.security.Cryptography;
 
 public class Server {
 
@@ -38,8 +39,8 @@ public class Server {
       String privateKeyFile = "admin/InteropMultiplexing.key";
       Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
-      OpenBusPrivateKey privateKey =
-        OpenBusPrivateKey.createPrivateKeyFromFile(privateKeyFile);
+      RSAPrivateKey privateKey =
+        Cryptography.getInstance().readKeyFromFile(privateKeyFile);
 
       // setup and start the orb
       ORB orb1 = ORBInitializer.initORB(args);

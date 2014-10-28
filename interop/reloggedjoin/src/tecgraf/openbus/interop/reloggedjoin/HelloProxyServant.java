@@ -1,9 +1,10 @@
 package tecgraf.openbus.interop.reloggedjoin;
 
+import java.security.interfaces.RSAPrivateKey;
+
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
-import tecgraf.openbus.core.OpenBusPrivateKey;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.simple.Hello;
@@ -20,7 +21,7 @@ public final class HelloProxyServant extends HelloPOA {
   /** Contexto do OpenBus em uso. */
   private OpenBusContext context;
   /** Chave privada de autenticação */
-  private OpenBusPrivateKey privateKey;
+  private RSAPrivateKey privateKey;
   /** Nome da entidade. */
   private String entity;
 
@@ -32,7 +33,7 @@ public final class HelloProxyServant extends HelloPOA {
    * @param entity
    */
   public HelloProxyServant(OpenBusContext context, String entity,
-    OpenBusPrivateKey privateKey) {
+    RSAPrivateKey privateKey) {
     this.context = context;
     this.entity = entity;
     this.privateKey = privateKey;

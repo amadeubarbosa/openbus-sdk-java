@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.security.interfaces.RSAPrivateKey;
 import java.util.Properties;
 
 import org.junit.Before;
@@ -52,6 +53,7 @@ import tecgraf.openbus.core.v2_1.services.offer_registry.UnauthorizedFacets;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.exception.InvalidChainStream;
 import tecgraf.openbus.exception.NotLoggedIn;
+import tecgraf.openbus.security.Cryptography;
 import tecgraf.openbus.util.Utils;
 import test.CallerChainInspector;
 import test.CallerChainInspectorHelper;
@@ -62,7 +64,7 @@ public final class OpenBusContextTest {
   private static String entity;
   private static String password;
   private static String serverEntity;
-  private static OpenBusPrivateKey privateKey;
+  private static RSAPrivateKey privateKey;
 
   private static ORB orb;
   private static OpenBusContext context;
@@ -76,7 +78,7 @@ public final class OpenBusContextTest {
     password = properties.getProperty("entity.password");
     serverEntity = properties.getProperty("server.entity.name");
     String privateKeyFile = properties.getProperty("server.private.key");
-    privateKey = OpenBusPrivateKey.createPrivateKeyFromFile(privateKeyFile);
+    privateKey = Cryptography.getInstance().readKeyFromFile(privateKeyFile);
     orb = ORBInitializer.initORB();
     context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
   }
