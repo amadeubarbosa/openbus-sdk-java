@@ -1,8 +1,10 @@
 package tecgraf.openbus.core;
 
+import java.io.IOException;
 import java.security.KeyPair;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
@@ -132,7 +134,6 @@ final class ConnectionImpl implements Connection {
 
     this.orb = orb;
     this.context = context;
-    this.cache = new Caches(this);
     this.bus = null;
     this.legacyBus = null;
     if (props == null) {
@@ -150,16 +151,51 @@ final class ConnectionImpl implements Connection {
       this.context.unignoreCurrentThread();
     }
 
+    // verificando por valor de tamanho de cache
+    String ssize = OpenBusProperty.CACHE_SIZE.getProperty(props);
     try {
-      this.crypto = Cryptography.getInstance();
-      KeyPair keyPair = crypto.generateRSAKeyPair();
-      this.publicKey = (RSAPublicKey) keyPair.getPublic();
-      this.privateKey = (RSAPrivateKey) keyPair.getPrivate();
+      int size = Integer.parseInt(ssize);
+      this.cache = new Caches(this, size);
     }
-    catch (CryptographyException e) {
-      throw new OpenBusInternalException(
-        "Erro inexperado na geração do par de chaves.", e);
+    catch (NumberFormatException e) {
+      throw new InvalidPropertyValue(OpenBusProperty.CACHE_SIZE.getKey(),
+        ssize, e);
     }
+
+    // verificando por definicao de chaves em propriedades
+    String path = OpenBusProperty.ACCESS_KEY.getProperty(props);
+    KeyPair keyPair;
+    if (path != null) {
+      try {
+        this.crypto = Cryptography.getInstance();
+        keyPair = crypto.readKeyPairFromFile(path);
+      }
+      catch (InvalidKeySpecException e) {
+        throw new InvalidPropertyValue(OpenBusProperty.ACCESS_KEY.getKey(),
+          path, e);
+      }
+      catch (IOException e) {
+        throw new InvalidPropertyValue(OpenBusProperty.ACCESS_KEY.getKey(),
+          path, e);
+      }
+      catch (CryptographyException e) {
+        throw new OpenBusInternalException(
+          "Erro inexperado ao carregar chave privada.", e);
+      }
+    }
+    else {
+      // cria par de chaves
+      try {
+        this.crypto = Cryptography.getInstance();
+        keyPair = crypto.generateRSAKeyPair();
+      }
+      catch (CryptographyException e) {
+        throw new OpenBusInternalException(
+          "Erro inexperado na geração do par de chaves.", e);
+      }
+    }
+    this.publicKey = (RSAPublicKey) keyPair.getPublic();
+    this.privateKey = (RSAPrivateKey) keyPair.getPrivate();
     this.internalLogin = new InternalLogin(this);
   }
 
@@ -733,7 +769,7 @@ final class ConnectionImpl implements Connection {
    */
   class Caches {
     /** Tamanho das caches dos interceptadores */
-    final int CACHE_SIZE = 30;
+    final int CACHE_SIZE;
     /* Caches Cliente da conexão */
     /** Mapa de profile do interceptador para o cliente alvo da chamanha */
     Map<EffectiveProfile, String> entities;
@@ -754,8 +790,10 @@ final class ConnectionImpl implements Connection {
      * 
      * @param conn a referência para a conexão ao qual os caches estão
      *        referenciados.
+     * @param size tamanho de cada cache
      */
-    public Caches(ConnectionImpl conn) {
+    public Caches(ConnectionImpl conn, int size) {
+      this.CACHE_SIZE = size;
       this.entities =
         Collections.synchronizedMap(new LRUCache<EffectiveProfile, String>(
           CACHE_SIZE));

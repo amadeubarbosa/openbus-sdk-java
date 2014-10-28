@@ -24,7 +24,17 @@ enum OpenBusProperty {
    * deve ser construído a partir de uma credencial 2.0. Os valores possíveis
    * são: "originator" e "caller", onde o padrão é "caller".
    */
-  LEGACY_DELEGATE("legacy.delegate", "caller");
+  LEGACY_DELEGATE("legacy.delegate", "caller"),
+  /**
+   * Chave da propriedade que define arquivo da chave privada a ser utilizada
+   * pela conexão.
+   */
+  ACCESS_KEY("access.key", null),
+  /**
+   * Chave da propriedade que define tamanho de cada cache utilizada pela
+   * conexão.
+   */
+  CACHE_SIZE("cache.size", "30");
 
   /** Nome da propriedade */
   private final String key;
@@ -43,6 +53,15 @@ enum OpenBusProperty {
   }
 
   /**
+   * Recupera o nome da chave associado a esta propriedade.
+   * 
+   * @return o nome da chave.
+   */
+  public String getKey() {
+    return key;
+  }
+
+  /**
    * Recupera a propriedade na lista de propriedades passada. Caso a mesma não
    * esteja especificada na lista, retorna-se o seu valor padrão.
    * 
@@ -52,17 +71,33 @@ enum OpenBusProperty {
    */
   String getProperty(Properties props) throws InvalidPropertyValue {
     String value = props.getProperty(this.key, this.defaultValue);
-    value = value.toLowerCase();
     switch (this) {
       case LEGACY_DISABLE:
+        value = value.toLowerCase();
         if (value.equals("true") || value.equals("false")) {
           return value;
         }
         break;
 
       case LEGACY_DELEGATE:
+        value = value.toLowerCase();
         if (value.equals("caller") || value.equals("originator")) {
           return value;
+        }
+        break;
+
+      case ACCESS_KEY:
+        return value;
+
+      case CACHE_SIZE:
+        try {
+          int size = Integer.parseInt(value);
+          if (size > 0) {
+            return value;
+          }
+        }
+        catch (NumberFormatException e) {
+          throw new InvalidPropertyValue(this.key, value, e);
         }
         break;
 

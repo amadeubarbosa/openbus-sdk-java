@@ -29,6 +29,7 @@ import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
+import tecgraf.openbus.exception.InvalidPropertyValue;
 import tecgraf.openbus.security.Cryptography;
 import tecgraf.openbus.util.Utils;
 
@@ -108,6 +109,26 @@ public final class ConnectionTest {
     assertNotNull(conn.login());
     conn.logout();
     assertNull(conn.login());
+  }
+
+  @Test
+  public void accessKeyPropTest() throws Exception {
+    Properties properties = new Properties();
+    properties.put(OpenBusProperty.ACCESS_KEY.getKey(), privateKeyFile);
+    Connection conn = context.createConnection(host, port, properties);
+    assertNull(conn.login());
+    conn.loginByPassword(entity, entity.getBytes());
+    assertNotNull(conn.login());
+    conn.logout();
+    assertNull(conn.login());
+  }
+
+  @Test(expected = InvalidPropertyValue.class)
+  public void invalidAccessKeyPropTest() throws Exception {
+    Properties properties = new Properties();
+    properties.put(OpenBusProperty.ACCESS_KEY.getKey(),
+      "/invalid/path/to/access.key");
+    Connection conn = context.createConnection(host, port, properties);
   }
 
   @Test

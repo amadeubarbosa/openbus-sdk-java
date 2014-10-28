@@ -14,11 +14,13 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
 import javax.crypto.Cipher;
@@ -244,6 +246,33 @@ public final class Cryptography {
     KeyFactory kf = KeyFactory.getInstance(KEY_FACTORY);
     synchronized (kf) {
       return (RSAPrivateKey) kf.generatePrivate(encodedKey);
+    }
+  }
+
+  /**
+   * Recupera a chave privada a partir de um array de bytes.
+   * 
+   * @param path bytes da chave privada
+   * @return A chave privada RSA.
+   * @throws InvalidKeySpecException
+   * @throws CryptographyException
+   * @throws IOException
+   */
+  public KeyPair readKeyPairFromFile(String path)
+    throws InvalidKeySpecException, CryptographyException, IOException {
+    try {
+      RSAPrivateCrtKey privKey = (RSAPrivateCrtKey) readKeyFromFile(path);
+      KeyFactory kf = KeyFactory.getInstance(KEY_FACTORY);
+      synchronized (kf) {
+        RSAPublicKey pubKey =
+          (RSAPublicKey) kf.generatePublic(new RSAPublicKeySpec(privKey
+            .getModulus(), privKey.getPublicExponent()));
+        KeyPair keyPair = new KeyPair(pubKey, privKey);
+        return keyPair;
+      }
+    }
+    catch (NoSuchAlgorithmException e) {
+      throw new CryptographyException(e);
     }
   }
 
