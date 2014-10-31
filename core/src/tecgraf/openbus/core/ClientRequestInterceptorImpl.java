@@ -502,12 +502,20 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
             .operation()));
           throw new ForwardRequest(ri.target());
 
-        case NoCredentialCode.value:
+        case NoLoginCode.value:
+        case UnavailableBusCode.value:
+        case InvalidTargetCode.value:
+        case InvalidRemoteCode.value:
           String message =
-            "Servidor chamado é inválido (não detectou credencial enviada)";
-          logger.info(message);
-          throw new NO_PERMISSION(message, InvalidRemoteCode.value,
+            "Servidor chamado repassou uma exceção NO_PERMISSION local: minor = %d";
+          String msg = String.format(message, exception.minor);
+          logger.info(msg);
+          throw new NO_PERMISSION(msg, InvalidRemoteCode.value,
             CompletionStatus.COMPLETED_NO);
+
+        case NoCredentialCode.value:
+          // deixa a exceção passar
+          break;
 
         default:
           // deixa a exceção passar
