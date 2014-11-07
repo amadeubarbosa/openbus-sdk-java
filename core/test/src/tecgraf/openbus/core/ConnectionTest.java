@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 
 import java.security.interfaces.RSAPrivateKey;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -23,6 +24,7 @@ import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.v2_0.OctetSeqHolder;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
+import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_0.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
@@ -44,6 +46,8 @@ public final class ConnectionTest {
   private static RSAPrivateKey privateKey;
   private static RSAPrivateKey wrongPrivateKey;
   private static String entityWithoutCert;
+  private static String admin;
+  private static String adminpwd;
   private static ORB orb;
   private static OpenBusContext context;
 
@@ -61,6 +65,8 @@ public final class ConnectionTest {
     entityWithoutCert = properties.getProperty("entity.withoutcert");
     String wrongPrivateKeyFile = properties.getProperty("wrongkey");
     wrongPrivateKey = crypto.readKeyFromFile(wrongPrivateKeyFile);
+    admin = properties.getProperty("admin.name");
+    adminpwd = properties.getProperty("admin.password");
     orb = ORBInitializer.initORB();
     context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
   }
@@ -390,9 +396,82 @@ public final class ConnectionTest {
   public void onInvalidLoginCallbackTest() throws Exception {
     Connection conn = context.createConnection(host, port);
     assertNull(conn.onInvalidLoginCallback());
-    InvalidLoginCallback callback = new InvalidLoginCallbackMock();
+    final AtomicBoolean called = new AtomicBoolean(false);
+    InvalidLoginCallback callback = new InvalidLoginCallback() {
+      @Override
+      public void invalidLogin(Connection conn, LoginInfo login) {
+        try {
+          conn.loginByPassword(entity, password.getBytes());
+          called.set(true);
+        }
+        catch (Exception e) {
+          // failed
+        }
+      }
+    };
     conn.onInvalidLoginCallback(callback);
     assertEquals(callback, conn.onInvalidLoginCallback());
+    conn.loginByPassword(entity, password.getBytes());
+    String id = conn.login().id;
+
+    Connection adminconn = context.createConnection(host, port);
+    adminconn.loginByPassword(admin, adminpwd.getBytes());
+    try {
+      context.setCurrentConnection(adminconn);
+      context.getLoginRegistry().invalidateLogin(id);
+      context.setCurrentConnection(null);
+      adminconn.logout();
+
+      context.setCurrentConnection(conn);
+      int validity = context.getLoginRegistry().getLoginValidity(id);
+      context.setCurrentConnection(null);
+      assertTrue(validity <= 0);
+      assertTrue(called.get());
+    }
+    finally {
+      context.setCurrentConnection(null);
+    }
   }
 
+  @Test
+  public void logoutOnInvalidLoginCallbackTest() throws Exception {
+    Connection conn = context.createConnection(host, port);
+    assertNull(conn.onInvalidLoginCallback());
+    final AtomicBoolean called = new AtomicBoolean(false);
+    InvalidLoginCallback callback = new InvalidLoginCallback() {
+      @Override
+      public void invalidLogin(Connection conn, LoginInfo login) {
+        try {
+          conn.loginByPassword(entity, password.getBytes());
+          called.set(true);
+        }
+        catch (Exception e) {
+          // failed
+        }
+      }
+    };
+    conn.onInvalidLoginCallback(callback);
+    assertEquals(callback, conn.onInvalidLoginCallback());
+    conn.loginByPassword(entity, password.getBytes());
+    String id = conn.login().id;
+
+    Connection adminconn = context.createConnection(host, port);
+    adminconn.loginByPassword(admin, adminpwd.getBytes());
+    try {
+      context.setCurrentConnection(adminconn);
+      boolean ok = context.getLoginRegistry().invalidateLogin(id);
+      int validity = context.getLoginRegistry().getLoginValidity(id);
+      context.setCurrentConnection(null);
+      adminconn.logout();
+      assertTrue(ok);
+      assertTrue(validity <= 0);
+
+      boolean logout = conn.logout();
+      assertTrue(logout);
+      assertFalse(called.get());
+    }
+    finally {
+      context.setCurrentConnection(null);
+    }
+  }
 }

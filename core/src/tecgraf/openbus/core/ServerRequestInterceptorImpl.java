@@ -94,8 +94,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * @return Wrapper para a credencial extraída.
    */
   private CredentialWrapper retrieveCredential(ServerRequestInfo ri) {
-    ORB orb = this.getMediator().getORB();
-    Codec codec = this.getMediator().getCodec();
+    ORB orb = this.mediator().getORB();
+    Codec codec = this.mediator().getCodec();
     byte[] encodedCredential = null;
     try {
       ServiceContext requestServiceContext =
@@ -238,8 +238,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     logger.finest(String.format("[in] receive_request: %s", operation));
     int requestId = ri.request_id();
     byte[] object_id = ri.object_id();
-    ORB orb = this.getMediator().getORB();
-    OpenBusContextImpl context = this.getMediator().getContext();
+    ORB orb = this.mediator().getORB();
+    OpenBusContextImpl context = this.mediator().getContext();
     CredentialWrapper wrapper = retrieveCredential(ri);
     try {
       CredentialData credential = wrapper.credential;
@@ -360,7 +360,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
             // salvando informação do barramento que atendeu a requisição
             Any any = orb.create_any();
             any.insert_string(conn.busid());
-            ri.set_slot(this.getMediator().getBusSlotId(), any);
+            ri.set_slot(this.mediator().getBusSlotId(), any);
             String msg =
               "Recebendo chamada pelo barramento: login (%s) entidade (%s) operação (%s) requestId (%d)";
             logger.fine(String.format(msg, loginId, entity, operation,
@@ -488,7 +488,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     CredentialResetHelper.insert(any, reset);
     byte[] encodedCredential;
     try {
-      encodedCredential = this.getMediator().getCodec().encode_value(any);
+      encodedCredential = this.mediator().getCodec().encode_value(any);
     }
     catch (InvalidTypeForEncoding e) {
       String message =
@@ -573,7 +573,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
               }
             }
             else {
-              ORB orb = this.getMediator().getORB();
+              ORB orb = this.mediator().getORB();
               logger
                 .finest(String
                   .format(
@@ -606,11 +606,11 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       }
       if (isValid) {
         try {
-          ORB orb = this.getMediator().getORB();
+          ORB orb = this.mediator().getORB();
           // salvando a cadeia
           Any singnedAny = orb.create_any();
           SignedCallChainHelper.insert(singnedAny, chain);
-          ri.set_slot(this.getMediator().getSignedChainSlotId(), singnedAny);
+          ri.set_slot(this.mediator().getSignedChainSlotId(), singnedAny);
         }
         catch (InvalidSlot e) {
           String message =
@@ -635,10 +635,10 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     removeCurrentConnection(ri);
 
     // CHECK verificar se preciso limpar mais algum slot
-    Any any = this.getMediator().getORB().create_any();
+    Any any = this.mediator().getORB().create_any();
     try {
-      ri.set_slot(this.getMediator().getSignedChainSlotId(), any);
-      ri.set_slot(this.getMediator().getBusSlotId(), any);
+      ri.set_slot(this.mediator().getSignedChainSlotId(), any);
+      ri.set_slot(this.mediator().getBusSlotId(), any);
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao limpar informações nos slots";
@@ -687,9 +687,9 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   private void setCurrentConnection(ServerRequestInfo ri, ConnectionImpl conn) {
     try {
-      ORBMediator mediator = this.getMediator();
+      ORBMediator mediator = this.mediator();
       int id = mediator.getUniqueId();
-      OpenBusContextImpl context = this.getMediator().getContext();
+      OpenBusContextImpl context = this.mediator().getContext();
       Any any = mediator.getORB().create_any();
       any.insert_long(id);
       ri.set_slot(context.getCurrentConnectionSlotId(), any);
@@ -714,7 +714,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   private void removeCurrentConnection(ServerRequestInfo ri) {
     try {
-      OpenBusContextImpl context = this.getMediator().getContext();
+      OpenBusContextImpl context = this.mediator().getContext();
       Any slot = ri.get_slot(context.getCurrentConnectionSlotId());
       if (slot.type().kind().value() != TCKind._tk_null) {
         int id = slot.extract_long();
@@ -734,7 +734,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
        * o orb garante que não modificou a informação no PICurrent da thread que
        * originalmente fez um setCurrentConnection?
        */
-      Any any = this.getMediator().getORB().create_any();
+      Any any = this.mediator().getORB().create_any();
       ri.set_slot(context.getCurrentConnectionSlotId(), any);
     }
     catch (InvalidSlot e) {

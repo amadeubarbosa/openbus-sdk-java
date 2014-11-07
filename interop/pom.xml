@@ -27,6 +27,7 @@
     <module>chaining</module>
     <module>sharedauth</module>
     <module>reloggedjoin</module>
+    <module>protocol</module>
   </modules>
 
   <build>

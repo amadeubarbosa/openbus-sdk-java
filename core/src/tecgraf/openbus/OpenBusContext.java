@@ -6,7 +6,7 @@ import org.omg.CORBA.ORB;
 import org.omg.PortableInterceptor.Current;
 
 import tecgraf.openbus.core.v2_0.credential.CredentialContextId;
-import tecgraf.openbus.core.v2_0.credential.ExportedCallChain;
+import tecgraf.openbus.core.v2_0.data_export.ExportedCallChain;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidLogins;

@@ -160,9 +160,7 @@ public interface Connection {
    * desautenticada.
    * 
    * @return <code>true</code> se o processo de logout for concluído com êxito e
-   *         <code>false</code> se a conexão já estiver desautenticada (login
-   *         inválido) ou se houver uma falha durante o processo remoto do
-   *         logout.
+   *         <code>false</code> se não for possível invalidar o login atual.
    * 
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento durante chamada ao remota.
@@ -186,6 +184,13 @@ public interface Connection {
    * Neste caso, a chamada do barramento que recebeu a notificação de login
    * inválido é refeita usando o novo login, caso contrário, a chamada original
    * lança a exceção de de sistema {@link NO_PERMISSION}[{@link NoLoginCode}].
+   * <p>
+   * Importante observar que a primeira chamada remota que esta callback
+   * realizar <b>deve</b> ser uma tentativa de autenticação junto ao barramento
+   * (loginBy*). Caso a callback realize qualquer outra chamada remota, a mesma
+   * potencialmenete ocasionará um laço infinito, pois esta outra chamada irá
+   * falhar, devido ao login invalidado, e chamará novamente a callback para
+   * tentar refazer a autenticação.
    * 
    * @param callback Objeto que implementa a interface de callback a ser chamada
    *        ou <code>null</code> caso nenhum objeto deva ser chamado na

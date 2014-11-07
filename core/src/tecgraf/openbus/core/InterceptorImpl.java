@@ -81,8 +81,17 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
    * 
    * @return o mediador.
    */
-  protected final ORBMediator getMediator() {
+  protected final ORBMediator mediator() {
     return this.mediator;
+  }
+
+  /**
+   * Recupera o contexto associado ao interceptador.
+   * 
+   * @return o contexto
+   */
+  protected final OpenBusContextImpl context() {
+    return this.mediator.getContext();
   }
 
   /**
@@ -140,7 +149,7 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
   protected CallChain unmarshallSignedChain(SignedCallChain chain, Logger logger) {
     try {
       Any any =
-        this.getMediator().getCodec().decode_value(chain.encoded,
+        this.mediator().getCodec().decode_value(chain.encoded,
           CallChainHelper.type());
       CallChain callChain = CallChainHelper.extract(any);
       return callChain;
