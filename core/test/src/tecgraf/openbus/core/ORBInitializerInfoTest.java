@@ -1,11 +1,11 @@
 package tecgraf.openbus.core;
 
-import junit.framework.Assert;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 import org.omg.PortableInterceptor.ORBInitializer;
-
-import tecgraf.openbus.core.ORBInitializerInfo;
 
 public final class ORBInitializerInfoTest {
   @Test(expected = NullPointerException.class)
@@ -26,19 +26,19 @@ public final class ORBInitializerInfoTest {
   @Test
   public void createWithInitializer() {
     ORBInitializerInfo info = new ORBInitializerInfo(ORBInitializer.class);
-    Assert.assertNotNull(info.getId());
-    Assert.assertNotNull(info.getClassName());
-    Assert.assertEquals(info.getId(), info.getClassName());
-    Assert.assertEquals(info.getClassName(), ORBInitializer.class.getName());
+    assertNotNull(info.getId());
+    assertNotNull(info.getClassName());
+    assertEquals(info.getId(), info.getClassName());
+    assertEquals(info.getClassName(), ORBInitializer.class.getName());
   }
 
   @Test
   public void createWithInitializerAndId() {
     String id = "initializer";
     ORBInitializerInfo info = new ORBInitializerInfo(ORBInitializer.class, id);
-    Assert.assertNotNull(info.getId());
-    Assert.assertNotNull(info.getClassName());
-    Assert.assertTrue(!info.getId().equals(info.getClassName()));
-    Assert.assertEquals(id, info.getId());
+    assertNotNull(info.getId());
+    assertNotNull(info.getClassName());
+    assertTrue(!info.getId().equals(info.getClassName()));
+    assertEquals(id, info.getId());
   }
 }

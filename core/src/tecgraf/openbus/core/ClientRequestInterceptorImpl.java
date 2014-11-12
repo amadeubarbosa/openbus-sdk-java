@@ -150,8 +150,6 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       LoginInfoHolder holder = new LoginInfoHolder();
       holder.value = currLogin;
 
-      // salvando a conexão e o login utilizado no request.
-
       // montando credencial 2.0
       if (!joinedToLegacy) {
         CredentialData credential =
@@ -587,7 +585,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     finally {
       if (uniqueId != null) {
         this.requestId2Conn.remove(uniqueId);
-        String login = this.requestId2LoginId.remove(uniqueId);
+        this.requestId2LoginId.remove(uniqueId);
         clearRequestUniqueId();
       }
       logger.finest(String.format("[out] receive_exception: %s", operation));

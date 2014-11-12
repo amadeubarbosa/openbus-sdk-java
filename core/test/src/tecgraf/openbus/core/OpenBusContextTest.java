@@ -1,6 +1,7 @@
 package tecgraf.openbus.core;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
@@ -33,6 +34,7 @@ import tecgraf.openbus.CallDispatchCallback;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.SharedAuthSecret;
 import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
@@ -49,7 +51,7 @@ import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.core.v2_0.services.offer_registry.UnauthorizedFacets;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
-import tecgraf.openbus.exception.InvalidChainStream;
+import tecgraf.openbus.exception.InvalidEncodedStream;
 import tecgraf.openbus.exception.NotLoggedIn;
 import tecgraf.openbus.security.Cryptography;
 import tecgraf.openbus.util.Utils;
@@ -559,7 +561,7 @@ public final class OpenBusContextTest {
 
   @Test
   public void encodeAndDecodeChain() throws AccessDenied, AlreadyLoggedIn,
-    ServiceFailure, InvalidLogins, InvalidChainStream {
+    ServiceFailure, InvalidLogins, InvalidEncodedStream {
     Connection conn1 = context.createConnection(hostName, hostPort);
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes());
@@ -607,6 +609,66 @@ public final class OpenBusContextTest {
     conn1.logout();
     conn2.logout();
     conn3.logout();
+  }
+
+  @Test
+  public void encodeAndDecodeSharedAuth() throws Exception {
+    Connection conn = context.createConnection(hostName, hostPort);
+    conn.loginByPassword(entity, password.getBytes());
+    try {
+      context.setCurrentConnection(conn);
+      SharedAuthSecret secret = conn.startSharedAuth();
+      byte[] data = context.encodeSharedAuthSecret(secret);
+      Connection conn2 = context.createConnection(hostName, hostPort);
+      SharedAuthSecret secret2 = context.decodeSharedAuthSecret(data);
+      conn2.loginBySharedAuth(secret2);
+      assertNotNull(conn2.login());
+      assertFalse(conn.login().id.equals(conn2.login().id));
+      assertEquals(conn.login().entity, conn2.login().entity);
+    }
+    finally {
+      context.setCurrentConnection(null);
+    }
+  }
+
+  @Test(expected = InvalidEncodedStream.class)
+  public void decodeSharedAuthAsChain() throws Exception {
+    Connection conn = context.createConnection(hostName, hostPort);
+    conn.loginByPassword(entity, password.getBytes());
+    SharedAuthSecret secret = null;
+    try {
+      context.setCurrentConnection(conn);
+      secret = conn.startSharedAuth();
+      byte[] data = context.encodeSharedAuthSecret(secret);
+      context.decodeChain(data);
+    }
+    finally {
+      secret.cancel();
+      conn.logout();
+      context.setCurrentConnection(null);
+    }
+  }
+
+  @Test(expected = InvalidEncodedStream.class)
+  public void decodeChainAsSharedAuth() throws Exception {
+    Connection conn1 = context.createConnection(hostName, hostPort);
+    String actor1 = "actor-1";
+    conn1.loginByPassword(actor1, actor1.getBytes());
+    Connection conn2 = context.createConnection(hostName, hostPort);
+    String actor2 = "actor-2";
+    conn2.loginByPassword(actor2, actor2.getBytes());
+    String login2 = conn2.login().id;
+    try {
+      context.setCurrentConnection(conn1);
+      CallerChain chain1For2 = context.makeChainFor(login2);
+      byte[] data = context.encodeChain(chain1For2);
+      context.decodeSharedAuthSecret(data);
+    }
+    finally {
+      context.setCurrentConnection(null);
+      conn1.logout();
+      conn2.logout();
+    }
   }
 
   private Codec getCodec(ORB orb) throws UnknownEncoding, InvalidName {

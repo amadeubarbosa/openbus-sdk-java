@@ -5,14 +5,12 @@ import java.io.FileInputStream;
 import java.util.Properties;
 import java.util.logging.Level;
 
-import org.omg.CORBA.Any;
 import org.omg.CORBA.ORB;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.SharedAuthSecret;
 import tecgraf.openbus.core.ORBInitializer;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginProcess;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginProcessHelper;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.simple.Hello;
@@ -43,14 +41,8 @@ public class SharedAuthClient {
         return;
       }
       fstream.close();
-      Any any =
-        Utils.getCodec(orb).decode_value(encoded,
-          EncodedSharedAuthHelper.type());
-      EncodedSharedAuth sharedAuth = EncodedSharedAuthHelper.extract(any);
-      LoginProcess process = LoginProcessHelper.narrow(sharedAuth.attempt);
-      byte[] secret = sharedAuth.secret;
-
-      connection.loginBySharedAuth(process, secret);
+      SharedAuthSecret secret = context.decodeSharedAuthSecret(encoded);
+      connection.loginBySharedAuth(secret);
 
       ServiceProperty[] serviceProperties = new ServiceProperty[2];
       serviceProperties[0] =

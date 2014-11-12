@@ -21,11 +21,10 @@ import tecgraf.openbus.CallDispatchCallback;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.OpenBusContext;
-import tecgraf.openbus.core.v2_0.OctetSeqHolder;
+import tecgraf.openbus.SharedAuthSecret;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_0.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
@@ -293,51 +292,59 @@ public final class ConnectionTest {
   }
 
   @Test
-  public void loginBySharedAuthenticationTest() throws Exception {
+  public void loginBySharedAuthenticationFakeTest() throws Exception {
     Connection conn = context.createConnection(host, port);
     Connection conn2 = context.createConnection(host, port);
     conn.loginByPassword(entity, password.getBytes());
 
     // segredo errado
     boolean failed = false;
-    OctetSeqHolder secret = new OctetSeqHolder();
-    LoginProcess login;
-
     try {
       context.setCurrentConnection(conn);
-      login = conn.startSharedAuth(secret);
+      SharedAuthSecretImpl secret =
+        (SharedAuthSecretImpl) conn.startSharedAuth();
       context.setCurrentConnection(null);
-      conn2.loginBySharedAuth(login, new byte[0]);
+      conn2.loginBySharedAuth(new SharedAuthSecretImpl(conn.busid(), secret
+        .attempt(), new byte[0], (OpenBusContextImpl) context));
     }
     catch (AccessDenied e) {
       failed = true;
     }
     catch (Exception e) {
-      fail("A exceção deveria ser WrongSecretException. Exceção recebida: " + e);
+      fail("A exceção deveria ser AccessDenied. Exceção recebida: " + e);
     }
-
     assertTrue("O login com segredo errado foi bem-sucedido.", failed);
+    conn.logout();
+    assertNull(conn.login());
+    context.setCurrentConnection(null);
+  }
+
+  @Test
+  public void loginBySharedAuthenticationTest() throws Exception {
+    Connection conn = context.createConnection(host, port);
+    Connection conn2 = context.createConnection(host, port);
+    conn.loginByPassword(entity, password.getBytes());
 
     // login válido
     assertNull(conn2.login());
     context.setCurrentConnection(conn);
-    login = conn.startSharedAuth(secret);
+    SharedAuthSecret secret = conn.startSharedAuth();
     context.setCurrentConnection(null);
-    conn2.loginBySharedAuth(login, secret.value);
+    conn2.loginBySharedAuth(secret);
     assertNotNull(conn2.login());
     conn2.logout();
     assertNull(conn2.login());
     context.setCurrentConnection(null);
 
     // login repetido
-    failed = false;
+    boolean failed = false;
     try {
       context.setCurrentConnection(conn);
-      login = conn.startSharedAuth(secret);
+      secret = conn.startSharedAuth();
       context.setCurrentConnection(null);
-      conn2.loginBySharedAuth(login, secret.value);
+      conn2.loginBySharedAuth(secret);
       assertNotNull(conn2.login());
-      conn2.loginBySharedAuth(login, secret.value);
+      conn2.loginBySharedAuth(secret);
     }
     catch (AlreadyLoggedIn e) {
       failed = true;
@@ -357,7 +364,7 @@ public final class ConnectionTest {
   @Test
   public void logoutTest() throws Exception {
     final Connection conn = context.createConnection(host, port);
-    assertFalse(conn.logout());
+    assertTrue(conn.logout());
     conn.loginByPassword(entity, password.getBytes());
     final String busId = conn.busid();
     context.onCallDispatch(new CallDispatchCallback() {

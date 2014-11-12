@@ -5,14 +5,12 @@ import java.io.FileOutputStream;
 import java.util.Properties;
 import java.util.logging.Level;
 
-import org.omg.CORBA.Any;
 import org.omg.CORBA.ORB;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.SharedAuthSecret;
 import tecgraf.openbus.core.ORBInitializer;
-import tecgraf.openbus.core.v2_0.OctetSeqHolder;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.simple.Hello;
@@ -48,13 +46,8 @@ public final class Client {
       context.setDefaultConnection(connection);
 
       connection.loginByPassword(entity, entity.getBytes(Cryptography.CHARSET));
-      OctetSeqHolder secret = new OctetSeqHolder();
-      LoginProcess process = connection.startSharedAuth(secret);
-
-      EncodedSharedAuth data = new EncodedSharedAuth(process, secret.value);
-      Any any = orb.create_any();
-      EncodedSharedAuthHelper.insert(any, data);
-      byte[] encoded = Utils.getCodec(orb).encode_value(any);
+      SharedAuthSecret secret = connection.startSharedAuth();
+      byte[] encoded = context.encodeSharedAuthSecret(secret);
       File file = new File("sharedauth.dat");
       FileOutputStream fstream = new FileOutputStream(file);
       fstream.write(encoded);

@@ -1,21 +1,19 @@
 package tecgraf.openbus.exception;
 
-import tecgraf.openbus.CallerChain;
 
 /**
- * Exceção gerada quando tenta-se manipular uma cadeia ({@link CallerChain})
- * inválida.
+ * Exceção gerada quando tenta-se manipular uma stream de dados inválida.
  * 
  * @author Tecgraf
  */
-public class InvalidChainStream extends OpenBusException {
+public class InvalidEncodedStream extends OpenBusException {
 
   /**
    * Construtor.
    * 
    * @param message mensagem de erro.
    */
-  public InvalidChainStream(String message) {
+  public InvalidEncodedStream(String message) {
     super(message);
   }
 
@@ -24,7 +22,7 @@ public class InvalidChainStream extends OpenBusException {
    * 
    * @param cause exceção original.
    */
-  public InvalidChainStream(Throwable cause) {
+  public InvalidEncodedStream(Throwable cause) {
     super(cause);
   }
 
@@ -34,7 +32,7 @@ public class InvalidChainStream extends OpenBusException {
    * @param message mensagem de erro.
    * @param cause exceção original.
    */
-  public InvalidChainStream(String message, Throwable cause) {
+  public InvalidEncodedStream(String message, Throwable cause) {
     super(message, cause);
   }
 }

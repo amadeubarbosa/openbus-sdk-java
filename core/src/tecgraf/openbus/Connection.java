@@ -5,11 +5,9 @@ import java.security.interfaces.RSAPrivateKey;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 
-import tecgraf.openbus.core.v2_0.OctetSeqHolder;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_0.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_0.services.access_control.UnknownBusCode;
@@ -112,41 +110,39 @@ public interface Connection {
    * pode ser chamada enquanto a conexão estiver autenticada, caso contrário a
    * exceção de sistema {@link NO_PERMISSION}[{@link NoLoginCode}] é lançada. As
    * informações fornecidas por essa operação devem ser passadas para a operação
-   * {@link #loginBySharedAuth(LoginProcess, byte[]) loginBySharedAuth} para
+   * {@link #loginBySharedAuth(SharedAuthSecret) loginBySharedAuth} para
    * conclusão do processo de login por autenticação compartilhada. Isso deve
    * ser feito dentro do tempo de lease definido pelo administrador do
    * barramento. Caso contrário essas informações se tornam inválidas e não
    * podem mais ser utilizadas para criar um login.
    * 
-   * @param secret Segredo a ser fornecido na conclusão do processo de login.
-   * 
-   * @return Objeto que represeta o processo de login iniciado.
+   * @return Segredo a ser fornecido na conclusão do processo de login.
    * 
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu a obtenção do objeto de login e segredo.
    */
-  LoginProcess startSharedAuth(OctetSeqHolder secret) throws ServiceFailure;
+  SharedAuthSecret startSharedAuth() throws ServiceFailure;
 
   /**
    * Efetua login de uma entidade usando autenticação compartilhada.
    * <p>
-   * A autenticação compartilhada é feita a partir de informações obtidas a
-   * através da operação {@link #startSharedAuth(OctetSeqHolder)
-   * startSharedAuth} de uma conexão autenticada.
+   * A autenticação compartilhada é feita a partir de um segredo obtido através
+   * da operação {@link #startSharedAuth() startSharedAuth} de uma conexão
+   * autenticada.
    * 
-   * @param process Objeto que represeta o processo de login iniciado.
    * @param secret Segredo a ser fornecido na conclusão do processo de login.
    * 
-   * @exception InvalidLoginProcess O LoginProcess informado é inválido, por
-   *            exemplo depois de ser cancelado ou ter expirado.
+   * @exception InvalidLoginProcess A tentativa de login associada ao segredo
+   *            informado é inválido, por exemplo depois do segredo ser
+   *            cancelado, ter expirado, ou já ter sido utilizado.
    * @exception AlreadyLoggedIn A conexão já está autenticada.
    * @exception AccessDenied O segredo fornecido não corresponde ao esperado
    *            pelo barramento.
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu a autenticação da conexão.
    */
-  void loginBySharedAuth(LoginProcess process, byte[] secret)
-    throws AlreadyLoggedIn, InvalidLoginProcess, AccessDenied, ServiceFailure;
+  void loginBySharedAuth(SharedAuthSecret secret) throws AlreadyLoggedIn,
+    InvalidLoginProcess, AccessDenied, ServiceFailure;
 
   /**
    * Efetua logout da conexão, tornando o login atual inválido.

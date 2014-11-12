@@ -1,7 +1,7 @@
 package demo;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 
 import org.omg.CORBA.COMM_FAILURE;
@@ -12,12 +12,11 @@ import org.omg.CORBA.ORBPackage.InvalidName;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.SharedAuthSecret;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidRemoteCode;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginProcess;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginProcessHelper;
 import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_0.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_0.services.access_control.UnverifiedLoginCode;
@@ -25,9 +24,24 @@ import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Utils;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
+import tecgraf.openbus.exception.InvalidEncodedStream;
 import tecgraf.openbus.exception.InvalidLoginProcess;
 
+/**
+ * Demo Single Sign On.
+ * 
+ * @author Tecgraf
+ */
 public class SharedAuthClient {
+
+  /**
+   * Função main.
+   * 
+   * @param args
+   * @throws ServiceFailure
+   * @throws InvalidName
+   * @throws AlreadyLoggedIn
+   */
   public static void main(String[] args) throws ServiceFailure, InvalidName,
     AlreadyLoggedIn {
     String help =
@@ -54,9 +68,9 @@ public class SharedAuthClient {
       return;
     }
     // - arquivo
-    String file = "sharedauth.dat";
+    String path = "sharedauth.dat";
     if (args.length > 2) {
-      file = args[2];
+      path = args[2];
     }
 
     // inicializando e configurando o ORB
@@ -76,19 +90,25 @@ public class SharedAuthClient {
      * validade igual ao lease do login dele, portanto uma outra forma mais
      * dinâmica seria mais eficaz. No entanto, isso foge ao escopo dessa demo.
      */
-    LoginProcess process = null;
-    byte[] secret = null;
+    byte[] data = null;
     try {
-      FileReader freader = new FileReader(file);
-      BufferedReader breader = new BufferedReader(freader);
+      File file = new File(path);
+      FileInputStream is = new FileInputStream(file);
       try {
-        process =
-          LoginProcessHelper.narrow(orb.string_to_object(breader.readLine()));
-        secret = breader.readLine().getBytes();
-        breader.close();
+        int length = (int) file.length();
+        data = new byte[length];
+        int offset = is.read(data);
+        while (offset < length) {
+          int read = is.read(data, offset, length - offset);
+          if (read < 0) {
+            System.err.println("Não foi possível ler todo o arquivo");
+            System.exit(1);
+          }
+          offset += read;
+        }
       }
       finally {
-        breader.close();
+        is.close();
       }
     }
     catch (IOException e) {
@@ -99,8 +119,9 @@ public class SharedAuthClient {
 
     ServiceOfferDesc[] services;
     try {
+      SharedAuthSecret secret = context.decodeSharedAuthSecret(data);
       // autentica-se no barramento
-      connection.loginBySharedAuth(process, secret);
+      connection.loginBySharedAuth(secret);
       // busca por serviço
       ServiceProperty[] properties = new ServiceProperty[1];
       properties[0] = new ServiceProperty("offer.domain", "Demo Hello");
@@ -141,6 +162,12 @@ public class SharedAuthClient {
       if (e.minor == NoLoginCode.value) {
         System.err.println("não há um login válido no momento");
       }
+      System.exit(1);
+      return;
+    }
+    catch (InvalidEncodedStream e) {
+      System.err
+        .println("erro ao decodificar compartilhamento de autenticação");
       System.exit(1);
       return;
     }

@@ -28,11 +28,14 @@ import tecgraf.openbus.CallDispatchCallback;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.SharedAuthSecret;
 import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
 import tecgraf.openbus.core.v2_0.credential.SignedCallChainHelper;
 import tecgraf.openbus.core.v2_0.data_export.CurrentVersion;
 import tecgraf.openbus.core.v2_0.data_export.ExportedCallChain;
 import tecgraf.openbus.core.v2_0.data_export.ExportedCallChainHelper;
+import tecgraf.openbus.core.v2_0.data_export.ExportedSharedAuth;
+import tecgraf.openbus.core.v2_0.data_export.ExportedSharedAuthHelper;
 import tecgraf.openbus.core.v2_0.data_export.ExportedVersion;
 import tecgraf.openbus.core.v2_0.data_export.ExportedVersionSeqHelper;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
@@ -42,7 +45,7 @@ import tecgraf.openbus.core.v2_0.services.access_control.InvalidLogins;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
-import tecgraf.openbus.exception.InvalidChainStream;
+import tecgraf.openbus.exception.InvalidEncodedStream;
 import tecgraf.openbus.exception.InvalidPropertyValue;
 import tecgraf.openbus.exception.OpenBusInternalException;
 
@@ -403,16 +406,8 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       byte[] encodedChain = codec.encode_value(anyChain);
       ExportedVersion[] exports =
         new ExportedVersion[] { new ExportedVersion(CurrentVersion.value,
-          encodedChain), };
-      Any any = orb.create_any();
-      ExportedVersionSeqHelper.insert(any, exports);
-      byte[] encodedExport = codec.encode_value(any);
-
-      byte[] fullEnconding = new byte[encodedExport.length + MAGIC_TAG_SIZE];
-      System.arraycopy(MTAG_CALLCHAIN, 0, fullEnconding, 0, MAGIC_TAG_SIZE);
-      System.arraycopy(encodedExport, 0, fullEnconding, MAGIC_TAG_SIZE,
-        encodedExport.length);
-      return fullEnconding;
+          encodedChain) };
+      return encodeExportedVersions(exports, MTAG_CALLCHAIN);
     }
     catch (InvalidTypeForEncoding e) {
       String message =
@@ -426,38 +421,144 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * {@inheritDoc}
    */
   @Override
-  public CallerChain decodeChain(byte[] encoded) throws InvalidChainStream {
+  public CallerChain decodeChain(byte[] encoded) throws InvalidEncodedStream {
+    ORBMediator mediator = ORBUtils.getMediator(orb);
+    Codec codec = mediator.getCodec();
+    try {
+      ExportedVersion[] exports =
+        decodeExportedVersions(encoded, MTAG_CALLCHAIN);
+      for (ExportedVersion export : exports) {
+        if (export.version == CurrentVersion.value) {
+          Any exported =
+            codec.decode_value(export.encoded, ExportedCallChainHelper.type());
+          ExportedCallChain importing =
+            ExportedCallChainHelper.extract(exported);
+          Any anyChain =
+            codec.decode_value(importing.signedChain.encoded, CallChainHelper
+              .type());
+          CallChain chain = CallChainHelper.extract(anyChain);
+          return new CallerChainImpl(importing.bus, chain.target, chain.caller,
+            chain.originators, importing.signedChain);
+        }
+      }
+    }
+    catch (UserException e) {
+      String message = "Falha inesperada ao decodificar uma cadeia exportada.";
+      logger.log(Level.SEVERE, message, e);
+      throw new InvalidEncodedStream(message, e);
+    }
+    throw new InvalidEncodedStream("Versão de cadeia incompatível");
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public byte[] encodeSharedAuthSecret(SharedAuthSecret secret) {
+    ORBMediator mediator = ORBUtils.getMediator(orb);
+    Codec codec = mediator.getCodec();
+    try {
+      Any anySecret = orb.create_any();
+      SharedAuthSecretImpl secretImpl = (SharedAuthSecretImpl) secret;
+      ExportedSharedAuthHelper.insert(anySecret, new ExportedSharedAuth(
+        secretImpl.busid(), secretImpl.attempt(), secretImpl.secret()));
+      byte[] encodedSecret = codec.encode_value(anySecret);
+      ExportedVersion[] exports =
+        new ExportedVersion[] { new ExportedVersion(CurrentVersion.value,
+          encodedSecret) };
+      return encodeExportedVersions(exports, MTAG_SHAREDAUTH);
+    }
+    catch (InvalidTypeForEncoding e) {
+      String message =
+        "Falha inesperada ao codificar uma cadeia para exportação";
+      logger.log(Level.SEVERE, message, e);
+      throw new OpenBusInternalException(message, e);
+    }
+  };
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public SharedAuthSecret decodeSharedAuthSecret(byte[] encoded)
+    throws InvalidEncodedStream {
+    ORBMediator mediator = ORBUtils.getMediator(orb);
+    Codec codec = mediator.getCodec();
+    try {
+      ExportedVersion[] exports =
+        decodeExportedVersions(encoded, MTAG_SHAREDAUTH);
+      for (ExportedVersion export : exports) {
+        if (export.version == CurrentVersion.value) {
+          Any exported =
+            codec.decode_value(export.encoded, ExportedSharedAuthHelper.type());
+          ExportedSharedAuth secret =
+            ExportedSharedAuthHelper.extract(exported);
+          return new SharedAuthSecretImpl(secret.bus, secret.attempt,
+            secret.secret, this);
+        }
+      }
+    }
+    catch (UserException e) {
+      String message = "Falha inesperada ao decodificar uma cadeia exportada.";
+      logger.log(Level.SEVERE, message, e);
+      throw new InvalidEncodedStream(message, e);
+    }
+    throw new InvalidEncodedStream("Versão de cadeia incompatível");
+
+  };
+
+  /**
+   * Codifica um conjunto de dados no formato padrão de exportação.
+   * 
+   * @param exports dados a serem codificados
+   * @param tag a tag de associação da semântica do dado
+   * @return o dado condificado.
+   */
+  private byte[] encodeExportedVersions(ExportedVersion[] exports, byte[] tag) {
+    ORBMediator mediator = ORBUtils.getMediator(orb);
+    Codec codec = mediator.getCodec();
+    try {
+      Any any = orb.create_any();
+      ExportedVersionSeqHelper.insert(any, exports);
+      byte[] encodedExport = codec.encode_value(any);
+      byte[] fullEnconding = new byte[encodedExport.length + MAGIC_TAG_SIZE];
+      System.arraycopy(tag, 0, fullEnconding, 0, MAGIC_TAG_SIZE);
+      System.arraycopy(encodedExport, 0, fullEnconding, MAGIC_TAG_SIZE,
+        encodedExport.length);
+      return fullEnconding;
+    }
+    catch (InvalidTypeForEncoding e) {
+      String message = "Falha inesperada ao codificar dado para exportação";
+      logger.log(Level.SEVERE, message, e);
+      throw new OpenBusInternalException(message, e);
+    }
+  }
+
+  /**
+   * Decodifica um conjunto de dados no formato padrão de exportação.
+   * 
+   * @param encoded o dado a ser decodificado
+   * @param magictag a semântica esperada do dado
+   * @return o conjunto de dados decodificado.
+   * @throws InvalidEncodedStream
+   */
+  private ExportedVersion[] decodeExportedVersions(byte[] encoded,
+    byte[] magictag) throws InvalidEncodedStream {
     String errormsg =
-      "Stream de bytes não corresponde a uma cadeia de chamadas.";
+      "Stream de bytes não corresponde ao tipo de dado esperado.";
     if (encoded.length > MAGIC_TAG_SIZE) {
       byte[] tag = new byte[MAGIC_TAG_SIZE];
       byte[] encodedExport = new byte[encoded.length - MAGIC_TAG_SIZE];
       System.arraycopy(encoded, 0, tag, 0, MAGIC_TAG_SIZE);
       System.arraycopy(encoded, MAGIC_TAG_SIZE, encodedExport, 0,
         encodedExport.length);
-      if (Arrays.equals(MTAG_CALLCHAIN, tag)) {
+      if (Arrays.equals(magictag, tag)) {
         try {
           ORBMediator mediator = ORBUtils.getMediator(orb);
           Codec codec = mediator.getCodec();
           Any anyexports =
             codec.decode_value(encodedExport, ExportedVersionSeqHelper.type());
-          ExportedVersion[] exports =
-            ExportedVersionSeqHelper.extract(anyexports);
-          for (ExportedVersion export : exports) {
-            if (export.version == CurrentVersion.value) {
-              Any exported =
-                codec.decode_value(export.encoded, ExportedCallChainHelper
-                  .type());
-              ExportedCallChain importing =
-                ExportedCallChainHelper.extract(exported);
-              Any anyChain =
-                codec.decode_value(importing.signedChain.encoded,
-                  CallChainHelper.type());
-              CallChain chain = CallChainHelper.extract(anyChain);
-              return new CallerChainImpl(importing.bus, chain.target,
-                chain.caller, chain.originators, importing.signedChain);
-            }
-          }
+          return ExportedVersionSeqHelper.extract(anyexports);
         }
         catch (UserException e) {
           String message =
@@ -467,13 +568,12 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
         }
       }
       else {
-        throw new InvalidChainStream(errormsg);
+        throw new InvalidEncodedStream(errormsg);
       }
     }
     else {
-      throw new InvalidChainStream(errormsg);
+      throw new InvalidEncodedStream(errormsg);
     }
-    throw new InvalidChainStream("Versão de cadeia incompatível");
   }
 
   /**

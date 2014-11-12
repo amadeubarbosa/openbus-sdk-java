@@ -26,12 +26,12 @@ import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
+import tecgraf.openbus.SharedAuthSecret;
 import tecgraf.openbus.core.Session.ClientSideSession;
 import tecgraf.openbus.core.Session.ServerSideSession;
 import tecgraf.openbus.core.v1_05.access_control_service.IAccessControlService;
 import tecgraf.openbus.core.v2_0.BusObjectKey;
 import tecgraf.openbus.core.v2_0.EncryptedBlockHolder;
-import tecgraf.openbus.core.v2_0.OctetSeqHolder;
 import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessControl;
@@ -406,15 +406,15 @@ final class ConnectionImpl implements Connection {
    * {@inheritDoc}
    */
   @Override
-  public LoginProcess startSharedAuth(OctetSeqHolder secret)
-    throws ServiceFailure {
+  public SharedAuthSecret startSharedAuth() throws ServiceFailure {
     EncryptedBlockHolder challenge = new EncryptedBlockHolder();
     LoginProcess process = null;
+    byte[] secret = null;
     Connection previousConnection = context.getCurrentConnection();
     try {
       context.setCurrentConnection(this);
       process = this.access().startLoginBySharedAuth(challenge);
-      secret.value = crypto.decrypt(challenge.value, this.privateKey);
+      secret = crypto.decrypt(challenge.value, this.privateKey);
     }
     catch (CryptographyException e) {
       process.cancel();
@@ -424,25 +424,26 @@ final class ConnectionImpl implements Connection {
     finally {
       context.setCurrentConnection(previousConnection);
     }
-    return process;
+    return new SharedAuthSecretImpl(busid(), process, secret, context);
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public void loginBySharedAuth(LoginProcess process, byte[] secret)
+  public void loginBySharedAuth(SharedAuthSecret secret)
     throws AlreadyLoggedIn, ServiceFailure, AccessDenied, InvalidLoginProcess {
     checkLoggedIn();
-    this.context.ignoreThread();
-    initBusReferencesBeforeLogin();
-    byte[] encryptedLoginAuthenticationInfo =
-      this.generateEncryptedLoginAuthenticationInfo(secret);
-    IntHolder validity = new IntHolder();
     LoginInfo newLogin;
     try {
+      this.context.ignoreThread();
+      initBusReferencesBeforeLogin();
+      SharedAuthSecretImpl sharedAuth = (SharedAuthSecretImpl) secret;
+      byte[] encryptedLoginAuthenticationInfo =
+        this.generateEncryptedLoginAuthenticationInfo(sharedAuth.secret());
+      IntHolder validity = new IntHolder();
       newLogin =
-        process.login(this.publicKey.getEncoded(),
+        sharedAuth.attempt().login(this.publicKey.getEncoded(),
           encryptedLoginAuthenticationInfo, validity);
       localLogin(newLogin, validity.value);
     }
