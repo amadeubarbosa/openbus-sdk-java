@@ -20,7 +20,9 @@ import org.omg.CORBA.ORB;
 import org.omg.CORBA.TCKind;
 import org.omg.CORBA.UserException;
 import org.omg.IOP.Codec;
+import org.omg.IOP.CodecPackage.FormatMismatch;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
+import org.omg.IOP.CodecPackage.TypeMismatch;
 import org.omg.PortableInterceptor.Current;
 import org.omg.PortableInterceptor.InvalidSlot;
 
@@ -470,7 +472,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     }
     catch (InvalidTypeForEncoding e) {
       String message =
-        "Falha inesperada ao codificar uma cadeia para exportação";
+        "Falha inesperada ao codificar um segredo para exportação";
       logger.log(Level.SEVERE, message, e);
       throw new OpenBusInternalException(message, e);
     }
@@ -499,11 +501,11 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       }
     }
     catch (UserException e) {
-      String message = "Falha inesperada ao decodificar uma cadeia exportada.";
+      String message = "Falha inesperada ao decodificar um segredo exportado.";
       logger.log(Level.SEVERE, message, e);
       throw new InvalidEncodedStream(message, e);
     }
-    throw new InvalidEncodedStream("Versão de cadeia incompatível");
+    throw new InvalidEncodedStream("Versão de segredo incompatível");
 
   };
 
@@ -513,25 +515,20 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * @param exports dados a serem codificados
    * @param tag a tag de associação da semântica do dado
    * @return o dado condificado.
+   * @throws InvalidTypeForEncoding
    */
-  private byte[] encodeExportedVersions(ExportedVersion[] exports, byte[] tag) {
+  private byte[] encodeExportedVersions(ExportedVersion[] exports, byte[] tag)
+    throws InvalidTypeForEncoding {
     ORBMediator mediator = ORBUtils.getMediator(orb);
     Codec codec = mediator.getCodec();
-    try {
-      Any any = orb.create_any();
-      ExportedVersionSeqHelper.insert(any, exports);
-      byte[] encodedExport = codec.encode_value(any);
-      byte[] fullEnconding = new byte[encodedExport.length + MAGIC_TAG_SIZE];
-      System.arraycopy(tag, 0, fullEnconding, 0, MAGIC_TAG_SIZE);
-      System.arraycopy(encodedExport, 0, fullEnconding, MAGIC_TAG_SIZE,
-        encodedExport.length);
-      return fullEnconding;
-    }
-    catch (InvalidTypeForEncoding e) {
-      String message = "Falha inesperada ao codificar dado para exportação";
-      logger.log(Level.SEVERE, message, e);
-      throw new OpenBusInternalException(message, e);
-    }
+    Any any = orb.create_any();
+    ExportedVersionSeqHelper.insert(any, exports);
+    byte[] encodedExport = codec.encode_value(any);
+    byte[] fullEnconding = new byte[encodedExport.length + MAGIC_TAG_SIZE];
+    System.arraycopy(tag, 0, fullEnconding, 0, MAGIC_TAG_SIZE);
+    System.arraycopy(encodedExport, 0, fullEnconding, MAGIC_TAG_SIZE,
+      encodedExport.length);
+    return fullEnconding;
   }
 
   /**
@@ -541,11 +538,11 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * @param magictag a semântica esperada do dado
    * @return o conjunto de dados decodificado.
    * @throws InvalidEncodedStream
+   * @throws TypeMismatch
+   * @throws FormatMismatch
    */
   private ExportedVersion[] decodeExportedVersions(byte[] encoded,
-    byte[] magictag) throws InvalidEncodedStream {
-    String errormsg =
-      "Stream de bytes não corresponde ao tipo de dado esperado.";
+    byte[] magictag) throws InvalidEncodedStream, FormatMismatch, TypeMismatch {
     if (encoded.length > MAGIC_TAG_SIZE) {
       byte[] tag = new byte[MAGIC_TAG_SIZE];
       byte[] encodedExport = new byte[encoded.length - MAGIC_TAG_SIZE];
@@ -553,27 +550,16 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       System.arraycopy(encoded, MAGIC_TAG_SIZE, encodedExport, 0,
         encodedExport.length);
       if (Arrays.equals(magictag, tag)) {
-        try {
-          ORBMediator mediator = ORBUtils.getMediator(orb);
-          Codec codec = mediator.getCodec();
-          Any anyexports =
-            codec.decode_value(encodedExport, ExportedVersionSeqHelper.type());
-          return ExportedVersionSeqHelper.extract(anyexports);
-        }
-        catch (UserException e) {
-          String message =
-            "Falha inesperada ao decodificar uma cadeia exportada.";
-          logger.log(Level.SEVERE, message, e);
-          throw new OpenBusInternalException(message, e);
-        }
-      }
-      else {
-        throw new InvalidEncodedStream(errormsg);
+        ORBMediator mediator = ORBUtils.getMediator(orb);
+        Codec codec = mediator.getCodec();
+        Any anyexports =
+          codec.decode_value(encodedExport, ExportedVersionSeqHelper.type());
+        return ExportedVersionSeqHelper.extract(anyexports);
       }
     }
-    else {
-      throw new InvalidEncodedStream(errormsg);
-    }
+    String errormsg =
+      "Stream de bytes não corresponde ao tipo de dado esperado.";
+    throw new InvalidEncodedStream(errormsg);
   }
 
   /**
