@@ -46,6 +46,7 @@ import tecgraf.openbus.core.v2_0.credential.SignedCallChainHelper;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper;
+import tecgraf.openbus.core.v2_0.services.access_control.InvalidChainCode;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidCredentialCode;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidLoginCode;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidLogins;
@@ -220,7 +221,8 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         String message =
           "Impossível construir credencial: joined em cadeia 1.5 e sem suporte a legacy";
         logger.severe(message);
-        throw new INTERNAL(message);
+        throw new NO_PERMISSION(message, InvalidChainCode.value,
+          CompletionStatus.COMPLETED_NO);
       }
       // salvando informações da conexão e login que foram utilizados no request
       int uniqueId = mediator.getUniqueId();
