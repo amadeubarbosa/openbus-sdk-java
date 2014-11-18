@@ -5,7 +5,7 @@
   <groupId>br.puc-rio.tecgraf.openbus</groupId>
   <artifactId>openbus-sdk</artifactId>
   <packaging>pom</packaging>
-  <version>2.0.2-SNAPSHOT</version>
+  <version>2.0.2.0</version>
 
 
   <name>OpenBus - SDK</name>
@@ -42,10 +42,10 @@
 
   <scm>
     <developerConnection>
-        scm:svn:https://subversion.tecgraf.puc-rio.br/engdist/openbus/sdk/java/branches/02_00_02
+        scm:svn:https://subversion.tecgraf.puc-rio.br/engdist/openbus/sdk/java/tags/02_00_02_00
     </developerConnection>
     <url>
-        scm:svn:https://subversion.tecgraf.puc-rio.br/viewvc/engdist/openbus/sdk/java/branches/02_00_02
+        scm:svn:https://subversion.tecgraf.puc-rio.br/viewvc/engdist/openbus/sdk/java/tags/02_00_02_00
     </url>
   </scm>
 
