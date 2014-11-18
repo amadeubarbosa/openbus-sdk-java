@@ -31,6 +31,8 @@ import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.SharedAuthSecret;
+import tecgraf.openbus.core.CallerChainImpl.ChainType;
+import tecgraf.openbus.core.v2_0.OctetSeqHolder;
 import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
 import tecgraf.openbus.core.v2_0.credential.SignedCallChainHelper;
 import tecgraf.openbus.core.v2_0.data_export.CurrentVersion;
@@ -40,10 +42,14 @@ import tecgraf.openbus.core.v2_0.data_export.ExportedSharedAuth;
 import tecgraf.openbus.core.v2_0.data_export.ExportedSharedAuthHelper;
 import tecgraf.openbus.core.v2_0.data_export.ExportedVersion;
 import tecgraf.openbus.core.v2_0.data_export.ExportedVersionSeqHelper;
+import tecgraf.openbus.core.v2_0.data_export.LegacyExportedCallChain;
+import tecgraf.openbus.core.v2_0.data_export.LegacyExportedCallChainHelper;
+import tecgraf.openbus.core.v2_0.data_export.LegacyVersion;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper;
 import tecgraf.openbus.core.v2_0.services.access_control.InvalidLogins;
+import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
@@ -298,9 +304,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       Any busAny = this.orb.create_any();
       busAny.insert_string(chain.busid());
       current.set_slot(mediator.getJoinedBusSlotId(), busAny);
-      Any targetAny = this.orb.create_any();
-      targetAny.insert_string(chain.target());
-      current.set_slot(mediator.getJoinedChainTargetSlotId(), targetAny);
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao obter o slot no PICurrent";
@@ -319,7 +322,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       ORBMediator mediator = ORBUtils.getMediator(orb);
       Any any = this.orb.create_any();
       current.set_slot(mediator.getJoinedChainSlotId(), any);
-      current.set_slot(mediator.getJoinedChainTargetSlotId(), any);
       current.set_slot(mediator.getJoinedBusSlotId(), any);
     }
     catch (InvalidSlot e) {
@@ -339,20 +341,16 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       ORBMediator mediator = ORBUtils.getMediator(orb);
       Any anybus = current.get_slot(mediator.getJoinedBusSlotId());
       Any anyschain = current.get_slot(mediator.getJoinedChainSlotId());
-      Any anytarget = current.get_slot(mediator.getJoinedChainTargetSlotId());
 
       if ((anybus.type().kind().value() != TCKind._tk_null)
-        && (anyschain.type().kind().value() != TCKind._tk_null)
-        && (anytarget.type().kind().value() != TCKind._tk_null)) {
+        && (anyschain.type().kind().value() != TCKind._tk_null)) {
         String busId = anybus.extract_string();
-        String target = anytarget.extract_string();
         SignedCallChain signedChain = SignedCallChainHelper.extract(anyschain);
         Any chain =
           mediator.getCodec().decode_value(signedChain.encoded,
             CallChainHelper.type());
         CallChain callChain = CallChainHelper.extract(chain);
-        return new CallerChainImpl(busId, target, callChain.caller,
-          callChain.originators, signedChain);
+        return new CallerChainImpl(busId, callChain, signedChain);
       }
       return null;
     }
@@ -374,23 +372,58 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
   @Override
   public CallerChain makeChainFor(String loginId) throws InvalidLogins,
     ServiceFailure {
+    Exception error = null;
     ConnectionImpl conn = (ConnectionImpl) getCurrentConnection();
     String busid = conn.busid();
-    SignedCallChain signedChain = conn.access().signChainFor(loginId);
+
     try {
-      ORBMediator mediator = ORBUtils.getMediator(orb);
-      Any anyChain =
-        mediator.getCodec().decode_value(signedChain.encoded,
-          CallChainHelper.type());
-      CallChain callChain = CallChainHelper.extract(anyChain);
-      return new CallerChainImpl(busid, callChain.target, callChain.caller,
-        callChain.originators, signedChain);
+      CallerChainImpl joined = (CallerChainImpl) getJoinedChain();
+      if (joined == null
+        || joined.type().equals(CallerChainImpl.ChainType.CHAIN_2_0)) {
+        SignedCallChain signedChain = conn.access().signChainFor(loginId);
+        ORBMediator mediator = ORBUtils.getMediator(orb);
+        Any anyChain =
+          mediator.getCodec().decode_value(signedChain.encoded,
+            CallChainHelper.type());
+        CallChain callChain = CallChainHelper.extract(anyChain);
+        return new CallerChainImpl(busid, callChain, signedChain);
+      }
+      else {
+        String target =
+          conn.cache.logins.getLoginEntity(loginId, new OctetSeqHolder());
+        String delegate;
+        LoginInfo[] jorigs = joined.originators();
+        if (jorigs != null && jorigs.length > 0
+          && conn.isLegacyDelegateSetToOriginator()) {
+          delegate = jorigs[0].entity;
+        }
+        else {
+          delegate = joined.caller().entity;
+        }
+        LoginInfo[] originators = new LoginInfo[1];
+        originators[0] = new LoginInfo("<unknown>", delegate);
+        CallChain callChain = new CallChain(target, originators, conn.login());
+        SignedCallChain signedChain =
+          LegacySupport.buildLegacySignedChain(callChain, orb, ORBUtils
+            .getMediator(orb).getCodec());
+        return new CallerChainImpl(busid, callChain, signedChain);
+      }
     }
-    catch (UserException e) {
-      String message = "Falha inesperada ao criar uma nova cadeia.";
-      logger.log(Level.SEVERE, message, e);
-      throw new OpenBusInternalException(message, e);
+    catch (FormatMismatch e) {
+      error = e;
+      // tratamento comum realizado fora do catch
     }
+    catch (TypeMismatch e) {
+      error = e;
+      // tratamento comum realizado fora do catch
+    }
+    catch (InvalidTypeForEncoding e) {
+      error = e;
+      // tratamento comum realizado fora do catch
+    }
+    String errormsg = "Falha inesperada ao criar uma nova cadeia.";
+    logger.log(Level.SEVERE, errormsg, error);
+    throw new OpenBusInternalException(errormsg, error);
   };
 
   /**
@@ -398,17 +431,22 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    */
   @Override
   public byte[] encodeChain(CallerChain chain) {
-    ORBMediator mediator = ORBUtils.getMediator(orb);
-    Codec codec = mediator.getCodec();
+    ExportedVersion[] exports;
+    int idx = 0;
+    CallerChainImpl chainImpl = (CallerChainImpl) chain;
+    ChainType type = chainImpl.type();
     try {
-      Any anyChain = orb.create_any();
-      CallerChainImpl chainImpl = (CallerChainImpl) chain;
-      ExportedCallChainHelper.insert(anyChain, new ExportedCallChain(chain
-        .busid(), chainImpl.signedCallChain()));
-      byte[] encodedChain = codec.encode_value(anyChain);
-      ExportedVersion[] exports =
-        new ExportedVersion[] { new ExportedVersion(CurrentVersion.value,
-          encodedChain) };
+      if (type.equals(ChainType.CHAIN_2_0)) {
+        exports = new ExportedVersion[2];
+        byte[] encodedChain = encodeToExported(chainImpl);
+        exports[idx] = new ExportedVersion(CurrentVersion.value, encodedChain);
+        idx++;
+      }
+      else {
+        exports = new ExportedVersion[1];
+      }
+      byte[] encodedChain = encodeToLegacyExported(chainImpl);
+      exports[idx] = new ExportedVersion(LegacyVersion.value, encodedChain);
       return encodeExportedVersions(exports, MTAG_CALLCHAIN);
     }
     catch (InvalidTypeForEncoding e) {
@@ -417,6 +455,45 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       logger.log(Level.SEVERE, message, e);
       throw new OpenBusInternalException(message, e);
     }
+  }
+
+  /**
+   * Codifica uma cadeia para o formato de exportação.
+   * 
+   * @param chain a cadeia a ser exportada
+   * @return a codificação da cadeia no formato legado
+   * @throws InvalidTypeForEncoding
+   */
+  private byte[] encodeToExported(CallerChainImpl chain)
+    throws InvalidTypeForEncoding {
+    ORBMediator mediator = ORBUtils.getMediator(orb);
+    Codec codec = mediator.getCodec();
+    Any anyChain = orb.create_any();
+    ExportedCallChainHelper.insert(anyChain, new ExportedCallChain(chain
+      .busid(), chain.signedCallChain()));
+    return codec.encode_value(anyChain);
+  }
+
+  /**
+   * Codifica uma cadeia para o formato legado de exportação.
+   * 
+   * @param chain a cadeia a ser exportada
+   * @return a codificação da cadeia no formato legado
+   * @throws InvalidTypeForEncoding
+   */
+  private byte[] encodeToLegacyExported(CallerChain chain)
+    throws InvalidTypeForEncoding {
+    ORBMediator mediator = ORBUtils.getMediator(orb);
+    Codec codec = mediator.getCodec();
+    Any anyChain = orb.create_any();
+    String delegate = "";
+    LoginInfo[] originators = chain.originators();
+    if (originators.length > 0) {
+      delegate = originators[0].entity;
+    }
+    LegacyExportedCallChainHelper.insert(anyChain, new LegacyExportedCallChain(
+      chain.busid(), chain.target(), chain.caller(), delegate));
+    return codec.encode_value(anyChain);
   }
 
   /**
@@ -439,8 +516,28 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
             codec.decode_value(importing.signedChain.encoded, CallChainHelper
               .type());
           CallChain chain = CallChainHelper.extract(anyChain);
-          return new CallerChainImpl(importing.bus, chain.target, chain.caller,
-            chain.originators, importing.signedChain);
+          return new CallerChainImpl(importing.bus, chain,
+            importing.signedChain);
+        }
+        else if (export.version == LegacyVersion.value) {
+          Any exported =
+            codec.decode_value(export.encoded, LegacyExportedCallChainHelper
+              .type());
+          LegacyExportedCallChain legacy =
+            LegacyExportedCallChainHelper.extract(exported);
+          LoginInfo[] originators;
+          if (!legacy.delegate.equals("")) {
+            originators = new LoginInfo[1];
+            originators[0] = new LoginInfo("<unknown>", legacy.delegate);
+          }
+          else {
+            originators = new LoginInfo[0];
+          }
+          CallChain callChain =
+            new CallChain(legacy.target, originators, legacy.caller);
+          SignedCallChain signedChain =
+            LegacySupport.buildLegacySignedChain(callChain, orb, codec);
+          return new CallerChainImpl(legacy.bus, callChain, signedChain);
         }
       }
     }
@@ -456,7 +553,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * {@inheritDoc}
    */
   @Override
-  public byte[] encodeSharedAuthSecret(SharedAuthSecret secret) {
+  public byte[] encodeSharedAuth(SharedAuthSecret secret) {
     ORBMediator mediator = ORBUtils.getMediator(orb);
     Codec codec = mediator.getCodec();
     try {
@@ -482,7 +579,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * {@inheritDoc}
    */
   @Override
-  public SharedAuthSecret decodeSharedAuthSecret(byte[] encoded)
+  public SharedAuthSecret decodeSharedAuth(byte[] encoded)
     throws InvalidEncodedStream {
     ORBMediator mediator = ORBUtils.getMediator(orb);
     Codec codec = mediator.getCodec();

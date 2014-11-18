@@ -190,9 +190,10 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           credential.login = loginId;
           credential.session = -1;
           credential.ticket = -1;
-          credential.hash = LEGACY_HASH;
+          credential.hash = LegacySupport.LEGACY_HASH;
           credential.chain =
-            new SignedCallChain(LEGACY_ENCRYPTED_BLOCK, encodedCallChain);
+            new SignedCallChain(LegacySupport.LEGACY_ENCRYPTED_BLOCK,
+              encodedCallChain);
           // salvando informações no wrapper
           wrapper.isLegacy = true;
           wrapper.credential = credential;
@@ -518,7 +519,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   private boolean validateCredential(CredentialData credential,
     ServerRequestInfo ri, ConnectionImpl conn) {
-    if (Arrays.equals(credential.hash, LEGACY_HASH)) {
+    if (Arrays.equals(credential.hash, LegacySupport.LEGACY_HASH)) {
       // credencial OpenBus 1.5
       logger.finest("Credencial OpenBus 1.5");
       return true;
@@ -560,7 +561,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
 
     if (chain != null) {
       CallChain callChain = unmarshallSignedChain(chain, logger);
-      if (!Arrays.equals(chain.signature, LEGACY_ENCRYPTED_BLOCK)) {
+      if (!Arrays.equals(chain.signature, LegacySupport.LEGACY_ENCRYPTED_BLOCK)) {
         try {
           boolean verified =
             crypto.verifySignature(busPubKey, chain.encoded, chain.signature);

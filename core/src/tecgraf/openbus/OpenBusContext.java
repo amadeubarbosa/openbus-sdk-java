@@ -310,7 +310,7 @@ public interface OpenBusContext {
    * @param secret Segredo de autenticação compartilhada a ser codificado.
    * @return Cadeia codificada em um stream de bytes.
    */
-  byte[] encodeSharedAuthSecret(SharedAuthSecret secret);
+  byte[] encodeSharedAuth(SharedAuthSecret secret);
 
   /**
    * Decodifica um segredo de autenticação compartilhada (
@@ -324,7 +324,7 @@ public interface OpenBusContext {
    * @throws InvalidEncodedStream Caso a stream de bytes não seja do formato
    *         esperado.
    */
-  SharedAuthSecret decodeSharedAuthSecret(byte[] encoded)
+  SharedAuthSecret decodeSharedAuth(byte[] encoded)
     throws InvalidEncodedStream;
 
   /**

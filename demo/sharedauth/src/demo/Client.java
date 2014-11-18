@@ -99,7 +99,7 @@ public final class Client {
        * mais eficaz. No entanto, isso foge ao escopo dessa demo.
        */
       SharedAuthSecret secret = connection.startSharedAuth();
-      byte[] data = context.encodeSharedAuthSecret(secret);
+      byte[] data = context.encodeSharedAuth(secret);
       FileOutputStream out = null;
       try {
         out = new FileOutputStream(file);

@@ -44,7 +44,6 @@ public final class InternalJacORBInitializer extends LocalObject implements
     int currentThreadSlotId = info.allocate_slot_id();
     int ignoreThreadSlotId = info.allocate_slot_id();
     int joinedChainSlotId = info.allocate_slot_id();
-    int joinedChainTargetSlotId = info.allocate_slot_id();
     int joinedBusSlotId = info.allocate_slot_id();
     int busSlotId = info.allocate_slot_id();
     int requestIdSlotId = info.allocate_slot_id();
@@ -62,8 +61,7 @@ public final class InternalJacORBInitializer extends LocalObject implements
     }
     ORBMediator mediator =
       new ORBMediator(codec, signedChainSlotId, joinedChainSlotId,
-        joinedChainTargetSlotId, joinedBusSlotId, busSlotId, requestIdSlotId,
-        context);
+        joinedBusSlotId, busSlotId, requestIdSlotId, context);
     try {
       info.register_initial_reference(ORBMediator.INITIAL_REFERENCE_ID,
         mediator);

@@ -428,6 +428,73 @@ public final class OpenBusContextTest {
     conn3.logout();
   }
 
+  @Test(expected = NO_PERMISSION.class)
+  public void makeChainForJoinedLegacyTest() throws AccessDenied,
+    AlreadyLoggedIn, ServiceFailure, InvalidLogins, InvalidTypeForEncoding,
+    UnknownEncoding, InvalidName, MissingCertificate {
+    Connection conn1 = context.createConnection(hostName, hostPort);
+    String actor1 = "actor-1";
+    conn1.loginByPassword(actor1, actor1.getBytes());
+    Connection conn2 = context.createConnection(hostName, hostPort);
+    String actor2 = "actor-2";
+    conn2.loginByPassword(actor2, actor2.getBytes());
+    Connection conn3 = context.createConnection(hostName, hostPort);
+    String actor3 = "actor-3";
+    conn3.loginByPassword(actor3, actor3.getBytes());
+
+    try {
+      String delegate = "";
+      CallerChain legacyChain =
+        buildFakeLegacyCallChain(conn1.busid(), conn1.login(), actor2, delegate);
+      context.setCurrentConnection(conn2);
+      context.joinChain(legacyChain);
+      CallerChain joined2to3 = context.makeChainFor(conn3.login().id);
+    }
+    finally {
+      context.exitChain();
+      conn1.logout();
+      conn2.logout();
+      conn3.logout();
+    }
+  }
+
+  @Test
+  public void makeChainForJoinedLegacyWithDelegateTest() throws AccessDenied,
+    AlreadyLoggedIn, ServiceFailure, InvalidLogins, InvalidTypeForEncoding,
+    UnknownEncoding, InvalidName, MissingCertificate {
+    Connection conn1 = context.createConnection(hostName, hostPort);
+    String actor1 = "actor-1";
+    conn1.loginByPassword(actor1, actor1.getBytes());
+    Connection conn2 = context.createConnection(hostName, hostPort);
+    conn2.loginByCertificate(serverEntity, privateKey);
+    Connection conn3 = context.createConnection(hostName, hostPort);
+    String actor3 = "actor-3";
+    conn3.loginByPassword(actor3, actor3.getBytes());
+
+    try {
+      String delegate = "user1";
+      CallerChain legacyChain =
+        buildFakeLegacyCallChain(conn1.busid(), conn1.login(), serverEntity,
+          delegate);
+      context.setCurrentConnection(conn2);
+      context.joinChain(legacyChain);
+      CallerChain joined2to3 = context.makeChainFor(conn3.login().id);
+      assertEquals(conn2.busid(), joined2to3.busid());
+      assertEquals(actor3, joined2to3.target());
+      assertEquals(serverEntity, joined2to3.caller().entity);
+      assertEquals(conn2.login().id, joined2to3.caller().id);
+      assertTrue(joined2to3.originators().length > 0);
+      assertEquals(actor1, joined2to3.originators()[0].entity);
+      assertEquals("<unknown>", joined2to3.originators()[0].id);
+    }
+    finally {
+      context.exitChain();
+      conn1.logout();
+      conn2.logout();
+      conn3.logout();
+    }
+  }
+
   @Test
   public void makeChainForInvalidLoginTest() throws AccessDenied,
     AlreadyLoggedIn, ServiceFailure, InvalidLogins {
@@ -612,15 +679,47 @@ public final class OpenBusContextTest {
   }
 
   @Test
+  public void encodeAndDecodeLegacyChain() throws Exception {
+    Connection conn = context.createConnection(hostName, hostPort);
+    conn.loginByPassword(entity, password.getBytes());
+    LoginInfo login = conn.login();
+    String busid = conn.busid();
+    conn.logout();
+    String delegate = "";
+    String target = "anyone";
+    CallerChain legacyChain =
+      buildFakeLegacyCallChain(busid, login, target, delegate);
+    byte[] encodeChain = context.encodeChain(legacyChain);
+    CallerChain decodedChain = context.decodeChain(encodeChain);
+    assertEquals(busid, decodedChain.busid());
+    assertEquals(target, decodedChain.target());
+    assertEquals(login.entity, decodedChain.caller().entity);
+    assertEquals(login.id, decodedChain.caller().id);
+    assertEquals(0, decodedChain.originators().length);
+
+    delegate = "user-orgin";
+    legacyChain = buildFakeLegacyCallChain(busid, login, target, delegate);
+    byte[] encodedChainDelegated = context.encodeChain(legacyChain);
+    CallerChain delegatedChain = context.decodeChain(encodedChainDelegated);
+    assertEquals(busid, delegatedChain.busid());
+    assertEquals(target, delegatedChain.target());
+    assertEquals(login.entity, delegatedChain.caller().entity);
+    assertEquals(login.id, delegatedChain.caller().id);
+    assertEquals(1, delegatedChain.originators().length);
+    assertEquals(delegate, delegatedChain.originators()[0].entity);
+    assertEquals("<unknown>", delegatedChain.originators()[0].id);
+  }
+
+  @Test
   public void encodeAndDecodeSharedAuth() throws Exception {
     Connection conn = context.createConnection(hostName, hostPort);
     conn.loginByPassword(entity, password.getBytes());
     try {
       context.setCurrentConnection(conn);
       SharedAuthSecret secret = conn.startSharedAuth();
-      byte[] data = context.encodeSharedAuthSecret(secret);
+      byte[] data = context.encodeSharedAuth(secret);
       Connection conn2 = context.createConnection(hostName, hostPort);
-      SharedAuthSecret secret2 = context.decodeSharedAuthSecret(data);
+      SharedAuthSecret secret2 = context.decodeSharedAuth(data);
       conn2.loginBySharedAuth(secret2);
       assertNotNull(conn2.login());
       assertFalse(conn.login().id.equals(conn2.login().id));
@@ -639,7 +738,7 @@ public final class OpenBusContextTest {
     try {
       context.setCurrentConnection(conn);
       secret = conn.startSharedAuth();
-      byte[] data = context.encodeSharedAuthSecret(secret);
+      byte[] data = context.encodeSharedAuth(secret);
       context.decodeChain(data);
     }
     finally {
@@ -662,7 +761,7 @@ public final class OpenBusContextTest {
       context.setCurrentConnection(conn1);
       CallerChain chain1For2 = context.makeChainFor(login2);
       byte[] data = context.encodeChain(chain1For2);
-      context.decodeSharedAuthSecret(data);
+      context.decodeSharedAuth(data);
     }
     finally {
       context.setCurrentConnection(null);
@@ -690,6 +789,24 @@ public final class OpenBusContextTest {
     byte[] encodedCallChain = getCodec(orb).encode_value(anyCallChain);
     return new CallerChainImpl(busid, target, caller, originators,
       new SignedCallChain(new byte[256], encodedCallChain));
+  }
+
+  private CallerChain buildFakeLegacyCallChain(String busid, LoginInfo caller,
+    String target, String delegate) throws InvalidTypeForEncoding,
+    UnknownEncoding, InvalidName {
+    LoginInfo[] originators;
+    if (delegate != null) {
+      originators = new LoginInfo[1];
+      originators[0] = new LoginInfo("<unknown>", delegate);
+    }
+    else {
+      originators = new LoginInfo[0];
+    }
+    CallChain callChain = new CallChain(target, originators, caller);
+    SignedCallChain signedChain =
+      LegacySupport.buildLegacySignedChain(callChain, orb, getCodec(orb));
+    return new CallerChainImpl(busid, callChain.target, callChain.caller,
+      callChain.originators, signedChain);
   }
 
 }

@@ -1,7 +1,10 @@
 package tecgraf.openbus.core;
 
+import java.util.Arrays;
+
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
+import tecgraf.openbus.core.v2_0.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 
 /**
@@ -32,10 +35,28 @@ final class CallerChainImpl implements CallerChain {
    * Informação de login da entidade que iniciou a chamada.
    */
   private LoginInfo caller;
+
   /**
    * A cadeia assinada desta {@link CallerChain}
    */
   private SignedCallChain signedChain;
+
+  /**
+   * Indicador de tipo interno desta cadeia
+   */
+  private ChainType type;
+
+  /**
+   * Construtor,
+   * 
+   * @param busid identificador do barramento.
+   * @param chain a cadeia de chamadas.
+   * @param signedChain a representação assinada da mesma cadeia.
+   */
+  public CallerChainImpl(String busid, CallChain chain,
+    SignedCallChain signedChain) {
+    this(busid, chain.target, chain.caller, chain.originators, signedChain);
+  }
 
   /**
    * Constutor.
@@ -55,6 +76,13 @@ final class CallerChainImpl implements CallerChain {
     this.caller = caller;
     this.originators = originators;
     this.signedChain = signedChain;
+    if (!Arrays.equals(LegacySupport.LEGACY_ENCRYPTED_BLOCK,
+      signedChain.signature)) {
+      this.type = ChainType.CHAIN_2_0;
+    }
+    else {
+      this.type = ChainType.CHAIN_1_5;
+    }
   }
 
   /**
@@ -96,5 +124,26 @@ final class CallerChainImpl implements CallerChain {
    */
   protected SignedCallChain signedCallChain() {
     return this.signedChain;
+  }
+
+  /**
+   * Recupera a informação de tipo interno da Cadeia
+   * 
+   * @return o tipo interno da cadeia
+   */
+  protected ChainType type() {
+    return type;
+  }
+
+  /**
+   * Definição interna de tipo de cadeia
+   *
+   * @author Tecgraf/PUC-Rio
+   */
+  static enum ChainType {
+    /** Cadeia 2.0 */
+    CHAIN_2_0,
+    /** Cadeia Legada 1.5 */
+    CHAIN_1_5;
   }
 }

@@ -47,7 +47,7 @@ public final class Client {
 
       connection.loginByPassword(entity, entity.getBytes(Cryptography.CHARSET));
       SharedAuthSecret secret = connection.startSharedAuth();
-      byte[] encoded = context.encodeSharedAuthSecret(secret);
+      byte[] encoded = context.encodeSharedAuth(secret);
       File file = new File("sharedauth.dat");
       FileOutputStream fstream = new FileOutputStream(file);
       fstream.write(encoded);

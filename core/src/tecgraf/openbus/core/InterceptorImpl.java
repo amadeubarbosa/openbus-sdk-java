@@ -44,11 +44,6 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
   /** Cadeia nula assinada. */
   protected static final SignedCallChain NULL_SIGNED_CALL_CHAIN =
     new SignedCallChain(NULL_ENCRYPTED_BLOCK, new byte[0]);
-  /** Bloco nulo do suporte legado. */
-  protected static final byte[] LEGACY_ENCRYPTED_BLOCK =
-    new byte[ENCRYPTED_BLOCK_SIZE];
-  /** Hash do suporte legado. */
-  protected static final byte[] LEGACY_HASH = new byte[HASH_VALUE_SIZE];
 
   /** Nome */
   private String name;
@@ -64,8 +59,8 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
   protected InterceptorImpl(String name, ORBMediator mediator) {
     this.name = name;
     this.mediator = mediator;
-    Arrays.fill(LEGACY_ENCRYPTED_BLOCK, (byte) 0xff);
-    Arrays.fill(LEGACY_HASH, (byte) 0xff);
+    Arrays.fill(LegacySupport.LEGACY_ENCRYPTED_BLOCK, (byte) 0xff);
+    Arrays.fill(LegacySupport.LEGACY_HASH, (byte) 0xff);
   }
 
   /**

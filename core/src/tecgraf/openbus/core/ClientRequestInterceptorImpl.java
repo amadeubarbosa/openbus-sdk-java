@@ -132,7 +132,8 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
 
       boolean joinedToLegacy = false;
       SignedCallChain joinedChain = getSignedChain(ri);
-      if (Arrays.equals(joinedChain.signature, LEGACY_ENCRYPTED_BLOCK)) {
+      if (Arrays.equals(joinedChain.signature,
+        LegacySupport.LEGACY_ENCRYPTED_BLOCK)) {
         // joined com cadeia 1.5;
         joinedToLegacy = true;
       }
@@ -219,7 +220,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
 
       if (joinedToLegacy && !conn.legacy()) {
         String message =
-          "Impossível construir credencial: joined em cadeia 1.5 e sem suporte a legacy";
+          "Impossível construir credencial: joined em cadeia 1.5 e sem suporte legacy";
         logger.severe(message);
         throw new NO_PERMISSION(message, InvalidChainCode.value,
           CompletionStatus.COMPLETED_NO);
