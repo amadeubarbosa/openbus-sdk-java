@@ -5,14 +5,12 @@ import java.util.Properties;
 import org.omg.CORBA.ORB;
 import org.omg.PortableInterceptor.Current;
 
-import tecgraf.openbus.core.v2_1.credential.CredentialContextId;
-import tecgraf.openbus.core.v2_1.credential.ExportedCallChain;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidLogins;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
-import tecgraf.openbus.exception.InvalidChainStream;
+import tecgraf.openbus.exception.InvalidEncodedStream;
 import tecgraf.openbus.exception.InvalidPropertyValue;
 
 /**
@@ -358,11 +356,7 @@ public interface OpenBusContext {
    * bytes.
    * <p>
    * Codifica uma cadeia de chamadas em um stream de bytes para permitir a
-   * persistência ou transferência da informação. A codificação é realizada em
-   * CDR e possui um identificador de versão concatenado com as informações da
-   * cadeia ({@link CredentialContextId} + {@link ExportedCallChain}). Sendo
-   * assim, a stream só será decodificada com sucesso por alguém que entenda
-   * esta mesma codificação.
+   * persistência ou transferência da informação.
    * 
    * @param chain a cadeia a ser codificada.
    * @return a cadeia codificada em um stream de bytes.
@@ -374,17 +368,41 @@ public interface OpenBusContext {
    * {@link CallerChain}.
    * <p>
    * Decodifica um stream de bytes de uma cadeia para o formato
-   * {@link CallerChain}. Espera-se que a stream de bytes esteja codificada em
-   * CDR e seja formada por um identificador de versão concatenado com as
-   * informações da cadeia ({@link CredentialContextId} +
-   * {@link ExportedCallChain}).
+   * {@link CallerChain}.
    * 
    * @param encoded o stream de bytes que representam a cadeia
    * @return a cadeia de chamadas no formato {@link CallerChain}.
-   * @throws InvalidChainStream Caso a stream de bytes não seja do formato
+   * @throws InvalidEncodedStream Caso a stream de bytes não seja do formato
    *         esperado.
    */
-  CallerChain decodeChain(byte[] encoded) throws InvalidChainStream;
+  CallerChain decodeChain(byte[] encoded) throws InvalidEncodedStream;
+
+  /**
+   * \brief Codifica um segredo de autenticação compartilhada (
+   * {@link SharedAuthSecret}) para um stream de bytes.
+   * 
+   * Codifica um segredo de autenticação compartilhada em um stream de bytes
+   * para permitir a persistência ou transferência da informação.
+   * 
+   * @param secret Segredo de autenticação compartilhada a ser codificado.
+   * @return Cadeia codificada em um stream de bytes.
+   */
+  byte[] encodeSharedAuthSecret(SharedAuthSecret secret);
+
+  /**
+   * Decodifica um segredo de autenticação compartilhada (
+   * {@link SharedAuthSecret}) a partir de um stream de bytes.
+   * <p>
+   * Decodifica um segredo de autenticação compartilhada a partir de um stream
+   * de bytes.
+   * 
+   * @param encoded Stream de bytes contendo a codificação do segredo.
+   * @return Segredo de autenticação compartilhada decodificado.
+   * @throws InvalidEncodedStream Caso a stream de bytes não seja do formato
+   *         esperado.
+   */
+  SharedAuthSecret decodeSharedAuthSecret(byte[] encoded)
+    throws InvalidEncodedStream;
 
   /**
    * Referência ao serviço núcleo de registro de logins do barramento

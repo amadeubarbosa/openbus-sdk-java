@@ -112,41 +112,39 @@ public interface Connection {
    * pode ser chamada enquanto a conexão estiver autenticada, caso contrário a
    * exceção de sistema {@link NO_PERMISSION}[{@link NoLoginCode}] é lançada. As
    * informações fornecidas por essa operação devem ser passadas para a operação
-   * {@link #loginBySharedAuth(LoginProcess, byte[]) loginBySharedAuth} para
+   * {@link #loginBySharedAuth(SharedAuthSecret) loginBySharedAuth} para
    * conclusão do processo de login por autenticação compartilhada. Isso deve
    * ser feito dentro do tempo de lease definido pelo administrador do
    * barramento. Caso contrário essas informações se tornam inválidas e não
    * podem mais ser utilizadas para criar um login.
    * 
-   * @param secret Segredo a ser fornecido na conclusão do processo de login.
-   * 
-   * @return Objeto que represeta o processo de login iniciado.
+   * @return Segredo a ser fornecido na conclusão do processo de login.
    * 
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu a obtenção do objeto de login e segredo.
    */
-  LoginProcess startSharedAuth(OctetSeqHolder secret) throws ServiceFailure;
+  SharedAuthSecret startSharedAuth() throws ServiceFailure;
 
   /**
    * Efetua login de uma entidade usando autenticação compartilhada.
    * <p>
-   * A autenticação compartilhada é feita a partir de informações obtidas a
-   * através da operação {@link #startSharedAuth(OctetSeqHolder)
-   * startSharedAuth} de uma conexão autenticada.
+   * A autenticação compartilhada é feita a partir de um segredo obtido através
+   * da operação {@link #startSharedAuth() startSharedAuth} de uma conexão
+   * autenticada.
    * 
-   * @param process Objeto que represeta o processo de login iniciado.
    * @param secret Segredo a ser fornecido na conclusão do processo de login.
    * 
-   * @exception InvalidLoginProcess O LoginProcess informado é inválido, por
-   *            exemplo depois de ser cancelado ou ter expirado.
+   * @exception InvalidLoginProcess A tentativa de login associada ao segredo
+   *            informado é inválido, por exemplo depois do segredo ser
+   *            cancelado, ter expirado, ou já ter sido utilizado.
    * @exception AlreadyLoggedIn A conexão já está autenticada.
    * @exception AccessDenied O segredo fornecido não corresponde ao esperado
    *            pelo barramento.
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu a autenticação da conexão.
    */
-  void loginBySharedAuth(LoginProcess process, byte[] secret)
-    throws AlreadyLoggedIn, InvalidLoginProcess, AccessDenied, ServiceFailure;
+  void loginBySharedAuth(SharedAuthSecret secret) throws AlreadyLoggedIn,
+    InvalidLoginProcess, AccessDenied, ServiceFailure;
 
   /**
    * Efetua logout da conexão, tornando o login atual inválido.
@@ -160,9 +158,7 @@ public interface Connection {
    * desautenticada.
    * 
    * @return <code>true</code> se o processo de logout for concluído com êxito e
-   *         <code>false</code> se a conexão já estiver desautenticada (login
-   *         inválido) ou se houver uma falha durante o processo remoto do
-   *         logout.
+   *         <code>false</code> se não for possível invalidar o login atual.
    * 
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento durante chamada ao remota.
@@ -186,6 +182,13 @@ public interface Connection {
    * Neste caso, a chamada do barramento que recebeu a notificação de login
    * inválido é refeita usando o novo login, caso contrário, a chamada original
    * lança a exceção de de sistema {@link NO_PERMISSION}[{@link NoLoginCode}].
+   * <p>
+   * Importante observar que a primeira chamada remota que esta callback
+   * realizar <b>deve</b> ser uma tentativa de autenticação junto ao barramento
+   * (loginBy*). Caso a callback realize qualquer outra chamada remota, a mesma
+   * potencialmenete ocasionará um laço infinito, pois esta outra chamada irá
+   * falhar, devido ao login invalidado, e chamará novamente a callback para
+   * tentar refazer a autenticação.
    * 
    * @param callback Objeto que implementa a interface de callback a ser chamada
    *        ou <code>null</code> caso nenhum objeto deva ser chamado na

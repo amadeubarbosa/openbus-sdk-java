@@ -79,6 +79,7 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
   }
 
   /**
+<<<<<<< .working
    * Recupera o ORB associado ao interceptador
    * 
    * @return o ORB
@@ -94,6 +95,15 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
    */
   protected final Codec codec() {
     return mediator.getCodec();
+  }
+
+  /**
+   * Recupera o contexto associado ao interceptador.
+   * 
+   * @return o contexto
+   */
+  protected final OpenBusContextImpl context() {
+    return this.mediator.getContext();
   }
 
   /**

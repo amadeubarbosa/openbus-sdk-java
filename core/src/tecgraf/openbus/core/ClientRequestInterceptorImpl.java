@@ -1,12 +1,17 @@
 package tecgraf.openbus.core;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.omg.CORBA.Any;
+import org.omg.CORBA.BAD_PARAM;
 import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.NO_PERMISSION;
@@ -14,7 +19,6 @@ import org.omg.CORBA.NO_PERMISSIONHelper;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.SystemException;
 import org.omg.CORBA.TCKind;
-import org.omg.CORBA.ORBPackage.InvalidName;
 import org.omg.IOP.ServiceContext;
 import org.omg.IOP.CodecPackage.FormatMismatch;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
@@ -82,28 +86,25 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
   }
 
   /**
-   * Informa se a requisição está configurada para ignorar a interceptação.
+   * Verifica se o booleando do slot está configurado.
    * 
    * @param ri informação da requisição
-   * @return <code>true</code> se a requisição deve ser ignorada e
-   *         <code>false</code> caso contrário.
+   * @param slotId identificador do slot
+   * @return <code>true</code> se o slot esta ativado, e <code>false</code> caso
+   *         contrário.
    */
-  private boolean isIgnoringThread(ClientRequestInfo ri) {
-    OpenBusContextImpl manager;
+  private boolean checkSlotIdFlag(ClientRequestInfo ri, int slotId) {
     try {
-      org.omg.CORBA.Object obj =
-        orb().resolve_initial_references("OpenBusContext");
-      manager = (OpenBusContextImpl) obj;
+      Any any = ri.get_slot(slotId);
+      if (any.type().kind().value() != TCKind._tk_null) {
+        return any.extract_boolean();
+      }
+      return false;
     }
-    catch (InvalidName e) {
-      String message = "Falha inesperada ao obter o multiplexador";
-      logger.log(Level.SEVERE, message, e);
+    catch (InvalidSlot e) {
+      String message = "Falha inesperada ao acessar slot";
       throw new INTERNAL(message);
     }
-    if (manager.isCurrentThreadIgnored(ri)) {
-      return true;
-    }
-    return false;
   }
 
   /**
@@ -118,7 +119,22 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       return;
     }
     try {
-      logger.finest(String.format("[in] send_request: %s", operation));
+      ORBMediator mediator = mediator();
+      ORB orb = mediator.getORB();
+      Codec codec = mediator.getCodec();
+      if (checkSlotIdFlag(ri, context().getIgnoreThreadSlotId())) {
+        logger.finest(String.format(
+          "Realizando chamada fora do barramento: operação (%s)", operation));
+        return;
+      }
+
+      boolean joinedToLegacy = false;
+      SignedCallChain joinedChain = getSignedChain(ri);
+      if (Arrays.equals(joinedChain.signature, LEGACY_ENCRYPTED_BLOCK)) {
+        // joined com cadeia 1.5;
+        joinedToLegacy = true;
+      }
+
       ConnectionImpl conn = (ConnectionImpl) this.getCurrentConnection(ri);
       LoginInfo currLogin = conn.getLogin();
       if (currLogin == null) {
@@ -138,7 +154,6 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       ServiceContext requestServiceContext =
         new ServiceContext(CredentialContextId.value, encodedCredential);
       ri.add_request_service_context(requestServiceContext, false);
-
       // salvando informações da conexão e login que foram utilizados no request
       ORBMediator mediator = mediator();
       ORB orb = orb();
@@ -147,9 +162,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       uniqueAny.insert_long(uniqueId);
       try {
         Current current = ORBUtils.getPICurrent(orb);
-        current.set_slot(mediator.getUniqueIdSlot(), uniqueAny);
-        uniqueId2Conn.put(uniqueId, conn);
-        uniqueId2LoginId.put(uniqueId, holder.value.id);
+        current.set_slot(this.mediator().getRequestIdSlot(), uniqueAny);
+        requestId2Conn.put(uniqueId, conn);
+        requestId2LoginId.put(uniqueId, currLogin.id);
         logger.finest(String.format(
           "associando o ID '%d' com o login '%s'. operação (%s)", uniqueId,
           holder.value.id, operation));
@@ -251,8 +266,41 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
           .equals(curr.id));
         conn.cache.chains.put(key, callChain);
       }
-      holder.value = curr;
-      return callChain;
+      catch (SystemException e) {
+        String message =
+          String
+            .format("Erro durante acesso ao barramento (%s).", conn.busid());
+        logger.log(Level.SEVERE, message, e);
+        throw new NO_PERMISSION(message, UnavailableBusCode.value,
+          CompletionStatus.COMPLETED_NO);
+      }
+      catch (InvalidLogins e) {
+        Map<EffectiveProfile, String> cache = conn.cache.entities;
+        List<EffectiveProfile> toRemove = new ArrayList<EffectiveProfile>();
+        for (Entry<EffectiveProfile, String> entry : cache.entrySet()) {
+          if (target.equals(entry.getValue())) {
+            toRemove.add(entry.getKey());
+          }
+        }
+        for (EffectiveProfile ep : toRemove) {
+          cache.remove(ep);
+        }
+        String message =
+          String.format("Erro ao assinar cadeia para target: (%s)",
+            e.loginIds[0]);
+        logger.log(Level.SEVERE, message, e);
+        throw new NO_PERMISSION(message, InvalidTargetCode.value,
+          CompletionStatus.COMPLETED_NO);
+      }
+      catch (ServiceFailure e) {
+        String message =
+          String
+            .format(
+              "Falha inesperada ao assinar uma cadeia de chamadas para o target (%s)",
+              target);
+        logger.log(Level.SEVERE, message, e);
+        throw new INTERNAL(message);
+      }
     }
     catch (SystemException e) {
       String message =
@@ -286,7 +334,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
   private SignedData getJoinedChain(ClientRequestInfo ri) {
     SignedData callChain;
     try {
-      Any any = ri.get_slot(mediator().getJoinedChainSlotId());
+      Any any = ri.get_slot(this.mediator().getJoinedChainSlotId());
       if (any.type().kind().value() != TCKind._tk_null) {
         callChain = SignedDataHelper.extract(any);
       }
@@ -317,7 +365,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
   public void receive_reply(ClientRequestInfo ri) {
     String operation = ri.operation();
     logger.finest(String.format("[in] receive_reply: %s", operation));
-    if (!isIgnoringThread(ri)) {
+    if (!checkSlotIdFlag(ri, context().getIgnoreThreadSlotId())) {
       int uniqueId = getRequestUniqueId();
       String login = clearRequestUniqueId(uniqueId);
       logger.fine(String.format(
@@ -355,12 +403,24 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
 
         case InvalidCredentialCode.value:
           EffectiveProfile ep = new EffectiveProfile(ri.effective_profile());
-          ServiceContext context =
-            ri.get_reply_service_context(CredentialContextId.value);
-          if (context.context_data == null) {
+          byte[] context_data = null;
+          try {
+            ServiceContext context =
+              ri.get_reply_service_context(CredentialContextId.value);
+            context_data = context.context_data;
+          }
+          catch (BAD_PARAM e) {
+            if (e.minor == 26) {
+              // request's service context does not contain an entry for that ID.
+            }
+            else {
+              throw e;
+            }
+          }
+          if (context_data == null) {
             // não recebeu o credential reset
             String message =
-              "Servidor chamado é inválido (servidor não enviou o CredentialReset para negociar sessão)";
+              "Servidor não enviou o CredentialReset para negociar sessão)";
             logger.info(message);
             throw new NO_PERMISSION(message, InvalidRemoteCode.value,
               CompletionStatus.COMPLETED_NO);
@@ -393,46 +453,87 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
           catch (CryptographyException e) {
             String message = "Falha inesperada ao descriptografar segredo.";
             logger.log(Level.SEVERE, message, e);
-            throw new INTERNAL(message);
+            throw new NO_PERMISSION(message, InvalidRemoteCode.value,
+              CompletionStatus.COMPLETED_NO);
           }
           conn.cache.entities.put(ep, target);
           conn.cache.cltSessions.put(target, new ClientSideSession(
             reset.session, secret, target));
           logger.finest(String.format(
-            "Associando profile_data '%s'a entidade '%s'", ep, target));
-          logger.finest(String.format("Associando entidade '%s'a sessão '%s'",
-            target, reset.session));
-          logger.finest(String.format("ForwardRequest após reset: %s", ri
-            .operation()));
+            "ForwardRequest após reset: login (%s) operação (%s)", loginId, ri
+              .operation()));
           throw new ForwardRequest(ri.target());
 
         case InvalidLoginCode.value:
-          LoginInfo info = conn.login();
-          if (info != null && loginId.equals(info.id)) {
-            conn.localLogout(true);
+          logger.finest(String.format("InvalidLogin: login (%s) operação (%s)",
+            loginId, ri.operation()));
+          boolean skipInvLogin =
+            checkSlotIdFlag(ri, context().getSkipInvalidLoginSlotId());
+          if (!skipInvLogin) {
+            int validity = 0;
+            try {
+              context().ignoreInvLogin();
+              validity = context().getLoginRegistry().getLoginValidity(loginId);
+            }
+            catch (NO_PERMISSION e) {
+              if (e.minor == InvalidLoginCode.value) {
+                LoginInfo curr = conn.login();
+                if (curr != null && curr.id.equals(loginId)) {
+                  conn.localLogout(true);
+                }
+                logger.finest(String.format(
+                  "ForwardRequest: login (%s) operação (%s)", loginId, ri
+                    .operation()));
+                throw new ForwardRequest(ri.target());
+              }
+              else {
+                String msg =
+                  String.format(
+                    "Erro em validação de login: login (%s) operação (%s)",
+                    loginId, ri.operation());
+                logger.log(Level.SEVERE, msg, e);
+                throw new NO_PERMISSION(msg, UnavailableBusCode.value,
+                  CompletionStatus.COMPLETED_NO);
+              }
+            }
+            catch (Exception e) {
+              String msg =
+                String.format(
+                  "Erro em validação de login: login (%s) operação (%s)",
+                  loginId, ri.operation());
+              logger.log(Level.SEVERE, msg, e);
+              throw new NO_PERMISSION(msg, UnavailableBusCode.value,
+                CompletionStatus.COMPLETED_NO);
+            }
+            finally {
+              context().unignoreInvLogin();
+            }
+            if (validity > 0) {
+              String msg =
+                String.format(
+                  "InvalidLogin equivocado: login (%s) operação (%s)", loginId,
+                  ri.operation());
+              logger.info(msg);
+              throw new NO_PERMISSION(msg, InvalidRemoteCode.value,
+                CompletionStatus.COMPLETED_NO);
+            }
+            else {
+              logger.finest(String.format(
+                "ForwardRequest: login (%s) operação (%s)", loginId, ri
+                  .operation()));
+              throw new ForwardRequest(ri.target());
+            }
           }
-          logger.info(String.format("Recebeu exceção InvalidLogin: %s", ri
-            .operation()));
-          // tenta refazer o login.
-          LoginInfo afterLogin = conn.getLogin();
-          if (afterLogin == null) {
-            throw new NO_PERMISSION("Callback não refez o login da conexão.",
-              NoLoginCode.value, CompletionStatus.COMPLETED_NO);
-          }
-
-          // callback conseguiu refazer o login
-          logger.finest(String.format("ForwardRequest após callback: %s", ri
-            .operation()));
-          throw new ForwardRequest(ri.target());
+          break;
 
         case NoLoginCode.value:
         case UnavailableBusCode.value:
         case InvalidTargetCode.value:
         case InvalidRemoteCode.value:
           String message =
-            "Servidor chamado repassou uma exceção NO_PERMISSION local: minor = %d";
+            "Servidor repassou uma exceção NO_PERMISSION local: minor = %d";
           String msg = String.format(message, exception.minor);
-          logger.info(msg);
+          logger.log(Level.WARNING, msg, exception);
           throw new NO_PERMISSION(msg, InvalidRemoteCode.value,
             CompletionStatus.COMPLETED_NO);
 
@@ -447,10 +548,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     }
     finally {
       if (uniqueId != null) {
-        String login = clearRequestUniqueId(uniqueId);
-        logger.finest(String.format(
-          "Descartando associação do ID '%d' com o login '%s'. operação (%s)",
-          uniqueId, login, ri.operation()));
+        this.requestId2Conn.remove(uniqueId);
+        this.requestId2LoginId.remove(uniqueId);
+        clearRequestUniqueId();
       }
       logger.finest(String.format("[out] receive_exception: %s", operation));
     }

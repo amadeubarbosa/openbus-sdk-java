@@ -10,7 +10,7 @@ import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.exception.InvalidChainStream;
+import tecgraf.openbus.exception.InvalidEncodedStream;
 import tecgraf.openbus.interop.simple.Hello;
 import tecgraf.openbus.interop.simple.HelloHelper;
 
@@ -28,7 +28,7 @@ public class ProxyImpl extends HelloProxyPOA {
     try {
       chain = context.decodeChain(encodedChain);
     }
-    catch (InvalidChainStream e) {
+    catch (InvalidEncodedStream e) {
       e.printStackTrace();
       throw new IllegalArgumentException("Cadeia em formato inválido", e);
     }

@@ -1,5 +1,6 @@
 package tecgraf.openbus.core;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,21 +20,26 @@ import org.omg.CORBA.ORB;
 import org.omg.CORBA.TCKind;
 import org.omg.CORBA.UserException;
 import org.omg.IOP.Codec;
+import org.omg.IOP.CodecPackage.FormatMismatch;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
+import org.omg.IOP.CodecPackage.TypeMismatch;
 import org.omg.PortableInterceptor.Current;
 import org.omg.PortableInterceptor.InvalidSlot;
-import org.omg.PortableInterceptor.RequestInfo;
 
 import tecgraf.openbus.CallDispatchCallback;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
-import tecgraf.openbus.core.v2_1.BusObjectKey;
-import tecgraf.openbus.core.v2_1.credential.CredentialContextId;
-import tecgraf.openbus.core.v2_1.credential.ExportedCallChain;
-import tecgraf.openbus.core.v2_1.credential.ExportedCallChainHelper;
-import tecgraf.openbus.core.v2_1.credential.SignedData;
-import tecgraf.openbus.core.v2_1.credential.SignedDataHelper;
+import tecgraf.openbus.SharedAuthSecret;
+import tecgraf.openbus.core.v2_1.credential.SignedCallChain;
+import tecgraf.openbus.core.v2_1.credential.SignedCallChainHelper;
+import tecgraf.openbus.core.v2_1.data_export.CurrentVersion;
+import tecgraf.openbus.core.v2_1.data_export.ExportedCallChain;
+import tecgraf.openbus.core.v2_1.data_export.ExportedCallChainHelper;
+import tecgraf.openbus.core.v2_1.data_export.ExportedSharedAuth;
+import tecgraf.openbus.core.v2_1.data_export.ExportedSharedAuthHelper;
+import tecgraf.openbus.core.v2_1.data_export.ExportedVersion;
+import tecgraf.openbus.core.v2_1.data_export.ExportedVersionSeqHelper;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChainHelper;
@@ -41,7 +47,7 @@ import tecgraf.openbus.core.v2_1.services.access_control.InvalidLogins;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
-import tecgraf.openbus.exception.InvalidChainStream;
+import tecgraf.openbus.exception.InvalidEncodedStream;
 import tecgraf.openbus.exception.InvalidPropertyValue;
 import tecgraf.openbus.exception.OpenBusInternalException;
 
@@ -56,16 +62,22 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
   private static final Logger logger = Logger
     .getLogger(OpenBusContextImpl.class.getName());
 
-  /**
-   * Constante que define o tamanho em bytes da codificação do identificador da
-   * versão da cadeia de chamadas exportada.
-   */
-  private static final int CHAIN_HEADER_SIZE = 8;
+  /** Tamanho da tag de identificação de dado exportado. */
+  private static final int MAGIC_TAG_SIZE = 4;
+  /** Tag de cadeia */
+  private static final byte[] MTAG_CALLCHAIN =
+    new byte[] { 'B', 'U', 'S', 0x01 };
+  /** Tag de compartilhamento de autenticação */
+  private static final byte[] MTAG_SHAREDAUTH = new byte[] { 'B', 'U', 'S',
+      0x02 };
 
   /** Identificador do slot de conexao corrente */
   private final int CURRENT_CONNECTION_SLOT_ID;
   /** Identificador do slot de interceptação ignorada */
   private final int IGNORE_THREAD_SLOT_ID;
+  /** Identificador de slot de flag sobre callback OnInvalidLogin */
+  private int SKIP_INVLOGIN_SLOT_ID;
+
   /** Mapa de conexão por Requester */
   private Map<Integer, Connection> connectedById;
   /** Conexão padrão */
@@ -89,12 +101,15 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * 
    * @param currentConnectionSlotId identificador do slot da conexão corrente
    * @param ignoreThreadSlotId identificador do slot de interceptação ignorada.
+   * @param invLoginSlotId identificador de slot de invalid login
    */
-  public OpenBusContextImpl(int currentConnectionSlotId, int ignoreThreadSlotId) {
+  public OpenBusContextImpl(int currentConnectionSlotId,
+    int ignoreThreadSlotId, int invLoginSlotId) {
     this.connectedById =
       Collections.synchronizedMap(new HashMap<Integer, Connection>());
     this.CURRENT_CONNECTION_SLOT_ID = currentConnectionSlotId;
     this.IGNORE_THREAD_SLOT_ID = ignoreThreadSlotId;
+    this.SKIP_INVLOGIN_SLOT_ID = invLoginSlotId;
   }
 
   /**
@@ -194,7 +209,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
   /**
    * Recupera a chave do slot de identificação da conexão corrente.
    * 
-   * @return a chave do slot.s
+   * @return a chave do slot
    */
   int getCurrentConnectionSlotId() {
     return this.CURRENT_CONNECTION_SLOT_ID;
@@ -288,24 +303,21 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
   public CallerChain getCallerChain() {
     Current current = ORBUtils.getPICurrent(orb);
     ORBMediator mediator = ORBUtils.getMediator(orb);
-    String busId;
-    CallChain callChain;
-    SignedData signedChain;
     try {
-      Any any = current.get_slot(mediator.getBusSlotId());
-      if (any.type().kind().value() == TCKind._tk_null) {
-        return null;
+      Any busany = current.get_slot(mediator.getBusSlotId());
+      Any signedany = current.get_slot(mediator.getSignedChainSlotId());
+      if ((busany.type().kind().value() != TCKind._tk_null)
+        && (signedany.type().kind().value() != TCKind._tk_null)) {
+        String busId = busany.extract_string();
+        SignedCallChain signedChain = SignedCallChainHelper.extract(signedany);
+        Any anyChain =
+          mediator.getCodec().decode_value(signedChain.encoded,
+            CallChainHelper.type());
+        CallChain callChain = CallChainHelper.extract(anyChain);
+        return new CallerChainImpl(busId, callChain.target, callChain.caller,
+          callChain.originators, signedChain);
       }
-      busId = any.extract_string();
-      any = current.get_slot(mediator.getSignedChainSlotId());
-      if (any.type().kind().value() == TCKind._tk_null) {
-        return null;
-      }
-      signedChain = SignedDataHelper.extract(any);
-      Any anyChain =
-        mediator.getCodec().decode_value(signedChain.encoded,
-          CallChainHelper.type());
-      callChain = CallChainHelper.extract(anyChain);
+      return null;
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao obter o slot no PICurrent";
@@ -317,8 +329,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       logger.log(Level.SEVERE, message, e);
       throw new OpenBusInternalException(message, e);
     }
-    return new CallerChainImpl(busId, callChain.target, callChain.caller,
-      callChain.originators, signedChain);
   }
 
   /**
@@ -387,29 +397,24 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     try {
       Current current = ORBUtils.getPICurrent(orb);
       ORBMediator mediator = ORBUtils.getMediator(orb);
+      Any anybus = current.get_slot(mediator.getJoinedBusSlotId());
+      Any anyschain = current.get_slot(mediator.getJoinedChainSlotId());
+      Any anytarget = current.get_slot(mediator.getJoinedChainTargetSlotId());
 
-      Any any = current.get_slot(mediator.getJoinedBusSlotId());
-      if (any.type().kind().value() == TCKind._tk_null) {
-        return null;
+      if ((anybus.type().kind().value() != TCKind._tk_null)
+        && (anyschain.type().kind().value() != TCKind._tk_null)
+        && (anytarget.type().kind().value() != TCKind._tk_null)) {
+        String busId = anybus.extract_string();
+        String target = anytarget.extract_string();
+        SignedCallChain signedChain = SignedCallChainHelper.extract(anyschain);
+        Any chain =
+          mediator.getCodec().decode_value(signedChain.encoded,
+            CallChainHelper.type());
+        CallChain callChain = CallChainHelper.extract(chain);
+        return new CallerChainImpl(busId, target, callChain.caller,
+          callChain.originators, signedChain);
       }
-      String busId = any.extract_string();
-
-      any = current.get_slot(mediator.getJoinedChainSlotId());
-      if (any.type().kind().value() == TCKind._tk_null) {
-        return null;
-      }
-      SignedData signedChain = SignedDataHelper.extract(any);
-      Any anyChain =
-        mediator.getCodec().decode_value(signedChain.encoded,
-          CallChainHelper.type());
-      CallChain callChain = CallChainHelper.extract(anyChain);
-      any = current.get_slot(mediator.getJoinedChainTargetSlotId());
-      if (any.type().kind().value() == TCKind._tk_null) {
-        return null;
-      }
-      String target = any.extract_string();
-      return new CallerChainImpl(busId, target, callChain.caller,
-        callChain.originators, signedChain);
+      return null;
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao obter o slot no PICurrent";
@@ -455,17 +460,16 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
   public byte[] encodeChain(CallerChain chain) {
     ORBMediator mediator = ORBUtils.getMediator(orb);
     Codec codec = mediator.getCodec();
-    Any anyChain = orb.create_any();
-    CallerChainImpl chainImpl = (CallerChainImpl) chain;
-    ExportedCallChainHelper.insert(anyChain, new ExportedCallChain(chain
-      .busid(), chainImpl.signedCallChain()));
-    byte[] encodedChain;
-    Any anyId = orb.create_any();
-    anyId.insert_long(CredentialContextId.value);
-    byte[] encodedId;
     try {
-      encodedChain = codec.encode_value(anyChain);
-      encodedId = codec.encode_value(anyId);
+      Any anyChain = orb.create_any();
+      CallerChainImpl chainImpl = (CallerChainImpl) chain;
+      ExportedCallChainHelper.insert(anyChain, new ExportedCallChain(chain
+        .busid(), chainImpl.signedCallChain()));
+      byte[] encodedChain = codec.encode_value(anyChain);
+      ExportedVersion[] exports =
+        new ExportedVersion[] { new ExportedVersion(CurrentVersion.value,
+          encodedChain) };
+      return encodeExportedVersions(exports, MTAG_CALLCHAIN);
     }
     catch (InvalidTypeForEncoding e) {
       String message =
@@ -473,59 +477,149 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       logger.log(Level.SEVERE, message, e);
       throw new OpenBusInternalException(message, e);
     }
-    byte[] fullEnconding = new byte[encodedChain.length + encodedId.length];
-    System.arraycopy(encodedId, 0, fullEnconding, 0, encodedId.length);
-    System.arraycopy(encodedChain, 0, fullEnconding, encodedId.length,
-      encodedChain.length);
-    return fullEnconding;
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public CallerChain decodeChain(byte[] encoded) throws InvalidChainStream {
-    if (encoded.length <= CHAIN_HEADER_SIZE) {
-      String msg = "Stream de bytes não corresponde a uma cadeia de chamadas.";
-      throw new InvalidChainStream(msg);
-    }
+  public CallerChain decodeChain(byte[] encoded) throws InvalidEncodedStream {
     ORBMediator mediator = ORBUtils.getMediator(orb);
     Codec codec = mediator.getCodec();
-    ExportedCallChain importedChain;
-    CallChain callChain;
-
-    byte[] encodedId = new byte[CHAIN_HEADER_SIZE];
-    byte[] encodedChain = new byte[encoded.length - CHAIN_HEADER_SIZE];
-    System.arraycopy(encoded, 0, encodedId, 0, encodedId.length);
-    System.arraycopy(encoded, encodedId.length, encodedChain, 0,
-      encodedChain.length);
     try {
-      Any anyId =
-        codec.decode_value(encodedId, orb.get_primitive_tc(TCKind.tk_long));
-      int id = anyId.extract_long();
-      if (CredentialContextId.value != id) {
-        String msg =
-          String
-            .format(
-              "Formato da cadeia é de versão incompatível.\nFormato recebido = %i\nFormato suportado = %i",
-              id, CredentialContextId.value);
-        throw new InvalidChainStream(msg);
+      ExportedVersion[] exports =
+        decodeExportedVersions(encoded, MTAG_CALLCHAIN);
+      for (ExportedVersion export : exports) {
+        if (export.version == CurrentVersion.value) {
+          Any exported =
+            codec.decode_value(export.encoded, ExportedCallChainHelper.type());
+          ExportedCallChain importing =
+            ExportedCallChainHelper.extract(exported);
+          Any anyChain =
+            codec.decode_value(importing.signedChain.encoded, CallChainHelper
+              .type());
+          CallChain chain = CallChainHelper.extract(anyChain);
+          return new CallerChainImpl(importing.bus, chain.target, chain.caller,
+            chain.originators, importing.signedChain);
+        }
       }
-      Any anyExportedChain =
-        codec.decode_value(encodedChain, ExportedCallChainHelper.type());
-      importedChain = ExportedCallChainHelper.extract(anyExportedChain);
-      Any anyChain =
-        mediator.getCodec().decode_value(importedChain.signedChain.encoded,
-          CallChainHelper.type());
-      callChain = CallChainHelper.extract(anyChain);
     }
     catch (UserException e) {
       String message = "Falha inesperada ao decodificar uma cadeia exportada.";
       logger.log(Level.SEVERE, message, e);
+      throw new InvalidEncodedStream(message, e);
+    }
+    throw new InvalidEncodedStream("Versão de cadeia incompatível");
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public byte[] encodeSharedAuthSecret(SharedAuthSecret secret) {
+    ORBMediator mediator = ORBUtils.getMediator(orb);
+    Codec codec = mediator.getCodec();
+    try {
+      Any anySecret = orb.create_any();
+      SharedAuthSecretImpl secretImpl = (SharedAuthSecretImpl) secret;
+      ExportedSharedAuthHelper.insert(anySecret, new ExportedSharedAuth(
+        secretImpl.busid(), secretImpl.attempt(), secretImpl.secret()));
+      byte[] encodedSecret = codec.encode_value(anySecret);
+      ExportedVersion[] exports =
+        new ExportedVersion[] { new ExportedVersion(CurrentVersion.value,
+          encodedSecret) };
+      return encodeExportedVersions(exports, MTAG_SHAREDAUTH);
+    }
+    catch (InvalidTypeForEncoding e) {
+      String message =
+        "Falha inesperada ao codificar um segredo para exportação";
+      logger.log(Level.SEVERE, message, e);
       throw new OpenBusInternalException(message, e);
     }
-    return new CallerChainImpl(importedChain.bus, callChain.target,
-      callChain.caller, callChain.originators, importedChain.signedChain);
+  };
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public SharedAuthSecret decodeSharedAuthSecret(byte[] encoded)
+    throws InvalidEncodedStream {
+    ORBMediator mediator = ORBUtils.getMediator(orb);
+    Codec codec = mediator.getCodec();
+    try {
+      ExportedVersion[] exports =
+        decodeExportedVersions(encoded, MTAG_SHAREDAUTH);
+      for (ExportedVersion export : exports) {
+        if (export.version == CurrentVersion.value) {
+          Any exported =
+            codec.decode_value(export.encoded, ExportedSharedAuthHelper.type());
+          ExportedSharedAuth secret =
+            ExportedSharedAuthHelper.extract(exported);
+          return new SharedAuthSecretImpl(secret.bus, secret.attempt,
+            secret.secret, this);
+        }
+      }
+    }
+    catch (UserException e) {
+      String message = "Falha inesperada ao decodificar um segredo exportado.";
+      logger.log(Level.SEVERE, message, e);
+      throw new InvalidEncodedStream(message, e);
+    }
+    throw new InvalidEncodedStream("Versão de segredo incompatível");
+
+  };
+
+  /**
+   * Codifica um conjunto de dados no formato padrão de exportação.
+   * 
+   * @param exports dados a serem codificados
+   * @param tag a tag de associação da semântica do dado
+   * @return o dado condificado.
+   * @throws InvalidTypeForEncoding
+   */
+  private byte[] encodeExportedVersions(ExportedVersion[] exports, byte[] tag)
+    throws InvalidTypeForEncoding {
+    ORBMediator mediator = ORBUtils.getMediator(orb);
+    Codec codec = mediator.getCodec();
+    Any any = orb.create_any();
+    ExportedVersionSeqHelper.insert(any, exports);
+    byte[] encodedExport = codec.encode_value(any);
+    byte[] fullEnconding = new byte[encodedExport.length + MAGIC_TAG_SIZE];
+    System.arraycopy(tag, 0, fullEnconding, 0, MAGIC_TAG_SIZE);
+    System.arraycopy(encodedExport, 0, fullEnconding, MAGIC_TAG_SIZE,
+      encodedExport.length);
+    return fullEnconding;
+  }
+
+  /**
+   * Decodifica um conjunto de dados no formato padrão de exportação.
+   * 
+   * @param encoded o dado a ser decodificado
+   * @param magictag a semântica esperada do dado
+   * @return o conjunto de dados decodificado.
+   * @throws InvalidEncodedStream
+   * @throws TypeMismatch
+   * @throws FormatMismatch
+   */
+  private ExportedVersion[] decodeExportedVersions(byte[] encoded,
+    byte[] magictag) throws InvalidEncodedStream, FormatMismatch, TypeMismatch {
+    if (encoded.length > MAGIC_TAG_SIZE) {
+      byte[] tag = new byte[MAGIC_TAG_SIZE];
+      byte[] encodedExport = new byte[encoded.length - MAGIC_TAG_SIZE];
+      System.arraycopy(encoded, 0, tag, 0, MAGIC_TAG_SIZE);
+      System.arraycopy(encoded, MAGIC_TAG_SIZE, encodedExport, 0,
+        encodedExport.length);
+      if (Arrays.equals(magictag, tag)) {
+        ORBMediator mediator = ORBUtils.getMediator(orb);
+        Codec codec = mediator.getCodec();
+        Any anyexports =
+          codec.decode_value(encodedExport, ExportedVersionSeqHelper.type());
+        return ExportedVersionSeqHelper.extract(anyexports);
+      }
+    }
+    String errormsg =
+      "Stream de bytes não corresponde ao tipo de dado esperado.";
+    throw new InvalidEncodedStream(errormsg);
   }
 
   /**
@@ -568,7 +662,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * Sinaliza que as requisições realizadas através desta thread não devem ser
    * interceptadas.
    */
-  void ignoreCurrentThread() {
+  void ignoreThread() {
     Any any = this.orb.create_any();
     any.insert_boolean(true);
     Current current = ORBUtils.getPICurrent(orb);
@@ -587,7 +681,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * Siznaliza que as requisições realizadas através desta thread devem voltar a
    * ser interceptadas.
    */
-  void unignoreCurrentThread() {
+  void unignoreThread() {
     Any any = this.orb.create_any();
     Current current = ORBUtils.getPICurrent(orb);
     try {
@@ -602,28 +696,58 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
   }
 
   /**
-   * Verifica se a requisição corrente esta configurada para ignorar a
-   * interceptação ou não.
+   * Recupera o identificador de slot que indica se deve ignorar a
+   * intereceptação ou não.
    * 
-   * @param ri informação da requisição.
-   * @return <code>true</code> caso a interceptação deve ser ignorada, e
-   *         <code>false</code> caso contrário.
+   * @return o identificador
    */
-  boolean isCurrentThreadIgnored(RequestInfo ri) {
-    Any any;
+  int getIgnoreThreadSlotId() {
+    return IGNORE_THREAD_SLOT_ID;
+  }
+
+  /**
+   * Sinaliza que as requisições realizadas através deste Current não devem
+   * tentar o relogin.
+   */
+  void ignoreInvLogin() {
+    Any any = this.orb.create_any();
+    any.insert_boolean(true);
+    Current current = ORBUtils.getPICurrent(orb);
     try {
-      any = ri.get_slot(IGNORE_THREAD_SLOT_ID);
+      current.set_slot(SKIP_INVLOGIN_SLOT_ID, any);
     }
     catch (InvalidSlot e) {
-      String message =
-        "Falha inesperada ao obter o slot de interceptação ignorada";
-      throw new INTERNAL(message);
+      String message = "Falha inesperada ao acessar o slot de callback";
+      logger.log(Level.SEVERE, message, e);
+      throw new OpenBusInternalException(message, e);
     }
-    if (any.type().kind().value() != TCKind._tk_null) {
-      boolean isIgnored = any.extract_boolean();
-      return isIgnored;
+  }
+
+  /**
+   * Siznaliza que as requisições realizadas através deste Current devem voltar
+   * a tentar o relogin.
+   */
+  void unignoreInvLogin() {
+    Any any = this.orb.create_any();
+    Current current = ORBUtils.getPICurrent(orb);
+    try {
+      current.set_slot(SKIP_INVLOGIN_SLOT_ID, any);
     }
-    return false;
+    catch (InvalidSlot e) {
+      String message = "Falha inesperada ao acessar o slot de InvalidLogin";
+      logger.log(Level.SEVERE, message, e);
+      throw new OpenBusInternalException(message, e);
+    }
+  }
+
+  /**
+   * Recupera o identificador de slot que indica se deve ignorar a tentativa de
+   * relogin ou não.
+   * 
+   * @return o identificador
+   */
+  int getSkipInvalidLoginSlotId() {
+    return SKIP_INVLOGIN_SLOT_ID;
   }
 
   /**

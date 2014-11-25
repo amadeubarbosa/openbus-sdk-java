@@ -1,7 +1,8 @@
 package demo;
 
 import java.io.FileNotFoundException;
-import java.io.PrintWriter;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 import org.omg.CORBA.COMM_FAILURE;
 import org.omg.CORBA.NO_PERMISSION;
@@ -11,12 +12,11 @@ import org.omg.CORBA.ORBPackage.InvalidName;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.SharedAuthSecret;
 import tecgraf.openbus.core.ORBInitializer;
-import tecgraf.openbus.core.v2_1.OctetSeqHolder;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidRemoteCode;
-import tecgraf.openbus.core.v2_1.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
@@ -98,12 +98,19 @@ public final class Client {
        * dados não funcionarão, portanto uma outra forma mais dinâmica seria
        * mais eficaz. No entanto, isso foge ao escopo dessa demo.
        */
-      OctetSeqHolder secret = new OctetSeqHolder();
-      LoginProcess process = connection.startSharedAuth(secret);
-      PrintWriter out = new PrintWriter(file);
-      out.println(orb.object_to_string(process));
-      out.println(new String(secret.value));
-      out.close();
+      SharedAuthSecret secret = connection.startSharedAuth();
+      byte[] data = context.encodeSharedAuthSecret(secret);
+      FileOutputStream out = null;
+      try {
+        out = new FileOutputStream(file);
+        out.write(data);
+      }
+      finally {
+        if (out != null) {
+          out.close();
+        }
+      }
+
       // busca por serviço
       ServiceProperty[] properties = new ServiceProperty[1];
       properties[0] = new ServiceProperty("offer.domain", "Demo Hello");
@@ -145,6 +152,12 @@ public final class Client {
     }
     catch (FileNotFoundException e) {
       System.err.println("Erro ao recuperar arquivo.");
+      e.printStackTrace();
+      System.exit(1);
+      return;
+    }
+    catch (IOException e) {
+      System.err.println("Erro ao escrever dados em arquivo.");
       e.printStackTrace();
       System.exit(1);
       return;

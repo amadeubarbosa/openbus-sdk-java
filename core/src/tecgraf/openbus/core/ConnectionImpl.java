@@ -17,6 +17,7 @@ import java.util.logging.Logger;
 
 import org.omg.CORBA.Any;
 import org.omg.CORBA.IntHolder;
+import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.OBJECT_NOT_EXIST;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.SystemException;
@@ -25,6 +26,7 @@ import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
+import tecgraf.openbus.SharedAuthSecret;
 import tecgraf.openbus.core.Session.ClientSideSession;
 import tecgraf.openbus.core.Session.ServerSideSession;
 import tecgraf.openbus.core.v2_1.EncryptedBlockHolder;
@@ -122,7 +124,19 @@ final class ConnectionImpl implements Connection {
     if (props == null) {
       props = new Properties();
     }
-    // verificando por valor de tamanho de cache 
+    String prop = OpenBusProperty.LEGACY_DISABLE.getProperty(props);
+    Boolean disabled = Boolean.valueOf(prop);
+    this.legacy = !disabled;
+    this.delegate = OpenBusProperty.LEGACY_DELEGATE.getProperty(props);
+    try {
+      this.context.ignoreThread();
+      buildCorbaLoc(host, port);
+    }
+    finally {
+      this.context.unignoreThread();
+    }
+
+    // verificando por valor de tamanho de cache
     String ssize = OpenBusProperty.CACHE_SIZE.getProperty(props);
     try {
       int size = Integer.parseInt(ssize);
@@ -238,7 +252,7 @@ final class ConnectionImpl implements Connection {
     checkLoggedIn();
     LoginInfo newLogin;
     try {
-      this.context.ignoreCurrentThread();
+      this.context.ignoreThread();
       initBusReferencesBeforeLogin();
 
       byte[] encryptedLoginAuthenticationInfo =
@@ -259,7 +273,7 @@ final class ConnectionImpl implements Connection {
           + e.message);
     }
     finally {
-      this.context.unignoreCurrentThread();
+      this.context.unignoreThread();
     }
     logger
       .info(String
@@ -309,7 +323,7 @@ final class ConnectionImpl implements Connection {
   public void loginByCertificate(String entity, RSAPrivateKey privateKey)
     throws AlreadyLoggedIn, MissingCertificate, AccessDenied, ServiceFailure {
     checkLoggedIn();
-    this.context.ignoreCurrentThread();
+    this.context.ignoreThread();
     initBusReferencesBeforeLogin();
     LoginProcess loginProcess = null;
     LoginInfo newLogin;
@@ -343,7 +357,7 @@ final class ConnectionImpl implements Connection {
           + e.message);
     }
     finally {
-      this.context.unignoreCurrentThread();
+      this.context.unignoreThread();
     }
     logger
       .info(String
@@ -356,15 +370,15 @@ final class ConnectionImpl implements Connection {
    * {@inheritDoc}
    */
   @Override
-  public LoginProcess startSharedAuth(OctetSeqHolder secret)
-    throws ServiceFailure {
+  public SharedAuthSecret startSharedAuth() throws ServiceFailure {
     EncryptedBlockHolder challenge = new EncryptedBlockHolder();
     LoginProcess process = null;
+    byte[] secret = null;
     Connection previousConnection = context.getCurrentConnection();
     try {
       context.setCurrentConnection(this);
       process = this.access().startLoginBySharedAuth(challenge);
-      secret.value = crypto.decrypt(challenge.value, this.privateKey);
+      secret = crypto.decrypt(challenge.value, this.privateKey);
     }
     catch (CryptographyException e) {
       process.cancel();
@@ -374,25 +388,26 @@ final class ConnectionImpl implements Connection {
     finally {
       context.setCurrentConnection(previousConnection);
     }
-    return process;
+    return new SharedAuthSecretImpl(busid(), process, secret, context);
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public void loginBySharedAuth(LoginProcess process, byte[] secret)
+  public void loginBySharedAuth(SharedAuthSecret secret)
     throws AlreadyLoggedIn, ServiceFailure, AccessDenied, InvalidLoginProcess {
     checkLoggedIn();
-    this.context.ignoreCurrentThread();
-    initBusReferencesBeforeLogin();
-    byte[] encryptedLoginAuthenticationInfo =
-      this.generateEncryptedLoginAuthenticationInfo(secret);
-    IntHolder validity = new IntHolder();
     LoginInfo newLogin;
     try {
+      this.context.ignoreThread();
+      initBusReferencesBeforeLogin();
+      SharedAuthSecretImpl sharedAuth = (SharedAuthSecretImpl) secret;
+      byte[] encryptedLoginAuthenticationInfo =
+        this.generateEncryptedLoginAuthenticationInfo(sharedAuth.secret());
+      IntHolder validity = new IntHolder();
       newLogin =
-        process.login(this.publicKey.getEncoded(),
+        sharedAuth.attempt().login(this.publicKey.getEncoded(),
           encryptedLoginAuthenticationInfo, validity);
       localLogin(newLogin, validity.value);
     }
@@ -408,7 +423,7 @@ final class ConnectionImpl implements Connection {
           + e.message);
     }
     finally {
-      this.context.unignoreCurrentThread();
+      this.context.unignoreThread();
     }
     logger
       .info(String
@@ -488,7 +503,7 @@ final class ConnectionImpl implements Connection {
       if (this.internalLogin.invalid() != null) {
         localLogout(false);
       }
-      return false;
+      return true;
     }
 
     Connection previousConnection = context.getCurrentConnection();
@@ -496,7 +511,20 @@ final class ConnectionImpl implements Connection {
     try {
       context.exitChain();
       context.setCurrentConnection(this);
+      context.ignoreInvLogin();
       this.access().logout();
+    }
+    catch (NO_PERMISSION e) {
+      if (e.minor == InvalidLoginCode.value) {
+        // ignore error. Result is the same of a successful call to logout
+      }
+      else {
+        logger.log(Level.WARNING, String.format(
+          "Erro durante chamada remota de logout: "
+            + "busid (%s) login (%s) entidade (%s)", busid(), login.id,
+          login.entity), e);
+        return false;
+      }
     }
     catch (SystemException e) {
       logger.log(Level.WARNING, String.format(
@@ -508,6 +536,7 @@ final class ConnectionImpl implements Connection {
     finally {
       context.setCurrentConnection(previousConnection);
       context.joinChain(previousChain);
+      context.unignoreInvLogin();
       localLogout(false);
     }
     return true;

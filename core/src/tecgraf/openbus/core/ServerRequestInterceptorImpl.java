@@ -88,6 +88,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * @return a credencial.
    */
   private CredentialData retrieveCredential(ServerRequestInfo ri) {
+    ORB orb = this.mediator().getORB();
+    Codec codec = this.mediator().getCodec();
     byte[] encodedCredential = null;
     try {
       ServiceContext requestServiceContext =
@@ -460,6 +462,18 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
               ri.set_slot(this.mediator().getSignedChainSlotId(), singnedAny);
               return true;
             }
+            else {
+              ORB orb = this.mediator().getORB();
+              logger
+                .finest(String
+                  .format(
+                    "O login não é o mesmo do alvo da cadeia. É necessário refazer a sessão de credencial através de um reset. Operação: %s",
+                    ri.operation()));
+              // credencial não é válida. Resetando a credencial da sessão.
+              doResetCredential(ri, orb, conn, credential.login, pubkey.value);
+              throw new NO_PERMISSION(InvalidCredentialCode.value,
+                CompletionStatus.COMPLETED_NO);
+            }
           }
           else {
             logger.fine(String.format("Resetando credencial: operação (%s)", ri
@@ -476,11 +490,20 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         logger.log(Level.SEVERE, message, e);
         throw new INTERNAL(message);
       }
-      catch (InvalidSlot e) {
-        String message =
-          "Falha inesperada ao armazenar o dados no slot de contexto";
-        logger.log(Level.SEVERE, message, e);
-        throw new INTERNAL(message);
+      if (isValid) {
+        try {
+          ORB orb = this.mediator().getORB();
+          // salvando a cadeia
+          Any singnedAny = orb.create_any();
+          SignedCallChainHelper.insert(singnedAny, chain);
+          ri.set_slot(this.mediator().getSignedChainSlotId(), singnedAny);
+        }
+        catch (InvalidSlot e) {
+          String message =
+            "Falha inesperada ao armazenar o dados no slot de contexto";
+          logger.log(Level.SEVERE, message, e);
+          throw new INTERNAL(message);
+        }
       }
     }
     return false;
