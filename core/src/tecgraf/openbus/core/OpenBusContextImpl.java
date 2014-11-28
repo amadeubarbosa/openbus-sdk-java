@@ -31,8 +31,9 @@ import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.SharedAuthSecret;
-import tecgraf.openbus.core.v2_1.credential.SignedCallChain;
-import tecgraf.openbus.core.v2_1.credential.SignedCallChainHelper;
+import tecgraf.openbus.core.v2_1.BusObjectKey;
+import tecgraf.openbus.core.v2_1.credential.SignedData;
+import tecgraf.openbus.core.v2_1.credential.SignedDataHelper;
 import tecgraf.openbus.core.v2_1.data_export.CurrentVersion;
 import tecgraf.openbus.core.v2_1.data_export.ExportedCallChain;
 import tecgraf.openbus.core.v2_1.data_export.ExportedCallChainHelper;
@@ -147,7 +148,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
         "Os parametros host e/ou port não são validos");
     }
     try {
-      ignoreCurrentThread();
+      ignoreThread();
       String str =
         String.format("corbaloc::1.0@%s:%d/%s", host, port, BusObjectKey.value);
       org.omg.CORBA.Object obj = orb.string_to_object(str);
@@ -155,7 +156,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       return new ConnectionImpl(info, this, orb, props);
     }
     finally {
-      unignoreCurrentThread();
+      unignoreThread();
     }
   }
 
@@ -309,13 +310,12 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       if ((busany.type().kind().value() != TCKind._tk_null)
         && (signedany.type().kind().value() != TCKind._tk_null)) {
         String busId = busany.extract_string();
-        SignedCallChain signedChain = SignedCallChainHelper.extract(signedany);
+        SignedData signedChain = SignedDataHelper.extract(signedany);
         Any anyChain =
           mediator.getCodec().decode_value(signedChain.encoded,
             CallChainHelper.type());
         CallChain callChain = CallChainHelper.extract(anyChain);
-        return new CallerChainImpl(busId, callChain.target, callChain.caller,
-          callChain.originators, signedChain);
+        return new CallerChainImpl(callChain, signedChain);
       }
       return null;
     }
@@ -358,9 +358,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       Any busAny = this.orb.create_any();
       busAny.insert_string(chain.busid());
       current.set_slot(mediator.getJoinedBusSlotId(), busAny);
-      Any targetAny = this.orb.create_any();
-      targetAny.insert_string(chain.target());
-      current.set_slot(mediator.getJoinedChainTargetSlotId(), targetAny);
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao obter o slot no PICurrent";
@@ -379,7 +376,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       ORBMediator mediator = ORBUtils.getMediator(orb);
       Any any = this.orb.create_any();
       current.set_slot(mediator.getJoinedChainSlotId(), any);
-      current.set_slot(mediator.getJoinedChainTargetSlotId(), any);
       current.set_slot(mediator.getJoinedBusSlotId(), any);
     }
     catch (InvalidSlot e) {
@@ -399,20 +395,16 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       ORBMediator mediator = ORBUtils.getMediator(orb);
       Any anybus = current.get_slot(mediator.getJoinedBusSlotId());
       Any anyschain = current.get_slot(mediator.getJoinedChainSlotId());
-      Any anytarget = current.get_slot(mediator.getJoinedChainTargetSlotId());
 
       if ((anybus.type().kind().value() != TCKind._tk_null)
-        && (anyschain.type().kind().value() != TCKind._tk_null)
-        && (anytarget.type().kind().value() != TCKind._tk_null)) {
+        && (anyschain.type().kind().value() != TCKind._tk_null)) {
         String busId = anybus.extract_string();
-        String target = anytarget.extract_string();
-        SignedCallChain signedChain = SignedCallChainHelper.extract(anyschain);
+        SignedData signedChain = SignedDataHelper.extract(anyschain);
         Any chain =
           mediator.getCodec().decode_value(signedChain.encoded,
             CallChainHelper.type());
         CallChain callChain = CallChainHelper.extract(chain);
-        return new CallerChainImpl(busId, target, callChain.caller,
-          callChain.originators, signedChain);
+        return new CallerChainImpl(callChain, signedChain);
       }
       return null;
     }
@@ -436,15 +428,14 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     ServiceFailure {
     ConnectionImpl conn = (ConnectionImpl) getCurrentConnection();
     String busid = conn.busid();
-    SignedData signedChain = conn.access().signChainFor(loginId);
+    SignedData signed = conn.access().signChainFor(loginId);
     try {
       ORBMediator mediator = ORBUtils.getMediator(orb);
       Any anyChain =
-        mediator.getCodec().decode_value(signedChain.encoded,
-          CallChainHelper.type());
+        mediator.getCodec()
+          .decode_value(signed.encoded, CallChainHelper.type());
       CallChain callChain = CallChainHelper.extract(anyChain);
-      return new CallerChainImpl(busid, callChain.target, callChain.caller,
-        callChain.originators, signedChain);
+      return new CallerChainImpl(callChain, signed);
     }
     catch (UserException e) {
       String message = "Falha inesperada ao criar uma nova cadeia.";
@@ -516,7 +507,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * {@inheritDoc}
    */
   @Override
-  public byte[] encodeSharedAuthSecret(SharedAuthSecret secret) {
+  public byte[] encodeSharedAuth(SharedAuthSecret secret) {
     ORBMediator mediator = ORBUtils.getMediator(orb);
     Codec codec = mediator.getCodec();
     try {
@@ -542,7 +533,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * {@inheritDoc}
    */
   @Override
-  public SharedAuthSecret decodeSharedAuthSecret(byte[] encoded)
+  public SharedAuthSecret decodeSharedAuth(byte[] encoded)
     throws InvalidEncodedStream {
     ORBMediator mediator = ORBUtils.getMediator(orb);
     Codec codec = mediator.getCodec();

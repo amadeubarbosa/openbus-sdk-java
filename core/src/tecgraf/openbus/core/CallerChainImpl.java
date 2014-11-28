@@ -2,6 +2,7 @@ package tecgraf.openbus.core;
 
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.core.v2_1.credential.SignedData;
+import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 
 /**
@@ -36,6 +37,16 @@ final class CallerChainImpl implements CallerChain {
    * A cadeia assinada desta {@link CallerChain}
    */
   private SignedData signedChain;
+
+  /**
+   * Construtor
+   * 
+   * @param chain a cadeia de chamadas.
+   * @param signedChain a representação assinada da mesma cadeia.
+   */
+  public CallerChainImpl(CallChain chain, SignedData signedChain) {
+    this(chain.bus, chain.target, chain.caller, chain.originators, signedChain);
+  }
 
   /**
    * Constutor.

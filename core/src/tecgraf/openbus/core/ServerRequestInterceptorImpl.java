@@ -32,7 +32,6 @@ import tecgraf.openbus.core.v2_1.credential.CredentialReset;
 import tecgraf.openbus.core.v2_1.credential.CredentialResetHelper;
 import tecgraf.openbus.core.v2_1.credential.SignedData;
 import tecgraf.openbus.core.v2_1.credential.SignedDataHelper;
-import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidChainCode;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidCredentialCode;
@@ -88,8 +87,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * @return a credencial.
    */
   private CredentialData retrieveCredential(ServerRequestInfo ri) {
-    ORB orb = this.mediator().getORB();
-    Codec codec = this.mediator().getCodec();
     byte[] encodedCredential = null;
     try {
       ServiceContext requestServiceContext =
@@ -135,7 +132,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     logger.finest(String.format("[in] receive_request: %s", operation));
     int requestId = ri.request_id();
     byte[] object_id = ri.object_id();
-    OpenBusContextImpl context = mediator().getContext();
+    OpenBusContextImpl context = context();
     CredentialData credential = retrieveCredential(ri);
     try {
       String busId = credential.bus;
@@ -239,12 +236,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     }
     if (conn == null) {
       conn = (ConnectionImpl) context.getDefaultConnection();
-      if (conn == null) {
-        throw new NO_PERMISSION(UnknownBusCode.value,
-          CompletionStatus.COMPLETED_NO);
-      }
     }
-    if (conn.login() == null || !conn.busid().equals(busId)) {
+    if (conn == null || conn.login() == null || !conn.busid().equals(busId)) {
       throw new NO_PERMISSION(UnknownBusCode.value,
         CompletionStatus.COMPLETED_NO);
     }
@@ -368,13 +361,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       throw new NO_PERMISSION(InvalidPublicKeyCode.value,
         CompletionStatus.COMPLETED_NO);
     }
-    catch (ServiceFailure e) {
-      String message =
-        "Erro ao verificar o login. operação (%s) requestId (%d)";
-      logger.log(Level.SEVERE, String.format(message, operation, requestId), e);
-      throw new NO_PERMISSION(UnverifiedLoginCode.value,
-        CompletionStatus.COMPLETED_NO);
-    }
     catch (NO_PERMISSION e) {
       if (e.minor == NoLoginCode.value) {
         String message =
@@ -462,26 +448,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
               ri.set_slot(this.mediator().getSignedChainSlotId(), singnedAny);
               return true;
             }
-            else {
-              ORB orb = this.mediator().getORB();
-              logger
-                .finest(String
-                  .format(
-                    "O login não é o mesmo do alvo da cadeia. É necessário refazer a sessão de credencial através de um reset. Operação: %s",
-                    ri.operation()));
-              // credencial não é válida. Resetando a credencial da sessão.
-              doResetCredential(ri, orb, conn, credential.login, pubkey.value);
-              throw new NO_PERMISSION(InvalidCredentialCode.value,
-                CompletionStatus.COMPLETED_NO);
-            }
-          }
-          else {
-            logger.fine(String.format("Resetando credencial: operação (%s)", ri
-              .operation()));
-            // credencial não é válida. Resetando a credencial da sessão.
-            doResetCredential(ri, conn, credential.login, pubkey.value);
-            throw new NO_PERMISSION(InvalidCredentialCode.value,
-              CompletionStatus.COMPLETED_NO);
           }
         }
       }
@@ -490,20 +456,11 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         logger.log(Level.SEVERE, message, e);
         throw new INTERNAL(message);
       }
-      if (isValid) {
-        try {
-          ORB orb = this.mediator().getORB();
-          // salvando a cadeia
-          Any singnedAny = orb.create_any();
-          SignedCallChainHelper.insert(singnedAny, chain);
-          ri.set_slot(this.mediator().getSignedChainSlotId(), singnedAny);
-        }
-        catch (InvalidSlot e) {
-          String message =
-            "Falha inesperada ao armazenar o dados no slot de contexto";
-          logger.log(Level.SEVERE, message, e);
-          throw new INTERNAL(message);
-        }
+      catch (InvalidSlot e) {
+        String message =
+          "Falha inesperada ao armazenar o dados no slot de contexto";
+        logger.log(Level.SEVERE, message, e);
+        throw new INTERNAL(message);
       }
     }
     return false;

@@ -19,8 +19,6 @@ final class ORBMediator extends LocalObject {
   private final int SIGNED_CHAIN_SLOT_ID;
   /** Identificador do slot de joined chain */
   private final int JOINED_CHAIN_SLOT_ID;
-  /** Identificador do slot do target da joined chain */
-  private final int JOINED_CHAIN_TARGET_SLOT_ID;
   /** Identificador do slot de barramento ao qual joined chain pertence */
   private final int JOINED_BUS_SLOT_ID;
   /** Identificador do slot da caller chain */
@@ -53,19 +51,17 @@ final class ORBMediator extends LocalObject {
    * @param codec a fábrica de codificadores
    * @param signedChainSlotId identificador de slot.
    * @param chainSlotId identificaor de slot.
-   * @param chainTargetSlotId identificador de slot.
    * @param joinedBusSlotId identificador de slot.
    * @param busSlotId identificador de slot
    * @param requestingConnSlotId identificador de slot.
    * @param connections gerente de conexões associado.
    */
   ORBMediator(Codec codec, int signedChainSlotId, int chainSlotId,
-    int chainTargetSlotId, int joinedBusSlotId, int busSlotId,
-    int requestingConnSlotId, OpenBusContextImpl connections) {
+    int joinedBusSlotId, int busSlotId, int requestingConnSlotId,
+    OpenBusContextImpl connections) {
     this.codec = codec;
     this.SIGNED_CHAIN_SLOT_ID = signedChainSlotId;
     this.JOINED_CHAIN_SLOT_ID = chainSlotId;
-    this.JOINED_CHAIN_TARGET_SLOT_ID = chainTargetSlotId;
     this.JOINED_BUS_SLOT_ID = joinedBusSlotId;
     this.BUS_SLOT_ID = busSlotId;
     this.REQUEST_ID_SLOT_ID = requestingConnSlotId;
@@ -117,17 +113,6 @@ final class ORBMediator extends LocalObject {
    */
   int getJoinedChainSlotId() {
     return this.JOINED_CHAIN_SLOT_ID;
-  }
-
-  /**
-   * Recupera o indentificador do slot onde se guarda o targer da cadeia
-   * assinada que a requisição de saída esta "joined". Utilizado pelo lado
-   * cliente.
-   * 
-   * @return identificador do slot
-   */
-  int getJoinedChainTargetSlotId() {
-    return this.JOINED_CHAIN_TARGET_SLOT_ID;
   }
 
   /**

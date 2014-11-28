@@ -1,7 +1,7 @@
 package tecgraf.openbus.core;
 
 import tecgraf.openbus.SharedAuthSecret;
-import tecgraf.openbus.core.v2_0.services.access_control.LoginProcess;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginProcess;
 
 /**
  * Implementação da classe que representa o segredo para compartilhamento de uma

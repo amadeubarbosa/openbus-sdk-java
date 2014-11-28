@@ -2,8 +2,6 @@ package tecgraf.openbus.core;
 
 import java.util.Properties;
 
-import tecgraf.openbus.exception.InvalidPropertyValue;
-
 /**
  * Enumeração que define todas as possíveis propriedades do domínio da
  * biblioteca de acesso, com os seus valores padrões e um local único para
@@ -13,6 +11,12 @@ import tecgraf.openbus.exception.InvalidPropertyValue;
  */
 enum OpenBusProperty {
 
+  /**
+   * Chave da propriedade que define se o suporte legado deve ser habilitado ou
+   * não. Os valores possíveis sÃo: <code>true</code> e <code>false</code>, onde
+   * o padrão é <code>false</code>
+   */
+  LEGACY_DISABLE("legacy.disable", "false"),
   /**
    * Chave da propriedade que define arquivo da chave privada a ser utilizada
    * pela conexão.
@@ -55,10 +59,12 @@ enum OpenBusProperty {
    * 
    * @param props a lista de propriedades.
    * @return o valor da propriedade.
-   * @throws InvalidPropertyValue
    */
-  String getProperty(Properties props) throws InvalidPropertyValue {
+  String getProperty(Properties props) {
     switch (this) {
+      case LEGACY_DISABLE:
+        return props.getProperty(this.key, this.defaultValue);
+
       case ACCESS_KEY:
         return props.getProperty(this.key);
 

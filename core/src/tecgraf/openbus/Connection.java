@@ -5,11 +5,9 @@ import java.security.interfaces.RSAPrivateKey;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 
-import tecgraf.openbus.core.v2_1.OctetSeqHolder;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_1.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
@@ -181,7 +179,7 @@ public interface Connection {
    * Durante a execução dessa callback um novo login pode ser restabelecido.
    * Neste caso, a chamada do barramento que recebeu a notificação de login
    * inválido é refeita usando o novo login, caso contrário, a chamada original
-   * lança a exceção de de sistema {@link NO_PERMISSION}[{@link NoLoginCode}].
+   * lança a exceção de de sistema {@link NO_PERMISSION}[ {@link NoLoginCode}].
    * <p>
    * Importante observar que a primeira chamada remota que esta callback
    * realizar <b>deve</b> ser uma tentativa de autenticação junto ao barramento

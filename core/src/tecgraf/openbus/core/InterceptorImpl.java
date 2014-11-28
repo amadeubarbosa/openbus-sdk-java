@@ -75,11 +75,10 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
    * @return o mediador.
    */
   protected final ORBMediator mediator() {
-    return this.mediator;
+    return mediator;
   }
 
   /**
-<<<<<<< .working
    * Recupera o ORB associado ao interceptador
    * 
    * @return o ORB
@@ -103,7 +102,7 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
    * @return o contexto
    */
   protected final OpenBusContextImpl context() {
-    return this.mediator.getContext();
+    return mediator.getContext();
   }
 
   /**

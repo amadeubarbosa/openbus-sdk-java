@@ -119,7 +119,7 @@ public class SharedAuthClient {
 
     ServiceOfferDesc[] services;
     try {
-      SharedAuthSecret secret = context.decodeSharedAuthSecret(data);
+      SharedAuthSecret secret = context.decodeSharedAuth(data);
       // autentica-se no barramento
       connection.loginBySharedAuth(secret);
       // busca por serviço

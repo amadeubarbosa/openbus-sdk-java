@@ -43,7 +43,7 @@ public class SharedAuthClient {
         return;
       }
       fstream.close();
-      SharedAuthSecret secret = context.decodeSharedAuthSecret(encoded);
+      SharedAuthSecret secret = context.decodeSharedAuth(encoded);
       connection.loginBySharedAuth(secret);
 
       ServiceProperty[] serviceProperties = new ServiceProperty[2];

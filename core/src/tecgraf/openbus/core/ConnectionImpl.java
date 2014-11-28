@@ -30,11 +30,11 @@ import tecgraf.openbus.SharedAuthSecret;
 import tecgraf.openbus.core.Session.ClientSideSession;
 import tecgraf.openbus.core.Session.ServerSideSession;
 import tecgraf.openbus.core.v2_1.EncryptedBlockHolder;
-import tecgraf.openbus.core.v2_1.OctetSeqHolder;
 import tecgraf.openbus.core.v2_1.credential.SignedData;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessControl;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidPublicKey;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginAuthenticationInfo;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginAuthenticationInfoHelper;
@@ -94,6 +94,10 @@ final class ConnectionImpl implements Connection {
   /** Caches da conexão */
   Caches cache;
 
+  /* Propriedades da conexão. */
+  /** Informa se o suporte legado esta ativo */
+  private boolean legacy;
+
   /**
    * Construtor.
    * 
@@ -127,14 +131,7 @@ final class ConnectionImpl implements Connection {
     String prop = OpenBusProperty.LEGACY_DISABLE.getProperty(props);
     Boolean disabled = Boolean.valueOf(prop);
     this.legacy = !disabled;
-    this.delegate = OpenBusProperty.LEGACY_DELEGATE.getProperty(props);
-    try {
-      this.context.ignoreThread();
-      buildCorbaLoc(host, port);
-    }
-    finally {
-      this.context.unignoreThread();
-    }
+    // TODO include legacy suport!
 
     // verificando por valor de tamanho de cache
     String ssize = OpenBusProperty.CACHE_SIZE.getProperty(props);
@@ -723,6 +720,7 @@ final class ConnectionImpl implements Connection {
      * 
      * @param conn a referência para a conexão ao qual os caches estão
      *        referenciados.
+     * @param size tamanho de cada cache
      */
     public Caches(ConnectionImpl conn, int size) {
       this.CACHE_SIZE = size;

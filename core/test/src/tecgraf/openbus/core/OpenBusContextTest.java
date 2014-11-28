@@ -36,7 +36,8 @@ import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.SharedAuthSecret;
-import tecgraf.openbus.core.v2_1.credential.SignedCallChain;
+import tecgraf.openbus.core.v2_1.BusObjectKey;
+import tecgraf.openbus.core.v2_1.credential.SignedData;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
@@ -290,7 +291,7 @@ public final class OpenBusContextTest {
   public void callerChainTest() throws Exception {
     Connection conn = context.connectByAddress(hostName, hostPort);
     assertNull(context.getCallerChain());
-    //atualmente os testes de interoperabilidade ja cobrem esses testes
+    // atualmente os testes de interoperabilidade ja cobrem esses testes
   }
 
   @Test
@@ -649,9 +650,9 @@ public final class OpenBusContextTest {
     try {
       context.setCurrentConnection(conn);
       SharedAuthSecret secret = conn.startSharedAuth();
-      byte[] data = context.encodeSharedAuthSecret(secret);
+      byte[] data = context.encodeSharedAuth(secret);
       Connection conn2 = context.createConnection(hostName, hostPort);
-      SharedAuthSecret secret2 = context.decodeSharedAuthSecret(data);
+      SharedAuthSecret secret2 = context.decodeSharedAuth(data);
       conn2.loginBySharedAuth(secret2);
       assertNotNull(conn2.login());
       assertFalse(conn.login().id.equals(conn2.login().id));
@@ -670,7 +671,7 @@ public final class OpenBusContextTest {
     try {
       context.setCurrentConnection(conn);
       secret = conn.startSharedAuth();
-      byte[] data = context.encodeSharedAuthSecret(secret);
+      byte[] data = context.encodeSharedAuth(secret);
       context.decodeChain(data);
     }
     finally {
@@ -693,7 +694,7 @@ public final class OpenBusContextTest {
       context.setCurrentConnection(conn1);
       CallerChain chain1For2 = context.makeChainFor(login2);
       byte[] data = context.encodeChain(chain1For2);
-      context.decodeSharedAuthSecret(data);
+      context.decodeSharedAuth(data);
     }
     finally {
       context.setCurrentConnection(null);
@@ -715,7 +716,7 @@ public final class OpenBusContextTest {
   private CallerChain buildFakeCallChain(String busid, String target,
     LoginInfo caller, LoginInfo[] originators) throws InvalidTypeForEncoding,
     UnknownEncoding, InvalidName {
-    CallChain callChain = new CallChain(target, originators, caller);
+    CallChain callChain = new CallChain(busid, target, originators, caller);
     Any anyCallChain = orb.create_any();
     CallChainHelper.insert(anyCallChain, callChain);
     byte[] encodedCallChain = getCodec(orb).encode_value(anyCallChain);

@@ -1,7 +1,6 @@
 package tecgraf.openbus.core;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -113,71 +112,50 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
   @Override
   public void send_request(ClientRequestInfo ri) {
     String operation = ri.operation();
-    if (isIgnoringThread(ri)) {
-      logger.fine(String.format(
+    if (checkSlotIdFlag(ri, context().getIgnoreThreadSlotId())) {
+      logger.finest(String.format(
         "Realizando chamada fora do barramento: operação (%s)", operation));
       return;
     }
+    ConnectionImpl conn = (ConnectionImpl) this.getCurrentConnection(ri);
+    LoginInfo currLogin = conn.getLogin();
+    if (currLogin == null) {
+      String message =
+        String.format(
+          "Chamada cancelada. Conexão não possui login. operação (%s)",
+          operation);
+      logger.info(message);
+      throw new NO_PERMISSION(message, NoLoginCode.value,
+        CompletionStatus.COMPLETED_NO);
+    }
+    LoginInfoHolder holder = new LoginInfoHolder();
+    holder.value = currLogin;
+
+    CredentialData credential = this.generateCredential(ri, conn, holder);
+    byte[] encodedCredential = this.encodeCredential(credential);
+    ServiceContext requestServiceContext =
+      new ServiceContext(CredentialContextId.value, encodedCredential);
+    ri.add_request_service_context(requestServiceContext, false);
+    // salvando informações da conexão e login que foram utilizados no
+    // request
+    int uniqueId = mediator().getUniqueId();
+    Any uniqueAny = orb().create_any();
+    uniqueAny.insert_long(uniqueId);
     try {
-      ORBMediator mediator = mediator();
-      ORB orb = mediator.getORB();
-      Codec codec = mediator.getCodec();
-      if (checkSlotIdFlag(ri, context().getIgnoreThreadSlotId())) {
-        logger.finest(String.format(
-          "Realizando chamada fora do barramento: operação (%s)", operation));
-        return;
-      }
-
-      boolean joinedToLegacy = false;
-      SignedCallChain joinedChain = getSignedChain(ri);
-      if (Arrays.equals(joinedChain.signature, LEGACY_ENCRYPTED_BLOCK)) {
-        // joined com cadeia 1.5;
-        joinedToLegacy = true;
-      }
-
-      ConnectionImpl conn = (ConnectionImpl) this.getCurrentConnection(ri);
-      LoginInfo currLogin = conn.getLogin();
-      if (currLogin == null) {
-        String message =
-          String.format(
-            "Chamada cancelada. Conexão não possui login. operação (%s)",
-            operation);
-        logger.info(message);
-        throw new NO_PERMISSION(message, NoLoginCode.value,
-          CompletionStatus.COMPLETED_NO);
-      }
-      LoginInfoHolder holder = new LoginInfoHolder();
-      holder.value = currLogin;
-
-      CredentialData credential = this.generateCredential(ri, conn, holder);
-      byte[] encodedCredential = this.encodeCredential(credential);
-      ServiceContext requestServiceContext =
-        new ServiceContext(CredentialContextId.value, encodedCredential);
-      ri.add_request_service_context(requestServiceContext, false);
-      // salvando informações da conexão e login que foram utilizados no request
-      ORBMediator mediator = mediator();
-      ORB orb = orb();
-      int uniqueId = mediator.getUniqueId();
-      Any uniqueAny = orb.create_any();
-      uniqueAny.insert_long(uniqueId);
-      try {
-        Current current = ORBUtils.getPICurrent(orb);
-        current.set_slot(this.mediator().getRequestIdSlot(), uniqueAny);
-        requestId2Conn.put(uniqueId, conn);
-        requestId2LoginId.put(uniqueId, currLogin.id);
-        logger.finest(String.format(
-          "associando o ID '%d' com o login '%s'. operação (%s)", uniqueId,
-          holder.value.id, operation));
-      }
-      catch (InvalidSlot e) {
-        String message = "Falha inesperada ao obter o slot de uniqueId";
-        logger.log(Level.SEVERE, message, e);
-        throw new INTERNAL(message);
-      }
+      Current current = ORBUtils.getPICurrent(orb());
+      current.set_slot(this.mediator().getUniqueIdSlot(), uniqueAny);
+      uniqueId2Conn.put(uniqueId, conn);
+      uniqueId2LoginId.put(uniqueId, currLogin.id);
+      logger.finest(String.format(
+        "associando o ID '%d' com o login '%s'. operação (%s)", uniqueId,
+        holder.value.id, operation));
     }
-    finally {
-      logger.finest(String.format("[out] send_request: %s", operation));
+    catch (InvalidSlot e) {
+      String message = "Falha inesperada ao obter o slot de uniqueId";
+      logger.log(Level.SEVERE, message, e);
+      throw new INTERNAL(message);
     }
+
   }
 
   /**
@@ -249,22 +227,26 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    */
   private SignedData getCallChain(ClientRequestInfo ri, ConnectionImpl conn,
     LoginInfoHolder holder, String target) {
+    SignedData callChain;
     if (target.equals(BusLogin.value)) {
-      return getJoinedChain(ri);
+      callChain = getJoinedChain(ri);
     }
-    try {
-      LoginInfo curr = holder.value;
-      // checando se existe na cache
-      ChainCacheKey key =
-        new ChainCacheKey(curr.id, target, getJoinedChain(ri));
-      SignedData callChain = conn.cache.chains.get(key);
-      if (callChain == null) {
-        do {
-          callChain = conn.access().signChainFor(target);
-          curr = conn.getLogin();
-        } while (!decodeSignedChain(callChain, logger).caller.id
-          .equals(curr.id));
-        conn.cache.chains.put(key, callChain);
+    else {
+      try {
+        LoginInfo curr = holder.value;
+        // checando se existe na cache
+        ChainCacheKey key =
+          new ChainCacheKey(curr.id, target, getJoinedChain(ri));
+        callChain = conn.cache.chains.get(key);
+        if (callChain == null) {
+          do {
+            callChain = conn.access().signChainFor(target);
+            curr = conn.getLogin();
+          } while (!decodeSignedChain(callChain, logger).caller.id
+            .equals(curr.id));
+          conn.cache.chains.put(key, callChain);
+        }
+        holder.value = curr;
       }
       catch (SystemException e) {
         String message =
@@ -302,27 +284,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         throw new INTERNAL(message);
       }
     }
-    catch (SystemException e) {
-      String message =
-        String.format("Erro durante acesso ao barramento (%s).", conn.busid());
-      logger.log(Level.SEVERE, message, e);
-      throw new NO_PERMISSION(message, UnavailableBusCode.value,
-        CompletionStatus.COMPLETED_NO);
-    }
-    catch (InvalidLogins e) {
-      String message =
-        String
-          .format("Erro ao assinar cadeia para target: (%s)", e.loginIds[0]);
-      logger.log(Level.SEVERE, message, e);
-      throw new NO_PERMISSION(message, InvalidTargetCode.value,
-        CompletionStatus.COMPLETED_NO);
-    }
-    catch (ServiceFailure e) {
-      String message =
-        String.format("Erro ao assinar cadeia para target: (%s)", target);
-      logger.log(Level.SEVERE, message, e);
-      throw new INTERNAL(message);
-    }
+    return callChain;
   }
 
   /**
@@ -411,7 +373,8 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
           }
           catch (BAD_PARAM e) {
             if (e.minor == 26) {
-              // request's service context does not contain an entry for that ID.
+              // request's service context does not contain an entry
+              // for that ID.
             }
             else {
               throw e;
@@ -428,8 +391,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
           Any credentialResetAny = null;
           try {
             credentialResetAny =
-              codec().decode_value(context.context_data,
-                CredentialResetHelper.type());
+              codec().decode_value(context_data, CredentialResetHelper.type());
           }
           catch (FormatMismatch e) {
             String message = "Falha inesperada ao obter o CredentialReset";
@@ -548,9 +510,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     }
     finally {
       if (uniqueId != null) {
-        this.requestId2Conn.remove(uniqueId);
-        this.requestId2LoginId.remove(uniqueId);
-        clearRequestUniqueId();
+        clearRequestUniqueId(uniqueId);
       }
       logger.finest(String.format("[out] receive_exception: %s", operation));
     }
