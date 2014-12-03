@@ -46,6 +46,7 @@ import tecgraf.openbus.core.v2_1.services.access_control.InvalidLogins;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
 import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidProperties;
 import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidService;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
@@ -182,7 +183,7 @@ public final class OpenBusContextTest {
 
   @Test(expected = TRANSIENT.class)
   public void connectByReferenceUknownHostTest() throws AccessDenied,
-    AlreadyLoggedIn, ServiceFailure {
+    AlreadyLoggedIn, ServiceFailure, TooManyAttempts {
     String host = "unknowHost";
     String str =
       String.format("corbaloc::1.0@%s:%d/%s", host, hostPort,
@@ -207,7 +208,7 @@ public final class OpenBusContextTest {
 
   @Test
   public void defaultConnectionTest() throws NotLoggedIn, AccessDenied,
-    AlreadyLoggedIn, ServiceFailure {
+    AlreadyLoggedIn, ServiceFailure, TooManyAttempts {
     context.setDefaultConnection(null);
     final Connection conn = context.connectByAddress(hostName, hostPort);
     conn.loginByPassword(entity, password.getBytes());
@@ -233,7 +234,7 @@ public final class OpenBusContextTest {
 
   @Test
   public void requesterTest() throws AccessDenied, AlreadyLoggedIn,
-    ServiceFailure, NotLoggedIn {
+    ServiceFailure, NotLoggedIn, TooManyAttempts {
     final Connection conn = context.connectByAddress(hostName, hostPort);
     conn.loginByPassword(entity, password.getBytes());
     assertNull(context.getCurrentConnection());
@@ -405,7 +406,7 @@ public final class OpenBusContextTest {
 
   @Test
   public void makeChainForTest() throws AccessDenied, AlreadyLoggedIn,
-    ServiceFailure, InvalidLogins {
+    ServiceFailure, InvalidLogins, TooManyAttempts {
     Connection conn1 = context.connectByAddress(hostName, hostPort);
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes());
@@ -425,7 +426,7 @@ public final class OpenBusContextTest {
 
   @Test
   public void makeChainForJoinedTest() throws AccessDenied, AlreadyLoggedIn,
-    ServiceFailure, InvalidLogins {
+    ServiceFailure, InvalidLogins, TooManyAttempts {
     Connection conn1 = context.connectByAddress(hostName, hostPort);
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes());
@@ -462,7 +463,7 @@ public final class OpenBusContextTest {
 
   @Test
   public void makeChainForInvalidLoginTest() throws AccessDenied,
-    AlreadyLoggedIn, ServiceFailure, InvalidLogins {
+    AlreadyLoggedIn, ServiceFailure, InvalidLogins, TooManyAttempts {
     Connection conn1 = context.connectByAddress(hostName, hostPort);
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes());
@@ -505,7 +506,7 @@ public final class OpenBusContextTest {
   public void simulateCallTest() throws AccessDenied, AlreadyLoggedIn,
     ServiceFailure, InvalidLogins, MissingCertificate, InvalidService,
     UnauthorizedFacets, InvalidProperties, AdapterInactive, InvalidName,
-    SCSException {
+    SCSException, TooManyAttempts {
     Connection conn1 = context.connectByAddress(hostName, hostPort);
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes());
@@ -593,7 +594,7 @@ public final class OpenBusContextTest {
 
   @Test
   public void encodeAndDecodeChain() throws AccessDenied, AlreadyLoggedIn,
-    ServiceFailure, InvalidLogins, InvalidEncodedStream {
+    ServiceFailure, InvalidLogins, InvalidEncodedStream, TooManyAttempts {
     Connection conn1 = context.connectByAddress(hostName, hostPort);
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes());
