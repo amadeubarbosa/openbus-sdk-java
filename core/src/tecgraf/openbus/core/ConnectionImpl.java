@@ -42,6 +42,8 @@ import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
+import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
+import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
 import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
@@ -97,6 +99,8 @@ final class ConnectionImpl implements Connection {
   /* Propriedades da conexão. */
   /** Informa se o suporte legado esta ativo */
   private boolean legacy;
+  /** Domínio padrão de autenticação */
+  private final String DEFAULT_DOMAIN = "OpenBus";
 
   /**
    * Construtor.
@@ -245,7 +249,7 @@ final class ConnectionImpl implements Connection {
    */
   @Override
   public void loginByPassword(String entity, byte[] password)
-    throws AccessDenied, AlreadyLoggedIn, ServiceFailure {
+    throws AccessDenied, AlreadyLoggedIn, TooManyAttempts, ServiceFailure {
     checkLoggedIn();
     LoginInfo newLogin;
     try {
@@ -256,8 +260,9 @@ final class ConnectionImpl implements Connection {
         this.generateEncryptedLoginAuthenticationInfo(password);
       IntHolder validityHolder = new IntHolder();
       newLogin =
-        this.access().loginByPassword(entity, this.publicKey.getEncoded(),
-          encryptedLoginAuthenticationInfo, validityHolder);
+        this.access().loginByPassword(entity, DEFAULT_DOMAIN,
+          this.publicKey.getEncoded(), encryptedLoginAuthenticationInfo,
+          validityHolder);
       localLogin(newLogin, validityHolder.value);
     }
     catch (WrongEncoding e) {
@@ -268,6 +273,11 @@ final class ConnectionImpl implements Connection {
       throw new OpenBusInternalException(
         "Falha no protocolo OpenBus: A chave de acesso gerada não foi aceita. Mensagem="
           + e.message);
+    }
+    catch (UnknownDomain e) {
+      String msg = "Falha na autenticação por uso de domínio desconhecido";
+      logger.log(Level.SEVERE, msg, e);
+      throw new AccessDenied(msg);
     }
     finally {
       this.context.unignoreThread();
