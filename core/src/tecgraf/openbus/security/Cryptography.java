@@ -1,7 +1,9 @@
 package tecgraf.openbus.security;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
@@ -13,6 +15,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.Signature;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPrivateKey;
@@ -33,6 +37,10 @@ import tecgraf.openbus.exception.CryptographyException;
  * @author Tecgraf
  */
 public final class Cryptography {
+  /**
+   * Tipo de certficado
+   */
+  private static final String CERT_FACTORY = "X.509";
   /**
    * Algoritmo do hash
    */
@@ -307,5 +315,57 @@ public final class Cryptography {
     catch (GeneralSecurityException e) {
       throw new CryptographyException(e);
     }
+  }
+
+  /**
+   * Lê um certificado digital a partir de um arquivo.
+   * 
+   * @param certificateFile O caminho para o arquivo de certificado.
+   * 
+   * @return O certificado carregado.
+   * @throws CryptographyException
+   * @throws IOException
+   */
+  public X509Certificate readX509Certificate(String certificateFile)
+    throws CryptographyException, IOException {
+    return readX509Certificate(new FileInputStream(certificateFile));
+  }
+
+  /**
+   * Lê um certificado digital a partir de um stream de arquivo.
+   * 
+   * @param inputStream arquivo de certificado.
+   * 
+   * @return O certificado carregado.
+   * @throws CryptographyException
+   * @throws IOException
+   */
+  public X509Certificate readX509Certificate(InputStream inputStream)
+    throws CryptographyException, IOException {
+    try {
+      CertificateFactory cf = CertificateFactory.getInstance(CERT_FACTORY);
+      return (X509Certificate) cf.generateCertificate(inputStream);
+    }
+    catch (CertificateException e) {
+      throw new CryptographyException(e);
+    }
+    finally {
+      inputStream.close();
+    }
+  }
+
+  /**
+   * Lê um certificado digital a partir de um stream de arquivo.
+   * 
+   * @param encoded arquivo de certificado.
+   * 
+   * @return O certificado carregado.
+   * @throws CryptographyException
+   * @throws IOException
+   */
+  public X509Certificate readX509Certificate(byte[] encoded)
+    throws CryptographyException, IOException {
+    ByteArrayInputStream stream = new ByteArrayInputStream(encoded);
+    return readX509Certificate(stream);
   }
 }

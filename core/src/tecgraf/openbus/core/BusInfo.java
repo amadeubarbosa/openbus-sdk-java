@@ -1,5 +1,6 @@
 package tecgraf.openbus.core;
 
+import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
 
 import org.omg.CORBA.OBJECT_NOT_EXIST;
@@ -12,7 +13,6 @@ import tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginRegistryHelper;
 import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistryHelper;
-import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.exception.OpenBusInternalException;
 import tecgraf.openbus.security.Cryptography;
 
@@ -94,11 +94,13 @@ final class BusInfo {
   void retrieveBusIdAndKey() {
     this.id = this.accessControl.busid();
     try {
-      this.publicKey =
-        Cryptography.getInstance().generateRSAPublicKeyFromX509EncodedKey(
-          this.accessControl.buskey());
+      X509Certificate certificate =
+        Cryptography.getInstance().readX509Certificate(
+          this.accessControl.certificate());
+      this.publicKey = (RSAPublicKey) certificate.getPublicKey();
+
     }
-    catch (CryptographyException e) {
+    catch (Exception e) {
       throw new OpenBusInternalException(
         "Erro ao construir chave pública do barramento.", e);
     }
