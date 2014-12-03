@@ -6,14 +6,9 @@ import java.util.List;
 import java.util.Map;
 
 import tecgraf.openbus.core.v2_1.OctetSeqHolder;
-import tecgraf.openbus.core.v2_1.credential.SignedData;
-import tecgraf.openbus.core.v2_1.credential.SignedDataHolder;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidLogins;
-import tecgraf.openbus.core.v2_1.services.access_control.InvalidPublicKey;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
-import tecgraf.openbus.exception.CryptographyException;
-import tecgraf.openbus.security.Cryptography;
 
 /**
  * Cache de logins utilizado pelo interceptador cliente.
@@ -102,12 +97,9 @@ class LoginCache {
    *         holder de entrada pubkey.
    * @throws InvalidLogins
    * @throws ServiceFailure
-   * @throws CryptographyException
-   * @throws InvalidPublicKey
    */
   String getLoginEntity(String loginId, OctetSeqHolder pubkey)
-    throws InvalidLogins, ServiceFailure, CryptographyException,
-    InvalidPublicKey {
+    throws InvalidLogins, ServiceFailure {
     LoginEntry entry = this.logins.get(loginId);
     if (entry != null) {
       synchronized (this.logins) {
@@ -117,15 +109,7 @@ class LoginCache {
         }
       }
     }
-    SignedDataHolder holder = new SignedDataHolder();
-    LoginInfo info = conn.logins().getLoginInfo(loginId, holder);
-    SignedData sdata = holder.value;
-    Cryptography crypto = Cryptography.getInstance();
-    if (!crypto.verifySignature(conn.getBusPublicKey(), sdata.encoded,
-      sdata.signature)) {
-      throw new InvalidPublicKey("Hash signature doesn't match.");
-    }
-    pubkey.value = sdata.encoded;
+    LoginInfo info = conn.logins().getLoginInfo(loginId, pubkey);
     synchronized (this.logins) {
       entry = this.logins.get(loginId);
       if (entry == null) {

@@ -2,7 +2,6 @@ package tecgraf.openbus.core;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-
 /**
  * Classe que representa a parte comum entre a sessão do lado servidor e
  * cliente.
@@ -110,21 +109,28 @@ abstract class Session {
      */
     private AtomicInteger ticket;
     /**
-     * Alvo da comunicação.
+     * Id do alvo da comunicação.
      */
-    final private String callee;
+    final private String calleeId;
+    /**
+     * Entidade do alvo da comunicação.
+     */
+    final private String calleeEntity;
 
     /**
      * Construtor.
      * 
      * @param session identificador da sessão
      * @param secret o segredo.
-     * @param callee alvo da comunicação
+     * @param target identificador do alvo da comunicação
+     * @param entity entity do alvo da comunicação
      */
-    public ClientSideSession(int session, byte[] secret, String callee) {
+    public ClientSideSession(int session, byte[] secret, String target,
+      String entity) {
       super(session, secret);
       this.ticket = new AtomicInteger(-1);
-      this.callee = callee;
+      this.calleeId = target;
+      this.calleeEntity = entity;
     }
 
     /**
@@ -137,12 +143,12 @@ abstract class Session {
     }
 
     /**
-     * Recupera a informação do alvo da comunicação
+     * Recupera a informação de entidade do alvo da comunicação
      * 
      * @return o alvo da comunicação.
      */
-    public String getCallee() {
-      return this.callee;
+    public String getEntity() {
+      return this.calleeEntity;
     }
 
   }

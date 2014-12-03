@@ -1,11 +1,8 @@
 package tecgraf.openbus.core;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -42,7 +39,6 @@ import tecgraf.openbus.core.v2_1.credential.SignedDataHelper;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidCredentialCode;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidLoginCode;
-import tecgraf.openbus.core.v2_1.services.access_control.InvalidLogins;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidRemoteCode;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidTargetCode;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
@@ -196,10 +192,10 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       ClientSideSession session = conn.cache.cltSessions.get(target);
       if (session != null) {
         int ticket = session.nextTicket();
-        byte[] secret = session.getSecret();
         byte[] credentialDataHash =
-          this.generateCredentialDataHash(ri, secret, ticket);
-        SignedData chain = getCallChain(ri, conn, holder, target);
+          this.generateCredentialDataHash(ri, session.getSecret(), ticket);
+        SignedData chain =
+          getCallChain(ri, conn, holder, target, session.getEntity());
         logger.finest(String.format("utilizando sessão: id = %d ticket = %d",
           session.getSession(), ticket));
         logger.fine(String.format(
@@ -222,11 +218,12 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    * @param ri informação do request
    * @param conn a conexão em uso
    * @param holder o login em uso.
-   * @param target o alvo do request
+   * @param target identificador do alvo do request
+   * @param entity entidade do alvo do request
    * @return A cadeia assinada.
    */
   private SignedData getCallChain(ClientRequestInfo ri, ConnectionImpl conn,
-    LoginInfoHolder holder, String target) {
+    LoginInfoHolder holder, String target, String entity) {
     SignedData callChain;
     if (target.equals(BusLogin.value)) {
       callChain = getJoinedChain(ri);
@@ -236,11 +233,11 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         LoginInfo curr = holder.value;
         // checando se existe na cache
         ChainCacheKey key =
-          new ChainCacheKey(curr.id, target, getJoinedChain(ri));
+          new ChainCacheKey(curr.id, entity, getJoinedChain(ri));
         callChain = conn.cache.chains.get(key);
         if (callChain == null) {
           do {
-            callChain = conn.access().signChainFor(target);
+            callChain = conn.access().signChainFor(entity);
             curr = conn.getLogin();
           } while (!decodeSignedChain(callChain, logger).caller.id
             .equals(curr.id));
@@ -256,30 +253,11 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         throw new NO_PERMISSION(message, UnavailableBusCode.value,
           CompletionStatus.COMPLETED_NO);
       }
-      catch (InvalidLogins e) {
-        Map<EffectiveProfile, String> cache = conn.cache.entities;
-        List<EffectiveProfile> toRemove = new ArrayList<EffectiveProfile>();
-        for (Entry<EffectiveProfile, String> entry : cache.entrySet()) {
-          if (target.equals(entry.getValue())) {
-            toRemove.add(entry.getKey());
-          }
-        }
-        for (EffectiveProfile ep : toRemove) {
-          cache.remove(ep);
-        }
-        String message =
-          String.format("Erro ao assinar cadeia para target: (%s)",
-            e.loginIds[0]);
-        logger.log(Level.SEVERE, message, e);
-        throw new NO_PERMISSION(message, InvalidTargetCode.value,
-          CompletionStatus.COMPLETED_NO);
-      }
       catch (ServiceFailure e) {
         String message =
-          String
-            .format(
-              "Falha inesperada ao assinar uma cadeia de chamadas para o target (%s)",
-              target);
+          String.format(
+            "Falha inesperada ao assinar uma cadeia de chamadas: target (%s)",
+            entity);
         logger.log(Level.SEVERE, message, e);
         throw new INTERNAL(message);
       }
@@ -406,7 +384,6 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
 
           CredentialReset reset =
             CredentialResetHelper.extract(credentialResetAny);
-          String target = reset.target;
           Cryptography crypto = Cryptography.getInstance();
           byte[] secret;
           try {
@@ -418,9 +395,10 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
             throw new NO_PERMISSION(message, InvalidRemoteCode.value,
               CompletionStatus.COMPLETED_NO);
           }
+          String target = reset.target;
           conn.cache.entities.put(ep, target);
           conn.cache.cltSessions.put(target, new ClientSideSession(
-            reset.session, secret, target));
+            reset.session, secret, target, reset.entity));
           logger.finest(String.format(
             "ForwardRequest após reset: login (%s) operação (%s)", loginId, ri
               .operation()));

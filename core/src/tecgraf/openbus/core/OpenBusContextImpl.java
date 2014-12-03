@@ -35,7 +35,6 @@ import tecgraf.openbus.core.v2_1.BusObjectKey;
 import tecgraf.openbus.core.v2_1.credential.SignedData;
 import tecgraf.openbus.core.v2_1.credential.SignedDataHelper;
 import tecgraf.openbus.core.v2_1.data_export.CurrentVersion;
-import tecgraf.openbus.core.v2_1.data_export.ExportedCallChain;
 import tecgraf.openbus.core.v2_1.data_export.ExportedCallChainHelper;
 import tecgraf.openbus.core.v2_1.data_export.ExportedSharedAuth;
 import tecgraf.openbus.core.v2_1.data_export.ExportedSharedAuthHelper;
@@ -454,8 +453,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     try {
       Any anyChain = orb.create_any();
       CallerChainImpl chainImpl = (CallerChainImpl) chain;
-      ExportedCallChainHelper.insert(anyChain, new ExportedCallChain(chain
-        .busid(), chainImpl.signedCallChain()));
+      ExportedCallChainHelper.insert(anyChain, chainImpl.signedCallChain());
       byte[] encodedChain = codec.encode_value(anyChain);
       ExportedVersion[] exports =
         new ExportedVersion[] { new ExportedVersion(CurrentVersion.value,
@@ -484,14 +482,11 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
         if (export.version == CurrentVersion.value) {
           Any exported =
             codec.decode_value(export.encoded, ExportedCallChainHelper.type());
-          ExportedCallChain importing =
-            ExportedCallChainHelper.extract(exported);
+          SignedData importing = ExportedCallChainHelper.extract(exported);
           Any anyChain =
-            codec.decode_value(importing.signedChain.encoded, CallChainHelper
-              .type());
+            codec.decode_value(importing.encoded, CallChainHelper.type());
           CallChain chain = CallChainHelper.extract(anyChain);
-          return new CallerChainImpl(importing.bus, chain.target, chain.caller,
-            chain.originators, importing.signedChain);
+          return new CallerChainImpl(chain, importing);
         }
       }
     }

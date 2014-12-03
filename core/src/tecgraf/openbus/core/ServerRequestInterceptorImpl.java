@@ -37,7 +37,6 @@ import tecgraf.openbus.core.v2_1.services.access_control.InvalidChainCode;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidCredentialCode;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidLogins;
-import tecgraf.openbus.core.v2_1.services.access_control.InvalidPublicKey;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidPublicKeyCode;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_1.services.access_control.NoCredentialCode;
@@ -264,8 +263,9 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     ServerSideSession newSession =
       new ServerSideSession(sessionId, newSecret, caller);
     conn.cache.srvSessions.put(newSession.getSession(), newSession);
+    LoginInfo login = conn.login();
     CredentialReset reset =
-      new CredentialReset(conn.login().id, sessionId, encriptedSecret);
+      new CredentialReset(login.id, login.entity, sessionId, encriptedSecret);
     Any any = orb().create_any();
     CredentialResetHelper.insert(any, reset);
     byte[] encodedCredential;
@@ -352,13 +352,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         "Login verificado é inválido. operação (%s) requestId (%d)";
       logger.log(Level.SEVERE, String.format(message, operation, requestId), e);
       throw new NO_PERMISSION(InvalidLoginCode.value,
-        CompletionStatus.COMPLETED_NO);
-    }
-    catch (InvalidPublicKey e) {
-      String message =
-        "Chave pública associada ao login é inválida. operação (%s) requestId (%d)";
-      logger.log(Level.SEVERE, String.format(message, operation, requestId), e);
-      throw new NO_PERMISSION(InvalidPublicKeyCode.value,
         CompletionStatus.COMPLETED_NO);
     }
     catch (NO_PERMISSION e) {

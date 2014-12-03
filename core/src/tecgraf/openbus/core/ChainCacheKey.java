@@ -16,7 +16,7 @@ class ChainCacheKey {
    */
   private String login;
   /**
-   * O login do alvo da requisição
+   * Entidade do alvo da requisição
    */
   private String callee;
   /**
@@ -28,7 +28,7 @@ class ChainCacheKey {
    * Construtor.
    * 
    * @param login login.
-   * @param callee login do alvo da requisição
+   * @param callee entidade do alvo da requisição
    * @param joinedChain cadeia que esta joined
    */
   public ChainCacheKey(String login, String callee, SignedData joinedChain) {
