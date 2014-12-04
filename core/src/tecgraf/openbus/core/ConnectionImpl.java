@@ -100,7 +100,7 @@ final class ConnectionImpl implements Connection {
   /** Informa se o suporte legado esta ativo */
   private boolean legacy;
   /** Domínio padrão de autenticação */
-  private final String DEFAULT_DOMAIN = "OpenBus";
+  private final String DEFAULT_DOMAIN = "";
 
   /**
    * Construtor.

@@ -52,6 +52,7 @@
 
   <modules>
     <module>core</module>
+    <module>legacy</module>
     <module>interop</module>
     <module>demo</module>
   </modules>
@@ -115,6 +116,7 @@
             <groupId>org.jacorb</groupId>
             <artifactId>jacorb-idl-compiler</artifactId>
             <version>${jacorb.version}</version>
+            <scope>compile</scope>
           </dependency>
         </dependencies>
         

@@ -27,14 +27,11 @@
               <goal>generate</goal>
             </goals>
             <configuration>
-              <sourceDirectory>${openbus.idlpath}</sourceDirectory>
-              <sources>
-                <source>
-                  <excludes>
-                    <exclude>scs.idl</exclude>
-                  </excludes>
-                </source>
-              </sources>
+              <sourceDirectory>${project.basedir}/idl</sourceDirectory>
+              <includeDirs>
+                <includeDir>${project.basedir}/../legacy/idl</includeDir>
+                <includeDir>${scs.idlpath}/src</includeDir>
+              </includeDirs>
             </configuration>
           </execution>
           <execution>
@@ -96,6 +93,12 @@
 
   <dependencies>
     <dependency>
+      <groupId>br.puc-rio.tecgraf.openbus</groupId>
+      <artifactId>openbus-sdk-legacy</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
       <groupId>tecgraf.scs</groupId>
       <artifactId>scs-core</artifactId>
     </dependency>
@@ -108,6 +111,7 @@
     <dependency>
       <groupId>org.jacorb</groupId>
       <artifactId>jacorb-idl-compiler</artifactId>
+      <optional>true</optional>
     </dependency>
 
     <dependency>
