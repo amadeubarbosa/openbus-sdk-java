@@ -10,7 +10,13 @@
 
   <name>OpenBus - SDK</name>
   <url>http://www.tecgraf.puc-rio.br/openbus</url>
+  <description>Biblioteca para desenvolvimento de integrações de sistemas através do Middleware OpenBus</description>
   
+  <organization>
+    <name>Tecgraf/PUC-Rio</name>
+    <url>http://www.tecgraf.puc-rio.br</url>
+  </organization>
+
   <properties>
     <java.version>1.6</java.version>
     <scs.version>1.2.1.3</scs.version>
@@ -19,18 +25,175 @@
     <idlj.version>1.2.1</idlj.version>
     <commons.lang.version>3.3.2</commons.lang.version>
     <project.build.sourceEncoding>ISO-8859-1</project.build.sourceEncoding>
+    <nexus.url>http://nexus.tecgraf.puc-rio.br:8081/nexus</nexus.url>
   </properties>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-project-info-reports-plugin</artifactId>
+        <version>2.7</version>
+        <reportSets>
+          <reportSet>
+            <reports>
+              <report>index</report>
+              <report>summary</report>
+              <report>license</report>
+              <report>dependencies</report>
+              <report>dependency-info</report>
+              <report>project-team</report>
+              <report>mailing-list</report>
+              <report>scm</report>
+            </reports>
+          </reportSet>
+        </reportSets>
+        <configuration>
+          <showAvatarImages>false</showAvatarImages>
+        </configuration>
+      </plugin>
+    </plugins>
+  </reporting>
+
+  <developers>
+    <developer>
+      <id>amadeu</id>
+      <name>Amadeu Andrade Barbosa Junior</name>
+      <email>amadeu@tecgraf.puc-rio.br</email>
+      <!-- <url>http://www.tecgraf.puc-rio.br/~amadeu</url> -->
+      <organization>Tecgraf/PUC-Rio</organization>
+      <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
+      <timezone>-3</timezone>
+    </developer>
+    <developer>
+      <id>caeaugusto</id>
+      <name>Carlos Eduardo Lara Augusto</name>
+      <email>caeaugusto@tecgraf.puc-rio.br</email>
+      <organization>Tecgraf/PUC-Rio</organization>
+      <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
+      <timezone>-3</timezone>
+    </developer>
+    <developer>
+      <id>hroenick</id>
+      <name>Hugo Roenick</name>
+      <email>hroenick@tecgraf.puc-rio.br</email>
+      <organization>Tecgraf/PUC-Rio</organization>
+      <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
+      <timezone>-3</timezone>
+    </developer>
+    <developer>
+      <id>maia</id>
+      <name>Renato Figueiro Maia</name>
+      <email>maia@tecgraf.puc-rio.br</email>
+      <url>http://www.tecgraf.puc-rio.br/~maia</url>
+      <organization>Tecgraf/PUC-Rio</organization>
+      <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
+      <timezone>-3</timezone>
+    </developer>
+    <developer>
+      <id>rcosme</id>
+      <name>Ricardo Cosme</name>
+      <email>rcosme@tecgraf.puc-rio.br</email>
+      <organization>Tecgraf/PUC-Rio</organization>
+      <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
+      <timezone>-3</timezone>
+    </developer>
+    <developer>
+      <id>tmartins</id>
+      <name>Tadeu Martins Chamuinho Bastos</name>
+      <email>tmartins@tecgraf.puc-rio.br</email>
+      <organization>Tecgraf/PUC-Rio</organization>
+      <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
+      <timezone>-3</timezone>
+    </developer>
+    <developer>
+      <id>schauw</id>
+      <name>Wagner Schau</name>
+      <email>schauw@tecgraf.puc-rio.br</email>
+      <organization>Tecgraf/PUC-Rio</organization>
+      <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
+      <timezone>-3</timezone>
+    </developer>
+    <developer>
+      <id>vgpinheiro</id>
+      <name>Vinicius Gama Pinheiro</name>
+      <email>vgpinheiro@tecgraf.puc-rio.br</email>
+      <organization>Tecgraf/PUC-Rio</organization>
+      <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
+      <timezone>-3</timezone>
+    </developer>
+  </developers>
+
+  <contributors>
+    <contributor>
+      <name>Andre Costa</name>
+      <email>costa@tecgraf.puc-rio.br</email>
+      <organization>Tecgraf/PUC-Rio</organization>
+      <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
+    </contributor>
+    <contributor>
+      <name>Bruno Silvestre</name>
+    </contributor>
+    <contributor>
+      <name>Carlos Cassino</name>
+      <email>cassino@tecgraf.puc-rio.br</email>
+      <url>http://www.tecgraf.puc-rio.br/~cassino</url>
+      <organization>Tecgraf/PUC-Rio</organization>
+      <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
+    </contributor>
+    <contributor>
+      <name>Guilherme Lepsch</name>
+    </contributor>
+    <contributor>
+      <name>Mauricio Arieira Rosas</name>
+    </contributor>
+    <contributor>
+      <name>Renato Cerqueira</name>
+      <email>rceqr@tecgraf.puc-rio.br</email>
+      <organization>Tecgraf/PUC-Rio</organization>
+      <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
+    </contributor>
+    <contributor>
+      <name>Rodrigo Henrique Carneiro</name>
+    </contributor>
+    <contributor>
+      <name>Victor Sá Freire Fusco</name>
+    </contributor>
+    <contributor>
+      <name>Todos os membros da lista de usuários</name>
+      <email>openbus-users@tecgraf.puc-rio.br</email>
+    </contributor>
+  </contributors>
+
+  <mailingLists>
+    <mailingList>
+      <name>Lista de usuários OpenBus</name>
+      <post>openbus-users@tecgraf.puc-rio.br</post>
+      <archive>http://openlists.tecgraf.puc-rio.br/mailman/listinfo/openbus-users</archive>
+      <otherArchives>
+        <otherArchive>http://openlists.tecgraf.puc-rio.br/pipermail/openbus-users/</otherArchive>
+      </otherArchives>
+    </mailingList>
+  </mailingLists>
+
+  <licenses>
+    <license>
+      <name>OpenBus License, compatible with GPL</name>
+      <url>http://webserver2.tecgraf.puc-rio.br/ftp_pub/openbus/license/LICENSE</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
 
   <distributionManagement>
     <repository>
       <id>tecgraf-releases</id>
       <name>Releases do Tecgraf</name>
-      <url>http://nexus.tecgraf.puc-rio.br:8081/nexus/content/repositories/releases</url>
+      <url>${nexus.url}/content/repositories/releases</url>
     </repository>
     <snapshotRepository>
       <id>tecgraf-snapshots</id>
       <name>Snapshots do Tecgraf</name>
-      <url>http://nexus.tecgraf.puc-rio.br:8081/nexus/content/repositories/snapshots</url>
+      <url>${nexus.url}/content/repositories/snapshots</url>
     </snapshotRepository>
   </distributionManagement>
   
@@ -131,6 +294,15 @@
 
         <configuration>
           <compiler>jacorb</compiler>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-site-plugin</artifactId>
+        <version>3.4</version>
+        <configuration>
+          <locales>pt_BR</locales>
         </configuration>
       </plugin>
     </plugins>
