@@ -25,6 +25,7 @@
     <idlj.version>1.2.1</idlj.version>
     <project.build.sourceEncoding>ISO-8859-1</project.build.sourceEncoding>
     <nexus.url>http://nexus.tecgraf.puc-rio.br:8081/nexus</nexus.url>
+    <javadoc.version>2.10.1</javadoc.version>
   </properties>
 
   <reporting>
@@ -49,6 +50,15 @@
         </reportSets>
         <configuration>
           <showAvatarImages>false</showAvatarImages>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>${javadoc.version}</version>
+        <configuration>
+          <encoding>${project.build.sourceEncoding}</encoding>
+          <show>public</show>
         </configuration>
       </plugin>
     </plugins>
@@ -194,6 +204,11 @@
       <name>Snapshots do Tecgraf</name>
       <url>${nexus.url}/content/repositories/snapshots</url>
     </snapshotRepository>
+    <site>
+      <id>tecgraf-site</id>
+      <name>Site</name>
+      <url>dav:${project.url}</url>
+    </site>
   </distributionManagement>
   
   <repositories>
@@ -278,6 +293,7 @@
             <groupId>org.jacorb</groupId>
             <artifactId>jacorb-idl-compiler</artifactId>
             <version>${jacorb.version}</version>
+            <scope>compile</scope>
           </dependency>
         </dependencies>
         
