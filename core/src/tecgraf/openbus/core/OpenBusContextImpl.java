@@ -43,7 +43,6 @@ import tecgraf.openbus.core.v2_1.data_export.ExportedVersionSeqHelper;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChainHelper;
-import tecgraf.openbus.core.v2_1.services.access_control.InvalidLogins;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
@@ -423,11 +422,9 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * {@inheritDoc}
    */
   @Override
-  public CallerChain makeChainFor(String loginId) throws InvalidLogins,
-    ServiceFailure {
+  public CallerChain makeChainFor(String entity) throws ServiceFailure {
     ConnectionImpl conn = (ConnectionImpl) getCurrentConnection();
-    String busid = conn.busid();
-    SignedData signed = conn.access().signChainFor(loginId);
+    SignedData signed = conn.access().signChainFor(entity);
     try {
       ORBMediator mediator = ORBUtils.getMediator(orb);
       Any anyChain =
@@ -441,7 +438,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       logger.log(Level.SEVERE, message, e);
       throw new OpenBusInternalException(message, e);
     }
-  };
+  }
 
   /**
    * {@inheritDoc}

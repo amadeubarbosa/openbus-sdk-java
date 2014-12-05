@@ -415,7 +415,7 @@ public final class OpenBusContextTest {
     conn2.loginByPassword(actor2, actor2.getBytes());
 
     context.setCurrentConnection(conn1);
-    CallerChain chain1to2 = context.makeChainFor(conn2.login().id);
+    CallerChain chain1to2 = context.makeChainFor(conn2.login().entity);
     assertEquals(actor2, chain1to2.target());
     assertEquals(actor1, chain1to2.caller().entity);
     assertEquals(conn1.login().id, chain1to2.caller().id);
@@ -438,14 +438,14 @@ public final class OpenBusContextTest {
     conn3.loginByPassword(actor3, actor3.getBytes());
 
     context.setCurrentConnection(conn1);
-    CallerChain chain1to2 = context.makeChainFor(conn2.login().id);
+    CallerChain chain1to2 = context.makeChainFor(conn2.login().entity);
     assertEquals(actor2, chain1to2.target());
     assertEquals(actor1, chain1to2.caller().entity);
     assertEquals(conn1.login().id, chain1to2.caller().id);
 
     context.setCurrentConnection(conn2);
     context.joinChain(chain1to2);
-    CallerChain chain1_2to3 = context.makeChainFor(conn3.login().id);
+    CallerChain chain1_2to3 = context.makeChainFor(conn3.login().entity);
     assertEquals(actor3, chain1_2to3.target());
     assertEquals(actor2, chain1_2to3.caller().entity);
     assertEquals(conn2.login().id, chain1_2to3.caller().id);
@@ -462,43 +462,16 @@ public final class OpenBusContextTest {
   }
 
   @Test
-  public void makeChainForInvalidLoginTest() throws AccessDenied,
+  public void makeChainForInvalidEntityTest() throws AccessDenied,
     AlreadyLoggedIn, ServiceFailure, InvalidLogins, TooManyAttempts {
     Connection conn1 = context.connectByAddress(hostName, hostPort);
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes());
 
     context.setCurrentConnection(conn1);
-    boolean failed = false;
-    String invalidLogin = "invalid-login-id";
-    try {
-      context.makeChainFor(invalidLogin);
-    }
-    catch (InvalidLogins e) {
-      failed = true;
-      String[] loginIds = e.loginIds;
-      assertEquals(loginIds.length, 1);
-      assertEquals(loginIds[0], invalidLogin);
-    }
-    assertTrue(failed);
-
-    Connection conn2 = context.connectByAddress(hostName, hostPort);
-    String actor2 = "actor-2";
-    conn2.loginByPassword(actor2, actor2.getBytes());
-    String oldLogin2 = conn2.login().id;
-    conn2.logout();
-
-    failed = false;
-    try {
-      context.makeChainFor(oldLogin2);
-    }
-    catch (InvalidLogins e) {
-      failed = true;
-      String[] loginIds = e.loginIds;
-      assertEquals(loginIds.length, 1);
-      assertEquals(loginIds[0], oldLogin2);
-    }
-    assertTrue(failed);
+    String invalidEntity = "invalid-one";
+    CallerChain chain = context.makeChainFor(invalidEntity);
+    assertEquals(invalidEntity, chain.target());
     conn1.logout();
   }
 
@@ -532,11 +505,11 @@ public final class OpenBusContextTest {
     });
 
     context.setCurrentConnection(conn1);
-    CallerChain chain1For2 = context.makeChainFor(conn2.login().id);
-    CallerChain chain1For3 = context.makeChainFor(conn3.login().id);
+    CallerChain chain1For2 = context.makeChainFor(conn2.login().entity);
+    CallerChain chain1For3 = context.makeChainFor(conn3.login().entity);
     context.setCurrentConnection(conn2);
     context.joinChain(chain1For2);
-    CallerChain chain1_2For3 = context.makeChainFor(conn3.login().id);
+    CallerChain chain1_2For3 = context.makeChainFor(conn3.login().entity);
     context.setCurrentConnection(conn3);
 
     context.setCurrentConnection(conn);
@@ -606,10 +579,9 @@ public final class OpenBusContextTest {
     Connection conn3 = context.connectByAddress(hostName, hostPort);
     String actor3 = "actor-3";
     conn3.loginByPassword(actor3, actor3.getBytes());
-    String login3 = conn3.login().id;
 
     context.setCurrentConnection(conn1);
-    CallerChain chain1For2 = context.makeChainFor(login2);
+    CallerChain chain1For2 = context.makeChainFor(actor2);
 
     byte[] encodeChain = context.encodeChain(chain1For2);
     CallerChain decodedChain = context.decodeChain(encodeChain);
@@ -621,7 +593,7 @@ public final class OpenBusContextTest {
 
     context.setCurrentConnection(conn2);
     context.joinChain(decodedChain);
-    CallerChain chain1_2For3 = context.makeChainFor(login3);
+    CallerChain chain1_2For3 = context.makeChainFor(actor3);
 
     encodeChain = context.encodeChain(chain1_2For3);
     decodedChain = context.decodeChain(encodeChain);

@@ -7,7 +7,6 @@ import org.omg.PortableInterceptor.Current;
 
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
-import tecgraf.openbus.core.v2_1.services.access_control.InvalidLogins;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.exception.InvalidEncodedStream;
@@ -340,16 +339,14 @@ public interface OpenBusContext {
    * especificado deve ser um login atualmente válido para que a operação tenha
    * sucesso.
    * 
-   * @param loginId identificador de login da entidade para a qual deseja-se
-   *        enviar a cadeia.
+   * @param entity entidade para a qual deseja-se enviar a cadeia.
    * @return a cadeia gerada para ser utilizada pela entidade com o login
    *         especificado.
    * 
-   * @throws InvalidLogins Caso o login especificado seja inválido.
    * @throws ServiceFailure Ocorreu uma falha interna nos serviços do barramento
    *         que impediu a criação da cadeia.
    */
-  CallerChain makeChainFor(String loginId) throws InvalidLogins, ServiceFailure;
+  CallerChain makeChainFor(String entity) throws ServiceFailure;
 
   /**
    * Codifica uma cadeia de chamadas ({@link CallerChain}) para um stream de
@@ -401,8 +398,7 @@ public interface OpenBusContext {
    * @throws InvalidEncodedStream Caso a stream de bytes não seja do formato
    *         esperado.
    */
-  SharedAuthSecret decodeSharedAuth(byte[] encoded)
-    throws InvalidEncodedStream;
+  SharedAuthSecret decodeSharedAuth(byte[] encoded) throws InvalidEncodedStream;
 
   /**
    * Referência ao serviço núcleo de registro de logins do barramento
