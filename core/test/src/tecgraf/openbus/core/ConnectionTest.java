@@ -333,8 +333,8 @@ public final class ConnectionTest {
 
   @Test
   public void loginBySharedAuthenticationTest() throws Exception {
-    Connection conn = context.createConnection(host, port);
-    Connection conn2 = context.createConnection(host, port);
+    Connection conn = context.connectByAddress(host, port);
+    Connection conn2 = context.connectByAddress(host, port);
     conn.loginByPassword(entity, password.getBytes());
 
     // login válido
@@ -433,7 +433,7 @@ public final class ConnectionTest {
     conn.loginByPassword(entity, password.getBytes());
     String id = conn.login().id;
 
-    Connection adminconn = context.createConnection(host, port);
+    Connection adminconn = context.connectByAddress(host, port);
     adminconn.loginByPassword(admin, adminpwd.getBytes());
     try {
       context.setCurrentConnection(adminconn);
@@ -499,7 +499,7 @@ public final class ConnectionTest {
 
   @Test
   public void logoutOnInvalidLoginCallbackTest() throws Exception {
-    Connection conn = context.createConnection(host, port);
+    Connection conn = context.connectByAddress(host, port);
     assertNull(conn.onInvalidLoginCallback());
     final AtomicBoolean called = new AtomicBoolean(false);
     InvalidLoginCallback callback = new InvalidLoginCallback() {
@@ -519,7 +519,7 @@ public final class ConnectionTest {
     conn.loginByPassword(entity, password.getBytes());
     String id = conn.login().id;
 
-    Connection adminconn = context.createConnection(host, port);
+    Connection adminconn = context.connectByAddress(host, port);
     adminconn.loginByPassword(admin, adminpwd.getBytes());
     try {
       context.setCurrentConnection(adminconn);

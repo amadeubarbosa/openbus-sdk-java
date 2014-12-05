@@ -618,13 +618,13 @@ public final class OpenBusContextTest {
 
   @Test
   public void encodeAndDecodeSharedAuth() throws Exception {
-    Connection conn = context.createConnection(hostName, hostPort);
+    Connection conn = context.connectByAddress(hostName, hostPort);
     conn.loginByPassword(entity, password.getBytes());
     try {
       context.setCurrentConnection(conn);
       SharedAuthSecret secret = conn.startSharedAuth();
       byte[] data = context.encodeSharedAuth(secret);
-      Connection conn2 = context.createConnection(hostName, hostPort);
+      Connection conn2 = context.connectByAddress(hostName, hostPort);
       SharedAuthSecret secret2 = context.decodeSharedAuth(data);
       conn2.loginBySharedAuth(secret2);
       assertNotNull(conn2.login());
@@ -638,7 +638,7 @@ public final class OpenBusContextTest {
 
   @Test(expected = InvalidEncodedStream.class)
   public void decodeSharedAuthAsChain() throws Exception {
-    Connection conn = context.createConnection(hostName, hostPort);
+    Connection conn = context.connectByAddress(hostName, hostPort);
     conn.loginByPassword(entity, password.getBytes());
     SharedAuthSecret secret = null;
     try {
@@ -656,10 +656,10 @@ public final class OpenBusContextTest {
 
   @Test(expected = InvalidEncodedStream.class)
   public void decodeChainAsSharedAuth() throws Exception {
-    Connection conn1 = context.createConnection(hostName, hostPort);
+    Connection conn1 = context.connectByAddress(hostName, hostPort);
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes());
-    Connection conn2 = context.createConnection(hostName, hostPort);
+    Connection conn2 = context.connectByAddress(hostName, hostPort);
     String actor2 = "actor-2";
     conn2.loginByPassword(actor2, actor2.getBytes());
     String login2 = conn2.login().id;

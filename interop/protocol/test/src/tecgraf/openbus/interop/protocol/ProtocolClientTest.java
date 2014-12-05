@@ -61,7 +61,7 @@ public final class ProtocolClientTest {
     password = properties.getProperty("entity.password");
     orb = ORBInitializer.initORB();
     context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
-    conn = context.createConnection(host, port);
+    conn = context.connectByAddress(host, port);
   }
 
   @Before
