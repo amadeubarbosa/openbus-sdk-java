@@ -19,23 +19,22 @@ import scs.core.IComponent;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.ORBInitializer;
-import tecgraf.openbus.core.v2_0.EncryptedBlockSize;
-import tecgraf.openbus.core.v2_0.services.ServiceFailure;
-import tecgraf.openbus.core.v2_0.services.access_control.InvalidChainCode;
-import tecgraf.openbus.core.v2_0.services.access_control.InvalidCredentialCode;
-import tecgraf.openbus.core.v2_0.services.access_control.InvalidLoginCode;
-import tecgraf.openbus.core.v2_0.services.access_control.InvalidPublicKeyCode;
-import tecgraf.openbus.core.v2_0.services.access_control.InvalidRemoteCode;
-import tecgraf.openbus.core.v2_0.services.access_control.InvalidTargetCode;
-import tecgraf.openbus.core.v2_0.services.access_control.NoCredentialCode;
-import tecgraf.openbus.core.v2_0.services.access_control.NoLoginCode;
-import tecgraf.openbus.core.v2_0.services.access_control.UnavailableBusCode;
-import tecgraf.openbus.core.v2_0.services.access_control.UnknownBusCode;
-import tecgraf.openbus.core.v2_0.services.access_control.UnverifiedLoginCode;
-import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
-import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
+import tecgraf.openbus.core.v2_1.EncryptedBlockSize;
+import tecgraf.openbus.core.v2_1.services.ServiceFailure;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidChainCode;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidCredentialCode;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidPublicKeyCode;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidRemoteCode;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidTargetCode;
+import tecgraf.openbus.core.v2_1.services.access_control.NoCredentialCode;
+import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.UnavailableBusCode;
+import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
+import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
+import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
+import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.util.Utils;
-import tecgraf.openbus.security.Cryptography;
 
 /**
  * Cliente do teste Protocol
@@ -55,7 +54,6 @@ public final class ProtocolClientTest {
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
-    Cryptography crypto = Cryptography.getInstance();
     Properties properties = Utils.readPropertyFile("/test.properties");
     host = properties.getProperty("openbus.host.name");
     port = Integer.valueOf(properties.getProperty("openbus.host.port"));
@@ -114,25 +112,6 @@ public final class ProtocolClientTest {
       }
     }
     throw new IllegalStateException("couldn't find a responsive offer");
-  }
-
-  @Test
-  public void resetCredentialTest() {
-    try {
-      String target = "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX";
-      int session = 2 ^ 32 - 1;
-      byte[] secret = new byte[16];
-      Arrays.fill(secret, (byte) '\171');
-      server.ResetCredential(target, session, secret);
-    }
-    catch (NO_PERMISSION e) {
-      if (InvalidTargetCode.value == e.minor
-        && e.completed.equals(CompletionStatus.COMPLETED_NO)) {
-        // success!!
-        return;
-      }
-      throw e;
-    }
   }
 
   @Test

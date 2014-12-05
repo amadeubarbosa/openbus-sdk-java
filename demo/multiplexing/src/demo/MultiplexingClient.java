@@ -22,6 +22,7 @@ import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidRemoteCode;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
@@ -125,6 +126,13 @@ public final class MultiplexingClient {
       System.exit(1);
       return;
     }
+    catch (TooManyAttempts e) {
+      System.err.println(String.format(
+        "excedeu o limite de tentativas de login. Aguarde %s seg",
+        e.penaltyTime));
+      System.exit(1);
+      return;
+    }
     // bus core
     catch (ServiceFailure e) {
       System.err.println(String.format(
@@ -170,6 +178,13 @@ public final class MultiplexingClient {
           catch (AccessDenied e) {
             System.err.println(String.format(
               "a senha fornecida para a entidade '%s' foi negada", entity));
+            return;
+          }
+          catch (TooManyAttempts e) {
+            System.err.println(String.format(
+              "excedeu o limite de tentativas de login. Aguarde %s seg",
+              e.penaltyTime));
+            System.exit(1);
             return;
           }
           catch (AlreadyLoggedIn e) {
@@ -290,7 +305,7 @@ public final class MultiplexingClient {
   }
 
   private static Connection newLogin(OpenBusContext context)
-    throws AccessDenied, AlreadyLoggedIn, ServiceFailure {
+    throws AccessDenied, AlreadyLoggedIn, ServiceFailure, TooManyAttempts {
     // conectando ao barramento.
     Connection connection = context.connectByAddress(host, port);
     // autentica-se no barramento

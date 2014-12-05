@@ -19,6 +19,7 @@ import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidRemoteCode;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
@@ -228,6 +229,13 @@ public final class IndependentClockClient {
           catch (AccessDenied e) {
             System.err.println(String.format(
               "a senha fornecida para a entidade '%s' foi negada", entity));
+          }
+          catch (TooManyAttempts e) {
+            System.err.println(String.format(
+              "excedeu o limite de tentativas de login. Aguarde %s seg",
+              e.penaltyTime));
+            System.exit(1);
+            return;
           }
           // bus core
           catch (ServiceFailure e) {
