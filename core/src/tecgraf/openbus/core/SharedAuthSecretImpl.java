@@ -9,7 +9,7 @@ import tecgraf.openbus.core.v2_1.services.access_control.LoginProcess;
  *
  * @author Tecgraf/PUC-Rio
  */
-public class SharedAuthSecretImpl implements SharedAuthSecret {
+class SharedAuthSecretImpl implements SharedAuthSecret {
 
   /** Identificador do barramento */
   final private String busid;

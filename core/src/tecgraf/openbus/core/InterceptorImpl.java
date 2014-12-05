@@ -15,6 +15,10 @@ import org.omg.IOP.Codec;
 import org.omg.PortableInterceptor.Interceptor;
 import org.omg.PortableInterceptor.RequestInfo;
 
+import tecgraf.openbus.core.v2_1.EncryptedBlockSize;
+import tecgraf.openbus.core.v2_1.HashValueSize;
+import tecgraf.openbus.core.v2_1.MajorVersion;
+import tecgraf.openbus.core.v2_1.MinorVersion;
 import tecgraf.openbus.core.v2_1.credential.SignedData;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChainHelper;
@@ -28,16 +32,16 @@ import tecgraf.openbus.security.Cryptography;
  */
 abstract class InterceptorImpl extends LocalObject implements Interceptor {
   /** Número de versão Major */
-  protected static final byte BUS_MAJOR_VERSION = 2;
+  protected static final byte BUS_MAJOR_VERSION = MajorVersion.value;
   /** Número de versão Minor */
-  protected static final byte BUS_MINOR_VERSION = 0;
+  protected static final byte BUS_MINOR_VERSION = MinorVersion.value;
 
   /** Tamanho do hash */
-  protected static final int HASH_VALUE_SIZE = 32;
+  protected static final int HASH_VALUE_SIZE = HashValueSize.value;
   /** Hash nulo. */
   protected static final byte[] NULL_HASH_VALUE = new byte[HASH_VALUE_SIZE];
   /** Tamanho do bloco criptografado */
-  protected static final int ENCRYPTED_BLOCK_SIZE = 256;
+  protected static final int ENCRYPTED_BLOCK_SIZE = EncryptedBlockSize.value;
   /** Bloco nulo criptografado. */
   protected static final byte[] NULL_ENCRYPTED_BLOCK =
     new byte[ENCRYPTED_BLOCK_SIZE];
