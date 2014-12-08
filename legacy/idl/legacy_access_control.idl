@@ -1,0 +1,414 @@
+/**
+ * \mainpage Documentação da IDL
+ */
+#ifndef __TECGRAF_OPENBUS_CORE_V20_SERVICES_ACCESSCONTROL_IDL__
+#define __TECGRAF_OPENBUS_CORE_V20_SERVICES_ACCESSCONTROL_IDL__
+
+#include "legacy_core.idl"
+#include "legacy_credential.idl"
+
+/** \brief Módulo dos sistemas e aplicações do Tecgraf. */
+module tecgraf {
+
+/** \brief Módulo do middleware OpenBus. */
+module openbus {
+
+/** \brief Módulo de definições básicas do OpenBus. */
+module core {
+
+/* \brief Módulo de versionamento dos Serviços Básicos do OpenBus. */
+module v2_0 {
+
+/** \brief Módulo dos Serviços Básicos do OpenBus. */
+module services {
+
+/** \brief Módulo do Serviço de Autenticação. */
+module access_control {
+
+/*
+ * minor codes de CORBA::NO_PERMISSION do protocolo OpenBus:
+ */
+/** \brief Minor code de NO_PERMISSION: credencial inválida. */
+const unsigned long InvalidCredentialCode = 0x42555300; // 1112888064 "BUS\0"
+/** \brief Minor code de NO_PERMISSION: cadeia inválida. */
+const unsigned long InvalidChainCode      = 0x42555301; // 1112888065 "BUS\1"
+/** \brief Minor code de NO_PERMISSION: login inválida. */
+const unsigned long InvalidLoginCode      = 0x42555302; // 1112888066 "BUS\2"
+/** \brief Minor code de NO_PERMISSION: não foi possível verificar o login. */
+const unsigned long UnverifiedLoginCode   = 0x42555303; // 1112888067 "BUS\3"
+/** \brief Minor code de NO_PERMISSION: barramento desconhecido. */
+const unsigned long UnknownBusCode        = 0x42555304; // 1112888068 "BUS\4"
+/** \brief Minor code de NO_PERMISSION: chave pública inválida. */
+const unsigned long InvalidPublicKeyCode  = 0x42555305; // 1112888069 "BUS\5"
+/** \brief Minor code de NO_PERMISSION: credencial não foi encontrada. */
+const unsigned long NoCredentialCode      = 0x42555306; // 1112888070 "BUS\6"
+/*
+ * minor codes de CORBA::NO_PERMISSION da biblioteca de acesso do OpenBus
+ */
+/** \brief Minor code de NO_PERMISSION: ausência de login. */
+const unsigned long NoLoginCode           = 0x425553FF; // 1112888319 "BUS\255"
+/** \brief Minor code de NO_PERMISSION: servidor chamado é inválido. */
+const unsigned long InvalidRemoteCode     = 0x425553FE; // 1112888318 "BUS\254"
+/** \brief Minor code de NO_PERMISSION: barramento indisponível. */
+const unsigned long UnavailableBusCode    = 0x425553FD; // 1112888317 "BUS\253"
+/** \brief Minor code de NO_PERMISSION: login do alvo da chamada é inválido. */
+const unsigned long InvalidTargetCode     = 0x425553FC; // 1112888316 "BUS\252"
+
+/****************************************************************************/
+/* Faceta de Gerência de Credenciais de Entidades Logadas no Barramento *****/
+/****************************************************************************/
+
+/** \brief Indica que não existe certificado associado a entidade. */
+exception MissingCertificate { Identifier entity; };
+
+
+
+/** \brief Dados secretos do login de uma entidade no barramento. */
+struct LoginAuthenticationInfo {
+  HashValue hash; /**< \brief Hash da chave pública a ser associada ao login. */
+  OctetSeq data; /**< \brief Senha ou resposta de desafio para  autenticação. */
+};
+/** \brief Informações públicas do login de uma entidade no barramento. */
+struct LoginInfo {
+  Identifier id; /**< \brief Identificador da login. */
+  Identifier entity; /**< \brief Identificador da entidade que fez login. */
+};
+/** \brief Lista de informações de login */
+typedef sequence<LoginInfo> LoginInfoSeq;
+/** \brief Informações sobre uma cadeia de chamada aninhadas no barramento. */
+struct CallChain {
+  Identifier target; /**< \brief Nome da entidade a quem a cadeia se destina. */
+  LoginInfoSeq originators; /**< \brief Informações de login das entidades que realizaram as chamadas em cadeia que originam essa chamada. */
+  LoginInfo caller; /**< \brief Informações de login da entidade que efetivamente fez chamada atual (última da cadeia). */
+};
+
+
+/** \brief Representa o tempo de validade de um login (em segundos). */
+typedef unsigned long ValidityTime;
+
+
+
+/** \brief Indica que a chave de acesso fornecida é inválida. */
+exception InvalidPublicKey { string message; };
+
+/** \brief Indica que um dado não foi codificado com a chave do barramento. */
+exception WrongEncoding { string message; };
+
+/** \brief Indica que o acesso ao barramento foi negado sem justificaiva. */
+exception AccessDenied {};
+
+/** \brief Indica que os seguintes logins são inválidos. */
+exception InvalidLogins { IdentifierSeq loginIds; };
+
+
+
+/**
+ * \brief Interface para conclusão da etapa final do procedimento de login
+ *        por certificado.
+ */
+interface LoginProcess {
+  /**
+   * \brief Autentica a entidade mediante fornecimento de uma resposta correta
+   *        a um desafio fornecido previamente.
+   *
+   * \param pubkey Chave pública a ser associada ao login.
+   * \param encrypted Estrutura 'LoginAuthenticationInfo' codificada em CDR e
+   *                  encriptada com a chave pública do barramento, onde o campo
+   *                  'hash' contém o hash SHA-256 do parâmetro 'pubkey' e o
+   *                  campo 'data' contém a resposta ao desafio que deve ser o
+   *                  exato dado do parâmetro 'challenge' fornecido na criação
+   *                  deste objeto decodificado com a chave privada apropriada.
+   * \param validity Tempo mínimo (em segundos) pelo qual o login permanecerá
+   *                 ativo sem necessidade de renovação.
+   *
+   * \return Identificador do login estabelecido
+   *
+   * \exception InvalidPublicKey A autenticação falhou, pois a chave pública
+   *                             de acesso fornecida é inválida.
+   * \exception WrongEncoding A autenticação falhou, pois a resposta ao
+   *                          desafio não foi codificada corretamente
+   *                          com a chave pública do barramento.
+   * \exception AccessDenied A autenticação falhou, pois o dado codificado na
+   *                         resposta ao desafio não é o esperado.
+   */
+  LoginInfo login(in OctetSeq pubkey, in EncryptedBlock encrypted,
+                   out ValidityTime validity)
+    raises (InvalidPublicKey, WrongEncoding, AccessDenied, ServiceFailure);
+  
+  /** \brief Cancela o processo de login por certificado. */
+  oneway void cancel();
+};
+
+/**
+ * \brief Gerência de controle de acesso de entidades ao barramento.
+ */
+interface AccessControl {
+  readonly attribute Identifier busid; /**< \brief Identificador do barramento */
+  readonly attribute OctetSeq buskey; /**< \brief Chave pública do barramento */
+  
+  /**
+   * \brief Autentica uma entidade através de uma senha.
+   *
+   * \param entity Identificador da entidade a ser autenticada.
+   * \param pubkey Chave pública a ser associada ao login.
+   * \param encrypted Estrutura 'LoginAuthenticationInfo' codificada em CDR e
+   *                  encriptada com a chave pública do barramento, onde o campo
+   *                  'hash' contém o hash SHA-256 do parâmetro 'pubkey' e o
+   *                  campo 'data' comtém a senha de autenticação.
+   * \param validity Tempo mínimo (em segundos) pelo qual o login permanecerá
+   *                 ativo sem necessidade de renovação.
+   *
+   * \return Identificador do login estabelecido
+   *
+   * \exception InvalidPublicKey A autenticação falhou, pois a chave pública
+   *                             de acesso fornecida é inválida.
+   * \exception WrongEncoding A autenticação falhou, pois a senha não foi
+   *                          codificada corretamente com a chave pública do
+   *                          barramento.
+   * \exception AccessDenied A autenticação falhou. Isso indica que nenhum
+   *                         validador de senha configurado no serviço de
+   *                         login validou a senha fornecida para a entidade
+   *                         indicada.
+   */
+  LoginInfo loginByPassword(in Identifier entity, in OctetSeq pubkey,
+                             in EncryptedBlock encrypted, out ValidityTime validity)
+    raises (InvalidPublicKey, WrongEncoding, AccessDenied, ServiceFailure);
+  
+  /**
+   * \brief Inicia o processo de login por certificado e cria um objeto para
+   * conclusão desse processo.
+   *
+   * O objeto criado para conclusão do processo de login só pode ser utilizado
+   * para concluir um único login. Após a conclusão do login (com sucesso ou
+   * falha), o objeto fica inválido. O objeto criado também pode ficar
+   * inválido após um tempo. Em ambos os casos, é necessário reiniciar o
+   * processo de login por certificado chamando essa operação novamente.
+   *
+   * \param entity Identificador da entidade cujo certificado será usado.
+   * \param challenge Desafio a ser decodificado com a chave privada da
+   *                  entidade.
+   *
+   * \return Objeto a ser usado para efetuar o login.
+   * 
+   * \exception MissingCertificate Certificado não encontrado.
+   */
+  LoginProcess startLoginByCertificate(in Identifier entity,
+                                       out EncryptedBlock challenge)
+    raises (MissingCertificate, ServiceFailure);
+  
+  /**
+   * \brief Inicia o processo de login por autenticação compartilhada e cria
+   * um objeto para a conclusão desse processo.
+   *
+   * O objeto criado para conclusão do processo de login só pode ser utilizado
+   * para concluir um único login. Após a conclusão do login (com sucesso ou
+   * falha), o objeto fica inválido. O objeto criado também pode ficar
+   * inválido após um tempo. Em ambos os casos, é necessário reiniciar o
+   * processo de login por certificado chamando essa operação novamente.
+   *
+   * \return Objeto a ser usado para efetuar o login.
+   */
+  LoginProcess startLoginBySharedAuth(out EncryptedBlock challenge)
+    raises (ServiceFailure);
+  
+  /**
+   * \brief Encerra o login de quem chama a operação.
+   */
+  void logout() raises (ServiceFailure);
+  
+  /**
+   * \brief Renova a validade do login de quem chama a operação.
+   *
+   * \return Valor indicando o tempo mínimo (em segundos) pelo qual o login
+   *         permanecerá válido sem necessidade de renovação.
+   */
+  ValidityTime renew() raises (ServiceFailure);
+  
+  /**
+   * \brief Cria uma nova cadeia de chamadas assinada pelo barramento.
+   *
+   * A cadeia criada pode ser usada pela entidade do login identificado pelo
+   * parâmetro 'target' para se adicionar a uma cadeia original. A cadeia
+   * original é definida como a cadeia de chamada dentro da qual a chamada de
+   * 'signChainFor' foi originalmente iniciada.
+   *
+   * \param target Identificador de login que podera se adicionar a cadeia.
+   *
+   * \return A nova cadeia de chamadas assinada.
+   */
+  credential::SignedCallChain signChainFor(in Identifier target)
+    raises (InvalidLogins, ServiceFailure);
+};
+
+/****************************************************************************/
+/* Faceta de Notificação de Eventos de Credenciais de Autenticação **********/
+/****************************************************************************/
+
+/**
+ * \brief Interface a ser implementada por um observador de logins. Esse
+ *        observador será notificado quando algum dos logins que ele observa
+ *        for invalidado (logout).
+ */
+interface LoginObserver {
+  /**
+   * \brief Notifica que um login observado foi invalidado.
+   *
+   * \param login Informações do login invalidado.
+   */
+  void entityLogout(in LoginInfo login);
+};
+
+/**
+ * \brief Gerência de logins observados por um observador registrado.
+ */
+interface LoginObserverSubscription {
+  
+  /**
+   * \brief Adiciona um login à lista de logins observadas.
+   *
+   * \param loginId Identificador do login a ser observado.
+   *
+   * \return \c true se o login indicado é válido e passa a ser observado ou
+   *         \c false se o login fornecido é inválido e por essa razão não
+   *         pode ser observado.
+   */
+  boolean watchLogin(in Identifier loginId) raises (ServiceFailure);
+  
+  /**
+   * \brief Remove um login da lista de logins observadas.
+   *
+   * Se o login informado não estiver na lista de logins observadas (inclusive
+   * logins inválidas) essa operação não tem efeito algum.
+   *
+   * \param loginId Identificador do login a ser removido.
+   */
+  void forgetLogin(in Identifier loginId) raises (ServiceFailure);
+  
+  /**
+   * \brief Adiciona uma sequência de logins à lista de logins observados.
+   *
+   * \param loginIds Uma sequência de identificadores de logins a serem
+   *                 observadas.
+   *
+   * \exception InvalidLogins Indica que alguns dos logins a serem observados
+   *                          são inválidos.
+   */
+  void watchLogins(in IdentifierSeq loginIds)
+    raises (InvalidLogins, ServiceFailure);
+  
+  /**
+   * \brief Remove uma sequência de logins da lista de logins observados.
+   *
+   * Os logins da sequência que não estiverem na lista de logins observadas
+   * são ignorados (isso inclui logins inválidas).
+   *
+   * \param loginIds Uma sequência de identificadores de logins a serem
+   *                 removidos.
+   */
+  void forgetLogins(in IdentifierSeq loginIds) raises (ServiceFailure);
+  
+  /**
+   * \brief Obtém uma sequência dos logins observados por esse observador.
+   *
+   * \return A sequência logins observadas.
+   */
+  LoginInfoSeq getWatchedLogins();
+  
+  /**
+   * \brief Remove a inscrição desse observador, fazendo com que mais nenhum
+   *        evento sobre os logins observadas seja notificado.
+   */
+  void remove() raises (ServiceFailure);
+};
+
+/**
+ * \brief Gerência de logins ativos no barramento.
+ */
+interface LoginRegistry {
+  /**
+   * \brief Devolve uma lista de todos os logins ativos no barramento.
+   *
+   * \return Lista de informações de todos os logins ativos no barramento.
+   *
+   * \exception UnauthorizedOperation Entidade que chama não é administrador.
+   */
+  LoginInfoSeq getAllLogins() raises (UnauthorizedOperation, ServiceFailure);
+  
+  /**
+   * \brief Devolve uma lista de todos os logins ativos de uma entidade.
+   *
+   * \param entity Identificador de uma entidade.
+   * 
+   * \return Lista de informações de todos os logins ativos da entidade.
+   *
+   * \exception UnauthorizedOperation Entidade que chama não é administrador ou
+   *            não é a mesma entidade.
+   */
+  LoginInfoSeq getEntityLogins(in Identifier entity)
+    raises (UnauthorizedOperation, ServiceFailure);
+  
+  /**
+   * \brief Encerra um login no barramento.
+   *
+   * \param loginId Identificador do login a ser encerrado.
+   * 
+   * \return \c true se o login informado está válido e foi invalidado, ou
+   *         \c false se o login informado não é válido.
+   *
+   * \exception UnauthorizedOperation Entidade que chama não é administrador ou
+   *            não é a mesma entidade.
+   */
+  boolean invalidateLogin(in Identifier loginId)
+    raises (UnauthorizedOperation, ServiceFailure);
+  
+  /**
+   * \brief Devolve informações de um login válido.
+   *
+   * \param loginId Identificador do logins sendo consultado.
+   * \param pubkey A chave pública da entidade.
+   *
+   * \return Informações ds login requisitado.
+   *
+   * \exception InvalidLogins Indica que o login informado é inválido.
+   */
+  LoginInfo getLoginInfo(in Identifier loginId, out OctetSeq pubkey)
+    raises (InvalidLogins, ServiceFailure);
+  
+  /**
+   * \brief Verifica a validade de um login.
+   *
+   * \param loginId Identificador de login a ser consultado.
+   *
+   * \return Valor indicando o tempo máximo (em segundos) pelo qual o login 
+   *         permanecerá válido sem necessidade de renovação. Caso a validade 
+   *         já tenha expirado, o valor indicado é zero, indicando que o login
+   *         não é mais válido.
+   */
+  ValidityTime getLoginValidity(in Identifier loginId)
+    raises (ServiceFailure);
+  
+  /**
+   * \brief Inscreve um observador para noficação de eventos de logins.
+   *
+   * \param callback Objeto de callback a ser utilizado para nofificação
+   *                     de eventos.
+   *
+   * \return Objeto para gerência da inscrição do observador.
+   */
+  LoginObserverSubscription subscribeObserver(in LoginObserver callback)
+    raises (ServiceFailure);
+};
+
+}; // access_control
+
+}; // services
+
+}; // version
+
+}; // core
+
+}; // openbus
+
+}; // tecgraf
+
+#endif

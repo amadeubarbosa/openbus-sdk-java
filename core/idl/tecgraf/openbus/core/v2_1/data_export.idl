@@ -1,0 +1,74 @@
+/**
+ * \mainpage Documentação da IDL
+ */
+#ifndef __TECGRAF_OPENBUS_CORE_V21_DATAEXPORT_IDL__
+#define __TECGRAF_OPENBUS_CORE_V21_DATAEXPORT_IDL__
+
+#include "tecgraf/openbus/core/v2_1/services/access_control.idl"
+
+/** \brief Módulo dos sistemas e aplicações do Tecgraf. */
+module tecgraf {
+
+/** \brief Módulo do middleware OpenBus. */
+module openbus {
+
+/** \brief Módulo de definições básicas do OpenBus. */
+module core {
+
+/* \brief Módulo de versionamento dos Serviços Básicos do OpenBus. */
+module v2_1 {
+
+/** \brief Módulo com definições de dados exportados usadas para serialização. */
+module data_export {
+
+  /** Indicação da versão atual de cofidicação de dados. */
+  const unsigned long CurrentVersion = 0x42555301; // 1112888065 "BUS\1";
+  
+  /** Prefixo de streams contendo cadeias de chamadas codificadas. */
+  const string MagicTag_CallChain = "BUS\x01";
+  /** Prefixo de streams contendo informações de autenticação compartilhada. */
+  const string MagicTag_SharedAuth = "BUS\x02";
+
+  /**
+   * \brief Estrutura utilizada para exportar dados versionados de forma
+   *        interoperável para um stream de bytes.
+   */
+  struct ExportedVersion {
+    /** Indicação da versão da codificação do dado. */
+    unsigned long version;
+    /** Codificação do dado no formado indicado pela versão. */
+    OctetSeq encoded;
+  };
+  /** \brief Sequência de codificações versionadas. */
+  typedef sequence<ExportedVersion> ExportedVersionSeq;
+
+  /**
+   * \brief Estrutura utilizada para exportar uma cadeia de chamadas para um
+   *        stream de bytes.
+   */
+  typedef credential::SignedData ExportedCallChain;
+  
+  /**
+   * \brief Estrutura utilizada para exportar informações de autenticação
+   *        compartilhada para um stream de bytes
+   */
+  struct ExportedSharedAuth {
+    /** \brief UUID do barramento ao qual a cadeia está associada */
+    Identifier bus;
+    /** Objeto a ser usado para efetuar o login. */
+    services::access_control::LoginProcess attempt;
+    /** Segredo a ser usado para efetuar o login. */
+    OctetSeq secret;
+  };
+
+}; // data_export
+
+}; // version
+
+}; // core
+
+}; // openbus
+
+}; // tecgraf
+
+#endif

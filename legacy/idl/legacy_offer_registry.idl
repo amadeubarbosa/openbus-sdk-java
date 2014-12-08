@@ -1,0 +1,370 @@
+/**
+ * \mainpage Documentação da IDL
+ */
+#ifndef __TECGRAF_OPENBUS_CORE_V20_SERVICES_OFFERREGISTRY_IDL__
+#define __TECGRAF_OPENBUS_CORE_V20_SERVICES_OFFERREGISTRY_IDL__
+
+/* for the type of object implementing services offered */
+#include "scs.idl"
+#include "legacy_core.idl"
+
+/** \brief Módulo dos sistemas e aplicações do Tecgraf. */
+module tecgraf {
+
+/** \brief Módulo do middleware OpenBus. */
+module openbus {
+
+/** \brief Módulo de definições básicas do OpenBus. */
+module core {
+
+/* \brief Módulo de versionamento dos Serviços Básicos do OpenBus. */
+module v2_0 {
+
+/** \brief Módulo dos Serviços Básicos do OpenBus. */
+module services {
+
+/** \brief Módulo do Serviço de Ofertas. */
+module offer_registry {
+
+/****************************************************************************/
+/* Faceta de Gerência de Ofertas de Serviço *********************************/
+/****************************************************************************/
+
+interface OfferObserver; /* forward declaration */
+interface ServiceOffer; /* forward declaration */
+interface OfferRegistryObserver; /* forward declaration */
+
+
+
+/** \brief Identificação de uma faceta de componente SCS. */
+typedef string FacetName; /* same type of a SCS facet identifier (name) */
+/** \brief Sequência de facetas de componentes SCS. */
+typedef sequence<FacetName> FacetNameSeq;
+
+/** \brief Propriedade que descreve um aspecto de uma oferta de serviço. */
+struct ServiceProperty {
+  string name; /** \brief nome da propriedade */
+  string value; /** \brief valor da propriedade */
+};
+/** \brief Sequência de propriedades que descrevem uma oferta de serviço. */
+typedef sequence<ServiceProperty> ServicePropertySeq;
+
+/** \brief Referência para um serviço ofertado. */
+typedef scs::core::IComponent OfferedService;
+
+/** \brief Descreve uma oferta de serviço. */
+struct ServiceOfferDesc {
+  OfferedService service_ref; /** \brief Referência para o serviço ofertado. */
+  ServicePropertySeq properties; /** \brief Propriedades do serviço ofertado. */
+  ServiceOffer ref; /** \brief Objeto que representa a oferta de serviço. */
+};
+/** \brief Sequência de descrições de oferta de serviço. */
+typedef sequence<ServiceOfferDesc> ServiceOfferDescSeq;
+
+/** \brief Descreve uma inscrição de observador de oferta de serviço. */
+struct OfferObserverSubscriptionDesc {
+  OfferObserver observer; /** \brief Referência para o observador. */
+  ServiceOffer offer; /** \brief Oferta serviço observada.*/
+};
+/** \brief Sequência de descrições de inscrições de observadores */
+typedef sequence<OfferObserverSubscriptionDesc>
+  OfferObserverSubscriptionDescSeq;
+
+/** \brief Descreve uma inscrição de observador de oferta de serviço. */
+struct OfferRegistryObserverSubscriptionDesc {
+  OfferRegistryObserver observer; /** \brief Referência para o observador. */
+  ServicePropertySeq properties; /** \brief Propriedades do serviço ofertado. */
+};
+/** \brief Sequência de descrições de inscrições de observadores */
+typedef sequence<OfferRegistryObserverSubscriptionDesc>
+  OfferRegistryObserverSubscriptionDescSeq;
+
+/** \brief Identificador da inscrição de um observador. */
+typedef long Cookie;
+
+/**
+ * \brief Indica que o serviço oferece facetas não autorizadas para a
+ *        entidade que registra a oferta de serviço
+ */
+exception UnauthorizedFacets { FacetNameSeq facets; };
+
+/**
+ * \brief Indica que a lista de propriedades fornecida ao registrar uma
+ *        oferta de serviço inclui propridades inválidas, tais como
+ *        propriedades automáticas (cujo nome começam com 'openbus.').
+ */
+exception InvalidProperties { ServicePropertySeq properties; };
+
+/**
+ * \brief Indica que a referência fornecida do serviço não apresenta o formato
+ *        esperado, que no caso é um componente SCS bem formado.
+ */
+exception InvalidService { string message; };
+
+
+/**
+ * \brief Representa um observador de oferta já cadastrada.
+ */
+interface OfferObserver {
+  /**
+   * \brief Notifica que a oferta observada teve as propriedades atualizadas.
+   *
+   * \param offer O descritor da oferta.
+   */  
+  void propertiesChanged(in ServiceOfferDesc offer);
+
+  /**
+   * \brief Notifica que a oferta observada foi removida.
+   *
+   * \param offer O descritor da oferta.
+   */
+  void removed(in ServiceOfferDesc offer);
+};
+
+/**
+ * \brief Representa um observador de registro de ofertas.
+ */
+interface OfferRegistryObserver {
+  /**
+   * \brief Notifica que uma oferta que atende ao critério de propriedades do 
+   *        observador foi registrada.
+   *
+   * \param offer A oferta registrada que atende ao critério de propriedades.
+   */
+  void offerRegistered(in ServiceOfferDesc offer);
+};
+
+/**
+ * \brief Representa a inscrição de um observador de oferta de serviço.
+ */
+interface OfferObserverSubscription {
+
+  /** \brief Referência para o observador inscrito. */
+  readonly attribute OfferObserver observer;
+  
+  /** \brief Referência para oferta observada. */
+  readonly attribute ServiceOffer offer;
+  
+  /**
+   * \brief Devolve uma estrutura descrevedo a inscrição do observador. 
+   *
+   * \return A descrição da inscrição do observador
+   */
+  OfferObserverSubscriptionDesc describe();
+  
+  /**
+   * \brief Remove a incrição do observador.
+   *
+   * Essa operação permite remover a inscrição do observador. Essa operação só
+   * pode ser chamada pela mesma entidade que registrou a oferta ou por uma
+   * entidade com permissão de administração no barramento.
+   *
+   * \exception UnauthorizedOperation Entidade que chama não é a mesma que
+   *                                  registrou a oferta nem administrador.
+   */
+  void remove() raises (UnauthorizedOperation, ServiceFailure);
+};
+
+/**
+ * \brief Representa a inscrição de um observador de registro oferta de serviço.
+ */
+interface OfferRegistryObserverSubscription {
+  /** \brief Referência para o observador inscrito. */
+  readonly attribute OfferRegistryObserver observer;
+  
+  /**
+   * \brief Lista de propriedades de oferta que o observador está interessado.
+   *
+   * Sempre que uma oferta com essas propriedades é registrada, o observador é
+   * notificado.
+   */
+  readonly attribute ServicePropertySeq properties;
+  
+  /**
+   * \brief Devolve uma estrutura descrevedo a inscrição do observador. 
+   *
+   * \return A descrição da inscrição do observador
+   */
+  OfferRegistryObserverSubscriptionDesc describe();
+  
+  /**
+   * \brief Remove a incrição do observador.
+   *
+   * Essa operação permite remover a inscrição do observador. Essa operação só
+   * pode ser chamada pela mesma entidade que registrou a oferta ou por uma
+   * entidade com permissão de adminstração no barramento.
+   *
+   * \exception UnauthorizedOperation Entidade que chama não é a mesma que
+   *                                  registrou a oferta nem administrador.
+   */
+  void remove() raises (UnauthorizedOperation, ServiceFailure);
+};
+
+/**
+ * \brief Representa uma oferta de serviço.
+ */
+interface ServiceOffer {
+  /** \brief Referência para o serviço ofertado. */
+  readonly attribute OfferedService service_ref;
+  
+  /**
+   * \brief Lista de propriedades do serviço ofertado.
+   *
+   * As seguintes propriedades são geradas automaticamente no registro de uma
+   * oferta e não são alteradas através da operação \c setProperties.
+   *
+   * openbus.offer.id: Ident. único da oferta.
+   * openbus.offer.login: Ident. do login com que a oferta foi registrada.
+   * openbus.offer.entity: Ident. da entidade que registrou a oferta.
+   * openbus.offer.timestamp: Número indicando o momento do registro da oferta.
+   * openbus.offer.year: Ano em que a oferta foi registrada.
+   * openbus.offer.month: Número do mês em que a oferta foi registrada.
+   * openbus.offer.day: Dia do mês que a oferta foi registrada.
+   * openbus.offer.hour: Hora do dia em que a oferta foi registrada.
+   * openbus.offer.minute: Minuto do dia em que a oferta foi registrada.
+   * openbus.offer.second: Segundo do dia em que a oferta foi registrada.
+   * openbus.component.name: Nome do componente SCS que implementa o serviço.
+   * openbus.component.version.major: Versão maior do componente SCS que implementa o serviço.
+   * openbus.component.version.minor: Versão menor do componente SCS que implementa o serviço.
+   * openbus.component.version.patch: Versão de correção do componente SCS que implementa o serviço.
+   * openbus.component.platform: Especificação da plataforma do componente SCS que implementa o serviço.
+   * openbus.component.facet: Nome de faceta oferecida pelo component SCS que implementa o serviço.
+   * openbus.component.interface: RepID de interface implementada por faceta do component SCS que implementa o serviço.
+   */
+  readonly attribute ServicePropertySeq properties;
+  
+  /**
+   * \brief Devolve uma estrutura descrevedo a oferta de serviço. 
+   *
+   * \return A descrição da oferta
+   */
+  ServiceOfferDesc describe();
+  
+  /**
+   * \brief Altera as propriedades do serviço ofertado.
+   *
+   * Essa operação permite alterar as propriedades do serviço ofertado que
+   * ficam disponíveis através do atributo 'properties'. Essa operação só pode
+   * ser chamada pela mesma entidade que registrou a oferta ou por uma entidade
+   * com permissão de adminstração no barramento.
+   *
+   * \param properties Novas propriedades da oferta de serviço.
+   *
+   * \exception InvalidProperties A lista de propriedades fornecida inclui
+   *                              propridades inválidas, tais como
+   *                              propriedades automáticas (cujo nome começam
+   *                              com 'openbus.').
+   * \exception UnauthorizedOperation Entidade que chama não é a mesma que
+   *                                  registrou a oferta nem administrador.
+   */
+  void setProperties(in ServicePropertySeq properties)
+    raises (InvalidProperties, UnauthorizedOperation, ServiceFailure);
+  
+  /**
+   * \brief Remove a oferta de serviço.
+   *
+   * Essa operação permite remover o serviço ofertado. Essa operação só pode
+   * ser chamada pela mesma entidade que registrou a oferta ou por uma entidade
+   * com permissão de adminstração no barramento.
+   *
+   * \exception UnauthorizedOperation Entidade que chama não é a mesma que
+   *                                  registrou a oferta nem administrador.
+   */
+  void remove() raises (UnauthorizedOperation, ServiceFailure);
+  
+  /**
+   * \brief Inscreve um observador da oferta.
+   *
+   * \param observer O observador.
+   *
+   * \return Objeto que representa a inscrição do observador.
+   */
+  OfferObserverSubscription subscribeObserver(in OfferObserver observer)
+    raises (ServiceFailure);
+};
+
+
+/**
+ * \brief Representa o registro de ofertas de serviço.
+ */
+interface OfferRegistry {
+  /**
+   * \brief Registra uma oferta de serviço.
+   *
+   * \param service_ref Referência serviço sendo ofertado.
+   * \param properties Propriedades do serviço sendo ofertado.
+   *
+   * \return Nova oferta de serviço.
+   *
+   * \exception InvalidService O componente SCS fornecido não é válido, por
+   *                           não apresentar facetas padrão definidas pelo
+   *                           modelo de componetes SCS.
+   * \exception InvalidProperties A lista de propriedades fornecida inclui
+   *                              propriedades inválidas, tais como
+   *                              propriedades com nomes reservados (cujos 
+   *                              nomes começam com 'openbus.').
+   * \exception UnauthorizedFacets O componente que implementa o serviço
+   *                               apresenta facetas com interfaces que não
+   *                               estão autorizadas para a entidade
+   *                               realizando o registro da oferta de serviço.
+   */
+  ServiceOffer registerService(in OfferedService service_ref,
+                               in ServicePropertySeq properties)
+    raises (InvalidService, InvalidProperties, UnauthorizedFacets,
+            ServiceFailure);
+  
+  /**
+   * \brief Busca por ofertas que apresentem um conjunto de propriedades
+   *        definido.
+   * 
+   * Devolve uma lista contendo apenas as ofertas de serviço que apresentem
+   * todas as  propriedades especificadas. Em particular, caso nenhuma
+   * propriedade seja especificada, nenhuma oferta é incluida no resultado
+   * dessa operação. As propriedades utilizadas nas buscas podem ser aquelas
+   * fornecidas no momento do registro da oferta de serviço, assim como as
+   * propriedades automaticamente geradas pelo registro de ofertas de serviços.
+   * 
+   * \param properties Propriedades que as ofertas de serviços encontradas
+   *                   devem apresentar.
+   *
+   * \return Sequência de descrições de ofertas de serviço encontradas.
+   */
+  ServiceOfferDescSeq findServices(in ServicePropertySeq properties)
+    raises (ServiceFailure);
+  
+  /**
+   * \brief Devolve uma lista de todas as ofertas de serviço registradas.
+   * 
+   * \return Sequência de descrições de ofertas de serviço registradas.
+   */
+  ServiceOfferDescSeq getAllServices() raises (ServiceFailure);
+
+  /**
+   * \brief Inscreve um observador de registro de ofertas que atendem ao 
+   *        conjunto de propriedades especificadas.
+   *
+   * \param observer O observador.
+   * \param properties Propriedades que as ofertas de serviços registradas
+   *                   devem apresentar para que o observador seja notificado.
+   *
+   * \return Objeto que representa a inscrição do observador.
+   */
+  OfferRegistryObserverSubscription subscribeObserver(
+    in OfferRegistryObserver observer,
+    in ServicePropertySeq properties)
+    raises (ServiceFailure);
+};
+
+}; // offer_registry
+
+}; // services
+
+}; // version
+
+}; // core
+
+}; // openbus
+
+}; // tecgraf
+
+#endif
