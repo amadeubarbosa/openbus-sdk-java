@@ -30,13 +30,14 @@ public class Client {
       String host = props.getProperty("bus.host.name");
       int port = Integer.valueOf(props.getProperty("bus.host.port"));
       String entity = "interop_delegation_java_client";
+      String domain = "testing";
       Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
       ORB orb = ORBInitializer.initORB();
       OpenBusContext context =
         (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
       Connection conn = context.connectByAddress(host, port);
-      conn.loginByPassword(entity, entity.getBytes());
+      conn.loginByPassword(entity, entity.getBytes(), domain);
       context.setDefaultConnection(conn);
 
       ServiceProperty[] serviceProperties = new ServiceProperty[1];
@@ -73,20 +74,20 @@ public class Client {
 
       conn.logout();
 
-      conn.loginByPassword(bill, bill.getBytes());
+      conn.loginByPassword(bill, bill.getBytes(), domain);
       forwarder.setForward(willian);
       broadcaster.subscribe();
       conn.logout();
 
-      conn.loginByPassword(paul, paul.getBytes());
+      conn.loginByPassword(paul, paul.getBytes(), domain);
       broadcaster.subscribe();
       conn.logout();
 
-      conn.loginByPassword(mary, mary.getBytes());
+      conn.loginByPassword(mary, mary.getBytes(), domain);
       broadcaster.subscribe();
       conn.logout();
 
-      conn.loginByPassword(steve, steve.getBytes());
+      conn.loginByPassword(steve, steve.getBytes(), domain);
       broadcaster.subscribe();
       broadcaster.post("Testing the list!");
       conn.logout();
@@ -103,13 +104,13 @@ public class Client {
       users.add(steve);
 
       for (String user : users) {
-        conn.loginByPassword(user, user.getBytes());
+        conn.loginByPassword(user, user.getBytes(), domain);
         showPostsOf(user, messenger.receivePosts());
         broadcaster.unsubscribe();
         conn.logout();
       }
 
-      conn.loginByPassword(bill, bill.getBytes());
+      conn.loginByPassword(bill, bill.getBytes(), domain);
       forwarder.cancelForward(willian);
       conn.logout();
     }

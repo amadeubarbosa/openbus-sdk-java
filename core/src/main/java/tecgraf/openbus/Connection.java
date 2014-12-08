@@ -12,6 +12,7 @@ import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
+import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.exception.InvalidLoginProcess;
 
@@ -72,17 +73,20 @@ public interface Connection {
    * 
    * @param entity Identificador da entidade a ser autenticada.
    * @param password Senha de autenticação no barramento da entidade.
+   * @param domain Identificador do domínio de autenticação.
    * 
    * @exception AlreadyLoggedIn A conexão já está autenticada.
    * @exception AccessDenied Senha fornecida para autenticação da entidade não
    *            foi validada pelo barramento.
    * @exception TooManyAttempts A autenticação foi recusada por um número
    *            excessivo de tentativas inválidas de autenticação por senha.
+   * @exception UnknownDomain O domínio de autenticação não é conhecido.
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu a autenticação da conexão.
    */
-  void loginByPassword(String entity, byte[] password) throws AccessDenied,
-    AlreadyLoggedIn, TooManyAttempts, ServiceFailure;
+  void loginByPassword(String entity, byte[] password, String domain)
+    throws AccessDenied, AlreadyLoggedIn, TooManyAttempts, UnknownDomain,
+    ServiceFailure;
 
   /**
    * Efetua login de uma entidade usando autenticação por certificado.

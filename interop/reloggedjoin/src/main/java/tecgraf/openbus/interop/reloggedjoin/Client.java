@@ -32,6 +32,7 @@ public final class Client {
       String host = props.getProperty("bus.host.name");
       int port = Integer.valueOf(props.getProperty("bus.host.port"));
       String entity = "interop_reloggedjoin_java_client";
+      String domain = "domain";
       Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
       ORB orb = ORBInitializer.initORB();
@@ -40,7 +41,8 @@ public final class Client {
       Connection connection = context.connectByAddress(host, port);
       context.setDefaultConnection(connection);
 
-      connection.loginByPassword(entity, entity.getBytes(Cryptography.CHARSET));
+      connection.loginByPassword(entity, entity.getBytes(Cryptography.CHARSET),
+        domain);
 
       ServiceProperty[] serviceProperties =
         new ServiceProperty[] {

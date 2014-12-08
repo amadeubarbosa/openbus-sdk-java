@@ -248,8 +248,9 @@ final class ConnectionImpl implements Connection {
    * {@inheritDoc}
    */
   @Override
-  public void loginByPassword(String entity, byte[] password)
-    throws AccessDenied, AlreadyLoggedIn, TooManyAttempts, ServiceFailure {
+  public void loginByPassword(String entity, byte[] password, String domain)
+    throws AccessDenied, AlreadyLoggedIn, TooManyAttempts, UnknownDomain,
+    ServiceFailure {
     checkLoggedIn();
     LoginInfo newLogin;
     try {
@@ -260,7 +261,7 @@ final class ConnectionImpl implements Connection {
         this.generateEncryptedLoginAuthenticationInfo(password);
       IntHolder validityHolder = new IntHolder();
       newLogin =
-        this.access().loginByPassword(entity, DEFAULT_DOMAIN,
+        this.access().loginByPassword(entity, domain,
           this.publicKey.getEncoded(), encryptedLoginAuthenticationInfo,
           validityHolder);
       localLogin(newLogin, validityHolder.value);
@@ -273,11 +274,6 @@ final class ConnectionImpl implements Connection {
       throw new OpenBusInternalException(
         "Falha no protocolo OpenBus: A chave de acesso gerada não foi aceita. Mensagem="
           + e.message);
-    }
-    catch (UnknownDomain e) {
-      String msg = "Falha na autenticação por uso de domínio desconhecido";
-      logger.log(Level.SEVERE, msg, e);
-      throw new AccessDenied(msg);
     }
     finally {
       this.context.unignoreThread();

@@ -41,7 +41,7 @@
               <goal>generate-test</goal>
             </goals>
             <configuration>
-              <sourceDirectory>${project.basedir}/test/idl</sourceDirectory>
+              <sourceDirectory>${project.basedir}/src/test/idl</sourceDirectory>
             </configuration>
           </execution>
         </executions>
@@ -88,11 +88,6 @@
         </executions>
       </plugin>
     </plugins>
-    <testResources>
-      <testResource>
-        <directory>${project.basedir}/test/resources</directory>
-      </testResource>
-    </testResources>
   </build>
 
   <dependencies>

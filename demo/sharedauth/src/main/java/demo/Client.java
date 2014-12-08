@@ -20,6 +20,7 @@ import tecgraf.openbus.core.v2_1.services.access_control.InvalidRemoteCode;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
+import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
 import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
@@ -71,10 +72,15 @@ public final class Client {
     if (args.length > 3) {
       password = args[3];
     }
+    // - dominio (opcional)
+    String domain = "openbus";
+    if (args.length > 4) {
+      domain = args[4];
+    }
     // - arquivo (opcional)
     String file = "sharedauth.dat";
-    if (args.length > 4) {
-      file = args[4];
+    if (args.length > 5) {
+      file = args[5];
     }
 
     // inicializando e configurando o ORB
@@ -89,7 +95,7 @@ public final class Client {
     ServiceOfferDesc[] services;
     try {
       // autentica-se no barramento
-      connection.loginByPassword(entity, password.getBytes());
+      connection.loginByPassword(entity, password.getBytes(), domain);
       // persistindo dados de compartilhamento de autenticação em arquivo
       /*
        * OBS: talvez seja mais interessante para a aplicação trocar esses dados
@@ -128,6 +134,11 @@ public final class Client {
       System.err.println(String.format(
         "excedeu o limite de tentativas de login. Aguarde %s seg",
         e.penaltyTime));
+      System.exit(1);
+      return;
+    }
+    catch (UnknownDomain e) {
+      System.err.println("Tentativa de autenticação em domínio desconhecido.");
       System.exit(1);
       return;
     }

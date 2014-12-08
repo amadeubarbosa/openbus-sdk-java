@@ -17,11 +17,12 @@ import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 public class Utils {
 
   public static final String clientUsage =
-    "Usage: 'demo' <host> <port> <entity> [password] %s\n"
+    "Usage: 'demo' <host> <port> <entity> [password] [domain] %s\n"
       + "  - host = é o host do barramento\n"
       + "  - port = é a porta do barramento\n"
       + "  - entity = é a entidade a ser autenticada\n"
-      + "  - password = senha (opcional) %s";
+      + "  - password = senha (opcional)\n"
+      + "  - domain = domínio de autenticação (opecional) %s";
 
   public static final String serverUsage =
     "Usage: 'demo' <host> <port> <entity> <privatekeypath> %s\n"

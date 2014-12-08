@@ -14,6 +14,7 @@ import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
+import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
@@ -34,14 +35,16 @@ public final class ChainingClient {
    * @throws ServiceFailure
    * @throws AccessDenied
    * @throws IOException
-   * @throws TooManyAttempts 
+   * @throws TooManyAttempts
+   * @throws UnknownDomain
    */
   public static void main(String[] args) throws AlreadyLoggedIn, InvalidName,
-    ServiceFailure, AccessDenied, IOException, TooManyAttempts {
+    ServiceFailure, AccessDenied, IOException, TooManyAttempts, UnknownDomain {
     Properties props = Utils.readPropertyFile("/test.properties");
     String host = props.getProperty("bus.host.name");
     int port = Integer.valueOf(props.getProperty("bus.host.port"));
     String entity = "interop_chaining_java_client";
+    String domain = "testing";
     Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
     ORB orb = ORBInitializer.initORB(args);
@@ -51,7 +54,7 @@ public final class ChainingClient {
     context.setDefaultConnection(connection);
 
     ServiceOfferDesc[] services;
-    connection.loginByPassword(entity, entity.getBytes());
+    connection.loginByPassword(entity, entity.getBytes(), domain);
     ServiceProperty[] properties =
       new ServiceProperty[] {
           new ServiceProperty("offer.domain", "Interoperability Tests"),

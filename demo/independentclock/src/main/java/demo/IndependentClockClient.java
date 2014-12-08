@@ -21,6 +21,7 @@ import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
+import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
 import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
@@ -38,6 +39,7 @@ public final class IndependentClockClient {
   private static int port;
   private static String entity;
   private static String password;
+  private static String domain;
   private static int interval = 1;
 
   /** Variáveis de controle para garantir que não registre réplicas */
@@ -81,10 +83,15 @@ public final class IndependentClockClient {
     if (args.length > 3) {
       password = args[3];
     }
-    // - intervalo entre falhas
+    // - dominio (opcional)
+    domain = "openbus";
     if (args.length > 4) {
+      domain = args[4];
+    }
+    // - intervalo entre falhas
+    if (args.length > 5) {
       try {
-        interval = Integer.parseInt(args[4]);
+        interval = Integer.parseInt(args[5]);
       }
       catch (NumberFormatException e) {
         System.out.println("Valor de [interval] deve ser um número");
@@ -218,7 +225,7 @@ public final class IndependentClockClient {
           failed = true;
           try {
             // autentica-se no barramento
-            conn.loginByPassword(entity, password.getBytes());
+            conn.loginByPassword(entity, password.getBytes(), domain);
             failed = false;
           }
           catch (AlreadyLoggedIn e) {
@@ -234,6 +241,12 @@ public final class IndependentClockClient {
             System.err.println(String.format(
               "excedeu o limite de tentativas de login. Aguarde %s seg",
               e.penaltyTime));
+            System.exit(1);
+            return;
+          }
+          catch (UnknownDomain e) {
+            System.err
+              .println("Tentativa de autenticação em domínio desconhecido.");
             System.exit(1);
             return;
           }

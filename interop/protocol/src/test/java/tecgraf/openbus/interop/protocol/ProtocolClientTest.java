@@ -47,6 +47,7 @@ public final class ProtocolClientTest {
   private static int port;
   private static String entity;
   private static String password;
+  private static String domain;
   private static ORB orb;
   private static OpenBusContext context;
   private static Connection conn;
@@ -59,6 +60,7 @@ public final class ProtocolClientTest {
     port = Integer.valueOf(properties.getProperty("openbus.host.port"));
     entity = properties.getProperty("entity.name");
     password = properties.getProperty("entity.password");
+    domain = properties.getProperty("auth.domain");
     orb = ORBInitializer.initORB();
     context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     conn = context.connectByAddress(host, port);
@@ -66,7 +68,7 @@ public final class ProtocolClientTest {
 
   @Before
   public void beforeEachTest() throws Exception {
-    conn.loginByPassword(entity, entity.getBytes());
+    conn.loginByPassword(entity, entity.getBytes(), domain);
     context.setDefaultConnection(conn);
     server = findServer();
   }

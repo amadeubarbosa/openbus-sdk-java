@@ -28,6 +28,7 @@ public class MassiveConnectionTest {
   private static int port;
   private static String entity;
   private static String password;
+  private static String domain;
   private static ORB orb;
   private static OpenBusContext context;
   private static int LOOP_SIZE = 20;
@@ -38,6 +39,7 @@ public class MassiveConnectionTest {
     Properties properties = Utils.readPropertyFile("/test.properties");
     host = properties.getProperty("openbus.host.name");
     port = Integer.valueOf(properties.getProperty("openbus.host.port"));
+    domain = properties.getProperty("entity.domain");
     orb = ORBInitializer.initORB();
     context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
   }
@@ -46,7 +48,7 @@ public class MassiveConnectionTest {
   public void massiveTest() throws Exception {
     String entity = "dispatcher";
     final Connection conn = context.connectByAddress(host, port);
-    conn.loginByPassword(entity, entity.getBytes());
+    conn.loginByPassword(entity, entity.getBytes(), domain);
     context.onCallDispatch(new CallDispatchCallback() {
       @Override
       public Connection dispatch(OpenBusContext context, String busid,
@@ -90,7 +92,7 @@ public class MassiveConnectionTest {
     public void run() {
       try {
         final Connection conn = context.connectByAddress(host, port);
-        conn.loginByPassword(entity, entity.getBytes());
+        conn.loginByPassword(entity, entity.getBytes(), domain);
         context.setCurrentConnection(conn);
         ComponentContext component = Utils.buildComponent(orb);
         ServiceProperty[] props =

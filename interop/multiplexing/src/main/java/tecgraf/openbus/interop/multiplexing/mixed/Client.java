@@ -31,6 +31,7 @@ public class Client {
       String host = props.getProperty("bus.host.name");
       int port1 = Integer.valueOf(props.getProperty("bus.host.port"));
       int port2 = Integer.valueOf(props.getProperty("bus2.host.port"));
+      String domain = "testing";
       Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
       int ports[] = { port1, port2 };
@@ -42,7 +43,7 @@ public class Client {
         Connection conn = context.connectByAddress(host, port);
         context.setDefaultConnection(conn);
         String login = "interop_multiplexing_java_client";
-        conn.loginByPassword(login, login.getBytes());
+        conn.loginByPassword(login, login.getBytes(), domain);
 
         ServiceProperty[] serviceProperties = new ServiceProperty[2];
         serviceProperties[0] =

@@ -36,6 +36,7 @@ public final class Client {
       String host = props.getProperty("bus.host.name");
       int port = Integer.valueOf(props.getProperty("bus.host.port"));
       String entity = "interop_sharedauth_java_client";
+      String domain = "testing";
       Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
       ORB orb = ORBInitializer.initORB();
@@ -45,7 +46,8 @@ public final class Client {
       Connection connection = context.connectByAddress(host, port);
       context.setDefaultConnection(connection);
 
-      connection.loginByPassword(entity, entity.getBytes(Cryptography.CHARSET));
+      connection.loginByPassword(entity, entity.getBytes(Cryptography.CHARSET),
+        domain);
       SharedAuthSecret secret = connection.startSharedAuth();
       byte[] encoded = context.encodeSharedAuth(secret);
       File file = new File("sharedauth.dat");

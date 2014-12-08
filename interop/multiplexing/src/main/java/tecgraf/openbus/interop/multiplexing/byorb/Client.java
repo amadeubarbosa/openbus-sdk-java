@@ -30,6 +30,7 @@ public class Client {
       Properties props = Utils.readPropertyFile("/test.properties");
       String host = props.getProperty("bus.host.name");
       int port = Integer.valueOf(props.getProperty("bus.host.port"));
+      String domain = "testing";
       Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
       ORB orb = ORBInitializer.initORB();
@@ -38,7 +39,7 @@ public class Client {
       Connection conn = context.connectByAddress(host, port);
       context.setDefaultConnection(conn);
       String login = "interop_multiplexing_java_client";
-      conn.loginByPassword(login, login.getBytes());
+      conn.loginByPassword(login, login.getBytes(), domain);
 
       ServiceProperty[] serviceProperties = new ServiceProperty[2];
       serviceProperties[0] =

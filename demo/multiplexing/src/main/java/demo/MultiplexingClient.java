@@ -24,6 +24,7 @@ import tecgraf.openbus.core.v2_1.services.access_control.InvalidRemoteCode;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
+import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
 import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
@@ -41,6 +42,7 @@ public final class MultiplexingClient {
   private static int port;
   private static String entity;
   private static String password;
+  private static String domain;
   private static AtomicInteger pending = new AtomicInteger(0);
 
   /**
@@ -77,6 +79,11 @@ public final class MultiplexingClient {
     password = entity;
     if (args.length > 3) {
       password = args[3];
+    }
+    // - dominio (opcional)
+    domain = "openbus";
+    if (args.length > 4) {
+      domain = args[4];
     }
 
     Utils.setLogLevel(Level.FINEST);
@@ -133,6 +140,11 @@ public final class MultiplexingClient {
       System.exit(1);
       return;
     }
+    catch (UnknownDomain e) {
+      System.err.println("Tentativa de autenticação em domínio desconhecido.");
+      System.exit(1);
+      return;
+    }
     // bus core
     catch (ServiceFailure e) {
       System.err.println(String.format(
@@ -184,6 +196,12 @@ public final class MultiplexingClient {
             System.err.println(String.format(
               "excedeu o limite de tentativas de login. Aguarde %s seg",
               e.penaltyTime));
+            System.exit(1);
+            return;
+          }
+          catch (UnknownDomain e) {
+            System.err
+              .println("Tentativa de autenticação em domínio desconhecido.");
             System.exit(1);
             return;
           }
@@ -305,11 +323,12 @@ public final class MultiplexingClient {
   }
 
   private static Connection newLogin(OpenBusContext context)
-    throws AccessDenied, AlreadyLoggedIn, ServiceFailure, TooManyAttempts {
+    throws AccessDenied, AlreadyLoggedIn, ServiceFailure, TooManyAttempts,
+    UnknownDomain {
     // conectando ao barramento.
     Connection connection = context.connectByAddress(host, port);
     // autentica-se no barramento
-    connection.loginByPassword(entity, password.getBytes());
+    connection.loginByPassword(entity, password.getBytes(), domain);
     return connection;
   }
 

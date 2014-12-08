@@ -14,6 +14,7 @@ import tecgraf.openbus.core.v2_1.services.access_control.InvalidRemoteCode;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
+import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
 import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
@@ -72,10 +73,15 @@ public final class GreetingsClient {
     if (args.length > 3) {
       password = args[3];
     }
+    // - dominio (opcional)
+    String domain = "openbus";
+    if (args.length > 4) {
+      domain = args[4];
+    }
     // - language (opcional)
     String lang = "";
-    if (args.length > 4) {
-      lang = args[4];
+    if (args.length > 5) {
+      lang = args[5];
     }
     if (lang.equals(Language.Portuguese.name())
       || lang.equals(Language.English.name())
@@ -95,7 +101,7 @@ public final class GreetingsClient {
     try {
       // autentica-se no barramento
       context.getCurrentConnection().loginByPassword(entity,
-        password.getBytes());
+        password.getBytes(), domain);
       // busca por serviço
       ServiceProperty[] properties = new ServiceProperty[2];
       properties[0] = new ServiceProperty("offer.domain", "Demo Greetings");
@@ -114,6 +120,11 @@ public final class GreetingsClient {
       System.err.println(String.format(
         "excedeu o limite de tentativas de login. Aguarde %s seg",
         e.penaltyTime));
+      System.exit(1);
+      return;
+    }
+    catch (UnknownDomain e) {
+      System.err.println("Tentativa de autenticação em domínio desconhecido.");
       System.exit(1);
       return;
     }
