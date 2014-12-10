@@ -22,7 +22,7 @@ module v2_1 {
 module data_export {
 
   /** Indicação da versão atual de cofidicação de dados. */
-  const unsigned long CurrentVersion = 0x42555301; // 1112888065 "BUS\1";
+  const unsigned long ExportVersion = 0x42555301; // 1112888065 "BUS\1";
   
   /** Prefixo de streams contendo cadeias de chamadas codificadas. */
   const string MagicTag_CallChain = "BUS\x01";
@@ -33,14 +33,14 @@ module data_export {
    * \brief Estrutura utilizada para exportar dados versionados de forma
    *        interoperável para um stream de bytes.
    */
-  struct ExportedVersion {
+  struct VersionedData {
     /** Indicação da versão da codificação do dado. */
     unsigned long version;
     /** Codificação do dado no formado indicado pela versão. */
     OctetSeq encoded;
   };
   /** \brief Sequência de codificações versionadas. */
-  typedef sequence<ExportedVersion> ExportedVersionSeq;
+  typedef sequence<VersionedData> VersionedDataSeq;
 
   /**
    * \brief Estrutura utilizada para exportar uma cadeia de chamadas para um
