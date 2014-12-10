@@ -175,4 +175,13 @@ final class BusInfo {
     return offerRegistry;
   }
 
+  /**
+   * Recupera a referência para a faceta {@link IComponent}
+   * 
+   * @return a faceta do componente.
+   */
+  IComponent getComponent() {
+    return bus;
+  }
+
 }

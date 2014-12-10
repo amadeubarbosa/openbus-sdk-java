@@ -31,15 +31,20 @@ import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.SharedAuthSecret;
+import tecgraf.openbus.core.Credential.Chain;
+import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
+import tecgraf.openbus.core.v2_0.credential.SignedCallChainHelper;
+import tecgraf.openbus.core.v2_0.data_export.CurrentVersion;
+import tecgraf.openbus.core.v2_0.data_export.ExportedCallChain;
 import tecgraf.openbus.core.v2_1.BusObjectKey;
 import tecgraf.openbus.core.v2_1.credential.SignedData;
 import tecgraf.openbus.core.v2_1.credential.SignedDataHelper;
-import tecgraf.openbus.core.v2_1.data_export.CurrentVersion;
+import tecgraf.openbus.core.v2_1.data_export.ExportVersion;
 import tecgraf.openbus.core.v2_1.data_export.ExportedCallChainHelper;
 import tecgraf.openbus.core.v2_1.data_export.ExportedSharedAuth;
 import tecgraf.openbus.core.v2_1.data_export.ExportedSharedAuthHelper;
-import tecgraf.openbus.core.v2_1.data_export.ExportedVersion;
-import tecgraf.openbus.core.v2_1.data_export.ExportedVersionSeqHelper;
+import tecgraf.openbus.core.v2_1.data_export.VersionedData;
+import tecgraf.openbus.core.v2_1.data_export.VersionedDataSeqHelper;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChainHelper;
@@ -145,17 +150,17 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       throw new IllegalArgumentException(
         "Os parametros host e/ou port não são validos");
     }
+    org.omg.CORBA.Object obj;
     try {
       ignoreThread();
       String str =
         String.format("corbaloc::1.0@%s:%d/%s", host, port, BusObjectKey.value);
-      org.omg.CORBA.Object obj = orb.string_to_object(str);
-      BusInfo info = new BusInfo(obj);
-      return new ConnectionImpl(info, this, orb, props);
+      obj = orb.string_to_object(str);
     }
     finally {
       unignoreThread();
     }
+    return connectByReference(obj, props);
   }
 
   /**
@@ -182,8 +187,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       throw new IllegalArgumentException(
         "Referência inválida para o barramento.");
     }
-    BusInfo bus = new BusInfo(reference);
-    return new ConnectionImpl(bus, this, orb, props);
+    return new ConnectionImpl(reference, this, orb, props);
   }
 
   /**
@@ -305,15 +309,29 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     try {
       Any busany = current.get_slot(mediator.getBusSlotId());
       Any signedany = current.get_slot(mediator.getSignedChainSlotId());
-      if ((busany.type().kind().value() != TCKind._tk_null)
-        && (signedany.type().kind().value() != TCKind._tk_null)) {
-        String busId = busany.extract_string();
-        SignedData signedChain = SignedDataHelper.extract(signedany);
-        Any anyChain =
-          mediator.getCodec().decode_value(signedChain.encoded,
-            CallChainHelper.type());
-        CallChain callChain = CallChainHelper.extract(anyChain);
-        return new CallerChainImpl(callChain, signedChain);
+      if (signedany.type().kind().value() != TCKind._tk_null) {
+        if (busany.type().kind().value() == TCKind._tk_null) {
+          SignedData signedChain = SignedDataHelper.extract(signedany);
+          Any anyChain =
+            mediator.getCodec().decode_value(signedChain.encoded,
+              CallChainHelper.type());
+          CallChain callChain = CallChainHelper.extract(anyChain);
+          return new CallerChainImpl(callChain, signedChain);
+        }
+        else { // legacy chain
+          String busId = busany.extract_string();
+          SignedCallChain signedChain =
+            SignedCallChainHelper.extract(signedany);
+          Any anyChain =
+            mediator.getCodec().decode_value(
+              signedChain.encoded,
+              tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper
+                .type());
+          tecgraf.openbus.core.v2_0.services.access_control.CallChain callChain =
+            tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper
+              .extract(anyChain);
+          return new CallerChainImpl(busId, callChain, signedChain);
+        }
       }
       return null;
     }
@@ -349,12 +367,17 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     try {
       Current current = ORBUtils.getPICurrent(orb);
       ORBMediator mediator = ORBUtils.getMediator(orb);
-      SignedData signedChain = ((CallerChainImpl) chain).signedCallChain();
+      Chain internal = ((CallerChainImpl) chain).internal_chain();
       Any any = this.orb.create_any();
-      SignedDataHelper.insert(any, signedChain);
-      current.set_slot(mediator.getJoinedChainSlotId(), any);
       Any busAny = this.orb.create_any();
-      busAny.insert_string(chain.busid());
+      if (internal.signedChain != null) {
+        SignedDataHelper.insert(any, internal.signedChain);
+      }
+      else {
+        SignedCallChainHelper.insert(any, internal.signedLegacy);
+        busAny.insert_string(chain.busid());
+      }
+      current.set_slot(mediator.getJoinedChainSlotId(), any);
       current.set_slot(mediator.getJoinedBusSlotId(), busAny);
     }
     catch (InvalidSlot e) {
@@ -393,16 +416,29 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       ORBMediator mediator = ORBUtils.getMediator(orb);
       Any anybus = current.get_slot(mediator.getJoinedBusSlotId());
       Any anyschain = current.get_slot(mediator.getJoinedChainSlotId());
-
-      if ((anybus.type().kind().value() != TCKind._tk_null)
-        && (anyschain.type().kind().value() != TCKind._tk_null)) {
-        String busId = anybus.extract_string();
-        SignedData signedChain = SignedDataHelper.extract(anyschain);
-        Any chain =
-          mediator.getCodec().decode_value(signedChain.encoded,
-            CallChainHelper.type());
-        CallChain callChain = CallChainHelper.extract(chain);
-        return new CallerChainImpl(callChain, signedChain);
+      if (anyschain.type().kind().value() != TCKind._tk_null) {
+        if (anybus.type().kind().value() == TCKind._tk_null) {
+          SignedData signedChain = SignedDataHelper.extract(anyschain);
+          Any chain =
+            mediator.getCodec().decode_value(signedChain.encoded,
+              CallChainHelper.type());
+          CallChain callChain = CallChainHelper.extract(chain);
+          return new CallerChainImpl(callChain, signedChain);
+        }
+        else { // suporte legado
+          String busId = anybus.extract_string();
+          SignedCallChain signedChain =
+            SignedCallChainHelper.extract(anyschain);
+          Any chain =
+            mediator.getCodec().decode_value(
+              signedChain.encoded,
+              tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper
+                .type());
+          tecgraf.openbus.core.v2_0.services.access_control.CallChain callChain =
+            tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper
+              .extract(chain);
+          return new CallerChainImpl(busId, callChain, signedChain);
+        }
       }
       return null;
     }
@@ -448,13 +484,25 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     ORBMediator mediator = ORBUtils.getMediator(orb);
     Codec codec = mediator.getCodec();
     try {
+      VersionedData[] exports;
       Any anyChain = orb.create_any();
-      CallerChainImpl chainImpl = (CallerChainImpl) chain;
-      ExportedCallChainHelper.insert(anyChain, chainImpl.signedCallChain());
-      byte[] encodedChain = codec.encode_value(anyChain);
-      ExportedVersion[] exports =
-        new ExportedVersion[] { new ExportedVersion(CurrentVersion.value,
-          encodedChain) };
+      Chain internal = ((CallerChainImpl) chain).internal_chain();
+      if (internal.signedChain != null) {
+        ExportedCallChainHelper.insert(anyChain, internal.signedChain);
+        byte[] encodedChain = codec.encode_value(anyChain);
+        exports =
+          new VersionedData[] { new VersionedData(ExportVersion.value,
+            encodedChain) };
+      }
+      else {
+        tecgraf.openbus.core.v2_0.data_export.ExportedCallChainHelper
+          .insert(anyChain, new ExportedCallChain(chain.busid(),
+            internal.signedLegacy));
+        byte[] encodedChain = codec.encode_value(anyChain);
+        exports =
+          new VersionedData[] { new VersionedData(CurrentVersion.value,
+            encodedChain) };
+      }
       return encodeExportedVersions(exports, MTAG_CALLCHAIN);
     }
     catch (InvalidTypeForEncoding e) {
@@ -473,10 +521,9 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     ORBMediator mediator = ORBUtils.getMediator(orb);
     Codec codec = mediator.getCodec();
     try {
-      ExportedVersion[] exports =
-        decodeExportedVersions(encoded, MTAG_CALLCHAIN);
-      for (ExportedVersion export : exports) {
-        if (export.version == CurrentVersion.value) {
+      VersionedData[] exports = decodeExportedVersions(encoded, MTAG_CALLCHAIN);
+      for (VersionedData export : exports) {
+        if (export.version == ExportVersion.value) {
           Any exported =
             codec.decode_value(export.encoded, ExportedCallChainHelper.type());
           SignedData importing = ExportedCallChainHelper.extract(exported);
@@ -508,8 +555,8 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       ExportedSharedAuthHelper.insert(anySecret, new ExportedSharedAuth(
         secretImpl.busid(), secretImpl.attempt(), secretImpl.secret()));
       byte[] encodedSecret = codec.encode_value(anySecret);
-      ExportedVersion[] exports =
-        new ExportedVersion[] { new ExportedVersion(CurrentVersion.value,
+      VersionedData[] exports =
+        new VersionedData[] { new VersionedData(ExportVersion.value,
           encodedSecret) };
       return encodeExportedVersions(exports, MTAG_SHAREDAUTH);
     }
@@ -530,10 +577,10 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     ORBMediator mediator = ORBUtils.getMediator(orb);
     Codec codec = mediator.getCodec();
     try {
-      ExportedVersion[] exports =
+      VersionedData[] exports =
         decodeExportedVersions(encoded, MTAG_SHAREDAUTH);
-      for (ExportedVersion export : exports) {
-        if (export.version == CurrentVersion.value) {
+      for (VersionedData export : exports) {
+        if (export.version == ExportVersion.value) {
           Any exported =
             codec.decode_value(export.encoded, ExportedSharedAuthHelper.type());
           ExportedSharedAuth secret =
@@ -560,12 +607,12 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * @return o dado condificado.
    * @throws InvalidTypeForEncoding
    */
-  private byte[] encodeExportedVersions(ExportedVersion[] exports, byte[] tag)
+  private byte[] encodeExportedVersions(VersionedData[] exports, byte[] tag)
     throws InvalidTypeForEncoding {
     ORBMediator mediator = ORBUtils.getMediator(orb);
     Codec codec = mediator.getCodec();
     Any any = orb.create_any();
-    ExportedVersionSeqHelper.insert(any, exports);
+    VersionedDataSeqHelper.insert(any, exports);
     byte[] encodedExport = codec.encode_value(any);
     byte[] fullEnconding = new byte[encodedExport.length + MAGIC_TAG_SIZE];
     System.arraycopy(tag, 0, fullEnconding, 0, MAGIC_TAG_SIZE);
@@ -584,8 +631,8 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * @throws TypeMismatch
    * @throws FormatMismatch
    */
-  private ExportedVersion[] decodeExportedVersions(byte[] encoded,
-    byte[] magictag) throws InvalidEncodedStream, FormatMismatch, TypeMismatch {
+  private VersionedData[] decodeExportedVersions(byte[] encoded, byte[] magictag)
+    throws InvalidEncodedStream, FormatMismatch, TypeMismatch {
     if (encoded.length > MAGIC_TAG_SIZE) {
       byte[] tag = new byte[MAGIC_TAG_SIZE];
       byte[] encodedExport = new byte[encoded.length - MAGIC_TAG_SIZE];
@@ -596,8 +643,8 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
         ORBMediator mediator = ORBUtils.getMediator(orb);
         Codec codec = mediator.getCodec();
         Any anyexports =
-          codec.decode_value(encodedExport, ExportedVersionSeqHelper.type());
-        return ExportedVersionSeqHelper.extract(anyexports);
+          codec.decode_value(encodedExport, VersionedDataSeqHelper.type());
+        return VersionedDataSeqHelper.extract(anyexports);
       }
     }
     String errormsg =

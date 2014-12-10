@@ -23,12 +23,15 @@ import org.omg.CORBA.ORB;
 import org.omg.CORBA.SystemException;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
 
+import scs.core.IComponent;
+import scs.core.IComponentHelper;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.SharedAuthSecret;
 import tecgraf.openbus.core.Session.ClientSideSession;
 import tecgraf.openbus.core.Session.ServerSideSession;
+import tecgraf.openbus.core.v2_0.services.access_control.AccessControlHelper;
 import tecgraf.openbus.core.v2_1.EncryptedBlockHolder;
 import tecgraf.openbus.core.v2_1.credential.SignedData;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
@@ -45,6 +48,8 @@ import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
 import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
+import tecgraf.openbus.core.v2_1.services.legacy_support.LegacyConverter;
+import tecgraf.openbus.core.v2_1.services.legacy_support.LegacyConverterHelper;
 import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.exception.CryptographyException;
@@ -96,46 +101,46 @@ final class ConnectionImpl implements Connection {
   /** Caches da conexão */
   Caches cache;
 
-  /* Propriedades da conexão. */
+  /* Suporte Legado. */
   /** Informa se o suporte legado esta ativo */
   private boolean legacy;
-  /** Domínio padrão de autenticação */
-  private final String DEFAULT_DOMAIN = "";
+  /** Suporte legado */
+  private LegacySupport legacySupport;
 
   /**
    * Construtor.
    * 
-   * @param bus referêcia para o barramento
+   * @param reference referêcia para o barramento
    * @param manager Implementação do multiplexador de conexão.
    * @param orb ORB que essa conexão ira utilizar;
    * @throws InvalidPropertyValue Existe uma propriedade com um valor inválido.
    */
-  public ConnectionImpl(BusInfo bus, OpenBusContextImpl manager, ORB orb)
-    throws InvalidPropertyValue {
-    this(bus, manager, orb, new Properties());
+  public ConnectionImpl(org.omg.CORBA.Object reference,
+    OpenBusContextImpl manager, ORB orb) throws InvalidPropertyValue {
+    this(reference, manager, orb, new Properties());
   }
 
   /**
    * Construtor.
    * 
-   * @param bus referêcia para o barramento
+   * @param reference referêcia para o barramento
    * @param context Implementação do multiplexador de conexão.
    * @param orb ORB que essa conexão ira utilizar;
    * @param props Propriedades da conexão.
    * @throws InvalidPropertyValue Existe uma propriedade com um valor inválido.
    */
-  public ConnectionImpl(BusInfo bus, OpenBusContextImpl context, ORB orb,
-    Properties props) throws InvalidPropertyValue {
+  public ConnectionImpl(org.omg.CORBA.Object reference,
+    OpenBusContextImpl context, ORB orb, Properties props)
+    throws InvalidPropertyValue {
     this.orb = orb;
     this.context = context;
-    this.bus = bus;
+    this.bus = new BusInfo(reference);
     if (props == null) {
       props = new Properties();
     }
     String prop = OpenBusProperty.LEGACY_DISABLE.getProperty(props);
     Boolean disabled = Boolean.valueOf(prop);
     this.legacy = !disabled;
-    // TODO include legacy suport!
 
     // verificando por valor de tamanho de cache
     String ssize = OpenBusProperty.CACHE_SIZE.getProperty(props);
@@ -485,6 +490,9 @@ final class ConnectionImpl implements Connection {
    */
   private void localLogin(LoginInfo newLogin, int validity)
     throws AlreadyLoggedIn {
+    if (legacy) {
+      activateLegacySupport();
+    }
     writeLock().lock();
     try {
       checkLoggedIn();
@@ -698,6 +706,37 @@ final class ConnectionImpl implements Connection {
   @Override
   public String toString() {
     return this.connId;
+  }
+
+  private void activateLegacySupport() {
+    org.omg.CORBA.Object object =
+      bus.getComponent().getFacetByName("LegacySupport");
+    if (object != null) {
+      IComponent comp = IComponentHelper.narrow(object);
+      org.omg.CORBA.Object faccess = comp.getFacet(AccessControlHelper.id());
+      if (faccess != null) {
+        tecgraf.openbus.core.v2_0.services.access_control.AccessControl access =
+          AccessControlHelper.narrow(faccess);
+        org.omg.CORBA.Object fconv = comp.getFacet(LegacyConverterHelper.id());
+        LegacyConverter converter = null;
+        if (fconv != null) {
+          converter = LegacyConverterHelper.narrow(fconv);
+        }
+        else {
+          logger.warning("Exportação de dado legado desativado.");
+        }
+        legacySupport = new LegacySupport(access, converter);
+      }
+      else {
+        legacy = false;
+        logger
+          .severe("Suporte legado desativado dado ausência de controle de acesso");
+      }
+    }
+    else {
+      legacy = false;
+      logger.warning("Suporte legado não disponível");
+    }
   }
 
   /**

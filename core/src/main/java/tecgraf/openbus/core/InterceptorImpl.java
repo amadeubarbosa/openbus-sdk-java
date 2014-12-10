@@ -3,14 +3,10 @@ package tecgraf.openbus.core;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.MessageDigest;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
-import org.omg.CORBA.Any;
 import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.LocalObject;
 import org.omg.CORBA.ORB;
-import org.omg.CORBA.UserException;
 import org.omg.IOP.Codec;
 import org.omg.PortableInterceptor.Interceptor;
 import org.omg.PortableInterceptor.RequestInfo;
@@ -20,8 +16,6 @@ import tecgraf.openbus.core.v2_1.HashValueSize;
 import tecgraf.openbus.core.v2_1.MajorVersion;
 import tecgraf.openbus.core.v2_1.MinorVersion;
 import tecgraf.openbus.core.v2_1.credential.SignedData;
-import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
-import tecgraf.openbus.core.v2_1.services.access_control.CallChainHelper;
 import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.security.Cryptography;
 
@@ -35,6 +29,13 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
   protected static final byte BUS_MAJOR_VERSION = MajorVersion.value;
   /** Número de versão Minor */
   protected static final byte BUS_MINOR_VERSION = MinorVersion.value;
+
+  /** Número de versão Legada Major */
+  protected static final byte LEGACY_MAJOR_VERSION =
+    tecgraf.openbus.core.v2_0.MajorVersion.value;
+  /** Número de versão Legada Minor */
+  protected static final byte LEGACY_MINOR_VERSION =
+    tecgraf.openbus.core.v2_0.MinorVersion.value;
 
   /** Tamanho do hash */
   protected static final int HASH_VALUE_SIZE = HashValueSize.value;
@@ -122,18 +123,26 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
    * @param ri o request da chamada.
    * @param secret o segredo.
    * @param ticket o ticket utilizado.
+   * @param legacy indicador se em modo legado.
    * @return o hash
    */
   protected byte[] generateCredentialDataHash(RequestInfo ri, byte[] secret,
-    int ticket) {
+    int ticket, boolean legacy) {
     try {
       Cryptography crypto = Cryptography.getInstance();
 
       MessageDigest hashAlgorithm = crypto.getHashAlgorithm();
       synchronized (hashAlgorithm) {
-        hashAlgorithm.update(BUS_MAJOR_VERSION);
-        hashAlgorithm.update(BUS_MINOR_VERSION);
-        hashAlgorithm.update(secret);
+        if (!legacy) {
+          hashAlgorithm.update(BUS_MAJOR_VERSION);
+          hashAlgorithm.update(BUS_MINOR_VERSION);
+          hashAlgorithm.update(secret);
+        }
+        else {
+          hashAlgorithm.update(LEGACY_MAJOR_VERSION);
+          hashAlgorithm.update(LEGACY_MINOR_VERSION);
+          hashAlgorithm.update(secret);
+        }
 
         ByteBuffer ticketBuffer = ByteBuffer.allocate(Integer.SIZE / 8);
         ticketBuffer.order(ByteOrder.LITTLE_ENDIAN);
@@ -152,26 +161,6 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
       throw new INTERNAL(message);
     }
 
-  }
-
-  /**
-   * Obtém a {@link CallChain} de uma {@link SignedData}
-   * 
-   * @param chain a cadeia assinada
-   * @param logger instância de logger.
-   * @return a cadeia associada.
-   */
-  protected CallChain decodeSignedChain(SignedData chain, Logger logger) {
-    try {
-      Any any = codec().decode_value(chain.encoded, CallChainHelper.type());
-      CallChain callChain = CallChainHelper.extract(any);
-      return callChain;
-    }
-    catch (UserException e) {
-      String message = "Falha inesperada ao decodificar a cadeia";
-      logger.log(Level.SEVERE, message, e);
-      throw new INTERNAL(message);
-    }
   }
 
 }

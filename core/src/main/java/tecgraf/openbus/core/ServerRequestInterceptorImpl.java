@@ -11,8 +11,8 @@ import org.omg.CORBA.BAD_PARAM;
 import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.NO_PERMISSION;
-import org.omg.CORBA.ORB;
 import org.omg.CORBA.TCKind;
+import org.omg.CORBA.UserException;
 import org.omg.IOP.ServiceContext;
 import org.omg.IOP.CodecPackage.FormatMismatch;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
@@ -23,16 +23,15 @@ import org.omg.PortableInterceptor.ServerRequestInfo;
 import org.omg.PortableInterceptor.ServerRequestInterceptor;
 
 import tecgraf.openbus.CallDispatchCallback;
+import tecgraf.openbus.core.Credential.Chain;
+import tecgraf.openbus.core.Credential.Reset;
 import tecgraf.openbus.core.Session.ServerSideSession;
 import tecgraf.openbus.core.v2_1.OctetSeqHolder;
 import tecgraf.openbus.core.v2_1.credential.CredentialContextId;
 import tecgraf.openbus.core.v2_1.credential.CredentialData;
 import tecgraf.openbus.core.v2_1.credential.CredentialDataHelper;
-import tecgraf.openbus.core.v2_1.credential.CredentialReset;
-import tecgraf.openbus.core.v2_1.credential.CredentialResetHelper;
 import tecgraf.openbus.core.v2_1.credential.SignedData;
 import tecgraf.openbus.core.v2_1.credential.SignedDataHelper;
-import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidChainCode;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidCredentialCode;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidLoginCode;
@@ -74,8 +73,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
   @Override
   public void receive_request_service_contexts(ServerRequestInfo ri)
     throws ForwardRequest {
-    logger.finest(String.format("[inout] receive_request_service_contexts: %s",
-      ri.operation()));
     // do nothing
   }
 
@@ -85,7 +82,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * @param ri informação do contexto
    * @return a credencial.
    */
-  private CredentialData retrieveCredential(ServerRequestInfo ri) {
+  private Credential retrieveCredential(ServerRequestInfo ri) {
     byte[] encodedCredential = null;
     try {
       ServiceContext requestServiceContext =
@@ -95,7 +92,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         Any any =
           codec().decode_value(encodedCredential, CredentialDataHelper.type());
         CredentialData credential = CredentialDataHelper.extract(any);
-        return credential;
+        return new Credential(credential);
       }
     }
     catch (BAD_PARAM e) {
@@ -116,6 +113,41 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       logger.log(Level.SEVERE, message, e);
       throw new INTERNAL(message);
     }
+
+    // suporte legado
+    try {
+      ServiceContext requestServiceContext =
+        ri.get_request_service_context(tecgraf.openbus.core.v2_0.credential.CredentialContextId.value);
+      encodedCredential = requestServiceContext.context_data;
+      if (encodedCredential != null) {
+        Any any =
+          codec().decode_value(encodedCredential,
+            tecgraf.openbus.core.v2_0.credential.CredentialDataHelper.type());
+        tecgraf.openbus.core.v2_0.credential.CredentialData credential =
+          tecgraf.openbus.core.v2_0.credential.CredentialDataHelper
+            .extract(any);
+        return new Credential(credential);
+      }
+    }
+    catch (BAD_PARAM e) {
+      switch (e.minor) {
+        case 26:
+          break;
+        default:
+          throw e;
+      }
+    }
+    catch (TypeMismatch e) {
+      String message = "Falha inesperada ao decodificar a credencial";
+      logger.log(Level.SEVERE, message, e);
+      throw new INTERNAL(message);
+    }
+    catch (FormatMismatch e) {
+      String message = "Falha inesperada ao decodificar a credencial";
+      logger.log(Level.SEVERE, message, e);
+      throw new INTERNAL(message);
+    }
+
     String message = "Nenhuma credencial suportada encontrada";
     logger.info(message);
     throw new NO_PERMISSION(message, NoCredentialCode.value,
@@ -132,61 +164,80 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     int requestId = ri.request_id();
     byte[] object_id = ri.object_id();
     OpenBusContextImpl context = context();
-    CredentialData credential = retrieveCredential(ri);
+    Credential credential = retrieveCredential(ri);
     try {
       String busId = credential.bus;
       String loginId = credential.login;
       ConnectionImpl conn =
         getConnForDispatch(context, busId, loginId, object_id, operation);
-      context.setCurrentConnection(conn);
-      if (validateLogin(conn, loginId, ri)) {
-        OctetSeqHolder pubkey = new OctetSeqHolder();
-        String entity = getLoginInfo(conn, loginId, pubkey, ri);
-        if (validateCredential(credential, ri, conn)) {
-          if (validateChain(credential, pubkey, ri, conn)) {
-            // salvando informação do barramento que atendeu a requisição
-            ORB orb = mediator().getORB();
-            Any any = orb.create_any();
-            any.insert_string(conn.busid());
-            ri.set_slot(mediator().getBusSlotId(), any);
-            String msg =
-              "Recebendo chamada pelo barramento: login (%s) entidade (%s) operação (%s) requestId (%d)";
-            logger.fine(String.format(msg, loginId, entity, operation,
-              requestId));
-            // salva a conexão utilizada no dispatch
-            // CHECK se o bug relatado no finally for verdadeiro, isso pode ser desnecessario
-            setCurrentConnection(ri, conn);
-            return;
+      if (busId.equals(conn.busid())) {
+        context.setCurrentConnection(conn);
+        if (validateLogin(conn, loginId, ri)) {
+          OctetSeqHolder pubkey = new OctetSeqHolder();
+          String entity = getLoginInfo(conn, loginId, pubkey, ri);
+          if (validateCredential(credential, ri, conn)) {
+            if (validateChain(credential, pubkey, conn)) {
+              String msg =
+                "Recebendo chamada pelo barramento: login (%s) entidade (%s) operação (%s) requestId (%d)";
+              logger.fine(String.format(msg, loginId, entity, operation,
+                requestId));
+              // salvando a cadeia
+              Any singnedAny = orb().create_any();
+              Any any = orb().create_any();
+              Chain chain = credential.chain;
+              SignedData data = chain.signedChain;
+              if (credential.legacy) {
+                data =
+                  new SignedData(chain.signedLegacy.signature,
+                    chain.signedLegacy.encoded);
+                any.insert_string(conn.busid());
+              }
+              SignedDataHelper.insert(singnedAny, data);
+              ri.set_slot(mediator().getSignedChainSlotId(), singnedAny);
+              ri.set_slot(mediator().getBusSlotId(), any);
+              // salva a conexão utilizada no dispatch
+              // CHECK se o bug relatado no finally for verdadeiro, isso pode ser desnecessario
+              setCurrentConnection(ri, conn);
+              return;
+            }
+            else {
+              logger
+                .fine(String
+                  .format(
+                    "Recebeu chamada com cadeia inválida: operação (%s) requestId (%d)",
+                    operation, requestId));
+              throw new NO_PERMISSION(InvalidChainCode.value,
+                CompletionStatus.COMPLETED_NO);
+            }
           }
           else {
-            logger
-              .fine(String
-                .format(
-                  "Recebeu chamada com cadeia inválida: operação (%s) requestId (%d)",
-                  operation, requestId));
-            throw new NO_PERMISSION(InvalidChainCode.value,
+            // credencial não é válida. Resetando a credencial da sessão.
+            doResetCredential(ri, conn, credential, pubkey.value);
+            throw new NO_PERMISSION(InvalidCredentialCode.value,
               CompletionStatus.COMPLETED_NO);
           }
         }
         else {
-          logger
-            .fine(String
-              .format(
-                "Recebeu chamada sem sessão associda: operação (%s) requestId (%d)",
-                operation, requestId));
-          // credencial não é válida. Resetando a credencial da sessão.
-          doResetCredential(ri, conn, loginId, pubkey.value);
-          throw new NO_PERMISSION(InvalidCredentialCode.value,
+          logger.severe(String.format(
+            "Credencial com login inválido: operação (%s) login (%s)",
+            operation, loginId));
+          throw new NO_PERMISSION(InvalidLoginCode.value,
             CompletionStatus.COMPLETED_NO);
         }
       }
       else {
+        logger
+          .severe(String
+            .format(
+              "Recebeu chamade de outro barramento: operação (%s) login (%s) bus (%s)",
+              operation, loginId, busId));
         throw new NO_PERMISSION(InvalidLoginCode.value,
           CompletionStatus.COMPLETED_NO);
       }
     }
     catch (InvalidSlot e) {
-      String message = "Falha inesperada ao acessar o slot da credencial";
+      String message =
+        "Falha inesperada ao armazenar dados em slot de contexto";
       logger.log(Level.SEVERE, message, e);
       throw new INTERNAL(message);
     }
@@ -248,12 +299,12 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * 
    * @param ri informação do request.
    * @param conn a conexão.
-   * @param caller identificador do login originador da chamada.
+   * @param credential a credencial associada a chamada.
    * @param publicKey a chave pública do requisitante.
    * @throws CryptographyException
    */
   private void doResetCredential(ServerRequestInfo ri, ConnectionImpl conn,
-    String caller, byte[] publicKey) throws CryptographyException {
+    Credential credential, byte[] publicKey) throws CryptographyException {
     byte[] newSecret = newSecret();
     Cryptography crypto = Cryptography.getInstance();
     byte[] encriptedSecret =
@@ -261,32 +312,24 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         .generateRSAPublicKeyFromX509EncodedKey(publicKey));
     int sessionId = conn.nextAvailableSessionId();
     ServerSideSession newSession =
-      new ServerSideSession(sessionId, newSecret, caller);
+      new ServerSideSession(sessionId, newSecret, credential.login);
     conn.cache.srvSessions.put(newSession.getSession(), newSession);
     LoginInfo login = conn.login();
-    CredentialReset reset =
-      new CredentialReset(login.id, login.entity, sessionId, encriptedSecret);
-    Any any = orb().create_any();
-    CredentialResetHelper.insert(any, reset);
-    byte[] encodedCredential;
+    Reset reset = new Reset(login, sessionId, encriptedSecret, credential);
     try {
-      encodedCredential = codec().encode_value(any);
+      ri.add_reply_service_context(reset.getServiceContext(orb(), codec()),
+        false);
+      logger.fine(String.format(
+        "Resetando a credencial: operação (%s) requestId (%d)", ri.operation(),
+        ri.request_id()));
     }
     catch (InvalidTypeForEncoding e) {
       String message =
-        String
-          .format(
-            "Falha inesperada ao codificar a credencial: operação (%s) requestId (%d)",
-            ri.operation(), ri.request_id());
+        String.format("Falha ao codificar reset: operação (%s) requestId (%d)",
+          ri.operation(), ri.request_id());
       logger.log(Level.SEVERE, message, e);
       throw new INTERNAL(message);
     }
-    logger.fine(String.format(
-      "Resetando a credencial: operação (%s) requestId (%d)", ri.operation(),
-      ri.request_id()));
-    ServiceContext requestServiceContext =
-      new ServiceContext(CredentialContextId.value, encodedCredential);
-    ri.add_reply_service_context(requestServiceContext, false);
   }
 
   /**
@@ -390,22 +433,35 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * @return <code>true</code> caso a credencial seja válida, ou
    *         <code>false</code> caso contrário.
    */
-  private boolean validateCredential(CredentialData credential,
+  private boolean validateCredential(Credential credential,
     ServerRequestInfo ri, ConnectionImpl conn) {
     ServerSideSession session = conn.cache.srvSessions.get(credential.session);
     if (session != null && session.getCaller().equals(credential.login)) {
-      logger.finest(String.format("sessão utilizada: id = %d ticket = %d",
-        session.getSession(), credential.ticket));
       byte[] hash =
         this.generateCredentialDataHash(ri, session.getSecret(),
-          credential.ticket);
+          credential.ticket, credential.legacy);
       if (Arrays.equals(hash, credential.hash)
         && session.checkTicket(credential.ticket)) {
+        logger
+          .finest(String
+            .format(
+              "credencial válida: operação (%s) requestId (%d) sessão (%d) ticket (%d)",
+              ri.operation(), ri.request_id(), session.getSession(),
+              credential.ticket));
         return true;
       }
       else {
-        logger.finest("Falha na validação do hash da credencial");
+        logger
+          .finest(String
+            .format(
+              "Falha na validação do hash da credencial: operação (%s) requestId (%d)",
+              ri.operation(), ri.request_id()));
       }
+    }
+    else {
+      logger.fine(String.format(
+        "Recebeu chamada sem sessão associda: operação (%s) requestId (%d)", ri
+          .operation(), ri.request_id()));
     }
     return false;
   }
@@ -415,43 +471,33 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * 
    * @param credential a credencial
    * @param pubkey a chave pública da entidade
-   * @param ri informações do request
    * @param conn a conexão em uso.
    * @return <code>true</code> caso a cadeia seja válida, ou <code>false</code>
    *         caso contrário.
    */
-  private boolean validateChain(CredentialData credential,
-    OctetSeqHolder pubkey, ServerRequestInfo ri, ConnectionImpl conn) {
+  private boolean validateChain(Credential credential, OctetSeqHolder pubkey,
+    ConnectionImpl conn) {
     Cryptography crypto = Cryptography.getInstance();
     RSAPublicKey busPubKey = conn.getBusPublicKey();
-    SignedData chain = credential.chain;
-    if (chain != null) {
-      CallChain callChain = decodeSignedChain(chain, logger);
+    if (credential.chain != null) {
       try {
+        Chain chain = credential.decodeChain(codec());
         boolean verified =
-          crypto.verifySignature(busPubKey, chain.encoded, chain.signature);
-        if (verified) {
-          LoginInfo loginInfo = conn.login();
-          if (callChain.target.equals(loginInfo.entity)) {
-            LoginInfo caller = callChain.caller;
-            if (caller.id.equals(credential.login)) {
-              // salvando a cadeia
-              Any singnedAny = orb().create_any();
-              SignedDataHelper.insert(singnedAny, chain);
-              ri.set_slot(this.mediator().getSignedChainSlotId(), singnedAny);
-              return true;
-            }
-          }
+          crypto.verifySignature(busPubKey, chain.encoded(), chain.signature());
+        if (verified && (chain.bus.equals(credential.bus))
+          && (chain.target.equals(conn.login().entity))
+          && (chain.caller.id.equals(credential.login))) {
+
+          return true;
         }
       }
-      catch (CryptographyException e) {
-        String message = "Falha inesperada ao verificar assinatura da cadeia.";
+      catch (UserException e) {
+        String message = "Falha inesperada ao decodificar a cadeia";
         logger.log(Level.SEVERE, message, e);
         throw new INTERNAL(message);
       }
-      catch (InvalidSlot e) {
-        String message =
-          "Falha inesperada ao armazenar o dados no slot de contexto";
+      catch (CryptographyException e) {
+        String message = "Falha inesperada ao verificar assinatura da cadeia.";
         logger.log(Level.SEVERE, message, e);
         throw new INTERNAL(message);
       }

@@ -149,7 +149,7 @@ final class ORBMediator extends LocalObject {
    * 
    * @return o gerente de conexões.
    */
-  public OpenBusContextImpl getContext() {
+  OpenBusContextImpl getContext() {
     return connections;
   }
 

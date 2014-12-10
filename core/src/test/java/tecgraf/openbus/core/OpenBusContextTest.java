@@ -698,8 +698,9 @@ public final class OpenBusContextTest {
     Any anyCallChain = orb.create_any();
     CallChainHelper.insert(anyCallChain, callChain);
     byte[] encodedCallChain = getCodec(orb).encode_value(anyCallChain);
-    return new CallerChainImpl(busid, target, caller, originators,
-      new SignedData(new byte[256], encodedCallChain));
+    return new CallerChainImpl(
+      new CallChain(busid, target, originators, caller), new SignedData(
+        new byte[256], encodedCallChain));
   }
 
 }

@@ -15,6 +15,7 @@ import org.omg.CORBA.NO_PERMISSIONHelper;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.SystemException;
 import org.omg.CORBA.TCKind;
+import org.omg.CORBA.UserException;
 import org.omg.IOP.ServiceContext;
 import org.omg.IOP.CodecPackage.FormatMismatch;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
@@ -37,6 +38,8 @@ import tecgraf.openbus.core.v2_1.credential.CredentialResetHelper;
 import tecgraf.openbus.core.v2_1.credential.SignedData;
 import tecgraf.openbus.core.v2_1.credential.SignedDataHelper;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
+import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
+import tecgraf.openbus.core.v2_1.services.access_control.CallChainHelper;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidCredentialCode;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidRemoteCode;
@@ -193,7 +196,8 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       if (session != null) {
         int ticket = session.nextTicket();
         byte[] credentialDataHash =
-          this.generateCredentialDataHash(ri, session.getSecret(), ticket);
+          this.generateCredentialDataHash(ri, session.getSecret(), ticket,
+            false);
         SignedData chain =
           getCallChain(ri, conn, holder, target, session.getEntity());
         logger.finest(String.format("utilizando sessão: id = %d ticket = %d",
@@ -239,8 +243,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
           do {
             callChain = conn.access().signChainFor(entity);
             curr = conn.getLogin();
-          } while (!decodeSignedChain(callChain, logger).caller.id
-            .equals(curr.id));
+          } while (!decodeSignedChain(callChain).caller.id.equals(curr.id));
           conn.cache.chains.put(key, callChain);
         }
         holder.value = curr;
@@ -261,8 +264,19 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         logger.log(Level.SEVERE, message, e);
         throw new INTERNAL(message);
       }
+      catch (UserException e) {
+        String message = "Falha inesperada ao decodificar cadeia";
+        logger.log(Level.SEVERE, message, e);
+        throw new INTERNAL(message);
+      }
     }
     return callChain;
+  }
+
+  private CallChain decodeSignedChain(SignedData data) throws FormatMismatch,
+    TypeMismatch {
+    Any any = codec().decode_value(data.encoded, CallChainHelper.type());
+    return CallChainHelper.extract(any);
   }
 
   /**
@@ -320,8 +334,6 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void receive_exception(ClientRequestInfo ri) throws ForwardRequest {
-    String operation = ri.operation();
-    logger.finest(String.format("[in] receive_exception: %s", operation));
     Integer uniqueId = null;
     try {
       logger.finest(String.format("Exception: %s Request: %s", ri
@@ -490,7 +502,6 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       if (uniqueId != null) {
         clearRequestUniqueId(uniqueId);
       }
-      logger.finest(String.format("[out] receive_exception: %s", operation));
     }
   }
 
