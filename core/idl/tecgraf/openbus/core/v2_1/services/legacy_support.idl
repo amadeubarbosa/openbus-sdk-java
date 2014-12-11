@@ -29,11 +29,13 @@ module legacy_support {
 
     v2_0::services::access_control::LoginProcess convertSharedAuth(
       in access_control::LoginProcess attempt)
-      raises (UnauthorizedOperation);
+      raises (UnauthorizedOperation, ServiceFailure);
 
-    v2_0::credential::SignedCallChain convertSignedChain();
+    v2_0::credential::SignedCallChain convertSignedChain()
+      raises (ServiceFailure);
 
-    v2_0::credential::SignedCallChain signChainFor(in Identifier target);
+    v2_0::credential::SignedCallChain signChainFor(in Identifier target)
+      raises (ServiceFailure);
 
   };
 
