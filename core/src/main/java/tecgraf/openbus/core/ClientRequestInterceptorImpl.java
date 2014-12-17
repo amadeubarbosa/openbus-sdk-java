@@ -1,8 +1,11 @@
 package tecgraf.openbus.core;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -28,15 +31,17 @@ import org.omg.PortableInterceptor.InvalidSlot;
 import org.omg.PortableInterceptor.RequestInfo;
 
 import tecgraf.openbus.Connection;
+import tecgraf.openbus.core.Credential.Chain;
+import tecgraf.openbus.core.Credential.Reset;
 import tecgraf.openbus.core.Session.ClientSideSession;
+import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
+import tecgraf.openbus.core.v2_0.services.access_control.InvalidLogins;
 import tecgraf.openbus.core.v2_1.BusLogin;
 import tecgraf.openbus.core.v2_1.credential.CredentialContextId;
 import tecgraf.openbus.core.v2_1.credential.CredentialData;
-import tecgraf.openbus.core.v2_1.credential.CredentialDataHelper;
 import tecgraf.openbus.core.v2_1.credential.CredentialReset;
 import tecgraf.openbus.core.v2_1.credential.CredentialResetHelper;
 import tecgraf.openbus.core.v2_1.credential.SignedData;
-import tecgraf.openbus.core.v2_1.credential.SignedDataHelper;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChainHelper;
@@ -50,6 +55,8 @@ import tecgraf.openbus.core.v2_1.services.access_control.NoCredentialCode;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnavailableBusCode;
 import tecgraf.openbus.exception.CryptographyException;
+import tecgraf.openbus.interceptors.CallChainInfo;
+import tecgraf.openbus.interceptors.CallChainInfoHelper;
 import tecgraf.openbus.security.Cryptography;
 
 /**
@@ -130,11 +137,37 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     LoginInfoHolder holder = new LoginInfoHolder();
     holder.value = currLogin;
 
-    CredentialData credential = this.generateCredential(ri, conn, holder);
-    byte[] encodedCredential = this.encodeCredential(credential);
-    ServiceContext requestServiceContext =
-      new ServiceContext(CredentialContextId.value, encodedCredential);
-    ri.add_request_service_context(requestServiceContext, false);
+    try {
+      Credential credential = this.generateCredential(ri, conn, holder);
+      if (credential.legacy != null) {
+        ri.add_request_service_context(credential.toServiceContext(orb(),
+          codec()), false);
+      }
+      else {
+        // enviando credencial para início do handshake 
+        Credential curr =
+          new Credential(new CredentialData(credential.bus, credential.login,
+            credential.session, credential.ticket, credential.hash,
+            NULL_SIGNED_CALL_CHAIN));
+        ri.add_request_service_context(curr.toServiceContext(orb(), codec()),
+          false);
+        if (conn.legacy()) {
+          Credential legacy =
+            new Credential(
+              new tecgraf.openbus.core.v2_0.credential.CredentialData(
+                credential.bus, credential.login, credential.session,
+                credential.ticket, credential.hash,
+                NULL_SIGNED_LEGACY_CALL_CHAIN));
+          ri.add_request_service_context(legacy
+            .toServiceContext(orb(), codec()), false);
+        }
+      }
+    }
+    catch (InvalidTypeForEncoding e) {
+      String message = "Falha ao codificar a credencial ";
+      logger.log(Level.SEVERE, message, e);
+      throw new INTERNAL(message);
+    }
     // salvando informações da conexão e login que foram utilizados no
     // request
     int uniqueId = mediator().getUniqueId();
@@ -158,25 +191,6 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
   }
 
   /**
-   * Codifica uma credencial
-   * 
-   * @param credential a credencial a ser codificada.
-   * @return a credencial codificada.
-   */
-  private byte[] encodeCredential(CredentialData credential) {
-    Any anyCredential = orb().create_any();
-    CredentialDataHelper.insert(anyCredential, credential);
-    try {
-      return codec().encode_value(anyCredential);
-    }
-    catch (InvalidTypeForEncoding e) {
-      String message = "Falha ao codificar a credencial";
-      logger.log(Level.SEVERE, message, e);
-      throw new INTERNAL(message);
-    }
-  }
-
-  /**
    * Gera uma credencial para a chamada.
    * 
    * @param ri Informação do request
@@ -185,35 +199,34 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    * @return A credencial válida para a sessão, ou uma credencial para forçar o
    *         reset da sessão.
    */
-  private CredentialData generateCredential(ClientRequestInfo ri,
+  private Credential generateCredential(ClientRequestInfo ri,
     ConnectionImpl conn, LoginInfoHolder holder) {
     String operation = ri.operation();
-    String busId = conn.busid();
+    String bus = conn.busid();
     EffectiveProfile ep = new EffectiveProfile(ri.effective_profile());
-    String target = conn.cache.entities.get(ep);
-    if (target != null) {
-      ClientSideSession session = conn.cache.cltSessions.get(target);
+    String targetId = conn.cache.entities.get(ep);
+    if (targetId != null) {
+      ClientSideSession session = conn.cache.cltSessions.get(targetId);
       if (session != null) {
         int ticket = session.nextTicket();
         byte[] credentialDataHash =
           this.generateCredentialDataHash(ri, session.getSecret(), ticket,
-            false);
-        SignedData chain =
-          getCallChain(ri, conn, holder, target, session.getEntity());
+            session.legacy());
+        Chain chain = getCallChain(ri, conn, holder, targetId, session);
         logger.finest(String.format("utilizando sessão: id = %d ticket = %d",
           session.getSession(), ticket));
         logger.fine(String.format(
           "Realizando chamada via barramento: target (%s) operação (%s)",
-          target, operation));
-        return new CredentialData(busId, holder.value.id, session.getSession(),
-          ticket, credentialDataHash, chain);
+          targetId, operation));
+        return new Credential(bus, holder.value.id, session.getSession(),
+          ticket, credentialDataHash, chain, session.legacy());
       }
     }
     logger.finest(String.format(
       "Realizando chamada sem credencial: login (%s) operação (%s)",
       holder.value.id, operation));
-    return new CredentialData(busId, holder.value.id, 0, 0, NULL_HASH_VALUE,
-      NULL_SIGNED_CALL_CHAIN);
+    return new Credential(bus, holder.value.id, 0, 0, NULL_HASH_VALUE, null,
+      null);
   }
 
   /**
@@ -223,30 +236,66 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    * @param conn a conexão em uso
    * @param holder o login em uso.
    * @param target identificador do alvo do request
-   * @param entity entidade do alvo do request
+   * @param session a sessão em uso pela requisição
    * @return A cadeia assinada.
    */
-  private SignedData getCallChain(ClientRequestInfo ri, ConnectionImpl conn,
-    LoginInfoHolder holder, String target, String entity) {
-    SignedData callChain;
+  private Chain getCallChain(ClientRequestInfo ri, ConnectionImpl conn,
+    LoginInfoHolder holder, String target, ClientSideSession session) {
+    Chain joined = getJoinedChain(ri);
     if (target.equals(BusLogin.value)) {
-      callChain = getJoinedChain(ri);
+      return joined;
     }
     else {
       try {
+        String entity = session.getEntity();
+        boolean legacy = session.legacy();
         LoginInfo curr = holder.value;
-        // checando se existe na cache
         ChainCacheKey key =
-          new ChainCacheKey(curr.id, entity, getJoinedChain(ri));
-        callChain = conn.cache.chains.get(key);
-        if (callChain == null) {
-          do {
-            callChain = conn.access().signChainFor(entity);
-            curr = conn.getLogin();
-          } while (!decodeSignedChain(callChain).caller.id.equals(curr.id));
-          conn.cache.chains.put(key, callChain);
+          new ChainCacheKey(entity, joined.signature(), legacy);
+        Chain chain = conn.cache.chains.get(key);
+        if (chain == null) {
+          if (!legacy) {
+            SignedData chainFor;
+            do {
+              chainFor = conn.access().signChainFor(entity);
+              curr = conn.getLogin();
+            } while (!decodeSignedChain(chainFor).caller.id.equals(curr.id));
+            chain = new Chain(chainFor);
+            chain.updateInfos(decodeSignedChain(chainFor));
+            conn.cache.chains.put(key, chain);
+          }
+          else if (conn.legacy() && conn.legacySupport() != null) {
+            SignedCallChain chainFor;
+            do {
+              chainFor = conn.legacySupport().access().signChainFor(target);
+              curr = conn.getLogin();
+            } while (!decodeSignedLegacyChain(chainFor).caller.id
+              .equals(curr.id));
+            chain = new Chain(chainFor);
+            chain.updateInfos(conn.busid(), decodeSignedLegacyChain(chainFor));
+            conn.cache.chains.put(key, chain);
+          }
         }
         holder.value = curr;
+        return chain;
+      }
+      catch (InvalidLogins e) {
+        Map<EffectiveProfile, String> cache = conn.cache.entities;
+        List<EffectiveProfile> toRemove = new ArrayList<EffectiveProfile>();
+        for (Entry<EffectiveProfile, String> entry : cache.entrySet()) {
+          if (target.equals(entry.getValue())) {
+            toRemove.add(entry.getKey());
+          }
+        }
+        for (EffectiveProfile ep : toRemove) {
+          cache.remove(ep);
+        }
+        String message =
+          String.format("Erro ao assinar cadeia para target: (%s)",
+            e.loginIds[0]);
+        logger.log(Level.SEVERE, message, e);
+        throw new NO_PERMISSION(message, InvalidTargetCode.value,
+          CompletionStatus.COMPLETED_NO);
       }
       catch (SystemException e) {
         String message =
@@ -260,7 +309,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         String message =
           String.format(
             "Falha inesperada ao assinar uma cadeia de chamadas: target (%s)",
-            entity);
+            target);
         logger.log(Level.SEVERE, message, e);
         throw new INTERNAL(message);
       }
@@ -270,13 +319,39 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         throw new INTERNAL(message);
       }
     }
-    return callChain;
   }
 
+  /**
+   * Decodifica a cadeia
+   * 
+   * @param data o dado codificado
+   * @return a cadeia
+   * @throws FormatMismatch
+   * @throws TypeMismatch
+   */
   private CallChain decodeSignedChain(SignedData data) throws FormatMismatch,
     TypeMismatch {
     Any any = codec().decode_value(data.encoded, CallChainHelper.type());
     return CallChainHelper.extract(any);
+  }
+
+  /**
+   * Decodifica a cadeia
+   * 
+   * @param data o dado codificado
+   * @return a cadeia
+   * @throws FormatMismatch
+   * @throws TypeMismatch
+   */
+  private tecgraf.openbus.core.v2_0.services.access_control.CallChain decodeSignedLegacyChain(
+    SignedCallChain data) throws FormatMismatch, TypeMismatch {
+    Any any =
+      codec().decode_value(
+        data.encoded,
+        tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper
+          .type());
+    return tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper
+      .extract(any);
   }
 
   /**
@@ -285,15 +360,18 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    * @param ri informação do request
    * @return A cadeia que esta joined ou uma cadeia nula.
    */
-  private SignedData getJoinedChain(ClientRequestInfo ri) {
-    SignedData callChain;
+  private Chain getJoinedChain(ClientRequestInfo ri) {
+    Chain chain;
     try {
       Any any = ri.get_slot(this.mediator().getJoinedChainSlotId());
       if (any.type().kind().value() != TCKind._tk_null) {
-        callChain = SignedDataHelper.extract(any);
+        CallChainInfo info = CallChainInfoHelper.extract(any);
+        CallerChainImpl callerChain =
+          CallerChainImpl.info2CallerChain(info, codec());
+        chain = callerChain.internal_chain();
       }
       else {
-        callChain = NULL_SIGNED_CALL_CHAIN;
+        chain = new Chain(NULL_SIGNED_CALL_CHAIN);
       }
     }
     catch (InvalidSlot e) {
@@ -301,7 +379,12 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       logger.log(Level.SEVERE, message, e);
       throw new INTERNAL(message);
     }
-    return callChain;
+    catch (UserException e) {
+      String message = "Falha inesperada ao decodificar cadeia";
+      logger.log(Level.SEVERE, message, e);
+      throw new INTERNAL(message);
+    }
+    return chain;
   }
 
   /**
@@ -355,22 +438,8 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
 
         case InvalidCredentialCode.value:
           EffectiveProfile ep = new EffectiveProfile(ri.effective_profile());
-          byte[] context_data = null;
-          try {
-            ServiceContext context =
-              ri.get_reply_service_context(CredentialContextId.value);
-            context_data = context.context_data;
-          }
-          catch (BAD_PARAM e) {
-            if (e.minor == 26) {
-              // request's service context does not contain an entry
-              // for that ID.
-            }
-            else {
-              throw e;
-            }
-          }
-          if (context_data == null) {
+          Reset reset = getCredentialReset(ri, conn.legacy());
+          if (reset == null) {
             // não recebeu o credential reset
             String message =
               "Servidor não enviou o CredentialReset para negociar sessão)";
@@ -378,24 +447,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
             throw new NO_PERMISSION(message, InvalidRemoteCode.value,
               CompletionStatus.COMPLETED_NO);
           }
-          Any credentialResetAny = null;
-          try {
-            credentialResetAny =
-              codec().decode_value(context_data, CredentialResetHelper.type());
-          }
-          catch (FormatMismatch e) {
-            String message = "Falha inesperada ao obter o CredentialReset";
-            logger.log(Level.SEVERE, message, e);
-            throw new INTERNAL(message);
-          }
-          catch (TypeMismatch e) {
-            String message = "Falha inesperada ao obter o CredentialReset";
-            logger.log(Level.SEVERE, message, e);
-            throw new INTERNAL(message);
-          }
 
-          CredentialReset reset =
-            CredentialResetHelper.extract(credentialResetAny);
           Cryptography crypto = Cryptography.getInstance();
           byte[] secret;
           try {
@@ -407,10 +459,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
             throw new NO_PERMISSION(message, InvalidRemoteCode.value,
               CompletionStatus.COMPLETED_NO);
           }
-          String target = reset.target;
-          conn.cache.entities.put(ep, target);
-          conn.cache.cltSessions.put(target, new ClientSideSession(
-            reset.session, secret, target, reset.entity));
+          conn.cache.entities.put(ep, reset.target);
+          conn.cache.cltSessions.put(reset.target, new ClientSideSession(reset,
+            secret));
           logger.finest(String.format(
             "ForwardRequest após reset: login (%s) operação (%s)", loginId, ri
               .operation()));
@@ -506,6 +557,80 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
   }
 
   /**
+   * Recupera a informação do CredentialReset
+   * 
+   * @param ri informações da requisição
+   * @param legacy se a conexão possui o suporte legado ativo
+   * @return as informações de Reset do handshake
+   */
+  private Reset getCredentialReset(ClientRequestInfo ri, boolean legacy) {
+    try {
+      byte[] context_data = null;
+      try {
+        ServiceContext context =
+          ri.get_reply_service_context(CredentialContextId.value);
+        context_data = context.context_data;
+      }
+      catch (BAD_PARAM e) {
+        if (e.minor == 26) {
+          // request's service context does not contain an entry
+          // for that ID.
+        }
+        else {
+          throw e;
+        }
+      }
+      if (context_data != null) {
+        Any any =
+          codec().decode_value(context_data, CredentialResetHelper.type());
+        CredentialReset creset = CredentialResetHelper.extract(any);
+        return new Reset(new LoginInfo(creset.target, creset.entity),
+          creset.session, creset.challenge, false);
+      }
+      else if (legacy) {
+        try {
+          ServiceContext context =
+            ri.get_reply_service_context(tecgraf.openbus.core.v2_0.credential.CredentialContextId.value);
+          context_data = context.context_data;
+        }
+        catch (BAD_PARAM e) {
+          if (e.minor == 26) {
+            // request's service context does not contain an entry
+            // for that ID.
+          }
+          else {
+            throw e;
+          }
+        }
+        if (context_data != null) {
+          Any any =
+            codec()
+              .decode_value(
+                context_data,
+                tecgraf.openbus.core.v2_0.credential.CredentialResetHelper
+                  .type());
+          tecgraf.openbus.core.v2_0.credential.CredentialReset creset =
+            tecgraf.openbus.core.v2_0.credential.CredentialResetHelper
+              .extract(any);
+          return new Reset(new LoginInfo(creset.target, null), creset.session,
+            creset.challenge, true);
+        }
+      }
+    }
+    catch (FormatMismatch e) {
+      String message = "Falha inesperada ao obter o CredentialReset";
+      logger.log(Level.SEVERE, message, e);
+      throw new INTERNAL(message);
+    }
+    catch (TypeMismatch e) {
+      String message = "Falha inesperada ao obter o CredentialReset";
+      logger.log(Level.SEVERE, message, e);
+      throw new INTERNAL(message);
+    }
+    return null;
+  }
+
+  /**
    * Recupera o identificador único associado ao request.
    * 
    * @return o identificador associado.
@@ -559,7 +684,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    * @param ri informação do request
    * @return a conexão.
    */
-  protected Connection getCurrentConnection(RequestInfo ri) {
+  private Connection getCurrentConnection(RequestInfo ri) {
     OpenBusContextImpl context = this.mediator().getContext();
     Any any;
     try {

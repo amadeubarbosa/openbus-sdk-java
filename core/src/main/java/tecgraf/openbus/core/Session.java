@@ -2,6 +2,8 @@ package tecgraf.openbus.core;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import tecgraf.openbus.core.Credential.Reset;
+
 /**
  * Classe que representa a parte comum entre a sessão do lado servidor e
  * cliente.
@@ -109,28 +111,25 @@ abstract class Session {
      */
     private AtomicInteger ticket;
     /**
-     * Id do alvo da comunicação.
-     */
-    final private String calleeId;
-    /**
      * Entidade do alvo da comunicação.
      */
-    final private String calleeEntity;
+    final private String entity;
+    /**
+     * Indicador se comunicação faz uso de protocolo legado
+     */
+    final private boolean legacy;
 
     /**
      * Construtor.
      * 
-     * @param session identificador da sessão
+     * @param reset informações do CredentialReset
      * @param secret o segredo.
-     * @param target identificador do alvo da comunicação
-     * @param entity entity do alvo da comunicação
      */
-    public ClientSideSession(int session, byte[] secret, String target,
-      String entity) {
-      super(session, secret);
+    public ClientSideSession(Reset reset, byte[] secret) {
+      super(reset.session, secret);
       this.ticket = new AtomicInteger(-1);
-      this.calleeId = target;
-      this.calleeEntity = entity;
+      this.entity = reset.entity;
+      this.legacy = reset.legacy;
     }
 
     /**
@@ -148,8 +147,16 @@ abstract class Session {
      * @return o alvo da comunicação.
      */
     public String getEntity() {
-      return this.calleeEntity;
+      return this.entity;
     }
 
+    /**
+     * Indicador se sessão faz uso de protocolo legado
+     * 
+     * @return se sessão faz uso de protocolo legado.
+     */
+    public boolean legacy() {
+      return legacy;
+    }
   }
 }

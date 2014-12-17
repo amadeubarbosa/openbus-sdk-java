@@ -3,8 +3,6 @@ package tecgraf.openbus.core;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
-import tecgraf.openbus.core.v2_1.credential.SignedData;
-
 /**
  * Chave da cache de cadeias assinadas.
  * 
@@ -12,29 +10,29 @@ import tecgraf.openbus.core.v2_1.credential.SignedData;
  */
 class ChainCacheKey {
   /**
-   * O prório login
+   * Se necessita de cadeia legada
    */
-  private String login;
+  private boolean legacy;
   /**
    * Entidade do alvo da requisição
    */
   private String callee;
   /**
-   * A cadeia com a qual esta joined
+   * A assinatura da cadeia com a qual esta joined
    */
-  private SignedData joinedChain;
+  private byte[] signature;
 
   /**
    * Construtor.
    * 
-   * @param login login.
    * @param callee entidade do alvo da requisição
-   * @param joinedChain cadeia que esta joined
+   * @param signature assinatura da cadeia que esta joined
+   * @param legacy se em modo legado ou não
    */
-  public ChainCacheKey(String login, String callee, SignedData joinedChain) {
-    this.login = login;
+  public ChainCacheKey(String callee, byte[] signature, boolean legacy) {
     this.callee = callee;
-    this.joinedChain = joinedChain;
+    this.signature = signature;
+    this.legacy = legacy;
   }
 
   /**
@@ -52,9 +50,8 @@ class ChainCacheKey {
       return false;
     }
     ChainCacheKey other = (ChainCacheKey) obj;
-    return new EqualsBuilder().append(callee, other.callee).append(login,
-      other.login).append(joinedChain.encoded, other.joinedChain.encoded)
-      .append(joinedChain.signature, other.joinedChain.signature).isEquals();
+    return new EqualsBuilder().append(callee, other.callee).append(legacy,
+      other.legacy).append(signature, signature).isEquals();
   }
 
   /**
@@ -62,8 +59,8 @@ class ChainCacheKey {
    */
   @Override
   public int hashCode() {
-    return new HashCodeBuilder().append(callee).append(login).append(
-      joinedChain.encoded).append(joinedChain.signature).toHashCode();
+    return new HashCodeBuilder().append(callee).append(legacy)
+      .append(signature).toHashCode();
   }
 
 }

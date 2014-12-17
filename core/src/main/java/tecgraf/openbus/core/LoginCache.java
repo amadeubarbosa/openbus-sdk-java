@@ -60,7 +60,6 @@ class LoginCache {
       }
     }
 
-    String busid = conn.busid();
     List<String> ids = new ArrayList<String>();
     ids.add(loginId);
     time = System.currentTimeMillis();
@@ -69,8 +68,6 @@ class LoginCache {
       LoginEntry loginEntry = this.logins.get(loginId);
       if (loginEntry == null) {
         loginEntry = new LoginEntry();
-        loginEntry.loginId = loginId;
-        loginEntry.busId = busid;
         loginEntry.lastTime = time;
         loginEntry.validity = validity;
         this.logins.put(loginId, loginEntry);
@@ -114,8 +111,6 @@ class LoginCache {
       entry = this.logins.get(loginId);
       if (entry == null) {
         entry = new LoginEntry();
-        entry.busId = conn.busid();
-        entry.loginId = info.id;
         entry.entity = info.entity;
         entry.pubkey = pubkey.value;
         entry.lastTime = System.currentTimeMillis();
@@ -137,14 +132,6 @@ class LoginCache {
    * @author Tecgraf
    */
   private class LoginEntry {
-    /**
-     * Identificação do login.
-     */
-    public String loginId;
-    /**
-     * Barramento ao qual o login pertence.
-     */
-    public String busId;
     /**
      * Tempo de validade.
      */

@@ -30,8 +30,7 @@ import tecgraf.openbus.core.v2_1.OctetSeqHolder;
 import tecgraf.openbus.core.v2_1.credential.CredentialContextId;
 import tecgraf.openbus.core.v2_1.credential.CredentialData;
 import tecgraf.openbus.core.v2_1.credential.CredentialDataHelper;
-import tecgraf.openbus.core.v2_1.credential.SignedData;
-import tecgraf.openbus.core.v2_1.credential.SignedDataHelper;
+import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidChainCode;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidCredentialCode;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidLoginCode;
@@ -43,6 +42,8 @@ import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.exception.CryptographyException;
+import tecgraf.openbus.interceptors.CallChainInfo;
+import tecgraf.openbus.interceptors.CallChainInfoHelper;
 import tecgraf.openbus.security.Cryptography;
 
 /**
@@ -177,27 +178,11 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           String entity = getLoginInfo(conn, loginId, pubkey, ri);
           if (validateCredential(credential, ri, conn)) {
             if (validateChain(credential, pubkey, conn)) {
+              saveRequestInformations(credential, conn, ri);
               String msg =
                 "Recebendo chamada pelo barramento: login (%s) entidade (%s) operação (%s) requestId (%d)";
               logger.fine(String.format(msg, loginId, entity, operation,
                 requestId));
-              // salvando a cadeia
-              Any singnedAny = orb().create_any();
-              Any any = orb().create_any();
-              Chain chain = credential.chain;
-              SignedData data = chain.signedChain;
-              if (credential.legacy) {
-                data =
-                  new SignedData(chain.signedLegacy.signature,
-                    chain.signedLegacy.encoded);
-                any.insert_string(conn.busid());
-              }
-              SignedDataHelper.insert(singnedAny, data);
-              ri.set_slot(mediator().getSignedChainSlotId(), singnedAny);
-              ri.set_slot(mediator().getBusSlotId(), any);
-              // salva a conexão utilizada no dispatch
-              // CHECK se o bug relatado no finally for verdadeiro, isso pode ser desnecessario
-              setCurrentConnection(ri, conn);
               return;
             }
             else {
@@ -234,12 +219,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
         throw new NO_PERMISSION(InvalidLoginCode.value,
           CompletionStatus.COMPLETED_NO);
       }
-    }
-    catch (InvalidSlot e) {
-      String message =
-        "Falha inesperada ao armazenar dados em slot de contexto";
-      logger.log(Level.SEVERE, message, e);
-      throw new INTERNAL(message);
     }
     catch (CryptographyException e) {
       String message = "Falha ao criptografar com chave pública";
@@ -315,9 +294,10 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       new ServerSideSession(sessionId, newSecret, credential.login);
     conn.cache.srvSessions.put(newSession.getSession(), newSession);
     LoginInfo login = conn.login();
-    Reset reset = new Reset(login, sessionId, encriptedSecret, credential);
+    Reset reset =
+      new Reset(login, sessionId, encriptedSecret, credential.legacy);
     try {
-      ri.add_reply_service_context(reset.getServiceContext(orb(), codec()),
+      ri.add_reply_service_context(reset.toServiceContext(orb(), codec()),
         false);
       logger.fine(String.format(
         "Resetando a credencial: operação (%s) requestId (%d)", ri.operation(),
@@ -506,13 +486,64 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
   }
 
   /**
+   * Salva as informações associadas à requisição
+   * 
+   * @param credential a credencial
+   * @param conn conexão utilizada no atendimento da requisição
+   * @param ri as informações da requisição
+   */
+  private void saveRequestInformations(Credential credential,
+    ConnectionImpl conn, ServerRequestInfo ri) {
+    // salvando a cadeia
+    CallChainInfo chainInfo = new CallChainInfo();
+    Chain chain = credential.chain;
+    chainInfo.chain = chain.signedChain;
+    chainInfo.legacy = credential.legacy;
+    chainInfo.bus = credential.bus;
+    chainInfo.legacy_chain = chain.signedLegacy;
+    if (!credential.legacy && conn.legacy()
+      && (conn.legacySupport().converter() != null)) {
+      CallChain callchain =
+        new CallChain(chain.bus, chain.target, chain.originators, chain.caller);
+      try {
+        context().joinChain(new CallerChainImpl(callchain, chain.signedChain));
+        chainInfo.legacy_chain =
+          conn.legacySupport().converter().convertSignedChain();
+      }
+      catch (Exception e) {
+        String err =
+          String.format(
+            "Falha ao converter cadeia assinada: operação (%s) requestId (%d)",
+            ri.operation(), ri.request_id());
+        logger.log(Level.SEVERE, err, e);
+        throw new NO_PERMISSION(err, NoCredentialCode.value,
+          CompletionStatus.COMPLETED_NO);
+      }
+      finally {
+        context().exitChain();
+      }
+    }
+    Any any = orb().create_any();
+    CallChainInfoHelper.insert(any, chainInfo);
+    try {
+      ri.set_slot(mediator().getSignedChainSlotId(), any);
+    }
+    catch (InvalidSlot e) {
+      String message = "Falha inesperada ao armazenar dados em slot";
+      logger.log(Level.SEVERE, message, e);
+      throw new INTERNAL(message);
+    }
+    // salva a conexão utilizada no dispatch
+    // CHECK se o bug relatado no finally for verdadeiro, isso pode ser desnecessario
+    setCurrentConnection(ri, conn);
+  }
+
+  /**
    * {@inheritDoc}
    */
   @Override
   public void send_reply(ServerRequestInfo ri) {
     String operation = ri.operation();
-    logger.finest(String.format("[in] send_reply: %s", operation));
-
     // CHECK deveria setar o currentConnection antigo?
     removeCurrentConnection(ri);
 
@@ -520,7 +551,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     Any any = orb().create_any();
     try {
       ri.set_slot(mediator().getSignedChainSlotId(), any);
-      ri.set_slot(mediator().getBusSlotId(), any);
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao limpar informações nos slots";
@@ -529,7 +559,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     }
     String msg = "Chamada atendida: operação (%s) requestId (%d)";
     logger.fine(String.format(msg, operation, ri.request_id()));
-    logger.finest(String.format("[out] send_reply: %s", operation));
   }
 
   /**
@@ -537,7 +566,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void send_exception(ServerRequestInfo ri) {
-    logger.finest(String.format("[inout] send_exception: %s", ri.operation()));
   }
 
   /**
@@ -545,7 +573,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void send_other(ServerRequestInfo ri) {
-    logger.finest(String.format("[inout] send_other: %s", ri.operation()));
   }
 
   /**

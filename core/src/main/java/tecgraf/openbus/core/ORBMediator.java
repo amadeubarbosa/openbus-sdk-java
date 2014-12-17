@@ -19,10 +19,6 @@ final class ORBMediator extends LocalObject {
   private final int SIGNED_CHAIN_SLOT_ID;
   /** Identificador do slot de joined chain */
   private final int JOINED_CHAIN_SLOT_ID;
-  /** Identificador do slot de barramento ao qual joined chain pertence */
-  private final int JOINED_BUS_SLOT_ID;
-  /** Identificador do slot da caller chain */
-  private final int BUS_SLOT_ID;
   /** Identificador de slot do identificador do request */
   private int REQUEST_ID_SLOT_ID;
   /** o ORB */
@@ -51,19 +47,14 @@ final class ORBMediator extends LocalObject {
    * @param codec a fábrica de codificadores
    * @param signedChainSlotId identificador de slot.
    * @param chainSlotId identificaor de slot.
-   * @param joinedBusSlotId identificador de slot.
-   * @param busSlotId identificador de slot
    * @param requestingConnSlotId identificador de slot.
    * @param connections gerente de conexões associado.
    */
   ORBMediator(Codec codec, int signedChainSlotId, int chainSlotId,
-    int joinedBusSlotId, int busSlotId, int requestingConnSlotId,
-    OpenBusContextImpl connections) {
+    int requestingConnSlotId, OpenBusContextImpl connections) {
     this.codec = codec;
     this.SIGNED_CHAIN_SLOT_ID = signedChainSlotId;
     this.JOINED_CHAIN_SLOT_ID = chainSlotId;
-    this.JOINED_BUS_SLOT_ID = joinedBusSlotId;
-    this.BUS_SLOT_ID = busSlotId;
     this.REQUEST_ID_SLOT_ID = requestingConnSlotId;
     this.connections = connections;
   }
@@ -113,26 +104,6 @@ final class ORBMediator extends LocalObject {
    */
   int getJoinedChainSlotId() {
     return this.JOINED_CHAIN_SLOT_ID;
-  }
-
-  /**
-   * Recupera o identificador do slot onde se informa qual o identificador do
-   * barramento pelo qual a chamada se realiza. Utilizado pelo lado servidor.
-   * 
-   * @return identificador do slot
-   */
-  int getBusSlotId() {
-    return this.BUS_SLOT_ID;
-  }
-
-  /**
-   * Recupera o identificador do slot onde se informa qual o identificador do
-   * barramento a cadeia em que esta encadeado ('joined').
-   * 
-   * @return identificador do slot
-   */
-  int getJoinedBusSlotId() {
-    return this.JOINED_BUS_SLOT_ID;
   }
 
   /**

@@ -1,0 +1,42 @@
+/**
+ * \mainpage Documentação da IDL
+ */
+#ifndef __TECGRAF_OPENBUS_INTERCEPTORS_IDL__
+#define __TECGRAF_OPENBUS_INTERCEPTORS_IDL__
+
+#include "tecgraf/openbus/core/v2_1/credential.idl"
+#include "legacy_credential.idl"
+
+/** \brief Módulo dos sistemas e aplicações do Tecgraf. */
+module tecgraf {
+
+/** \brief Módulo do middleware OpenBus. */
+module openbus {
+
+/** 
+  *\brief Módulo com definições de dados utilizados para facilitar a troca de
+  *       informações dos interceptadores para a biblioteca.
+  */
+module interceptors {
+
+  /**
+   * \brief Informações sobre a cadeia de chamadas
+   */
+  struct CallChainInfo {
+    /** \brief Cadeia assinada 2.1 */
+    core::v2_1::credential::SignedData chain;
+    /** \brief Se cadeia é estritamente legada */
+    boolean legacy;
+    /** \brief Identificador de barramento */
+    core::v2_0::Identifier bus;
+    /** \brief Cadeia assinada 2.0 */
+    core::v2_0::credential::SignedCallChain legacy_chain;
+  };
+  
+}; // interceptors
+
+}; // openbus
+
+}; // tecgraf
+
+#endif

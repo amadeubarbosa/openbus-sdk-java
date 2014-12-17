@@ -29,11 +29,11 @@ import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.SharedAuthSecret;
+import tecgraf.openbus.core.Credential.Chain;
 import tecgraf.openbus.core.Session.ClientSideSession;
 import tecgraf.openbus.core.Session.ServerSideSession;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessControlHelper;
 import tecgraf.openbus.core.v2_1.EncryptedBlockHolder;
-import tecgraf.openbus.core.v2_1.credential.SignedData;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessControl;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
@@ -604,6 +604,30 @@ final class ConnectionImpl implements Connection {
   }
 
   /**
+   * Verifica se o suporte legado está ativo.
+   * <p>
+   * Mesmo que a conexão tenha sido configurada para permitir o suporte legado
+   * 
+   * @return <code>true</code> caso o suporte esteja ativo, e <code>false</code>
+   *         caso contrário.
+   */
+  public boolean legacy() {
+    if (legacy) {
+      return this.legacySupport != null;
+    }
+    return false;
+  }
+
+  /**
+   * Recupera os serviços de apoio ao suporte legado.
+   * 
+   * @return infra de suporte legado.
+   */
+  LegacySupport legacySupport() {
+    return legacySupport;
+  }
+
+  /**
    * {@inheritDoc}
    */
   @Override
@@ -708,6 +732,9 @@ final class ConnectionImpl implements Connection {
     return this.connId;
   }
 
+  /**
+   * Ativa o suporte legado recuperando referência para os serviços necessários.
+   */
   private void activateLegacySupport() {
     org.omg.CORBA.Object object =
       bus.getComponent().getFacetByName("LegacySupport");
@@ -753,7 +780,7 @@ final class ConnectionImpl implements Connection {
     /** Cache de sessão: mapa de cliente alvo da chamada para sessão */
     Map<String, ClientSideSession> cltSessions;
     /** Cache de cadeias assinadas */
-    Map<ChainCacheKey, SignedData> chains;
+    Map<ChainCacheKey, Chain> chains;
     /* Caches servidor da conexão */
     /** Cache de sessão: mapa de cliente alvo da chamada para sessão */
     Map<Integer, ServerSideSession> srvSessions;
@@ -776,7 +803,7 @@ final class ConnectionImpl implements Connection {
         Collections.synchronizedMap(new LRUCache<String, ClientSideSession>(
           CACHE_SIZE));
       this.chains =
-        Collections.synchronizedMap(new LRUCache<ChainCacheKey, SignedData>(
+        Collections.synchronizedMap(new LRUCache<ChainCacheKey, Chain>(
           CACHE_SIZE));
       this.srvSessions =
         Collections.synchronizedMap(new LRUCache<Integer, ServerSideSession>(

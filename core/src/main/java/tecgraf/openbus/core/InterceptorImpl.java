@@ -11,6 +11,7 @@ import org.omg.IOP.Codec;
 import org.omg.PortableInterceptor.Interceptor;
 import org.omg.PortableInterceptor.RequestInfo;
 
+import tecgraf.openbus.core.v2_0.credential.SignedCallChain;
 import tecgraf.openbus.core.v2_1.EncryptedBlockSize;
 import tecgraf.openbus.core.v2_1.HashValueSize;
 import tecgraf.openbus.core.v2_1.MajorVersion;
@@ -30,13 +31,6 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
   /** Número de versão Minor */
   protected static final byte BUS_MINOR_VERSION = MinorVersion.value;
 
-  /** Número de versão Legada Major */
-  protected static final byte LEGACY_MAJOR_VERSION =
-    tecgraf.openbus.core.v2_0.MajorVersion.value;
-  /** Número de versão Legada Minor */
-  protected static final byte LEGACY_MINOR_VERSION =
-    tecgraf.openbus.core.v2_0.MinorVersion.value;
-
   /** Tamanho do hash */
   protected static final int HASH_VALUE_SIZE = HashValueSize.value;
   /** Hash nulo. */
@@ -49,6 +43,16 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
   /** Cadeia nula assinada. */
   protected static final SignedData NULL_SIGNED_CALL_CHAIN = new SignedData(
     NULL_ENCRYPTED_BLOCK, new byte[0]);
+
+  /** Número de versão Legada Major */
+  protected static final byte LEGACY_MAJOR_VERSION =
+    tecgraf.openbus.core.v2_0.MajorVersion.value;
+  /** Número de versão Legada Minor */
+  protected static final byte LEGACY_MINOR_VERSION =
+    tecgraf.openbus.core.v2_0.MinorVersion.value;
+  /** Cadeia nula legada assinada. */
+  protected static final SignedCallChain NULL_SIGNED_LEGACY_CALL_CHAIN =
+    new SignedCallChain(NULL_ENCRYPTED_BLOCK, new byte[0]);
 
   /** Nome */
   private String name;
