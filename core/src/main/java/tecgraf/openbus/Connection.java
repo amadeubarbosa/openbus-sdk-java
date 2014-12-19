@@ -13,8 +13,10 @@ import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
+import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.exception.InvalidLoginProcess;
+import tecgraf.openbus.exception.WrongBus;
 
 /**
  * Objeto que representa uma forma de acesso a um barramento.
@@ -81,12 +83,14 @@ public interface Connection {
    * @exception TooManyAttempts A autenticação foi recusada por um número
    *            excessivo de tentativas inválidas de autenticação por senha.
    * @exception UnknownDomain O domínio de autenticação não é conhecido.
+   * @exception WrongEncoding A autenticação falhou, pois a senha não foi
+   *            codificado corretamente com a chave pública do barramento.
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu a autenticação da conexão.
    */
   void loginByPassword(String entity, byte[] password, String domain)
     throws AccessDenied, AlreadyLoggedIn, TooManyAttempts, UnknownDomain,
-    ServiceFailure;
+    WrongEncoding, ServiceFailure;
 
   /**
    * Efetua login de uma entidade usando autenticação por certificado.
@@ -103,11 +107,15 @@ public interface Connection {
    *            certificado da entidade registrado no barramento indicado.
    * @exception MissingCertificate Não há certificado para essa entidade
    *            registrado no barramento indicado.
+   * @exception WrongEncoding A autenticação falhou, pois a resposta ao desafio
+   *            não foi codificada corretamente com a chave pública do
+   *            barramento.
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu a autenticação da conexão.
    */
   void loginByCertificate(String entity, RSAPrivateKey privateKey)
-    throws AlreadyLoggedIn, AccessDenied, MissingCertificate, ServiceFailure;
+    throws AlreadyLoggedIn, AccessDenied, MissingCertificate, WrongEncoding,
+    ServiceFailure;
 
   /**
    * Inicia o processo de login por autenticação compartilhada.
@@ -143,13 +151,17 @@ public interface Connection {
    *            informado é inválido, por exemplo depois do segredo ser
    *            cancelado, ter expirado, ou já ter sido utilizado.
    * @exception AlreadyLoggedIn A conexão já está autenticada.
+   * @exception WrongBus O segredo não pertence ao barramento contactado.
    * @exception AccessDenied O segredo fornecido não corresponde ao esperado
    *            pelo barramento.
+   * @exception WrongEncoding A autenticação falhou, pois a resposta ao desafio
+   *            não foi codificado corretamente com a chave pública do
+   *            barramento.
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu a autenticação da conexão.
    */
   void loginBySharedAuth(SharedAuthSecret secret) throws AlreadyLoggedIn,
-    InvalidLoginProcess, AccessDenied, ServiceFailure;
+    WrongBus, InvalidLoginProcess, AccessDenied, WrongEncoding, ServiceFailure;
 
   /**
    * Efetua logout da conexão, tornando o login atual inválido.

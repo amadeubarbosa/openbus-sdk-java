@@ -54,9 +54,23 @@ public final class Cryptography {
    */
   public static final String CIPHER_ALGORITHM = "RSA/ECB/PKCS1PADDING";
   /**
+   * Tamanho da cahve de criptografia.
+   * <p>
+   * todo dado criptografado resulta em um array de tamanho múltiplo do tamanho
+   * da chave.
+   */
+  private static final int ENCRIPTION_KEY_SIZE = 256;
+  /**
+   * Tamanho máximo de dado que pode ser encriptado por bloco, devido a
+   * necessidade de inclusão de padding
+   */
+  private static final int MAX_BLOCK_ENCRIPTION_SIZE = 245;
+
+  /**
    * Codificação charset padrão.
    */
   public static final Charset CHARSET = Charset.forName("US-ASCII");
+
   /**
    * A instância.
    */
@@ -107,7 +121,19 @@ public final class Cryptography {
       Cipher cipher = Cipher.getInstance(CIPHER_ALGORITHM);
       synchronized (cipher) {
         cipher.init(Cipher.ENCRYPT_MODE, publicKey);
-        return cipher.doFinal(data);
+        int blocks =
+          (int) Math.ceil((double) data.length / MAX_BLOCK_ENCRIPTION_SIZE);
+        int offset = 0;
+        int lenght = MAX_BLOCK_ENCRIPTION_SIZE;
+        ByteBuffer buffer = ByteBuffer.allocate(ENCRIPTION_KEY_SIZE * blocks);
+        while (offset < data.length) {
+          if (offset + lenght > data.length) {
+            lenght = data.length - offset;
+          }
+          buffer.put(cipher.doFinal(data, offset, lenght));
+          offset += lenght;
+        }
+        return buffer.array();
       }
     }
     catch (GeneralSecurityException e) {

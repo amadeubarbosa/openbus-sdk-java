@@ -56,6 +56,7 @@ import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.exception.InvalidLoginProcess;
 import tecgraf.openbus.exception.InvalidPropertyValue;
 import tecgraf.openbus.exception.OpenBusInternalException;
+import tecgraf.openbus.exception.WrongBus;
 import tecgraf.openbus.security.Cryptography;
 
 /**
@@ -255,7 +256,7 @@ final class ConnectionImpl implements Connection {
   @Override
   public void loginByPassword(String entity, byte[] password, String domain)
     throws AccessDenied, AlreadyLoggedIn, TooManyAttempts, UnknownDomain,
-    ServiceFailure {
+    WrongEncoding, ServiceFailure {
     checkLoggedIn();
     LoginInfo newLogin;
     try {
@@ -270,10 +271,6 @@ final class ConnectionImpl implements Connection {
           this.publicKey.getEncoded(), encryptedLoginAuthenticationInfo,
           validityHolder);
       localLogin(newLogin, validityHolder.value);
-    }
-    catch (WrongEncoding e) {
-      throw new ServiceFailure(
-        "Falhou a codificação com a chave pública do barramento");
     }
     catch (InvalidPublicKey e) {
       throw new OpenBusInternalException(
@@ -326,10 +323,12 @@ final class ConnectionImpl implements Connection {
 
   /**
    * {@inheritDoc}
+   * 
    */
   @Override
   public void loginByCertificate(String entity, RSAPrivateKey privateKey)
-    throws AlreadyLoggedIn, MissingCertificate, AccessDenied, ServiceFailure {
+    throws AlreadyLoggedIn, MissingCertificate, AccessDenied, WrongEncoding,
+    ServiceFailure {
     checkLoggedIn();
     this.context.ignoreThread();
     initBusReferencesBeforeLogin();
@@ -355,10 +354,6 @@ final class ConnectionImpl implements Connection {
       loginProcess.cancel();
       throw new AccessDenied("Erro ao descriptografar desafio.");
     }
-    catch (WrongEncoding e) {
-      throw new OpenBusInternalException(
-        "Falhou a codificação com a chave pública do barramento", e);
-    }
     catch (InvalidPublicKey e) {
       throw new OpenBusInternalException(
         "Falha no protocolo OpenBus: A chave de acesso gerada não foi aceita. Mensagem="
@@ -382,11 +377,24 @@ final class ConnectionImpl implements Connection {
     EncryptedBlockHolder challenge = new EncryptedBlockHolder();
     LoginProcess process = null;
     byte[] secret = null;
+    tecgraf.openbus.core.v2_0.services.access_control.LoginProcess legacyProcess =
+      null;
     Connection previousConnection = context.getCurrentConnection();
     try {
       context.setCurrentConnection(this);
       process = this.access().startLoginBySharedAuth(challenge);
       secret = crypto.decrypt(challenge.value, this.privateKey);
+      if (legacy() && legacySupport().converter() != null) {
+        try {
+          legacyProcess =
+            legacySupport().converter().convertSharedAuth(process);
+        }
+        catch (Exception e) {
+          String msg =
+            "Não foi possível converter o compartilhamento de autenticação";
+          logger.log(Level.SEVERE, msg, e);
+        }
+      }
     }
     catch (CryptographyException e) {
       process.cancel();
@@ -396,7 +404,8 @@ final class ConnectionImpl implements Connection {
     finally {
       context.setCurrentConnection(previousConnection);
     }
-    return new SharedAuthSecretImpl(busid(), process, secret, context);
+    return new SharedAuthSecretImpl(busid(), process, legacyProcess, secret,
+      context);
   }
 
   /**
@@ -404,20 +413,26 @@ final class ConnectionImpl implements Connection {
    */
   @Override
   public void loginBySharedAuth(SharedAuthSecret secret)
-    throws AlreadyLoggedIn, ServiceFailure, AccessDenied, InvalidLoginProcess {
+    throws AlreadyLoggedIn, WrongBus, ServiceFailure, AccessDenied,
+    InvalidLoginProcess {
     checkLoggedIn();
     LoginInfo newLogin;
     try {
       this.context.ignoreThread();
       initBusReferencesBeforeLogin();
-      SharedAuthSecretImpl sharedAuth = (SharedAuthSecretImpl) secret;
-      byte[] encryptedLoginAuthenticationInfo =
-        this.generateEncryptedLoginAuthenticationInfo(sharedAuth.secret());
-      IntHolder validity = new IntHolder();
-      newLogin =
-        sharedAuth.attempt().login(this.publicKey.getEncoded(),
-          encryptedLoginAuthenticationInfo, validity);
-      localLogin(newLogin, validity.value);
+      if (this.busid().equals(secret.busid())) {
+        SharedAuthSecretImpl sharedAuth = (SharedAuthSecretImpl) secret;
+        byte[] encryptedLoginAuthenticationInfo =
+          this.generateEncryptedLoginAuthenticationInfo(sharedAuth.secret());
+        IntHolder validity = new IntHolder();
+        newLogin =
+          sharedAuth.attempt().login(this.publicKey.getEncoded(),
+            encryptedLoginAuthenticationInfo, validity);
+        localLogin(newLogin, validity.value);
+      }
+      else {
+        throw new WrongBus();
+      }
     }
     catch (WrongEncoding e) {
       throw new AccessDenied("Erro durante tentativa de login.");

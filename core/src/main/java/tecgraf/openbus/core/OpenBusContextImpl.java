@@ -1,5 +1,6 @@
 package tecgraf.openbus.core;
 
+import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -48,14 +49,20 @@ import tecgraf.openbus.core.v2_1.data_export.VersionedDataSeqHelper;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChainHelper;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidToken;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginProcess;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
+import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
+import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.exception.InvalidEncodedStream;
 import tecgraf.openbus.exception.InvalidPropertyValue;
 import tecgraf.openbus.exception.OpenBusInternalException;
 import tecgraf.openbus.interceptors.CallChainInfo;
 import tecgraf.openbus.interceptors.CallChainInfoHelper;
+import tecgraf.openbus.security.Cryptography;
 
 /**
  * Implementação do multiplexador de conexão.
@@ -439,22 +446,72 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * {@inheritDoc}
    */
   @Override
+  public CallerChain importChain(byte[] token, String domain)
+    throws InvalidToken, UnknownDomain, WrongEncoding, ServiceFailure {
+    ORBMediator mediator = ORBUtils.getMediator(orb);
+    Codec codec = mediator.getCodec();
+    ConnectionImpl conn = (ConnectionImpl) getCurrentConnection();
+    RSAPublicKey buskey = conn.getBusPublicKey();
+    if (buskey == null) {
+      throw new NO_PERMISSION(NoLoginCode.value, CompletionStatus.COMPLETED_NO);
+    }
+    try {
+      byte[] data = Cryptography.getInstance().encrypt(token, buskey);
+      SignedData signed = conn.access().signChainByToken(data, domain);
+      Any anyChain = codec.decode_value(signed.encoded, CallChainHelper.type());
+      CallChain chain = CallChainHelper.extract(anyChain);
+      SignedCallChain legacy = null;
+      if (conn.legacy() && conn.legacySupport().converter() != null) {
+        CallerChain joined = getJoinedChain();
+        try {
+          joinChain(new CallerChainImpl(chain, signed));
+          legacy = conn.legacySupport().converter().convertSignedChain();
+        }
+        finally {
+          joinChain(joined);
+        }
+      }
+      return new CallerChainImpl(chain, signed, legacy);
+    }
+    catch (CryptographyException e) {
+      throw new OpenBusInternalException(
+        "Erro de criptografia com uso de chave pública.", e);
+    }
+    catch (FormatMismatch e) {
+      String message = "Falha inesperada ao decodificar uma cadeia exportada.";
+      logger.log(Level.SEVERE, message, e);
+      throw new OpenBusInternalException(message, e);
+    }
+    catch (TypeMismatch e) {
+      String message = "Falha inesperada ao decodificar uma cadeia exportada.";
+      logger.log(Level.SEVERE, message, e);
+      throw new OpenBusInternalException(message, e);
+    }
+
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public byte[] encodeChain(CallerChain chain) {
     if (chain == null) {
       return null;
     }
     ORBMediator mediator = ORBUtils.getMediator(orb);
     Codec codec = mediator.getCodec();
+    Any anyChain;
     try {
       List<VersionedData> list = new ArrayList<VersionedData>();
-      Any anyChain = orb.create_any();
       Chain internal = ((CallerChainImpl) chain).internal_chain();
       if (internal.signedChain != null) {
+        anyChain = orb.create_any();
         ExportedCallChainHelper.insert(anyChain, internal.signedChain);
         byte[] encodedChain = codec.encode_value(anyChain);
         list.add(new VersionedData(ExportVersion.value, encodedChain));
       }
       if (internal.signedLegacy != null) {
+        anyChain = orb.create_any();
         tecgraf.openbus.core.v2_0.data_export.ExportedCallChainHelper
           .insert(anyChain, new ExportedCallChain(chain.busid(),
             internal.signedLegacy));
@@ -480,16 +537,21 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     ORBMediator mediator = ORBUtils.getMediator(orb);
     Codec codec = mediator.getCodec();
     try {
+      CallChain chain = null;
+      SignedData signed = null;
+      SignedCallChain legacySigned = null;
+      tecgraf.openbus.core.v2_0.services.access_control.CallChain legacyChain =
+        null;
+      String legacyBus = null;
       VersionedData[] exports = decodeExportedVersions(encoded, MTAG_CALLCHAIN);
       for (VersionedData export : exports) {
         if (export.version == ExportVersion.value) {
           Any exported =
             codec.decode_value(export.encoded, ExportedCallChainHelper.type());
-          SignedData importing = ExportedCallChainHelper.extract(exported);
+          signed = ExportedCallChainHelper.extract(exported);
           Any anyChain =
-            codec.decode_value(importing.encoded, CallChainHelper.type());
-          CallChain chain = CallChainHelper.extract(anyChain);
-          return new CallerChainImpl(chain, importing);
+            codec.decode_value(signed.encoded, CallChainHelper.type());
+          chain = CallChainHelper.extract(anyChain);
         }
         else if (export.version == CurrentVersion.value) {
           Any exported =
@@ -503,12 +565,21 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
             codec.decode_value(importing.signedChain.encoded,
               tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper
                 .type());
-          tecgraf.openbus.core.v2_0.services.access_control.CallChain chain =
+          legacyChain =
             tecgraf.openbus.core.v2_0.services.access_control.CallChainHelper
               .extract(anyChain);
-          return new CallerChainImpl(importing.bus, chain,
-            importing.signedChain);
+          legacySigned = importing.signedChain;
+          legacyBus = importing.bus;
         }
+      }
+      if (chain != null) {
+        return new CallerChainImpl(chain, signed, legacySigned);
+      }
+      else if (legacyChain != null) {
+        return new CallerChainImpl(legacyBus, legacyChain, legacySigned);
+      }
+      else {
+        throw new InvalidEncodedStream("Versão de cadeia incompatível");
       }
     }
     catch (UserException e) {
@@ -516,7 +587,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       logger.log(Level.SEVERE, message, e);
       throw new InvalidEncodedStream(message, e);
     }
-    throw new InvalidEncodedStream("Versão de cadeia incompatível");
   }
 
   /**
@@ -524,17 +594,30 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    */
   @Override
   public byte[] encodeSharedAuth(SharedAuthSecret secret) {
+    if (secret == null) {
+      return null;
+    }
     ORBMediator mediator = ORBUtils.getMediator(orb);
     Codec codec = mediator.getCodec();
     try {
+      List<VersionedData> list = new ArrayList<VersionedData>();
       Any anySecret = orb.create_any();
       SharedAuthSecretImpl secretImpl = (SharedAuthSecretImpl) secret;
-      ExportedSharedAuthHelper.insert(anySecret, new ExportedSharedAuth(
-        secretImpl.busid(), secretImpl.attempt(), secretImpl.secret()));
-      byte[] encodedSecret = codec.encode_value(anySecret);
-      VersionedData[] exports =
-        new VersionedData[] { new VersionedData(ExportVersion.value,
-          encodedSecret) };
+      if (secretImpl.attempt() != null) {
+        ExportedSharedAuthHelper.insert(anySecret, new ExportedSharedAuth(
+          secretImpl.busid(), secretImpl.attempt(), secretImpl.secret()));
+        byte[] encodedSecret = codec.encode_value(anySecret);
+        list.add(new VersionedData(ExportVersion.value, encodedSecret));
+      }
+      if (secretImpl.legacy() != null) {
+        tecgraf.openbus.core.v2_0.data_export.ExportedSharedAuthHelper.insert(
+          anySecret,
+          new tecgraf.openbus.core.v2_0.data_export.ExportedSharedAuth(
+            secretImpl.busid(), secretImpl.legacy(), secretImpl.secret()));
+        byte[] encodedSecret = codec.encode_value(anySecret);
+        list.add(new VersionedData(CurrentVersion.value, encodedSecret));
+      }
+      VersionedData[] exports = list.toArray(new VersionedData[list.size()]);
       return encodeExportedVersions(exports, MTAG_SHAREDAUTH);
     }
     catch (InvalidTypeForEncoding e) {
@@ -554,17 +637,40 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     ORBMediator mediator = ORBUtils.getMediator(orb);
     Codec codec = mediator.getCodec();
     try {
+      String bus = null;
+      byte[] secret = null;
+      LoginProcess attempt = null;
+      tecgraf.openbus.core.v2_0.services.access_control.LoginProcess legacy =
+        null;
       VersionedData[] exports =
         decodeExportedVersions(encoded, MTAG_SHAREDAUTH);
       for (VersionedData export : exports) {
         if (export.version == ExportVersion.value) {
           Any exported =
             codec.decode_value(export.encoded, ExportedSharedAuthHelper.type());
-          ExportedSharedAuth secret =
-            ExportedSharedAuthHelper.extract(exported);
-          return new SharedAuthSecretImpl(secret.bus, secret.attempt,
-            secret.secret, this);
+          ExportedSharedAuth sauth = ExportedSharedAuthHelper.extract(exported);
+          bus = sauth.bus;
+          attempt = sauth.attempt;
+          secret = sauth.secret;
         }
+        else if (export.version == CurrentVersion.value) {
+          Any exported =
+            codec.decode_value(export.encoded,
+              tecgraf.openbus.core.v2_0.data_export.ExportedSharedAuthHelper
+                .type());
+          tecgraf.openbus.core.v2_0.data_export.ExportedSharedAuth sauth =
+            tecgraf.openbus.core.v2_0.data_export.ExportedSharedAuthHelper
+              .extract(exported);
+          bus = sauth.bus;
+          legacy = sauth.attempt;
+          secret = sauth.secret;
+        }
+      }
+      if (attempt != null || legacy != null) {
+        return new SharedAuthSecretImpl(bus, attempt, legacy, secret, this);
+      }
+      else {
+        throw new InvalidEncodedStream("Versão de segredo incompatível");
       }
     }
     catch (UserException e) {
@@ -572,8 +678,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       logger.log(Level.SEVERE, message, e);
       throw new InvalidEncodedStream(message, e);
     }
-    throw new InvalidEncodedStream("Versão de segredo incompatível");
-
   };
 
   /**

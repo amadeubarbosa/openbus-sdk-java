@@ -189,7 +189,9 @@ class Credential {
      * @param chain cadeia assinada
      */
     Chain(SignedData chain) {
-      signedChain = chain;
+      if (chain != null) {
+        signedChain = chain;
+      }
     }
 
     /**
@@ -198,7 +200,9 @@ class Credential {
      * @param chain Cadeia legada assinada
      */
     Chain(SignedCallChain chain) {
-      signedLegacy = chain;
+      if (chain != null) {
+        signedLegacy = chain;
+      }
     }
 
     /**
@@ -208,8 +212,12 @@ class Credential {
      * @param legacy_chain cadeia legada assinada
      */
     Chain(SignedData chain, SignedCallChain legacy_chain) {
-      signedChain = chain;
-      signedLegacy = legacy_chain;
+      if (chain != null) {
+        signedChain = chain;
+      }
+      if (legacy_chain != null) {
+        signedLegacy = legacy_chain;
+      }
     }
 
     /**

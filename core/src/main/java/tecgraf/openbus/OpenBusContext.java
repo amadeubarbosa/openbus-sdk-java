@@ -7,7 +7,10 @@ import org.omg.PortableInterceptor.Current;
 
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidToken;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry;
+import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
+import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.exception.InvalidEncodedStream;
 import tecgraf.openbus.exception.InvalidPropertyValue;
@@ -329,8 +332,7 @@ public interface OpenBusContext {
   CallerChain getJoinedChain();
 
   /**
-   * Cria uma cadeia de chamadas para a entidade com o identificador de login
-   * especificado.
+   * Cria uma cadeia de chamadas para a entidade para a entidade especificada.
    * <p>
    * Cria uma nova cadeia de chamadas para a entidade especificada, onde o dono
    * da cadeia é a conexão corrente ({@link #getCurrentConnection()}) e
@@ -347,6 +349,29 @@ public interface OpenBusContext {
    *         que impediu a criação da cadeia.
    */
   CallerChain makeChainFor(String entity) throws ServiceFailure;
+
+  /**
+   * Cria uma cadeia de chamadas assinada pelo barramento com informações de uma
+   * autenticação externa ao barramento.
+   * <p>
+   * A cadeia criada pode somente ser utilizada pela entidade do login que faz a
+   * chamada. O conteúdo da cadeia é dado pelas informações obtidas através do
+   * token indicado.
+   * 
+   * @param token Valor opaco que representa uma informação de autenticação
+   *        externa.
+   * @param domain Identificador do domínio de autenticação.
+   * @return A nova cadeia de chamadas assinada.
+   *
+   * @exception InvalidToken O token fornecido não foi reconhecido.
+   * @exception UnknownDomain O domínio de autenticação não é conhecido.
+   * @exception WrongEncoding A importação falhou, pois o token não foi
+   *            codificado corretamente com a chave pública do barramento.
+   * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
+   *            barramento que impediu a criação da cadeia.
+   */
+  CallerChain importChain(byte[] token, String domain) throws InvalidToken,
+    UnknownDomain, ServiceFailure, WrongEncoding;
 
   /**
    * Codifica uma cadeia de chamadas ({@link CallerChain}) para um stream de

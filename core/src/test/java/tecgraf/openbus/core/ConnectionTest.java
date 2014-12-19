@@ -319,7 +319,7 @@ public final class ConnectionTest {
         (SharedAuthSecretImpl) conn.startSharedAuth();
       context.setCurrentConnection(null);
       conn2.loginBySharedAuth(new SharedAuthSecretImpl(conn.busid(), secret
-        .attempt(), new byte[0], (OpenBusContextImpl) context));
+        .attempt(), null, new byte[0], (OpenBusContextImpl) context));
     }
     catch (AccessDenied e) {
       failed = true;
