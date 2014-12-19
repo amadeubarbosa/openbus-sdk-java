@@ -27,10 +27,8 @@ import org.omg.IOP.ENCODING_CDR_ENCAPS;
 import org.omg.IOP.Encoding;
 import org.omg.IOP.CodecFactoryPackage.UnknownEncoding;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
-import org.omg.PortableServer.POAManagerPackage.AdapterInactive;
 
 import scs.core.ComponentContext;
-import scs.core.exception.SCSException;
 import tecgraf.openbus.CallDispatchCallback;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
@@ -42,21 +40,13 @@ import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChainHelper;
-import tecgraf.openbus.core.v2_1.services.access_control.InvalidLogins;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
-import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
-import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
-import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidProperties;
-import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidService;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.core.v2_1.services.offer_registry.UnauthorizedFacets;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.exception.InvalidEncodedStream;
-import tecgraf.openbus.exception.NotLoggedIn;
 import tecgraf.openbus.security.Cryptography;
 import tecgraf.openbus.util.Utils;
 import test.CallerChainInspector;
@@ -185,8 +175,7 @@ public final class OpenBusContextTest {
   }
 
   @Test(expected = TRANSIENT.class)
-  public void connectByReferenceUknownHostTest() throws AccessDenied,
-    AlreadyLoggedIn, ServiceFailure, TooManyAttempts, UnknownDomain {
+  public void connectByReferenceUknownHostTest() throws Exception {
     String host = "unknowHost";
     String str =
       String.format("corbaloc::1.0@%s:%d/%s", host, hostPort,
@@ -210,8 +199,7 @@ public final class OpenBusContextTest {
   }
 
   @Test
-  public void defaultConnectionTest() throws NotLoggedIn, AccessDenied,
-    AlreadyLoggedIn, ServiceFailure, TooManyAttempts, UnknownDomain {
+  public void defaultConnectionTest() throws Exception {
     context.setDefaultConnection(null);
     final Connection conn = context.connectByAddress(hostName, hostPort);
     conn.loginByPassword(entity, password.getBytes(), domain);
@@ -236,8 +224,7 @@ public final class OpenBusContextTest {
   }
 
   @Test
-  public void requesterTest() throws AccessDenied, AlreadyLoggedIn,
-    ServiceFailure, NotLoggedIn, UnknownDomain, TooManyAttempts {
+  public void requesterTest() throws Exception {
     final Connection conn = context.connectByAddress(hostName, hostPort);
     conn.loginByPassword(entity, password.getBytes(), domain);
     assertNull(context.getCurrentConnection());
@@ -408,8 +395,7 @@ public final class OpenBusContextTest {
   }
 
   @Test
-  public void makeChainForTest() throws AccessDenied, AlreadyLoggedIn,
-    ServiceFailure, InvalidLogins, TooManyAttempts, UnknownDomain {
+  public void makeChainForTest() throws Exception {
     Connection conn1 = context.connectByAddress(hostName, hostPort);
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes(), domain);
@@ -428,8 +414,7 @@ public final class OpenBusContextTest {
   }
 
   @Test
-  public void makeChainForJoinedTest() throws AccessDenied, AlreadyLoggedIn,
-    ServiceFailure, InvalidLogins, TooManyAttempts, UnknownDomain {
+  public void makeChainForJoinedTest() throws Exception {
     Connection conn1 = context.connectByAddress(hostName, hostPort);
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes(), domain);
@@ -465,9 +450,7 @@ public final class OpenBusContextTest {
   }
 
   @Test
-  public void makeChainForInvalidEntityTest() throws AccessDenied,
-    AlreadyLoggedIn, ServiceFailure, InvalidLogins, TooManyAttempts,
-    UnknownDomain {
+  public void makeChainForInvalidEntityTest() throws Exception {
     Connection conn1 = context.connectByAddress(hostName, hostPort);
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes(), domain);
@@ -480,10 +463,7 @@ public final class OpenBusContextTest {
   }
 
   @Test
-  public void simulateCallTest() throws AccessDenied, AlreadyLoggedIn,
-    ServiceFailure, InvalidLogins, MissingCertificate, InvalidService,
-    UnauthorizedFacets, InvalidProperties, AdapterInactive, InvalidName,
-    SCSException, TooManyAttempts, UnknownDomain {
+  public void simulateCallTest() throws Exception {
     Connection conn1 = context.connectByAddress(hostName, hostPort);
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes(), domain);
@@ -570,9 +550,7 @@ public final class OpenBusContextTest {
   }
 
   @Test
-  public void encodeAndDecodeChain() throws AccessDenied, AlreadyLoggedIn,
-    ServiceFailure, InvalidLogins, InvalidEncodedStream, TooManyAttempts,
-    UnknownDomain {
+  public void encodeAndDecodeChain() throws Exception {
     Connection conn1 = context.connectByAddress(hostName, hostPort);
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes(), domain);
