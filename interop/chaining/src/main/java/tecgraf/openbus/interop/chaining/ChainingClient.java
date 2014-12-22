@@ -15,6 +15,7 @@ import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
+import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
@@ -37,9 +38,11 @@ public final class ChainingClient {
    * @throws IOException
    * @throws TooManyAttempts
    * @throws UnknownDomain
+   * @throws WrongEncoding
    */
   public static void main(String[] args) throws AlreadyLoggedIn, InvalidName,
-    ServiceFailure, AccessDenied, IOException, TooManyAttempts, UnknownDomain {
+    ServiceFailure, AccessDenied, IOException, TooManyAttempts, UnknownDomain,
+    WrongEncoding {
     Properties props = Utils.readPropertyFile("/test.properties");
     String host = props.getProperty("bus.host.name");
     int port = Integer.valueOf(props.getProperty("bus.host.port"));

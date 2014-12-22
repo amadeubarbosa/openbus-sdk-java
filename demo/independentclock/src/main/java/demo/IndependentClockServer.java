@@ -26,6 +26,7 @@ import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidProperties;
 import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidService;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
@@ -209,6 +210,10 @@ public final class IndependentClockServer {
           catch (MissingCertificate e) {
             System.err.println(String.format(
               "a entidade %s não possui um certificado registrado", entity));
+          }
+          catch (WrongEncoding e) {
+            System.err
+              .println("incompatibilidade na codifição de informação para o barramento");
           }
           // bus core
           catch (ServiceFailure e) {

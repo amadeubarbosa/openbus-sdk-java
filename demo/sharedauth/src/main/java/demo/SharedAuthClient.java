@@ -20,12 +20,14 @@ import tecgraf.openbus.core.v2_1.services.access_control.InvalidRemoteCode;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Utils;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.exception.InvalidEncodedStream;
 import tecgraf.openbus.exception.InvalidLoginProcess;
+import tecgraf.openbus.exception.WrongBus;
 
 /**
  * Demo Single Sign On.
@@ -136,6 +138,17 @@ public class SharedAuthClient {
     }
     catch (InvalidLoginProcess e) {
       System.err.println("processo de login inválido");
+      System.exit(1);
+      return;
+    }
+    catch (WrongBus e) {
+      System.err.println("tentativa de uso de segredo de outro barramento");
+      System.exit(1);
+      return;
+    }
+    catch (WrongEncoding e) {
+      System.err
+        .println("incompatibilidade na codifição de informação para o barramento");
       System.exit(1);
       return;
     }

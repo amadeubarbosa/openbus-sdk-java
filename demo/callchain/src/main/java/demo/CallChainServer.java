@@ -21,6 +21,7 @@ import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidProperties;
 import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidService;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
@@ -112,7 +113,7 @@ public class CallChainServer {
     context.setDefaultConnection(conn);
 
     // autentica-se no barramento
-    boolean failed = false;
+    boolean failed = true;
     try {
       conn.loginByCertificate(entity, privateKey);
       // registrando serviço no barramento
@@ -122,22 +123,24 @@ public class CallChainServer {
             new ServiceProperty("offer.domain", "Demo Call Chain") };
       context.getOfferRegistry().registerService(component.getIComponent(),
         serviceProperties);
+      failed = false;
     }
     // login by certificate
     catch (AccessDenied e) {
-      failed = true;
       System.err.println(String.format(
         "a chave em '%s' não corresponde ao certificado da entidade '%s'",
         privateKeyFile, entity));
     }
     catch (MissingCertificate e) {
-      failed = true;
       System.err.println(String.format(
         "a entidade %s não possui um certificado registrado", entity));
     }
+    catch (WrongEncoding e) {
+      System.err
+        .println("incompatibilidade na codifição de informação para o barramento");
+    }
     // register
     catch (UnauthorizedFacets e) {
-      failed = true;
       StringBuffer interfaces = new StringBuffer();
       for (String facet : e.facets) {
         interfaces.append("\n  - ");
@@ -166,22 +169,18 @@ public class CallChainServer {
     }
     // bus core
     catch (ServiceFailure e) {
-      failed = true;
       System.err.println(String.format(
         "falha severa no barramento em %s:%s : %s", host, port, e.message));
     }
     catch (TRANSIENT e) {
-      failed = true;
       System.err.println(String.format(
         "o barramento em %s:%s esta inacessível no momento", host, port));
     }
     catch (COMM_FAILURE e) {
-      failed = true;
       System.err
         .println("falha de comunicação ao acessar serviços núcleo do barramento");
     }
     catch (NO_PERMISSION e) {
-      failed = true;
       if (e.minor == NoLoginCode.value) {
         System.err.println(String.format(
           "não há um login de '%s' válido no momento", entity));

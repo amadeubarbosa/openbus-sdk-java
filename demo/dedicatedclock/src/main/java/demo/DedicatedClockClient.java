@@ -23,6 +23,7 @@ import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
 import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Utils;
@@ -133,10 +134,11 @@ public final class DedicatedClockClient {
         // autentica-se no barramento
         boolean failed;
         do {
-          failed = false;
+          failed = true;
           try {
             // autentica-se no barramento
             conn.loginByPassword(entity, password.getBytes(), domain);
+            failed = false;
           }
           catch (AlreadyLoggedIn e) {
             // ignorando exceção
@@ -159,6 +161,12 @@ public final class DedicatedClockClient {
           catch (UnknownDomain e) {
             System.err
               .println("Tentativa de autenticação em domínio desconhecido.");
+            System.exit(1);
+            return;
+          }
+          catch (WrongEncoding e) {
+            System.err
+              .println("incompatibilidade na codifição de informação para o barramento");
             System.exit(1);
             return;
           }

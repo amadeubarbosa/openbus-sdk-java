@@ -26,6 +26,7 @@ import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
 import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Utils;
@@ -145,6 +146,12 @@ public final class MultiplexingClient {
       System.exit(1);
       return;
     }
+    catch (WrongEncoding e) {
+      System.err
+        .println("incompatibilidade na codifição de informação para o barramento");
+      System.exit(1);
+      return;
+    }
     // bus core
     catch (ServiceFailure e) {
       System.err.println(String.format(
@@ -196,19 +203,22 @@ public final class MultiplexingClient {
             System.err.println(String.format(
               "excedeu o limite de tentativas de login. Aguarde %s seg",
               e.penaltyTime));
-            System.exit(1);
             return;
           }
           catch (UnknownDomain e) {
             System.err
               .println("Tentativa de autenticação em domínio desconhecido.");
-            System.exit(1);
             return;
           }
           catch (AlreadyLoggedIn e) {
             // nunca deveria ser lançada, mas o Thread.run obriga a captura
             System.err
               .println("tentativa de autenticar uma conexão já autenticada");
+            return;
+          }
+          catch (WrongEncoding e) {
+            System.err
+              .println("incompatibilidade na codifição de informação para o barramento");
             return;
           }
           // bus core
@@ -324,7 +334,7 @@ public final class MultiplexingClient {
 
   private static Connection newLogin(OpenBusContext context)
     throws AccessDenied, AlreadyLoggedIn, ServiceFailure, TooManyAttempts,
-    UnknownDomain {
+    UnknownDomain, WrongEncoding {
     // conectando ao barramento.
     Connection connection = context.connectByAddress(host, port);
     // autentica-se no barramento

@@ -23,6 +23,7 @@ import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidProperties;
 import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidService;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
@@ -170,9 +171,10 @@ public final class DedicatedClockServer {
         // autentica-se no barramento
         boolean failed;
         do {
-          failed = false;
+          failed = true;
           try {
             conn.loginByCertificate(entity, privateKey);
+            failed = false;
           }
           catch (AlreadyLoggedIn e) {
             // ignorando exceção
@@ -188,29 +190,28 @@ public final class DedicatedClockServer {
                   entity));
           }
           catch (MissingCertificate e) {
-            failed = true;
             System.err.println(String.format(
               "a entidade %s não possui um certificado registrado", entity));
           }
+          catch (WrongEncoding e) {
+            System.err
+              .println("incompatibilidade na codifição de informação para o barramento");
+          }
           // bus core
           catch (ServiceFailure e) {
-            failed = true;
             System.err.println(String
               .format("falha severa no barramento em %s:%s : %s", host, port,
                 e.message));
           }
           catch (TRANSIENT e) {
-            failed = true;
             System.err.println(String.format(
               "o barramento em %s:%s esta inacessível no momento", host, port));
           }
           catch (COMM_FAILURE e) {
-            failed = true;
             System.err
               .println("falha de comunicação ao acessar serviços núcleo do barramento");
           }
           catch (NO_PERMISSION e) {
-            failed = true;
             if (e.minor == NoLoginCode.value) {
               System.err.println(String.format(
                 "não há um login de '%s' válido no momento", entity));
