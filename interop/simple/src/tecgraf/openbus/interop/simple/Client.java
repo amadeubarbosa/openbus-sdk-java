@@ -1,5 +1,6 @@
 package tecgraf.openbus.interop.simple;
 
+import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 
@@ -24,74 +25,63 @@ public final class Client {
    * 
    * @param args argumentos.
    */
-  public static void main(String[] args) {
-    try {
-      Properties props = Utils.readPropertyFile("/test.properties");
-      String host = props.getProperty("bus.host.name");
-      int port = Integer.valueOf(props.getProperty("bus.host.port"));
-      String entity = "interop_hello_java_client";
-      Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
+  public static void main(String[] args) throws Exception {
+    Properties props = Utils.readPropertyFile("/test.properties");
+    String host = props.getProperty("bus.host.name");
+    int port = Integer.valueOf(props.getProperty("bus.host.port"));
+    String entity = "interop_hello_java_client";
+    Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
-      ORB orb = ORBInitializer.initORB();
-      OpenBusContext context =
-        (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
-      Connection connection = context.createConnection(host, port);
-      context.setDefaultConnection(connection);
+    ORB orb = ORBInitializer.initORB();
+    OpenBusContext context =
+      (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
+    Connection connection = context.createConnection(host, port);
+    context.setDefaultConnection(connection);
 
-      connection.loginByPassword(entity, entity.getBytes(Cryptography.CHARSET));
+    connection.loginByPassword(entity, entity.getBytes(Cryptography.CHARSET));
 
-      ServiceProperty[] serviceProperties = new ServiceProperty[2];
-      serviceProperties[0] =
-        new ServiceProperty("openbus.component.interface", HelloHelper.id());
-      serviceProperties[1] =
-        new ServiceProperty("offer.domain", "Interoperability Tests");
-      ServiceOfferDesc[] services =
-        context.getOfferRegistry().findServices(serviceProperties);
+    ServiceProperty[] serviceProperties = new ServiceProperty[2];
+    serviceProperties[0] =
+      new ServiceProperty("openbus.component.interface", HelloHelper.id());
+    serviceProperties[1] =
+      new ServiceProperty("offer.domain", "Interoperability Tests");
+    List<ServiceOfferDesc> services =
+      Utils.findOffer(context.getOfferRegistry(), serviceProperties, 1, 10, 1);
 
-      if (services.length < 1) {
-        System.err.println("O servidor do demo Hello não foi encontrado");
-        connection.logout();
-        System.exit(1);
-      }
-      if (services.length > 1) {
+    if (services.size() > 1) {
+      System.out.println("Foram encontrados vários servidores do demo Hello: "
+        + services.size());
+    }
+
+    for (ServiceOfferDesc offerDesc : services) {
+      String found =
+        Utils.findProperty(offerDesc.properties, "openbus.offer.entity");
+      System.out.println("Entidade encontrada: " + found);
+      org.omg.CORBA.Object helloObj =
+        offerDesc.service_ref.getFacetByName("Hello");
+      if (helloObj == null) {
         System.out
-          .println("Foram encontrados vários servidores do demo Hello: "
-            + services.length);
+          .println("Não foi possível encontrar uma faceta com esse nome.");
+        continue;
       }
 
-      for (ServiceOfferDesc offerDesc : services) {
-        String found =
-          Utils.findProperty(offerDesc.properties, "openbus.offer.entity");
-        System.out.println("Entidade encontrada: " + found);
-        org.omg.CORBA.Object helloObj =
-          offerDesc.service_ref.getFacetByName("Hello");
-        if (helloObj == null) {
-          System.out
-            .println("Não foi possível encontrar uma faceta com esse nome.");
-          continue;
-        }
-
-        Hello hello = HelloHelper.narrow(helloObj);
-        if (hello == null) {
-          System.out.println("Faceta encontrada não implementa Hello.");
-          continue;
-        }
-        String expected = "Hello " + entity + "!";
-        String sayHello = hello.sayHello();
-        if (expected.equals(sayHello)) {
-          System.out.println("Received: " + sayHello);
-        }
-        else {
-          System.err.println("ERROR!");
-          System.err.println("Expected: " + expected);
-          System.err.println("Received: " + sayHello);
-        }
+      Hello hello = HelloHelper.narrow(helloObj);
+      if (hello == null) {
+        System.out.println("Faceta encontrada não implementa Hello.");
+        continue;
       }
+      String expected = "Hello " + entity + "!";
+      String sayHello = hello.sayHello();
+      if (expected.equals(sayHello)) {
+        System.out.println("Received: " + sayHello);
+      }
+      else {
+        System.err.println("ERROR!");
+        System.err.println("Expected: " + expected);
+        System.err.println("Received: " + sayHello);
+      }
+    }
 
-      connection.logout();
-    }
-    catch (Exception e) {
-      e.printStackTrace();
-    }
+    connection.logout();
   }
 }
