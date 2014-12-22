@@ -395,6 +395,42 @@ public final class OpenBusContextTest {
   }
 
   @Test
+  public void importChainTest() throws Exception {
+    Connection conn1 = context.connectByAddress(hostName, hostPort);
+    String actor1 = "actor-1";
+    conn1.loginByPassword(actor1, actor1.getBytes(), domain);
+
+    String caller = "ExternalCaller";
+    StringBuffer buffer = new StringBuffer();
+    int origs = 2;
+    for (int i = 1; i <= origs; i++) {
+      buffer.append("ExternalOriginator" + i + ", ");
+    }
+    buffer.append(caller);
+    String token =
+      String.format("%s@%s:%s", actor1, conn1.login().id, buffer.toString());
+
+    try {
+      context.setCurrentConnection(conn1);
+      CallerChain imported = context.importChain(token.getBytes(), domain);
+      String unknown = "<unknown>";
+      assertEquals(conn1.busid(), imported.busid());
+      assertEquals(actor1, imported.target());
+      assertEquals(unknown, imported.caller().id);
+      assertEquals(caller, imported.caller().entity);
+      assertEquals(origs, imported.originators().length);
+      for (LoginInfo info : imported.originators()) {
+        assertEquals(unknown, info.id);
+      }
+    }
+    finally {
+      context.setCurrentConnection(null);
+      conn1.logout();
+
+    }
+  }
+
+  @Test
   public void makeChainForTest() throws Exception {
     Connection conn1 = context.connectByAddress(hostName, hostPort);
     String actor1 = "actor-1";
@@ -600,6 +636,30 @@ public final class OpenBusContextTest {
   }
 
   @Test
+  public void encodeAndDecodeChainCheckLegacy() throws Exception {
+    Connection conn1 = context.connectByAddress(hostName, hostPort);
+    String actor1 = "actor-1";
+    conn1.loginByPassword(actor1, actor1.getBytes(), domain);
+    Connection conn2 = context.connectByAddress(hostName, hostPort);
+    String actor2 = "actor-2";
+    conn2.loginByPassword(actor2, actor2.getBytes(), domain);
+
+    context.setCurrentConnection(conn1);
+    CallerChain chain1For2 = context.makeChainFor(actor2);
+    context.setCurrentConnection(null);
+
+    byte[] encodeChain = context.encodeChain(chain1For2);
+    CallerChainImpl decodedChain =
+      (CallerChainImpl) context.decodeChain(encodeChain);
+
+    assertNotNull(decodedChain.internal_chain().signedChain);
+    assertNotNull(decodedChain.internal_chain().signedLegacy);
+
+    conn1.logout();
+    conn2.logout();
+  }
+
+  @Test
   public void encodeAndDecodeSharedAuth() throws Exception {
     Connection conn = context.connectByAddress(hostName, hostPort);
     conn.loginByPassword(entity, password.getBytes(), domain);
@@ -633,6 +693,27 @@ public final class OpenBusContextTest {
     finally {
       secret.cancel();
       conn.logout();
+      context.setCurrentConnection(null);
+    }
+  }
+
+  @Test
+  public void encodeAndDecodeSharedAuthCheckLegacy() throws Exception {
+    Connection conn = context.connectByAddress(hostName, hostPort);
+    conn.loginByPassword(entity, password.getBytes(), domain);
+    try {
+      context.setCurrentConnection(conn);
+      SharedAuthSecret secret = conn.startSharedAuth();
+      byte[] data = context.encodeSharedAuth(secret);
+      SharedAuthSecretImpl secret2 =
+        (SharedAuthSecretImpl) context.decodeSharedAuth(data);
+
+      assertNotNull(secret2.attempt());
+      assertNotNull(secret2.legacy());
+      secret.cancel();
+      conn.logout();
+    }
+    finally {
       context.setCurrentConnection(null);
     }
   }

@@ -22,7 +22,9 @@ import org.omg.IOP.CodecFactoryPackage.UnknownEncoding;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
+import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 
 /**
@@ -162,5 +164,44 @@ public class Utils {
     public void removeOffer(ServiceOffer offer) {
       this.offers.remove(offer);
     }
+  }
+
+  public static List<ServiceOfferDesc> findOffer(OfferRegistry offers,
+    ServiceProperty[] search, int count, int tries, int interval)
+    throws ServiceFailure {
+    List<ServiceOfferDesc> found = new ArrayList<ServiceOfferDesc>();
+    for (int i = 0; i < tries; i++) {
+      try {
+        Thread.sleep(interval * 1000);
+      }
+      catch (InterruptedException e1) {
+        // continue...
+      }
+      ServiceOfferDesc[] services = offers.findServices(search);
+      if (services.length > 0) {
+        for (ServiceOfferDesc offerDesc : services) {
+          try {
+            if (!offerDesc.service_ref._non_existent()) {
+              found.add(offerDesc);
+            }
+          }
+          catch (Exception e) {
+            continue;
+          }
+        }
+      }
+      if (found.size() >= count) {
+        return found;
+      }
+      else {
+        found.clear();
+      }
+    }
+    String msg =
+      String
+        .format(
+          "não foi possível encontrar ofertas: found (%d) expected(%d) tries (%d) time (%d)",
+          found.size(), count, tries, tries * interval);
+    throw new IllegalStateException(msg);
   }
 }

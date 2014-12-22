@@ -34,51 +34,46 @@ public final class Server {
    * 
    * @param args argumentos.
    */
-  public static void main(String[] args) {
-    try {
-      Properties props = Utils.readPropertyFile("/test.properties");
-      String host = props.getProperty("bus.host.name");
-      int port = Integer.valueOf(props.getProperty("bus.host.port"));
-      String entity = "interop_hello_java_server";
-      String privateKeyFile = "admin/InteropHello.key";
-      RSAPrivateKey privateKey =
-        Cryptography.getInstance().readKeyFromFile(privateKeyFile);
-      Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
+  public static void main(String[] args) throws Exception {
+    Properties props = Utils.readPropertyFile("/test.properties");
+    String host = props.getProperty("bus.host.name");
+    int port = Integer.valueOf(props.getProperty("bus.host.port"));
+    String entity = "interop_hello_java_server";
+    String privateKeyFile = "admin/InteropHello.key";
+    RSAPrivateKey privateKey =
+      Cryptography.getInstance().readKeyFromFile(privateKeyFile);
+    Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
-      ORB orb = ORBInitializer.initORB(args);
-      new ORBRunThread(orb).start();
-      ShutdownThread shutdown = new ShutdownThread(orb);
-      Runtime.getRuntime().addShutdownHook(shutdown);
+    ORB orb = ORBInitializer.initORB(args);
+    new ORBRunThread(orb).start();
+    ShutdownThread shutdown = new ShutdownThread(orb);
+    Runtime.getRuntime().addShutdownHook(shutdown);
 
-      OpenBusContext context =
-        (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
-      Connection conn = context.connectByAddress(host, port);
-      context.setDefaultConnection(conn);
-      conn.loginByCertificate(entity, privateKey);
-      PrivateKeyInvalidLoginCallback callback =
-        new PrivateKeyInvalidLoginCallback(entity, privateKey);
-      conn.onInvalidLoginCallback(callback);
+    OpenBusContext context =
+      (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
+    Connection conn = context.connectByAddress(host, port);
+    context.setDefaultConnection(conn);
+    conn.loginByCertificate(entity, privateKey);
+    PrivateKeyInvalidLoginCallback callback =
+      new PrivateKeyInvalidLoginCallback(entity, privateKey);
+    conn.onInvalidLoginCallback(callback);
 
-      shutdown.addConnetion(conn);
+    shutdown.addConnetion(conn);
 
-      POA poa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
-      poa.the_POAManager().activate();
-      ComponentId id =
-        new ComponentId("Hello", (byte) 1, (byte) 0, (byte) 0, "java");
-      ComponentContext component = new ComponentContext(orb, poa, id);
-      component.addFacet("Hello", HelloHelper.id(), new HelloServant(context));
+    POA poa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
+    poa.the_POAManager().activate();
+    ComponentId id =
+      new ComponentId("Hello", (byte) 1, (byte) 0, (byte) 0, "java");
+    ComponentContext component = new ComponentContext(orb, poa, id);
+    component.addFacet("Hello", HelloHelper.id(), new HelloServant(context));
 
-      ServiceProperty[] serviceProperties =
-        new ServiceProperty[] { new ServiceProperty("offer.domain",
-          "Interoperability Tests") };
-      OfferRegistry registry = context.getOfferRegistry();
-      ServiceOffer offer =
-        registry.registerService(component.getIComponent(), serviceProperties);
-      callback.addOffer(component.getIComponent(), serviceProperties);
-      shutdown.addOffer(offer);
-    }
-    catch (Exception e) {
-      e.printStackTrace();
-    }
+    ServiceProperty[] serviceProperties =
+      new ServiceProperty[] { new ServiceProperty("offer.domain",
+        "Interoperability Tests") };
+    OfferRegistry registry = context.getOfferRegistry();
+    ServiceOffer offer =
+      registry.registerService(component.getIComponent(), serviceProperties);
+    callback.addOffer(component.getIComponent(), serviceProperties);
+    shutdown.addOffer(offer);
   }
 }
