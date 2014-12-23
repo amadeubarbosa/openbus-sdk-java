@@ -1,8 +1,8 @@
 package tecgraf.openbus.interop.chaining;
 
-import org.omg.CORBA.COMM_FAILURE;
+import java.util.List;
+
 import org.omg.CORBA.INTERNAL;
-import org.omg.CORBA.TRANSIENT;
 
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.OpenBusContext;
@@ -13,6 +13,7 @@ import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.exception.InvalidEncodedStream;
 import tecgraf.openbus.interop.simple.Hello;
 import tecgraf.openbus.interop.simple.HelloHelper;
+import tecgraf.openbus.interop.util.Utils;
 
 public class ProxyImpl extends HelloProxyPOA {
 
@@ -39,34 +40,18 @@ public class ProxyImpl extends HelloProxyPOA {
           new ServiceProperty("offer.domain", "Interoperability Tests"),
           new ServiceProperty("openbus.component.interface", HelloHelper.id()),
           new ServiceProperty("openbus.component.name", "RestrictedHello") };
-    ServiceOfferDesc[] descs;
+    List<ServiceOfferDesc> descs;
     try {
       OfferRegistry offers = context.getOfferRegistry();
-      descs = offers.findServices(properties);
+      descs = Utils.findOffer(offers, properties, 1, 10, 1);
     }
     catch (ServiceFailure e) {
       String err = "ServiceFailure ao realizar busca";
       System.err.println(err);
       throw new INTERNAL(err);
     }
-    if (descs.length <= 0) {
-      String err = "oferta não encontrada";
-      System.err.println(err);
-      throw new INTERNAL(err);
-    }
 
     for (ServiceOfferDesc desc : descs) {
-      try {
-        if (desc.service_ref._non_existent()) {
-          continue;
-        }
-      }
-      catch (TRANSIENT e) {
-        continue;
-      }
-      catch (COMM_FAILURE e) {
-        continue;
-      }
       org.omg.CORBA.Object helloObj =
         desc.service_ref.getFacet(HelloHelper.id());
       if (helloObj == null) {
