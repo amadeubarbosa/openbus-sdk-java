@@ -288,7 +288,8 @@ class Credential {
      *         contrário.
      */
     boolean isLegacy() {
-      return signedChain == InterceptorImpl.NULL_SIGNED_CALL_CHAIN;
+      return signedChain == InterceptorImpl.NULL_SIGNED_CALL_CHAIN
+        && signedLegacy != InterceptorImpl.NULL_SIGNED_LEGACY_CALL_CHAIN;
     }
 
   }

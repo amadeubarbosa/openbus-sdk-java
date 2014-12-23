@@ -45,6 +45,7 @@ import tecgraf.openbus.core.v2_1.credential.SignedData;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChainHelper;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidChainCode;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidCredentialCode;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidRemoteCode;
@@ -208,18 +209,19 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     if (targetId != null) {
       ClientSideSession session = conn.cache.cltSessions.get(targetId);
       if (session != null) {
+        Chain chain = getCallChain(ri, conn, holder, targetId, session);
+        boolean isLegacy = chain.isLegacy();
         int ticket = session.nextTicket();
         byte[] credentialDataHash =
           this.generateCredentialDataHash(ri, session.getSecret(), ticket,
-            session.legacy());
-        Chain chain = getCallChain(ri, conn, holder, targetId, session);
+            isLegacy);
         logger.finest(String.format("utilizando sessão: id = %d ticket = %d",
           session.getSession(), ticket));
         logger.fine(String.format(
           "Realizando chamada via barramento: target (%s) operação (%s)",
           targetId, operation));
         return new Credential(bus, holder.value.id, session.getSession(),
-          ticket, credentialDataHash, chain, session.legacy());
+          ticket, credentialDataHash, chain, isLegacy);
       }
     }
     logger.finest(String.format(
@@ -254,17 +256,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
           new ChainCacheKey(entity, joined.signature(), legacy);
         Chain chain = conn.cache.chains.get(key);
         if (chain == null) {
-          if (!legacy) {
-            SignedData chainFor;
-            do {
-              chainFor = conn.access().signChainFor(entity);
-              curr = conn.getLogin();
-            } while (!decodeSignedChain(chainFor).caller.id.equals(curr.id));
-            chain = new Chain(chainFor);
-            chain.updateInfos(decodeSignedChain(chainFor));
-            conn.cache.chains.put(key, chain);
-          }
-          else if (conn.legacy() && conn.legacySupport() != null) {
+          if (legacy) {
             SignedCallChain chainFor;
             do {
               chainFor = conn.legacySupport().access().signChainFor(target);
@@ -273,6 +265,22 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
               .equals(curr.id));
             chain = new Chain(chainFor);
             chain.updateInfos(conn.busid(), decodeSignedLegacyChain(chainFor));
+            conn.cache.chains.put(key, chain);
+          }
+          else if (joined.isLegacy() && !conn.legacy()) {
+            String error = "não é possível unir-se a cadeia legada";
+            logger.log(Level.SEVERE, error);
+            throw new NO_PERMISSION(error, InvalidChainCode.value,
+              CompletionStatus.COMPLETED_NO);
+          }
+          else {
+            SignedData chainFor;
+            do {
+              chainFor = conn.access().signChainFor(entity);
+              curr = conn.getLogin();
+            } while (!decodeSignedChain(chainFor).caller.id.equals(curr.id));
+            chain = new Chain(chainFor);
+            chain.updateInfos(decodeSignedChain(chainFor));
             conn.cache.chains.put(key, chain);
           }
         }
