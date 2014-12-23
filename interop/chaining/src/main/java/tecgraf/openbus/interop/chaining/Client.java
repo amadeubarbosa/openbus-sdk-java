@@ -1,6 +1,7 @@
 package tecgraf.openbus.interop.chaining;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 
@@ -26,7 +27,7 @@ import tecgraf.openbus.interop.util.Utils;
  * 
  * @author Tecgraf
  */
-public final class ChainingClient {
+public final class Client {
   /**
    * Função principal.
    * 
@@ -40,9 +41,7 @@ public final class ChainingClient {
    * @throws UnknownDomain
    * @throws WrongEncoding
    */
-  public static void main(String[] args) throws AlreadyLoggedIn, InvalidName,
-    ServiceFailure, AccessDenied, IOException, TooManyAttempts, UnknownDomain,
-    WrongEncoding {
+  public static void main(String[] args) throws Exception {
     Properties props = Utils.readPropertyFile("/test.properties");
     String host = props.getProperty("bus.host.name");
     int port = Integer.valueOf(props.getProperty("bus.host.port"));
@@ -56,48 +55,38 @@ public final class ChainingClient {
     Connection connection = context.connectByAddress(host, port);
     context.setDefaultConnection(connection);
 
-    ServiceOfferDesc[] services;
     connection.loginByPassword(entity, entity.getBytes(), domain);
     ServiceProperty[] properties =
       new ServiceProperty[] {
           new ServiceProperty("offer.domain", "Interoperability Tests"),
           new ServiceProperty("openbus.component.interface", HelloProxyHelper
             .id()) };
-    services = context.getOfferRegistry().findServices(properties);
+    List<ServiceOfferDesc> services =
+      Utils.findOffer(context.getOfferRegistry(), properties, 1, 10, 1);
 
     for (ServiceOfferDesc desc : services) {
-      try {
-        org.omg.CORBA.Object msgObj =
-          desc.service_ref.getFacet(HelloProxyHelper.id());
-        if (msgObj == null) {
-          System.out
-            .println("o serviço encontrado não provê a faceta ofertada");
-          continue;
-        }
-        String loginId =
-          Utils.findProperty(desc.properties, "openbus.offer.login");
-        CallerChain chain = context.makeChainFor(loginId);
-        byte[] encodedChain = context.encodeChain(chain);
-        HelloProxy proxy = HelloProxyHelper.narrow(msgObj);
-        String sayHello = proxy.fetchHello(encodedChain);
-
-        String expected = "Hello " + entity + "!";
-        if (expected.equals(sayHello)) {
-          System.out.println("Received: " + sayHello);
-        }
-        else {
-          System.err.println("ERROR!");
-          System.err.println("Expected: " + expected);
-          System.err.println("Received: " + sayHello);
-        }
-      }
-      catch (Exception e) {
-        e.printStackTrace();
+      org.omg.CORBA.Object msgObj =
+        desc.service_ref.getFacet(HelloProxyHelper.id());
+      if (msgObj == null) {
         continue;
       }
-    }
+      String destination =
+        Utils.findProperty(desc.properties, "openbus.offer.entity");
+      CallerChain chain = context.makeChainFor(destination);
+      byte[] encodedChain = context.encodeChain(chain);
+      HelloProxy proxy = HelloProxyHelper.narrow(msgObj);
+      String sayHello = proxy.fetchHello(encodedChain);
 
+      String expected = "Hello " + entity + "!";
+      if (expected.equals(sayHello)) {
+        System.out.println("Received: " + sayHello);
+      }
+      else {
+        System.err.println("ERROR!");
+        System.err.println("Expected: " + expected);
+        System.err.println("Received: " + sayHello);
+      }
+    }
     context.getCurrentConnection().logout();
   }
-
 }
