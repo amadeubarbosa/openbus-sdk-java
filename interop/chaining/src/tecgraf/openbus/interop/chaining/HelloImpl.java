@@ -25,12 +25,12 @@ public class HelloImpl extends HelloPOA {
     CallerChain chain = context.getCallerChain();
     if (this.pattern.matcher(chain.caller().entity).matches()) {
       System.out.println(String.format("aceitando requisição de %s", Utils
-        .chain2str(chain.originators(), chain.caller())));
+        .chain2str(chain)));
       return String.format("Hello %s!", chain.originators()[0].entity);
     }
     else {
       System.out.println(String.format("recusando mensagem de %s", Utils
-        .chain2str(chain.originators(), chain.caller())));
+        .chain2str(chain)));
       throw new NO_PERMISSION();
     }
   }

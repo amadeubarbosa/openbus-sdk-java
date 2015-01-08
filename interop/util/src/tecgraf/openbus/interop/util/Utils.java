@@ -19,6 +19,7 @@ import org.omg.IOP.ENCODING_CDR_ENCAPS;
 import org.omg.IOP.Encoding;
 import org.omg.IOP.CodecFactoryPackage.UnknownEncoding;
 
+import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.core.v2_0.services.ServiceFailure;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
@@ -74,13 +75,13 @@ public class Utils {
     return null;
   }
 
-  static public String chain2str(LoginInfo[] callers, LoginInfo caller) {
+  static public String chain2str(CallerChain chain) {
     StringBuffer buffer = new StringBuffer();
-    for (LoginInfo loginInfo : callers) {
+    for (LoginInfo loginInfo : chain.originators()) {
       buffer.append(loginInfo.entity);
       buffer.append("->");
     }
-    buffer.append(caller.entity);
+    buffer.append(chain.caller().entity);
     return buffer.toString();
   }
 
