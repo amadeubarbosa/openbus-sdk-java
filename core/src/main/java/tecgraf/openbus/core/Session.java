@@ -128,8 +128,13 @@ abstract class Session {
     public ClientSideSession(Reset reset, byte[] secret) {
       super(reset.session, secret);
       this.ticket = new AtomicInteger(-1);
-      this.entity = reset.entity;
       this.legacy = reset.legacy;
+      if (!legacy) {
+        this.entity = reset.entity;
+      }
+      else {
+        this.entity = reset.target;
+      }
     }
 
     /**
