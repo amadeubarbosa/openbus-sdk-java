@@ -1,4 +1,4 @@
-package tecgraf.openbus.interop.multiplexing.mixed;
+package tecgraf.openbus.interop.multiplexing;
 
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.OpenBusContext;
@@ -36,7 +36,6 @@ public final class HelloServant extends HelloPOA {
         LoginInfo caller = callerChain.caller();
         String hello =
           String.format("Hello %s@%s!", caller.entity, callerChain.busid());
-        System.out.println(hello);
         return hello;
       }
     }

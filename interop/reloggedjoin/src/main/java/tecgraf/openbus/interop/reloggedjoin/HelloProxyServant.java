@@ -1,6 +1,8 @@
 package tecgraf.openbus.interop.reloggedjoin;
 
 import java.security.interfaces.RSAPrivateKey;
+import java.util.List;
+import java.util.logging.Logger;
 
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
@@ -25,6 +27,8 @@ public final class HelloProxyServant extends HelloPOA {
   /** Nome da entidade. */
   private String entity;
 
+  private static final Logger logger = Logger.getLogger(Proxy.class.getName());
+
   /**
    * Construtor.
    * 
@@ -46,26 +50,21 @@ public final class HelloProxyServant extends HelloPOA {
   public String sayHello() {
     try {
       Connection conn = context.getCurrentConnection();
-      System.out.println("relogando entidade: " + entity);
       conn.logout();
       conn.loginByCertificate(entity, privateKey);
       CallerChain callerChain = context.getCallerChain();
-
       String entity = callerChain.caller().entity;
-      System.out.println("Chamada recebida de: " + entity);
-
-      ServiceProperty[] serviceProperties = new ServiceProperty[1];
-      serviceProperties[0] = new ServiceProperty("reloggedjoin.role", "server");
+      logger.fine("Chamada recebida de: " + entity);
 
       context.joinChain(callerChain);
-
-      System.out.println("buscando serviço hello");
-      ServiceOfferDesc[] services =
-        context.getOfferRegistry().findServices(serviceProperties);
+      ServiceProperty[] properties = new ServiceProperty[1];
+      properties[0] = new ServiceProperty("reloggedjoin.role", "server");
+      List<ServiceOfferDesc> services =
+        Utils.findOffer(context.getOfferRegistry(), properties, 1, 10, 1);
       for (ServiceOfferDesc offerDesc : services) {
         String found =
           Utils.findProperty(offerDesc.properties, "openbus.offer.entity");
-        System.out.println("serviço da entidade encontrado: " + found);
+        logger.fine("serviço da entidade encontrado: " + found);
         org.omg.CORBA.Object helloObj =
           offerDesc.service_ref.getFacetByName("Hello");
         Hello hello = HelloHelper.narrow(helloObj);
@@ -75,6 +74,6 @@ public final class HelloProxyServant extends HelloPOA {
     catch (Exception e) {
       e.printStackTrace();
     }
-    return "no service found!";
+    return "something didn't go as expected!";
   }
 }

@@ -11,8 +11,6 @@ import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.SharedAuthSecret;
 import tecgraf.openbus.core.ORBInitializer;
-import tecgraf.openbus.core.v2_1.services.access_control.LoginProcess;
-import tecgraf.openbus.core.v2_1.services.access_control.LoginProcessHelper;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.simple.Hello;
@@ -25,7 +23,7 @@ public class SharedAuthClient {
       Properties props = Utils.readPropertyFile("/test.properties");
       String host = props.getProperty("bus.host.name");
       int port = Integer.valueOf(props.getProperty("bus.host.port"));
-      Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
+      Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
 
       ORB orb = ORBInitializer.initORB();
 

@@ -95,8 +95,17 @@ public class Utils {
     return codecFactory.create_codec(encoding);
   }
 
-  public static void setLogLevel(Level level) {
-    Logger logger = Logger.getLogger("tecgraf.openbus");
+  public static void setTestLogLevel(Level level) {
+    Logger logger = Logger.getLogger("tecgraf.openbus.interop");
+    setLevel(logger, level);
+  }
+
+  public static void setLibLogLevel(Level level) {
+    Logger logger = Logger.getLogger("tecgraf.openbus.core");
+    setLevel(logger, level);
+  }
+
+  private static void setLevel(Logger logger, Level level) {
     logger.setLevel(level);
     logger.setUseParentHandlers(false);
     ConsoleHandler handler = new ConsoleHandler();
@@ -172,6 +181,7 @@ public class Utils {
     throws ServiceFailure {
     List<ServiceOfferDesc> found = new ArrayList<ServiceOfferDesc>();
     for (int i = 0; i < tries; i++) {
+      found.clear();
       try {
         Thread.sleep(interval * 1000);
       }
@@ -193,9 +203,6 @@ public class Utils {
       }
       if (found.size() >= count) {
         return found;
-      }
-      else {
-        found.clear();
       }
     }
     String msg =

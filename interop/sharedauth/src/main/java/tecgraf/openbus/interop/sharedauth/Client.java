@@ -37,7 +37,7 @@ public final class Client {
       int port = Integer.valueOf(props.getProperty("bus.host.port"));
       String entity = "interop_sharedauth_java_client";
       String domain = "testing";
-      Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
+      Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
 
       ORB orb = ORBInitializer.initORB();
 

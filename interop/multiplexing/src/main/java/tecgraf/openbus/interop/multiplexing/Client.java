@@ -1,4 +1,4 @@
-package tecgraf.openbus.interop.multiplexing.byorb;
+package tecgraf.openbus.interop.multiplexing;
 
 import java.util.Properties;
 import java.util.logging.Level;
@@ -25,14 +25,16 @@ public class Client {
    * 
    * @param args
    */
-  public static void main(String[] args) {
-    try {
-      Properties props = Utils.readPropertyFile("/test.properties");
-      String host = props.getProperty("bus.host.name");
-      int port = Integer.valueOf(props.getProperty("bus.host.port"));
-      String domain = "testing";
-      Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
+  public static void main(String[] args) throws Exception {
+    Properties props = Utils.readPropertyFile("/test.properties");
+    String host = props.getProperty("bus.host.name");
+    int port1 = Integer.valueOf(props.getProperty("bus.host.port"));
+    int port2 = Integer.valueOf(props.getProperty("bus2.host.port"));
+    String domain = "testing";
+    Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
+    int ports[] = { port1, port2 };
 
+    for (int port : ports) {
       ORB orb = ORBInitializer.initORB();
       OpenBusContext context =
         (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
@@ -48,30 +50,17 @@ public class Client {
         new ServiceProperty("offer.domain", "Interoperability Tests");
       ServiceOfferDesc[] services =
         context.getOfferRegistry().findServices(serviceProperties);
-
       for (ServiceOfferDesc offer : services) {
-        for (ServiceProperty prop : offer.properties) {
-          if (prop.name.equals("openbus.offer.entity")) {
-            System.out.println("found offer from " + prop.value
-              + " on bus at port " + port);
-          }
-        }
+        System.out.println("found offer from "
+          + Utils.findProperty(offer.properties, "openbus.offer.entity")
+          + " on bus at port " + port);
         org.omg.CORBA.Object obj = offer.service_ref.getFacet(HelloHelper.id());
         Hello hello = HelloHelper.narrow(obj);
-        String expected = String.format("Hello %s!", login);
+        String expected = String.format("Hello %s@%s!", login, conn.busid());
         String sayHello = hello.sayHello();
-        if (expected.equals(sayHello)) {
-          System.out.println("Received: " + sayHello);
-        }
-        else {
-          System.err.println("ERROR!");
-          System.err.println("Expected: " + expected);
-          System.err.println("Received: " + sayHello);
-        }
+        assert expected.equals(sayHello) : sayHello;
       }
-    }
-    catch (Exception e) {
-      e.printStackTrace();
+      conn.logout();
     }
   }
 }
