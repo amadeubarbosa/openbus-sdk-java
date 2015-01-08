@@ -23,7 +23,7 @@ import tecgraf.openbus.interop.util.Utils.ORBRunThread;
 import tecgraf.openbus.interop.util.Utils.ShutdownThread;
 import tecgraf.openbus.security.Cryptography;
 
-public class BroadcasterServer {
+public class Broadcasting {
 
   public static void main(String[] args) {
     try {

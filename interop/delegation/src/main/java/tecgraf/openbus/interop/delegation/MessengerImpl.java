@@ -24,11 +24,8 @@ public class MessengerImpl extends MessengerPOA {
 
   @Override
   public void post(String to, String message) {
-    LoginInfo caller = context.getCallerChain().caller();
-    LoginInfo[] originators = context.getCallerChain().originators();
-    String from = caller.entity;
-    System.out.println(String.format("post para '%s' de '%s'", to, Utils
-      .chain2str(originators, caller)));
+    CallerChain chain = context.getCallerChain();
+    String from = Utils.chain2str(chain);
     synchronized (inboxOf) {
       List<PostDesc> list = this.inboxOf.get(to);
       if (list == null) {
@@ -48,8 +45,6 @@ public class MessengerImpl extends MessengerPOA {
     if (originators.length > 0) {
       owner = originators[0].entity;
     }
-    System.out.println(String.format("download das mensagens de %s por %s",
-      owner, Utils.chain2str(originators, caller)));
     List<PostDesc> list = this.inboxOf.remove(owner);
     if (list == null) {
       list = new ArrayList<PostDesc>();
