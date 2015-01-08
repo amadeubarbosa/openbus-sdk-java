@@ -6,7 +6,6 @@ import java.util.List;
 
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
-import tecgraf.openbus.interop.util.Utils;
 
 public class BroadcasterImpl extends BroadcasterPOA {
 
@@ -33,19 +32,14 @@ public class BroadcasterImpl extends BroadcasterPOA {
   @Override
   public void subscribe() {
     LoginInfo caller = context.getCallerChain().caller();
-    LoginInfo[] originators = context.getCallerChain().originators();
     String user = caller.entity;
-    System.out.println("inscrição de " + Utils.chain2str(originators, caller));
     subscribers.add(user);
   }
 
   @Override
   public void unsubscribe() {
     LoginInfo caller = context.getCallerChain().caller();
-    LoginInfo[] originators = context.getCallerChain().originators();
     String user = caller.entity;
-    System.out.println("cancelando inscrição de "
-      + Utils.chain2str(originators, caller));
     subscribers.remove(user);
   }
 
