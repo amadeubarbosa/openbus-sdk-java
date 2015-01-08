@@ -46,7 +46,6 @@ public final class Server {
     Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
 
     ORB orb = ORBInitializer.initORB(args);
-    new ORBRunThread(orb).start();
     ShutdownThread shutdown = new ShutdownThread(orb);
     Runtime.getRuntime().addShutdownHook(shutdown);
 
@@ -76,5 +75,6 @@ public final class Server {
       registry.registerService(component.getIComponent(), serviceProperties);
     callback.addOffer(component.getIComponent(), serviceProperties);
     shutdown.addOffer(offer);
+    new ORBRunThread(orb).start();
   }
 }

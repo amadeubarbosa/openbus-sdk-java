@@ -52,12 +52,15 @@ public class ProxyImpl extends HelloProxyPOA {
 
     for (ServiceOfferDesc desc : descs) {
       try {
-        CallerChain joined = context.makeChainFor(Utils.findProperty(desc.properties, "openbus.offer.entity"));
+        CallerChain joined =
+          context.makeChainFor(Utils.findProperty(desc.properties,
+            "openbus.offer.entity"));
         joined.busid();
       }
       catch (Exception e) {
-        // TODO Auto-generated catch block
+        System.out.println("Erro na execução do teste!");
         e.printStackTrace();
+        continue;
       }
       org.omg.CORBA.Object helloObj =
         desc.service_ref.getFacet(HelloHelper.id());
