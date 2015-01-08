@@ -33,7 +33,7 @@ public class Forwarding {
     String privateKeyFile = "admin/InteropDelegation.key";
     RSAPrivateKey privateKey =
       Cryptography.getInstance().readKeyFromFile(privateKeyFile);
-    Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
+    Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
 
     final ORB orb = ORBInitializer.initORB(args);
     new ORBRunThread(orb).start();

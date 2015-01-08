@@ -37,7 +37,6 @@ public final class HelloServerServant extends HelloPOA {
       if (originators.length > 0) {
         entity = originators[0].entity;
       }
-      System.out.println("recebi chamada de " + entity);
       return String.format("Hello %s!", entity);
     }
     catch (Exception e) {

@@ -23,7 +23,7 @@ public class SharedAuthClient {
       Properties props = Utils.readPropertyFile("/test.properties");
       String host = props.getProperty("bus.host.name");
       int port = Integer.valueOf(props.getProperty("bus.host.port"));
-      Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
+      Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
 
       ORB orb = ORBInitializer.initORB();
 

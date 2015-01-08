@@ -34,52 +34,43 @@ public final class Server {
    * 
    * @param args argumentos.
    */
-  public static void main(String[] args) {
-    try {
-      Properties props = Utils.readPropertyFile("/test.properties");
-      String host = props.getProperty("bus.host.name");
-      int port = Integer.valueOf(props.getProperty("bus.host.port"));
-      String entity = "interop_reloggedjoin_java_server";
-      String privateKeyFile = "admin/InteropReloggedJoin.key";
-      RSAPrivateKey privateKey =
-        Cryptography.getInstance().readKeyFromFile(privateKeyFile);
-      Utils.setLogLevel(Level.parse(props.getProperty("log.level", "OFF")));
+  public static void main(String[] args) throws Exception {
+    Properties props = Utils.readPropertyFile("/test.properties");
+    String host = props.getProperty("bus.host.name");
+    int port = Integer.valueOf(props.getProperty("bus.host.port"));
+    String entity = "interop_reloggedjoin_java_server";
+    String privateKeyFile = "admin/InteropReloggedJoin.key";
+    RSAPrivateKey privateKey =
+      Cryptography.getInstance().readKeyFromFile(privateKeyFile);
+    Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
 
-      ORB orb = ORBInitializer.initORB(args);
-      new ORBRunThread(orb).start();
-      ShutdownThread shutdown = new ShutdownThread(orb);
-      Runtime.getRuntime().addShutdownHook(shutdown);
+    ORB orb = ORBInitializer.initORB(args);
+    new ORBRunThread(orb).start();
+    ShutdownThread shutdown = new ShutdownThread(orb);
+    Runtime.getRuntime().addShutdownHook(shutdown);
 
-      OpenBusContext context =
-        (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
-      Connection conn = context.createConnection(host, port);
-      context.setDefaultConnection(conn);
-      conn.loginByCertificate(entity, privateKey);
+    OpenBusContext context =
+      (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
+    Connection conn = context.createConnection(host, port);
+    context.setDefaultConnection(conn);
+    conn.loginByCertificate(entity, privateKey);
+    shutdown.addConnetion(conn);
 
-      shutdown.addConnetion(conn);
+    POA poa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
+    poa.the_POAManager().activate();
+    ComponentId id =
+      new ComponentId("Hello", (byte) 1, (byte) 0, (byte) 0, "java");
+    ComponentContext component = new ComponentContext(orb, poa, id);
+    component.addFacet("Hello", HelloHelper.id(), new HelloServerServant(
+      context));
 
-      POA poa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
-      poa.the_POAManager().activate();
-      ComponentId id =
-        new ComponentId("Hello", (byte) 1, (byte) 0, (byte) 0, "java");
-      ComponentContext component = new ComponentContext(orb, poa, id);
-      component.addFacet("Hello", HelloHelper.id(), new HelloServerServant(
-        context));
-
-      ServiceProperty[] serviceProperties =
-        new ServiceProperty[] {
-            new ServiceProperty("reloggedjoin.role", "server"),
-            new ServiceProperty("offer.domain", "Interoperability Tests") };
-      OfferRegistry registry = context.getOfferRegistry();
-      ServiceOffer offer =
-        registry.registerService(component.getIComponent(), serviceProperties);
-      shutdown.addOffer(offer);
-
-      System.out.println("Serviço Hello registrado.");
-    }
-    catch (Exception e) {
-      e.printStackTrace();
-      System.exit(1);
-    }
+    ServiceProperty[] serviceProperties =
+      new ServiceProperty[] {
+          new ServiceProperty("reloggedjoin.role", "server"),
+          new ServiceProperty("offer.domain", "Interoperability Tests") };
+    OfferRegistry registry = context.getOfferRegistry();
+    ServiceOffer offer =
+      registry.registerService(component.getIComponent(), serviceProperties);
+    shutdown.addOffer(offer);
   }
 }
