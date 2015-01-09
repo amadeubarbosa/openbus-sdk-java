@@ -425,9 +425,17 @@ final class ConnectionImpl implements Connection {
         byte[] encryptedLoginAuthenticationInfo =
           this.generateEncryptedLoginAuthenticationInfo(sharedAuth.secret());
         IntHolder validity = new IntHolder();
-        newLogin =
-          sharedAuth.attempt().login(this.publicKey.getEncoded(),
-            encryptedLoginAuthenticationInfo, validity);
+        if (sharedAuth.attempt() != null) {
+          newLogin =
+            sharedAuth.attempt().login(this.publicKey.getEncoded(),
+              encryptedLoginAuthenticationInfo, validity);
+        }
+        else {
+          tecgraf.openbus.core.v2_0.services.access_control.LoginInfo legacy =
+            sharedAuth.legacy().login(this.publicKey.getEncoded(),
+              encryptedLoginAuthenticationInfo, validity);
+          newLogin = new LoginInfo(legacy.id, legacy.entity);
+        }
         localLogin(newLogin, validity.value);
       }
       else {
@@ -437,6 +445,9 @@ final class ConnectionImpl implements Connection {
     catch (WrongEncoding e) {
       throw new AccessDenied("Erro durante tentativa de login.");
     }
+    catch (tecgraf.openbus.core.v2_0.services.access_control.WrongEncoding e) {
+      throw new AccessDenied("Erro durante tentativa de login.");
+    }
     catch (OBJECT_NOT_EXIST e) {
       throw new InvalidLoginProcess("Objeto de processo de login é inválido");
     }
@@ -444,6 +455,19 @@ final class ConnectionImpl implements Connection {
       throw new OpenBusInternalException(
         "Falha no protocolo OpenBus: A chave de acesso gerada não foi aceita. Mensagem="
           + e.message);
+    }
+    catch (tecgraf.openbus.core.v2_0.services.access_control.InvalidPublicKey e) {
+      throw new OpenBusInternalException(
+        "Falha no protocolo OpenBus: A chave de acesso gerada não foi aceita. Mensagem="
+          + e.message);
+    }
+    catch (tecgraf.openbus.core.v2_0.services.access_control.AccessDenied e) {
+      logger.log(Level.WARNING, e.getMessage(), e);
+      throw new AccessDenied(e.getMessage());
+    }
+    catch (tecgraf.openbus.core.v2_0.services.ServiceFailure e) {
+      logger.log(Level.WARNING, e.getMessage(), e);
+      throw new ServiceFailure(e.getMessage(), e.message);
     }
     finally {
       this.context.unignoreThread();
