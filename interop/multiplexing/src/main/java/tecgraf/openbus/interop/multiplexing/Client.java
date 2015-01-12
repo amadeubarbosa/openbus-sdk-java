@@ -48,11 +48,6 @@ public class Client {
       String login = "interop_multiplexing_java_client";
       conn.loginByPassword(login, login.getBytes(), domain);
 
-      ServiceProperty[] serviceProperties = new ServiceProperty[2];
-      serviceProperties[0] =
-        new ServiceProperty("openbus.component.interface", HelloHelper.id());
-      serviceProperties[1] =
-        new ServiceProperty("offer.domain", "Interoperability Tests");
       int noffers;
       if (port == port1) {
         noffers = 3;
@@ -60,6 +55,11 @@ public class Client {
       else {
         noffers = 1;
       }
+      ServiceProperty[] serviceProperties = new ServiceProperty[2];
+      serviceProperties[0] =
+        new ServiceProperty("openbus.component.interface", HelloHelper.id());
+      serviceProperties[1] =
+        new ServiceProperty("offer.domain", "Interoperability Tests");
       List<ServiceOfferDesc> services =
         Utils.findOffer(context.getOfferRegistry(), serviceProperties, noffers,
           10, 1);
