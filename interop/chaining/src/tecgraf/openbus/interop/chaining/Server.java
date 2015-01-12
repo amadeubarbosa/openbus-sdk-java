@@ -43,6 +43,7 @@ public final class Server {
     String privateKeyFile = "admin/InteropChaining.key";
     RSAPrivateKey privateKey =
       Cryptography.getInstance().readKeyFromFile(privateKeyFile);
+    Utils.setTestLogLevel(Level.parse(props.getProperty("log.test", "OFF")));
     Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
 
     ORB orb = ORBInitializer.initORB(args);

@@ -1,5 +1,6 @@
 package tecgraf.openbus.interop.multiplexing;
 
+import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -46,13 +47,21 @@ public class Client {
       String login = "interop_multiplexing_java_client";
       conn.loginByPassword(login, login.getBytes());
 
+      int noffers;
+      if (port == port1) {
+        noffers = 3;
+      }
+      else {
+        noffers = 1;
+      }
       ServiceProperty[] serviceProperties = new ServiceProperty[2];
       serviceProperties[0] =
         new ServiceProperty("openbus.component.interface", HelloHelper.id());
       serviceProperties[1] =
         new ServiceProperty("offer.domain", "Interoperability Tests");
-      ServiceOfferDesc[] services =
-        context.getOfferRegistry().findServices(serviceProperties);
+      List<ServiceOfferDesc> services =
+        Utils.findOffer(context.getOfferRegistry(), serviceProperties, noffers,
+          10, 1);
       for (ServiceOfferDesc offer : services) {
         logger.fine(String.format("found offer from %s on bus at port %d",
           Utils.findProperty(offer.properties, "openbus.offer.entity"), port));
