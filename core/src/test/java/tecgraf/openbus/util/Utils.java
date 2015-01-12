@@ -1,5 +1,9 @@
 package tecgraf.openbus.util;
 
+import static org.junit.Assert.fail;
+
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -59,6 +63,35 @@ public class Utils {
       }
     }
     return properties;
+  }
+
+  /**
+   * Lê todo um arquivo e retorna como um array de bytes.
+   * 
+   * @param path arquivo a ser lido.
+   * @return o conteúdo do arquivo.
+   * @throws IOException
+   */
+  static public byte[] readFile(String path) throws IOException {
+    byte[] data = null;
+    File file = new File(path);
+    FileInputStream is = new FileInputStream(file);
+    try {
+      int length = (int) file.length();
+      data = new byte[length];
+      int offset = is.read(data);
+      while (offset < length) {
+        int read = is.read(data, offset, length - offset);
+        if (read < 0) {
+          fail("Não foi possível ler todo o arquivo");
+        }
+        offset += read;
+      }
+    }
+    finally {
+      is.close();
+    }
+    return data;
   }
 
   /**
