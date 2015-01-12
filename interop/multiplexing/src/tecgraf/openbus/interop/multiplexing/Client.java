@@ -2,6 +2,7 @@ package tecgraf.openbus.interop.multiplexing;
 
 import java.util.Properties;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.omg.CORBA.ORB;
 
@@ -20,6 +21,8 @@ import tecgraf.openbus.interop.util.Utils;
  * @author Tecgraf
  */
 public class Client {
+  private static final Logger logger = Logger.getLogger(Client.class.getName());
+
   /**
    * Função principal.
    * 
@@ -30,6 +33,7 @@ public class Client {
     String host = props.getProperty("bus.host.name");
     int port1 = Integer.valueOf(props.getProperty("bus.host.port"));
     int port2 = Integer.valueOf(props.getProperty("bus2.host.port"));
+    Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
     Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
     int ports[] = { port1, port2 };
 
@@ -50,9 +54,8 @@ public class Client {
       ServiceOfferDesc[] services =
         context.getOfferRegistry().findServices(serviceProperties);
       for (ServiceOfferDesc offer : services) {
-        System.out.println("found offer from "
-          + Utils.findProperty(offer.properties, "openbus.offer.entity")
-          + " on bus at port " + port);
+        logger.fine(String.format("found offer from %s on bus at port %d",
+          Utils.findProperty(offer.properties, "openbus.offer.entity"), port));
         org.omg.CORBA.Object obj = offer.service_ref.getFacet(HelloHelper.id());
         Hello hello = HelloHelper.narrow(obj);
         String expected = String.format("Hello %s@%s!", login, conn.busid());

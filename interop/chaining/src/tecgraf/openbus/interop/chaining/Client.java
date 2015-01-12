@@ -61,7 +61,6 @@ public final class Client {
       org.omg.CORBA.Object msgObj =
         desc.service_ref.getFacet(HelloProxyHelper.id());
       if (msgObj == null) {
-        System.out.println("o serviço encontrado não provê a faceta ofertada");
         continue;
       }
       String loginId =
@@ -72,16 +71,8 @@ public final class Client {
       String sayHello = proxy.fetchHello(encodedChain);
 
       String expected = "Hello " + entity + "!";
-      if (expected.equals(sayHello)) {
-        System.out.println("Received: " + sayHello);
-      }
-      else {
-        System.err.println("ERROR!");
-        System.err.println("Expected: " + expected);
-        System.err.println("Received: " + sayHello);
-      }
+      assert expected.equals(sayHello) : sayHello;
     }
-
     context.getCurrentConnection().logout();
   }
 
