@@ -205,11 +205,17 @@ public class Utils {
         return found;
       }
     }
+    StringBuffer buffer = new StringBuffer();
+    for (ServiceOfferDesc desc : found) {
+      String name = Utils.findProperty(desc.properties, "openbus.offer.entity");
+      String login = Utils.findProperty(desc.properties, "openbus.offer.login");
+      buffer.append(String.format("\n - %s (%s)", name, login));
+    }
     String msg =
       String
         .format(
-          "não foi possível encontrar ofertas: found (%d) expected(%d) tries (%d) time (%d)",
-          found.size(), count, tries, tries * interval);
+          "não foi possível encontrar ofertas: found (%d) expected(%d) tries (%d) time (%d)%s",
+          found.size(), count, tries, tries * interval, buffer.toString());
     throw new IllegalStateException(msg);
   }
 }

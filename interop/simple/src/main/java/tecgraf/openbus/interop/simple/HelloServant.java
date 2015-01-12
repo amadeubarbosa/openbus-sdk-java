@@ -33,7 +33,6 @@ public final class HelloServant extends HelloPOA {
       CallerChain callerChain = context.getCallerChain();
       LoginInfo caller = callerChain.caller();
       String hello = String.format("Hello %s!", caller.entity);
-      System.out.println(hello);
       return hello;
     }
     catch (Exception e) {

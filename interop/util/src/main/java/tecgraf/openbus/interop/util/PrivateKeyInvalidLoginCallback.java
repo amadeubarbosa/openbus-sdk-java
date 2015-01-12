@@ -30,12 +30,11 @@ public class PrivateKeyInvalidLoginCallback implements InvalidLoginCallback {
   @Override
   public void invalidLogin(final Connection conn, LoginInfo login) {
     try {
-      System.out
-        .println("Callback de InvalidLogin foi chamada, tentando logar novamente no barramento.");
       conn.loginByCertificate(entity, privKey);
     }
     catch (Exception e) {
       e.printStackTrace();
+      return;
     }
     // Dummy task for republishing
     new Thread(new Runnable() {

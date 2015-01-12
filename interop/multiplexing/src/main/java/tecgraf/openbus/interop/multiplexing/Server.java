@@ -39,6 +39,7 @@ public class Server {
     int port2 = Integer.valueOf(props.getProperty("bus2.host.port"));
     String entity = "interop_multiplexing_java_server";
     String privateKeyFile = "admin/InteropMultiplexing.key";
+    Utils.setTestLogLevel(Level.parse(props.getProperty("log.test", "OFF")));
     Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
 
     RSAPrivateKey privateKey =

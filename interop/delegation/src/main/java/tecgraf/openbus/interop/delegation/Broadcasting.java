@@ -1,6 +1,7 @@
 package tecgraf.openbus.interop.delegation;
 
 import java.security.interfaces.RSAPrivateKey;
+import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 
@@ -25,72 +26,59 @@ import tecgraf.openbus.security.Cryptography;
 
 public class Broadcasting {
 
-  public static void main(String[] args) {
-    try {
-      Properties props = Utils.readPropertyFile("/test.properties");
-      String host = props.getProperty("bus.host.name");
-      int port = Integer.valueOf(props.getProperty("bus.host.port"));
-      String entity = "interop_delegation_java_broadcaster";
-      String privateKeyFile = "admin/InteropDelegation.key";
-      RSAPrivateKey privateKey =
-        Cryptography.getInstance().readKeyFromFile(privateKeyFile);
-      Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
+  public static void main(String[] args) throws Exception {
+    Properties props = Utils.readPropertyFile("/test.properties");
+    String host = props.getProperty("bus.host.name");
+    int port = Integer.valueOf(props.getProperty("bus.host.port"));
+    String entity = "interop_delegation_java_broadcaster";
+    String privateKeyFile = "admin/InteropDelegation.key";
+    RSAPrivateKey privateKey =
+      Cryptography.getInstance().readKeyFromFile(privateKeyFile);
+    Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
 
-      final ORB orb = ORBInitializer.initORB(args);
-      new ORBRunThread(orb).start();
-      ShutdownThread shutdown = new ShutdownThread(orb);
-      Runtime.getRuntime().addShutdownHook(shutdown);
+    final ORB orb = ORBInitializer.initORB(args);
+    new ORBRunThread(orb).start();
+    ShutdownThread shutdown = new ShutdownThread(orb);
+    Runtime.getRuntime().addShutdownHook(shutdown);
 
-      OpenBusContext context =
-        (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
-      Connection conn = context.connectByAddress(host, port);
-      context.setDefaultConnection(conn);
-      conn.loginByCertificate(entity, privateKey);
-      PrivateKeyInvalidLoginCallback callback =
-        new PrivateKeyInvalidLoginCallback(entity, privateKey);
-      conn.onInvalidLoginCallback(callback);
-      shutdown.addConnetion(conn);
+    OpenBusContext context =
+      (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
+    Connection conn = context.connectByAddress(host, port);
+    context.setDefaultConnection(conn);
+    conn.loginByCertificate(entity, privateKey);
+    PrivateKeyInvalidLoginCallback callback =
+      new PrivateKeyInvalidLoginCallback(entity, privateKey);
+    conn.onInvalidLoginCallback(callback);
+    shutdown.addConnetion(conn);
 
-      ServiceProperty[] messengerProps = new ServiceProperty[2];
-      messengerProps[0] =
-        new ServiceProperty("openbus.component.interface", MessengerHelper.id());
-      messengerProps[1] =
-        new ServiceProperty("offer.domain", "Interoperability Tests");
-      ServiceOfferDesc[] services =
-        context.getOfferRegistry().findServices(messengerProps);
+    ServiceProperty[] messengerProps = new ServiceProperty[2];
+    messengerProps[0] =
+      new ServiceProperty("openbus.component.interface", MessengerHelper.id());
+    messengerProps[1] =
+      new ServiceProperty("offer.domain", "Interoperability Tests");
+    List<ServiceOfferDesc> services =
+      Utils.findOffer(context.getOfferRegistry(), messengerProps, 1, 10, 1);
 
-      if (services.length <= 0) {
-        System.err.println("não encontrou o serviço messenger");
-        System.exit(1);
-      }
-      if (services.length > 1) {
-        System.out.println("Foram encontrados vários serviços de messenger");
-      }
+    Messenger messenger =
+      MessengerHelper.narrow(services.get(0).service_ref
+        .getFacet(MessengerHelper.id()));
 
-      Messenger messenger =
-        MessengerHelper.narrow(services[0].service_ref.getFacet(MessengerHelper
-          .id()));
+    POA poa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
+    poa.the_POAManager().activate();
+    ComponentContext component =
+      new ComponentContext(orb, poa, new ComponentId("Broadcaster", (byte) 1,
+        (byte) 0, (byte) 0, "java"));
+    component.addFacet("broadcaster", BroadcasterHelper.id(),
+      new BroadcasterImpl(context, messenger));
 
-      POA poa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
-      poa.the_POAManager().activate();
-      ComponentContext component =
-        new ComponentContext(orb, poa, new ComponentId("Broadcaster", (byte) 1,
-          (byte) 0, (byte) 0, "java"));
-      component.addFacet("broadcaster", BroadcasterHelper.id(),
-        new BroadcasterImpl(context, messenger));
+    ServiceProperty[] serviceProperties = new ServiceProperty[1];
+    serviceProperties[0] =
+      new ServiceProperty("offer.domain", "Interoperability Tests");
 
-      ServiceProperty[] serviceProperties = new ServiceProperty[1];
-      serviceProperties[0] =
-        new ServiceProperty("offer.domain", "Interoperability Tests");
-
-      IComponent ic = component.getIComponent();
-      ServiceOffer offer =
-        context.getOfferRegistry().registerService(ic, serviceProperties);
-      callback.addOffer(ic, serviceProperties);
-      shutdown.addOffer(offer);
-    }
-    catch (Exception e) {
-      e.printStackTrace();
-    }
+    IComponent ic = component.getIComponent();
+    ServiceOffer offer =
+      context.getOfferRegistry().registerService(ic, serviceProperties);
+    callback.addOffer(ic, serviceProperties);
+    shutdown.addOffer(offer);
   }
 }

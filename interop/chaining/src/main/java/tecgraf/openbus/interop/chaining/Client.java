@@ -78,14 +78,7 @@ public final class Client {
       String sayHello = proxy.fetchHello(encodedChain);
 
       String expected = "Hello " + entity + "!";
-      if (expected.equals(sayHello)) {
-        System.out.println("Received: " + sayHello);
-      }
-      else {
-        System.err.println("ERROR!");
-        System.err.println("Expected: " + expected);
-        System.err.println("Received: " + sayHello);
-      }
+      assert expected.equals(sayHello) : sayHello;
     }
     context.getCurrentConnection().logout();
   }

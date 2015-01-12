@@ -29,8 +29,6 @@ public class ForwarderInvalidLoginCallback implements InvalidLoginCallback {
   @Override
   public void invalidLogin(Connection conn, LoginInfo login) {
     try {
-      System.out
-        .println("Callback de InvalidLogin foi chamada, tentando logar novamente no barramento.");
       conn.loginByCertificate(entity, privKey);
       if (conn.login() != null) {
         OpenBusContext context =
