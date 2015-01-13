@@ -6,6 +6,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.Object;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
@@ -31,25 +32,25 @@ public class Client {
    */
   public static void main(String[] args) throws Exception {
     Properties props = Utils.readPropertyFile("/test.properties");
-    String host = props.getProperty("bus.host.name");
-    int port1 = Integer.valueOf(props.getProperty("bus.host.port"));
-    int port2 = Integer.valueOf(props.getProperty("bus2.host.port"));
+    String ior1 = props.getProperty("bus1.ior");
+    String ior2 = props.getProperty("bus2.ior");
     String domain = "testing";
     Utils.setTestLogLevel(Level.parse(props.getProperty("log.test", "OFF")));
     Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
-    int ports[] = { port1, port2 };
+    String iors[] = { ior1, ior2 };
 
-    for (int port : ports) {
+    for (String ior : iors) {
       ORB orb = ORBInitializer.initORB();
+      Object bus = orb.string_to_object(Utils.file2IOR(ior));
       OpenBusContext context =
         (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
-      Connection conn = context.connectByAddress(host, port);
+      Connection conn = context.connectByReference(bus);
       context.setDefaultConnection(conn);
       String login = "interop_multiplexing_java_client";
       conn.loginByPassword(login, login.getBytes(), domain);
 
       int noffers;
-      if (port == port1) {
+      if (ior.equals(ior1)) {
         noffers = 3;
       }
       else {
@@ -64,8 +65,9 @@ public class Client {
         Utils.findOffer(context.getOfferRegistry(), serviceProperties, noffers,
           10, 1);
       for (ServiceOfferDesc offer : services) {
-        logger.fine(String.format("found offer from %s on bus at port %d",
-          Utils.findProperty(offer.properties, "openbus.offer.entity"), port));
+        logger.fine(String
+          .format("found offer from %s on bus %s", Utils.findProperty(
+            offer.properties, "openbus.offer.entity"), conn.busid()));
         org.omg.CORBA.Object obj = offer.service_ref.getFacet(HelloHelper.id());
         Hello hello = HelloHelper.narrow(obj);
         String expected = String.format("Hello %s@%s!", login, conn.busid());

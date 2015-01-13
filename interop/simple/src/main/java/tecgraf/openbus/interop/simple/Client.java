@@ -5,6 +5,7 @@ import java.util.Properties;
 import java.util.logging.Level;
 
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.Object;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
@@ -27,16 +28,16 @@ public final class Client {
    */
   public static void main(String[] args) throws Exception {
     Properties props = Utils.readPropertyFile("/test.properties");
-    String host = props.getProperty("bus.host.name");
-    int port = Integer.valueOf(props.getProperty("bus.host.port"));
+    String iorfile = props.getProperty("bus.ior");
     String entity = "interop_hello_java_client";
     String domain = "testing";
     Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
 
     ORB orb = ORBInitializer.initORB();
+    Object busref = orb.string_to_object(Utils.file2IOR(iorfile));
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
-    Connection connection = context.connectByAddress(host, port);
+    Connection connection = context.connectByReference(busref);
     context.setDefaultConnection(connection);
 
     connection.loginByPassword(entity, entity.getBytes(Cryptography.CHARSET),

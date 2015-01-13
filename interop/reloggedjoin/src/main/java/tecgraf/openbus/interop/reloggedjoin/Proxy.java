@@ -5,6 +5,7 @@ import java.util.Properties;
 import java.util.logging.Level;
 
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.Object;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 
@@ -37,8 +38,7 @@ public final class Proxy {
    */
   public static void main(String[] args) throws Exception {
     Properties props = Utils.readPropertyFile("/test.properties");
-    String host = props.getProperty("bus.host.name");
-    int port = Integer.valueOf(props.getProperty("bus.host.port"));
+    String iorfile = props.getProperty("bus.ior");
     String entity = "interop_reloggedjoin_java_server";
     String privateKeyFile = "admin/InteropReloggedJoin.key";
     RSAPrivateKey privateKey =
@@ -51,9 +51,10 @@ public final class Proxy {
     ShutdownThread shutdown = new ShutdownThread(orb);
     Runtime.getRuntime().addShutdownHook(shutdown);
 
+    Object busref = orb.string_to_object(Utils.file2IOR(iorfile));
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
-    Connection conn = context.connectByAddress(host, port);
+    Connection conn = context.connectByReference(busref);
     context.setDefaultConnection(conn);
     conn.loginByCertificate(entity, privateKey);
     PrivateKeyInvalidLoginCallback callback =

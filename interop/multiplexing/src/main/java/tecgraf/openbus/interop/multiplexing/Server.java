@@ -8,6 +8,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.Object;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 
@@ -33,10 +34,8 @@ public class Server {
 
   public static void main(String[] args) throws Exception {
     Properties props = Utils.readPropertyFile("/test.properties");
-    String host = props.getProperty("bus.host.name");
-    String host2 = props.getProperty("bus2.host.name");
-    int port = Integer.valueOf(props.getProperty("bus.host.port"));
-    int port2 = Integer.valueOf(props.getProperty("bus2.host.port"));
+    String ior1 = props.getProperty("bus1.ior");
+    String ior2 = props.getProperty("bus2.ior");
     String entity = "interop_multiplexing_java_server";
     String privateKeyFile = "admin/InteropMultiplexing.key";
     Utils.setTestLogLevel(Level.parse(props.getProperty("log.test", "OFF")));
@@ -57,18 +56,22 @@ public class Server {
     Runtime.getRuntime().addShutdownHook(shutdown2);
 
     // connect to the bus
+    Object bus1orb1 = orb1.string_to_object(Utils.file2IOR(ior1));
+    Object bus2orb1 = orb1.string_to_object(Utils.file2IOR(ior2));
+    Object bus1orb2 = orb2.string_to_object(Utils.file2IOR(ior1));
+
     OpenBusContext context1 =
       (OpenBusContext) orb1.resolve_initial_references("OpenBusContext");
     OpenBusContext context2 =
       (OpenBusContext) orb2.resolve_initial_references("OpenBusContext");
 
     final Connection conn1AtBus1WithOrb1 =
-      context1.connectByAddress(host, port);
-    Connection conn2AtBus1WithOrb1 = context1.connectByAddress(host, port);
+      context1.connectByReference(bus1orb1);
+    Connection conn2AtBus1WithOrb1 = context1.connectByReference(bus1orb1);
     final Connection conn1AtBus2WithOrb1 =
-      context1.connectByAddress(host2, port2);
+      context1.connectByReference(bus2orb1);
     final Connection conn3AtBus1WithOrb2 =
-      context2.connectByAddress(host, port);
+      context2.connectByReference(bus1orb2);
 
     List<Connection> conns = new ArrayList<Connection>();
     conns.add(conn1AtBus1WithOrb1);

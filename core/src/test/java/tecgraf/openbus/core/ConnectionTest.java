@@ -17,7 +17,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
-import org.omg.CORBA.TRANSIENT;
+import org.omg.CORBA.Object;
 
 import scs.core.ComponentContext;
 import tecgraf.openbus.CallDispatchCallback;
@@ -34,7 +34,6 @@ import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
-import tecgraf.openbus.exception.InvalidPropertyValue;
 import tecgraf.openbus.security.Cryptography;
 import tecgraf.openbus.util.Utils;
 
@@ -42,6 +41,7 @@ public final class ConnectionTest {
 
   private static String host;
   private static int port;
+  private static Object busref;
   private static String entity;
   private static String password;
   private static String domain;
@@ -73,6 +73,9 @@ public final class ConnectionTest {
     admin = properties.getProperty("admin.name");
     adminpwd = properties.getProperty("admin.password");
     orb = ORBInitializer.initORB();
+    String iorfile = properties.getProperty("openbus.ior");
+    String ior = new String(Utils.readFile(iorfile));
+    busref = orb.string_to_object(ior);
     context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     Utils.setLogLevel(Level.FINEST);
   }
@@ -87,14 +90,14 @@ public final class ConnectionTest {
 
   @Test
   public void orbTest() throws Exception {
-    Connection conn = context.connectByAddress(host, port);
+    Connection conn = context.connectByReference(busref);
     assertNotNull(conn.orb());
     assertEquals(orb, context.orb());
   }
 
   @Test
   public void offerRegistryNoLoginTest() {
-    Connection conn = context.connectByAddress(host, port);
+    Connection conn = context.connectByReference(busref);
     try {
       OfferRegistry registryService = context.getOfferRegistry();
       ServiceProperty[] props =
@@ -111,7 +114,7 @@ public final class ConnectionTest {
 
   @Test
   public void busIdTest() throws Exception {
-    Connection conn = context.connectByAddress(host, port);
+    Connection conn = context.connectByReference(busref);
     assertNull(conn.busid());
     conn.loginByPassword(entity, entity.getBytes(), domain);
     assertNotNull(conn.busid());
@@ -123,66 +126,17 @@ public final class ConnectionTest {
 
   @Test
   public void loginTest() throws Exception {
-    Connection conn = context.connectByAddress(host, port);
+    Connection conn = context.connectByReference(busref);
     assertNull(conn.login());
     conn.loginByPassword(entity, entity.getBytes(), domain);
     assertNotNull(conn.login());
     conn.logout();
-    assertNull(conn.login());
-  }
-
-  @Test
-  public void accessKeyPropTest() throws Exception {
-    Properties properties = new Properties();
-    properties.put(OpenBusProperty.ACCESS_KEY.getKey(), privateKeyFile);
-    Connection conn = context.connectByAddress(host, port, properties);
-    assertNull(conn.login());
-    conn.loginByPassword(entity, entity.getBytes(), domain);
-    assertNotNull(conn.login());
-    conn.logout();
-    assertNull(conn.login());
-  }
-
-  @Test(expected = InvalidPropertyValue.class)
-  public void invalidAccessKeyPropTest() throws Exception {
-    Properties properties = new Properties();
-    properties.put(OpenBusProperty.ACCESS_KEY.getKey(),
-      "/invalid/path/to/access.key");
-    Connection conn = context.connectByAddress(host, port, properties);
-  }
-
-  @Test
-  public void invalidHostPortLoginTest() throws Exception {
-    Connection conn = context.connectByAddress("unknown-host", port);
-    assertNull(conn.login());
-    try {
-      conn.loginByPassword(entity, entity.getBytes(), domain);
-    }
-    catch (TRANSIENT e) {
-      // erro esperado
-    }
-    catch (Exception e) {
-      fail("A exceção deveria ser TRANSIENT. Exceção recebida: " + e);
-    }
-    assertNull(conn.login());
-    // chutando uma porta inválida
-    conn = context.connectByAddress(host, port + 111);
-    assertNull(conn.login());
-    try {
-      conn.loginByPassword(entity, entity.getBytes(), domain);
-    }
-    catch (TRANSIENT e) {
-      // erro esperado
-    }
-    catch (Exception e) {
-      fail("A exceção deveria ser TRANSIENT. Exceção recebida: " + e);
-    }
     assertNull(conn.login());
   }
 
   @Test
   public void loginByPasswordTest() throws Exception {
-    Connection conn = context.connectByAddress(host, port);
+    Connection conn = context.connectByReference(busref);
 
     // entidade errada
     boolean failed = false;
@@ -237,7 +191,7 @@ public final class ConnectionTest {
 
   @Test
   public void loginByCertificateTest() throws Exception {
-    Connection conn = context.connectByAddress(host, port);
+    Connection conn = context.connectByReference(busref);
     // entidade sem certificado cadastrado
     boolean failed = false;
     try {
@@ -307,8 +261,8 @@ public final class ConnectionTest {
 
   @Test
   public void loginBySharedAuthenticationFakeTest() throws Exception {
-    Connection conn = context.connectByAddress(host, port);
-    Connection conn2 = context.connectByAddress(host, port);
+    Connection conn = context.connectByReference(busref);
+    Connection conn2 = context.connectByReference(busref);
     conn.loginByPassword(entity, password.getBytes(), domain);
 
     // segredo errado
@@ -335,8 +289,8 @@ public final class ConnectionTest {
 
   @Test
   public void loginBySharedAuthenticationTest() throws Exception {
-    Connection conn = context.connectByAddress(host, port);
-    Connection conn2 = context.connectByAddress(host, port);
+    Connection conn = context.connectByReference(busref);
+    Connection conn2 = context.connectByReference(busref);
     conn.loginByPassword(entity, password.getBytes(), domain);
 
     // login válido
@@ -377,7 +331,7 @@ public final class ConnectionTest {
 
   @Test
   public void logoutTest() throws Exception {
-    final Connection conn = context.connectByAddress(host, port);
+    final Connection conn = context.connectByReference(busref);
     assertTrue(conn.logout());
     conn.loginByPassword(entity, password.getBytes(), domain);
     final String busId = conn.busid();
@@ -415,7 +369,7 @@ public final class ConnectionTest {
 
   @Test
   public void onInvalidLoginCallbackTest() throws Exception {
-    Connection conn = context.connectByAddress(host, port);
+    Connection conn = context.connectByReference(busref);
     assertNull(conn.onInvalidLoginCallback());
     final AtomicBoolean called = new AtomicBoolean(false);
     InvalidLoginCallback callback = new InvalidLoginCallback() {
@@ -435,7 +389,7 @@ public final class ConnectionTest {
     conn.loginByPassword(entity, password.getBytes(), domain);
     String id = conn.login().id;
 
-    Connection adminconn = context.connectByAddress(host, port);
+    Connection adminconn = context.connectByReference(busref);
     adminconn.loginByPassword(admin, adminpwd.getBytes(), domain);
     try {
       context.setCurrentConnection(adminconn);
@@ -456,8 +410,8 @@ public final class ConnectionTest {
 
   @Test
   public void registerAndFindTest() throws Exception {
-    Connection conn1 = context.connectByAddress(host, port);
-    Connection conn2 = context.connectByAddress(host, port);
+    Connection conn1 = context.connectByReference(busref);
+    Connection conn2 = context.connectByReference(busref);
     try {
       String sys1 = "test_entity_registration_first";
       String sys2 = "test_entity_registration_second";
@@ -501,7 +455,7 @@ public final class ConnectionTest {
 
   @Test
   public void logoutOnInvalidLoginCallbackTest() throws Exception {
-    Connection conn = context.connectByAddress(host, port);
+    Connection conn = context.connectByReference(busref);
     assertNull(conn.onInvalidLoginCallback());
     final AtomicBoolean called = new AtomicBoolean(false);
     InvalidLoginCallback callback = new InvalidLoginCallback() {
@@ -521,7 +475,7 @@ public final class ConnectionTest {
     conn.loginByPassword(entity, password.getBytes(), domain);
     String id = conn.login().id;
 
-    Connection adminconn = context.connectByAddress(host, port);
+    Connection adminconn = context.connectByReference(busref);
     adminconn.loginByPassword(admin, adminpwd.getBytes(), domain);
     try {
       context.setCurrentConnection(adminconn);

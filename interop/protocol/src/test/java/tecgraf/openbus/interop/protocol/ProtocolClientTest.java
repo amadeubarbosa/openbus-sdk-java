@@ -43,8 +43,6 @@ import tecgraf.openbus.interop.util.Utils;
  */
 public final class ProtocolClientTest {
 
-  private static String host;
-  private static int port;
   private static String entity;
   private static String password;
   private static String domain;
@@ -56,14 +54,14 @@ public final class ProtocolClientTest {
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
     Properties properties = Utils.readPropertyFile("/test.properties");
-    host = properties.getProperty("openbus.host.name");
-    port = Integer.valueOf(properties.getProperty("openbus.host.port"));
+    String iorfile = properties.getProperty("bus.ior");
     entity = properties.getProperty("entity.name");
     password = properties.getProperty("entity.password");
     domain = properties.getProperty("auth.domain");
     orb = ORBInitializer.initORB();
+    Object busref = orb.string_to_object(Utils.file2IOR(iorfile));
     context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
-    conn = context.connectByAddress(host, port);
+    conn = context.connectByReference(busref);
   }
 
   @Before

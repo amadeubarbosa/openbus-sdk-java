@@ -1,6 +1,8 @@
 package tecgraf.openbus.interop.util;
 
+import java.io.BufferedReader;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -217,5 +219,18 @@ public class Utils {
           "não foi possível encontrar ofertas: found (%d) expected(%d) tries (%d) time (%d)%s",
           found.size(), count, tries, tries * interval, buffer.toString());
     throw new IllegalStateException(msg);
+  }
+
+  public static String file2IOR(String iorfile) throws IOException {
+    BufferedReader in = null;
+    try {
+      in = new BufferedReader(new FileReader(iorfile));
+      return in.readLine();
+    }
+    finally {
+      if (in != null) {
+        in.close();
+      }
+    }
   }
 }

@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.Object;
 
 import scs.core.ComponentContext;
 import tecgraf.openbus.CallDispatchCallback;
@@ -24,6 +25,7 @@ import tecgraf.openbus.util.Utils;
 
 public class MassiveConnectionTest {
 
+  private static Object busref;
   private static String host;
   private static int port;
   private static String entity;
@@ -41,13 +43,16 @@ public class MassiveConnectionTest {
     port = Integer.valueOf(properties.getProperty("openbus.host.port"));
     domain = properties.getProperty("entity.domain");
     orb = ORBInitializer.initORB();
+    String iorfile = properties.getProperty("openbus.ior");
+    String ior = new String(Utils.readFile(iorfile));
+    busref = orb.string_to_object(ior);
     context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
   }
 
   @Test
   public void massiveTest() throws Exception {
     String entity = "dispatcher";
-    final Connection conn = context.connectByAddress(host, port);
+    final Connection conn = context.connectByReference(busref);
     conn.loginByPassword(entity, entity.getBytes(), domain);
     context.onCallDispatch(new CallDispatchCallback() {
       @Override
@@ -91,7 +96,7 @@ public class MassiveConnectionTest {
     @Override
     public void run() {
       try {
-        final Connection conn = context.connectByAddress(host, port);
+        final Connection conn = context.connectByReference(busref);
         conn.loginByPassword(entity, entity.getBytes(), domain);
         context.setCurrentConnection(conn);
         ComponentContext component = Utils.buildComponent(orb);

@@ -47,6 +47,7 @@ import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.exception.InvalidEncodedStream;
+import tecgraf.openbus.exception.InvalidPropertyValue;
 import tecgraf.openbus.security.Cryptography;
 import tecgraf.openbus.util.Utils;
 import test.CallerChainInspector;
@@ -55,27 +56,32 @@ import test.CallerChainInspectorHelper;
 public final class OpenBusContextTest {
   private static ORB orb;
   private static OpenBusContext context;
+  private static Object busref;
   private static String legacyChain;
-  private static String hostName;
-  private static int hostPort;
+  private static String host;
+  private static int port;
   private static String entity;
   private static String password;
   private static String domain;
   private static String serverEntity;
   private static RSAPrivateKey privateKey;
+  private static String privateKeyFile;
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
     Properties properties = Utils.readPropertyFile("/test.properties");
-    hostName = properties.getProperty("openbus.host.name");
-    hostPort = Integer.valueOf(properties.getProperty("openbus.host.port"));
+    host = properties.getProperty("openbus.host.name");
+    port = Integer.valueOf(properties.getProperty("openbus.host.port"));
     entity = properties.getProperty("entity.name");
     password = properties.getProperty("entity.password");
     domain = properties.getProperty("entity.domain");
     serverEntity = properties.getProperty("server.entity.name");
-    String privateKeyFile = properties.getProperty("server.private.key");
+    privateKeyFile = properties.getProperty("server.private.key");
     privateKey = Cryptography.getInstance().readKeyFromFile(privateKeyFile);
     orb = ORBInitializer.initORB();
+    String iorfile = properties.getProperty("openbus.ior");
+    String ior = new String(Utils.readFile(iorfile));
+    busref = orb.string_to_object(ior);
     context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     legacyChain = properties.getProperty("legacy.chain");
   }
@@ -95,7 +101,7 @@ public final class OpenBusContextTest {
 
   @Test
   public void TwoORBsDefaultConnectionTest() throws InvalidName {
-    Connection conn = context.connectByAddress(hostName, hostPort);
+    Connection conn = context.connectByReference(busref);
     assertNull(context.getDefaultConnection());
     context.setDefaultConnection(conn);
     assertNotNull(context.getDefaultConnection());
@@ -106,7 +112,7 @@ public final class OpenBusContextTest {
 
     OpenBusContext context2 =
       (OpenBusContext) orb2.resolve_initial_references("OpenBusContext");
-    Connection conn2 = context2.connectByAddress(hostName, hostPort);
+    Connection conn2 = context2.connectByReference(busref);
     assertNull(context2.getDefaultConnection());
     try {
       context2.setDefaultConnection(conn2);
@@ -139,13 +145,10 @@ public final class OpenBusContextTest {
 
   @Test
   public void createConnectionIllegalArgumentTest() {
-    // cria conexão válida
-    Connection valid = context.connectByAddress(hostName, hostPort);
-    assertNotNull(valid);
     // tenta criar conexão com hosts inválidos
     Connection invalid = null;
     try {
-      invalid = context.connectByAddress("", hostPort);
+      invalid = context.connectByAddress("", port);
     }
     catch (IllegalArgumentException e) {
     }
@@ -153,7 +156,7 @@ public final class OpenBusContextTest {
       assertNull(invalid);
     }
     try {
-      invalid = context.connectByAddress(hostName, -1);
+      invalid = context.connectByAddress(host, -1);
     }
     catch (IllegalArgumentException e) {
     }
@@ -165,7 +168,7 @@ public final class OpenBusContextTest {
   @Test
   public void createConnectionUknownHostTest() {
     // tenta criar conexão com hosts desconhecido
-    Connection invalid = context.connectByAddress("unknowHost", hostPort);
+    Connection invalid = context.connectByAddress("unknowHost", port);
     assertNotNull(invalid);
     // nenhuma chamada remota deve ser realizada e a conexão deve ser criada
   }
@@ -179,8 +182,7 @@ public final class OpenBusContextTest {
   public void connectByReferenceUknownHostTest() throws Exception {
     String host = "unknowHost";
     String str =
-      String.format("corbaloc::1.0@%s:%d/%s", host, hostPort,
-        BusObjectKey.value);
+      String.format("corbaloc::1.0@%s:%d/%s", host, port, BusObjectKey.value);
     org.omg.CORBA.Object obj = orb.string_to_object(str);
     Connection invalid = context.connectByReference(obj);
     assertNotNull(invalid);
@@ -190,8 +192,7 @@ public final class OpenBusContextTest {
   @Test
   public void connectByReferenceTest() throws Exception {
     String str =
-      String.format("corbaloc::1.0@%s:%d/%s", hostName, hostPort,
-        BusObjectKey.value);
+      String.format("corbaloc::1.0@%s:%d/%s", host, port, BusObjectKey.value);
     org.omg.CORBA.Object obj = orb.string_to_object(str);
     final Connection conn = context.connectByReference(obj);
     conn.loginByPassword(entity, password.getBytes(), domain);
@@ -200,9 +201,58 @@ public final class OpenBusContextTest {
   }
 
   @Test
+  public void accessKeyPropTest() throws Exception {
+    Properties properties = new Properties();
+    properties.put(OpenBusProperty.ACCESS_KEY.getKey(), privateKeyFile);
+    Connection conn = context.connectByReference(busref, properties);
+    assertNull(conn.login());
+    conn.loginByPassword(entity, entity.getBytes(), domain);
+    assertNotNull(conn.login());
+    conn.logout();
+    assertNull(conn.login());
+  }
+
+  @Test(expected = InvalidPropertyValue.class)
+  public void invalidAccessKeyPropTest() throws Exception {
+    Properties properties = new Properties();
+    properties.put(OpenBusProperty.ACCESS_KEY.getKey(),
+      "/invalid/path/to/access.key");
+    Connection conn = context.connectByReference(busref, properties);
+  }
+
+  @Test
+  public void invalidHostPortLoginTest() throws Exception {
+    Connection conn = context.connectByAddress("unknown-host", port);
+    assertNull(conn.login());
+    try {
+      conn.loginByPassword(entity, entity.getBytes(), domain);
+    }
+    catch (TRANSIENT e) {
+      // erro esperado
+    }
+    catch (Exception e) {
+      fail("A exceção deveria ser TRANSIENT. Exceção recebida: " + e);
+    }
+    assertNull(conn.login());
+    // chutando uma porta inválida
+    conn = context.connectByAddress(host, port + 111);
+    assertNull(conn.login());
+    try {
+      conn.loginByPassword(entity, entity.getBytes(), domain);
+    }
+    catch (TRANSIENT e) {
+      // erro esperado
+    }
+    catch (Exception e) {
+      fail("A exceção deveria ser TRANSIENT. Exceção recebida: " + e);
+    }
+    assertNull(conn.login());
+  }
+
+  @Test
   public void defaultConnectionTest() throws Exception {
     context.setDefaultConnection(null);
-    final Connection conn = context.connectByAddress(hostName, hostPort);
+    final Connection conn = context.connectByReference(busref);
     conn.loginByPassword(entity, password.getBytes(), domain);
     assertNull(context.getDefaultConnection());
     context.setCurrentConnection(conn);
@@ -226,7 +276,7 @@ public final class OpenBusContextTest {
 
   @Test
   public void requesterTest() throws Exception {
-    final Connection conn = context.connectByAddress(hostName, hostPort);
+    final Connection conn = context.connectByReference(busref);
     conn.loginByPassword(entity, password.getBytes(), domain);
     assertNull(context.getCurrentConnection());
     context.setDefaultConnection(conn);
@@ -281,14 +331,14 @@ public final class OpenBusContextTest {
 
   @Test
   public void callerChainTest() throws Exception {
-    Connection conn = context.connectByAddress(hostName, hostPort);
+    Connection conn = context.connectByReference(busref);
     assertNull(context.getCallerChain());
     // atualmente os testes de interoperabilidade ja cobrem esses testes
   }
 
   @Test
   public void getCallerChainInDispatchTest() throws Exception {
-    Connection conn = context.connectByAddress(hostName, hostPort);
+    Connection conn = context.connectByReference(busref);
     conn.loginByPassword(entity, password.getBytes(), domain);
     context.setDefaultConnection(conn);
     ComponentContext component = Utils.buildTestCallerChainComponent(context);
@@ -309,7 +359,7 @@ public final class OpenBusContextTest {
 
   @Test
   public void getConnectionInDispatchTest() throws Exception {
-    Connection conn = context.connectByAddress(hostName, hostPort);
+    Connection conn = context.connectByReference(busref);
     conn.loginByPassword(entity, password.getBytes(), domain);
     context.setDefaultConnection(conn);
     ComponentContext component = Utils.buildTestConnectionComponent(context);
@@ -330,7 +380,7 @@ public final class OpenBusContextTest {
 
   @Test
   public void getConnectionInDispatch2Test() throws Exception {
-    final Connection conn = context.connectByAddress(hostName, hostPort);
+    final Connection conn = context.connectByReference(busref);
     conn.loginByPassword(entity, password.getBytes(), domain);
     context.setCurrentConnection(conn);
     context.onCallDispatch(new CallDispatchCallback() {
@@ -359,7 +409,7 @@ public final class OpenBusContextTest {
   @Test
   public void joinChainTest() throws InvalidTypeForEncoding, UnknownEncoding,
     InvalidName {
-    Connection conn = context.connectByAddress(hostName, hostPort);
+    Connection conn = context.connectByReference(busref);
     assertNull(context.getJoinedChain());
     // adiciona a chain da getCallerChain
     context.joinChain(null);
@@ -384,7 +434,7 @@ public final class OpenBusContextTest {
   @Test
   public void exitChainTest() throws InvalidTypeForEncoding, UnknownEncoding,
     InvalidName {
-    Connection conn = context.connectByAddress(hostName, hostPort);
+    Connection conn = context.connectByReference(busref);
     assertNull(context.getJoinedChain());
     context.exitChain();
     assertNull(context.getJoinedChain());
@@ -397,7 +447,7 @@ public final class OpenBusContextTest {
 
   @Test
   public void importChainTest() throws Exception {
-    Connection conn1 = context.connectByAddress(hostName, hostPort);
+    Connection conn1 = context.connectByReference(busref);
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes(), domain);
 
@@ -433,10 +483,10 @@ public final class OpenBusContextTest {
 
   @Test
   public void makeChainForTest() throws Exception {
-    Connection conn1 = context.connectByAddress(hostName, hostPort);
+    Connection conn1 = context.connectByReference(busref);
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes(), domain);
-    Connection conn2 = context.connectByAddress(hostName, hostPort);
+    Connection conn2 = context.connectByReference(busref);
     String actor2 = "actor-2";
     conn2.loginByPassword(actor2, actor2.getBytes(), domain);
 
@@ -452,13 +502,13 @@ public final class OpenBusContextTest {
 
   @Test
   public void makeChainForJoinedTest() throws Exception {
-    Connection conn1 = context.connectByAddress(hostName, hostPort);
+    Connection conn1 = context.connectByReference(busref);
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes(), domain);
-    Connection conn2 = context.connectByAddress(hostName, hostPort);
+    Connection conn2 = context.connectByReference(busref);
     String actor2 = "actor-2";
     conn2.loginByPassword(actor2, actor2.getBytes(), domain);
-    Connection conn3 = context.connectByAddress(hostName, hostPort);
+    Connection conn3 = context.connectByReference(busref);
     String actor3 = "actor-3";
     conn3.loginByPassword(actor3, actor3.getBytes(), domain);
 
@@ -488,7 +538,7 @@ public final class OpenBusContextTest {
 
   @Test
   public void makeChainForInvalidEntityTest() throws Exception {
-    Connection conn1 = context.connectByAddress(hostName, hostPort);
+    Connection conn1 = context.connectByReference(busref);
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes(), domain);
 
@@ -501,20 +551,20 @@ public final class OpenBusContextTest {
 
   @Test
   public void simulateCallTest() throws Exception {
-    Connection conn1 = context.connectByAddress(hostName, hostPort);
+    Connection conn1 = context.connectByReference(busref);
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes(), domain);
     String login1 = conn1.login().id;
-    Connection conn2 = context.connectByAddress(hostName, hostPort);
+    Connection conn2 = context.connectByReference(busref);
     String actor2 = "actor-2";
     conn2.loginByPassword(actor2, actor2.getBytes(), domain);
     String login2 = conn2.login().id;
-    Connection conn3 = context.connectByAddress(hostName, hostPort);
+    Connection conn3 = context.connectByReference(busref);
     String actor3 = "actor-3";
     conn3.loginByPassword(actor3, actor3.getBytes(), domain);
     String login3 = conn3.login().id;
 
-    final Connection conn = context.connectByAddress(hostName, hostPort);
+    final Connection conn = context.connectByReference(busref);
     conn.loginByCertificate(serverEntity, privateKey);
     context.onCallDispatch(new CallDispatchCallback() {
 
@@ -588,15 +638,15 @@ public final class OpenBusContextTest {
 
   @Test
   public void encodeAndDecodeChain() throws Exception {
-    Connection conn1 = context.connectByAddress(hostName, hostPort);
+    Connection conn1 = context.connectByReference(busref);
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes(), domain);
     String login1 = conn1.login().id;
-    Connection conn2 = context.connectByAddress(hostName, hostPort);
+    Connection conn2 = context.connectByReference(busref);
     String actor2 = "actor-2";
     conn2.loginByPassword(actor2, actor2.getBytes(), domain);
     String login2 = conn2.login().id;
-    Connection conn3 = context.connectByAddress(hostName, hostPort);
+    Connection conn3 = context.connectByReference(busref);
     String actor3 = "actor-3";
     conn3.loginByPassword(actor3, actor3.getBytes(), domain);
 
@@ -638,10 +688,10 @@ public final class OpenBusContextTest {
 
   @Test
   public void encodeAndDecodeChainCheckLegacy() throws Exception {
-    Connection conn1 = context.connectByAddress(hostName, hostPort);
+    Connection conn1 = context.connectByReference(busref);
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes(), domain);
-    Connection conn2 = context.connectByAddress(hostName, hostPort);
+    Connection conn2 = context.connectByReference(busref);
     String actor2 = "actor-2";
     conn2.loginByPassword(actor2, actor2.getBytes(), domain);
 
@@ -675,7 +725,7 @@ public final class OpenBusContextTest {
     LoginInfo caller = chain.caller();
     String id = chain.target();
     String next = "next";
-    Connection conn = context.connectByAddress(hostName, hostPort);
+    Connection conn = context.connectByReference(busref);
     conn.loginByPassword(id, id.getBytes(), domain);
     {
       /*
@@ -706,13 +756,13 @@ public final class OpenBusContextTest {
 
   @Test
   public void encodeAndDecodeSharedAuth() throws Exception {
-    Connection conn = context.connectByAddress(hostName, hostPort);
+    Connection conn = context.connectByReference(busref);
     conn.loginByPassword(entity, password.getBytes(), domain);
     try {
       context.setCurrentConnection(conn);
       SharedAuthSecret secret = conn.startSharedAuth();
       byte[] data = context.encodeSharedAuth(secret);
-      Connection conn2 = context.connectByAddress(hostName, hostPort);
+      Connection conn2 = context.connectByReference(busref);
       SharedAuthSecret secret2 = context.decodeSharedAuth(data);
       conn2.loginBySharedAuth(secret2);
       assertNotNull(conn2.login());
@@ -726,7 +776,7 @@ public final class OpenBusContextTest {
 
   @Test(expected = InvalidEncodedStream.class)
   public void decodeSharedAuthAsChain() throws Exception {
-    Connection conn = context.connectByAddress(hostName, hostPort);
+    Connection conn = context.connectByReference(busref);
     conn.loginByPassword(entity, password.getBytes(), domain);
     SharedAuthSecret secret = null;
     try {
@@ -744,7 +794,7 @@ public final class OpenBusContextTest {
 
   @Test
   public void encodeAndDecodeSharedAuthCheckLegacy() throws Exception {
-    Connection conn = context.connectByAddress(hostName, hostPort);
+    Connection conn = context.connectByReference(busref);
     conn.loginByPassword(entity, password.getBytes(), domain);
     try {
       context.setCurrentConnection(conn);
@@ -765,10 +815,10 @@ public final class OpenBusContextTest {
 
   @Test(expected = InvalidEncodedStream.class)
   public void decodeChainAsSharedAuth() throws Exception {
-    Connection conn1 = context.connectByAddress(hostName, hostPort);
+    Connection conn1 = context.connectByReference(busref);
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes(), domain);
-    Connection conn2 = context.connectByAddress(hostName, hostPort);
+    Connection conn2 = context.connectByReference(busref);
     String actor2 = "actor-2";
     conn2.loginByPassword(actor2, actor2.getBytes(), domain);
     String login2 = conn2.login().id;
