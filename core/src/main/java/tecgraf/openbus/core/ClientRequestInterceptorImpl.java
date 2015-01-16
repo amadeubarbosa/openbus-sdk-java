@@ -169,8 +169,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       logger.log(Level.SEVERE, message, e);
       throw new INTERNAL(message);
     }
-    // salvando informações da conexão e login que foram utilizados no
-    // request
+    // salvando informações da conexão e login que foram utilizados no request
     int uniqueId = mediator().getUniqueId();
     Any uniqueAny = orb().create_any();
     uniqueAny.insert_long(uniqueId);
@@ -188,6 +187,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       logger.log(Level.SEVERE, message, e);
       throw new INTERNAL(message);
     }
+  }
+
+  private void saveRequestsInformation() {
 
   }
 
@@ -411,11 +413,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     String operation = ri.operation();
     logger.finest(String.format("[in] receive_reply: %s", operation));
     if (!checkSlotIdFlag(ri, context().getIgnoreThreadSlotId())) {
-      int uniqueId = getRequestUniqueId();
-      String login = clearRequestUniqueId(uniqueId);
+      clearRequestUniqueId();
       logger.fine(String.format(
-        "requisição atendida com sucesso! ID (%d) login (%s) operação (%s)",
-        uniqueId, login, ri.operation()));
+        "requisição atendida com sucesso: operação (%s)", ri.operation()));
     }
     logger.finest(String.format("[out] receive_reply: %s", operation));
   }
@@ -445,6 +445,11 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       switch (exception.minor) {
 
         case InvalidCredentialCode.value:
+          if (conn == null || loginId == null) {
+            String message = "Faltam informações associadas a requisição";
+            logger.log(Level.SEVERE, message);
+            throw new INTERNAL(message);
+          }
           EffectiveProfile ep = new EffectiveProfile(ri.effective_profile());
           Reset reset = getCredentialReset(ri, conn.legacy());
           if (reset == null) {
@@ -470,17 +475,20 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
           conn.cache.entities.put(ep, reset.target);
           conn.cache.cltSessions.put(reset.target, new ClientSideSession(reset,
             secret));
-          logger.finest(String.format(
-            "ForwardRequest após reset: login (%s) operação (%s)", loginId, ri
+          logger.finest(String
+            .format("ForwardRequest: login (%s) operação (%s)", loginId, ri
               .operation()));
           throw new ForwardRequest(ri.target());
 
         case InvalidLoginCode.value:
-          logger.finest(String.format("InvalidLogin: login (%s) operação (%s)",
-            loginId, ri.operation()));
           boolean skipInvLogin =
             checkSlotIdFlag(ri, context().getSkipInvalidLoginSlotId());
           if (!skipInvLogin) {
+            if (conn == null || loginId == null) {
+              String message = "Faltam informações associadas a requisição";
+              logger.log(Level.SEVERE, message);
+              throw new INTERNAL(message);
+            }
             int validity = 0;
             try {
               context().ignoreInvLogin();
@@ -558,9 +566,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       }
     }
     finally {
-      if (uniqueId != null) {
-        clearRequestUniqueId(uniqueId);
-      }
+      clearRequestUniqueId();
     }
   }
 
@@ -643,7 +649,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    * 
    * @return o identificador associado.
    */
-  private int getRequestUniqueId() {
+  private Integer getRequestUniqueId() {
     try {
       Current current = ORBUtils.getPICurrent(orb());
       Any uniqueAny = current.get_slot(this.mediator().getUniqueIdSlot());
@@ -652,8 +658,8 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       }
       else {
         String message = "Any de chave única de requestId está vazia!";
-        logger.log(Level.SEVERE, message);
-        throw new INTERNAL(message);
+        logger.fine(message);
+        return null;
       }
     }
     catch (InvalidSlot e) {
@@ -664,26 +670,25 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
   }
 
   /**
-   * Libera os recursos associados ao identificador.
-   * 
-   * @param uniqueId identificador
-   * @return retorna o identificador de login associado ao identificador.
+   * Libera os recursos associados ao identificador de request.
    */
-  private String clearRequestUniqueId(int uniqueId) {
-    uniqueId2Conn.remove(uniqueId);
-    String removed = uniqueId2LoginId.remove(uniqueId);
-    try {
-      ORB orb = orb();
-      Any emptyAny = orb.create_any();
-      Current current = ORBUtils.getPICurrent(orb);
-      current.set_slot(this.mediator().getUniqueIdSlot(), emptyAny);
+  private void clearRequestUniqueId() {
+    Integer uniqueId = getRequestUniqueId();
+    if (uniqueId != null) {
+      uniqueId2Conn.remove(uniqueId);
+      uniqueId2LoginId.remove(uniqueId);
+      try {
+        ORB orb = orb();
+        Any emptyAny = orb.create_any();
+        Current current = ORBUtils.getPICurrent(orb);
+        current.set_slot(this.mediator().getUniqueIdSlot(), emptyAny);
+      }
+      catch (InvalidSlot e) {
+        String message = "Falha inesperada ao acessar o slot de requestId";
+        logger.log(Level.SEVERE, message, e);
+        throw new INTERNAL(message);
+      }
     }
-    catch (InvalidSlot e) {
-      String message = "Falha inesperada ao acessar o slot de requestId";
-      logger.log(Level.SEVERE, message, e);
-      throw new INTERNAL(message);
-    }
-    return removed;
   }
 
   /**
