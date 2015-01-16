@@ -57,7 +57,6 @@ public final class OpenBusContextTest {
   private static ORB orb;
   private static OpenBusContext context;
   private static Object busref;
-  private static String legacyChain;
   private static String host;
   private static int port;
   private static String entity;
@@ -83,7 +82,6 @@ public final class OpenBusContextTest {
     String ior = new String(Utils.readFile(iorfile));
     busref = orb.string_to_object(ior);
     context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
-    legacyChain = properties.getProperty("legacy.chain");
   }
 
   @Before
@@ -191,10 +189,7 @@ public final class OpenBusContextTest {
 
   @Test
   public void connectByReferenceTest() throws Exception {
-    String str =
-      String.format("corbaloc::1.0@%s:%d/%s", host, port, BusObjectKey.value);
-    org.omg.CORBA.Object obj = orb.string_to_object(str);
-    final Connection conn = context.connectByReference(obj);
+    final Connection conn = context.connectByReference(busref);
     conn.loginByPassword(entity, password.getBytes(), domain);
     assertNotNull(conn.login());
     assertTrue(conn.logout());
@@ -710,48 +705,6 @@ public final class OpenBusContextTest {
 
     conn1.logout();
     conn2.logout();
-  }
-
-  @Test
-  public void decodeAndJoinLegacyChain() throws Exception {
-    byte[] data = Utils.readFile(legacyChain);
-    CallerChainImpl chain = (CallerChainImpl) context.decodeChain(data);
-    assertTrue(InterceptorImpl.NULL_SIGNED_CALL_CHAIN.equals(chain
-      .internal_chain().signedChain));
-    assertFalse(InterceptorImpl.NULL_SIGNED_LEGACY_CALL_CHAIN.equals(chain
-      .internal_chain().signedLegacy));
-    assertNotNull(chain.caller());
-    int origs = chain.originators().length;
-    LoginInfo caller = chain.caller();
-    String id = chain.target();
-    String next = "next";
-    Connection conn = context.connectByReference(busref);
-    conn.loginByPassword(id, id.getBytes(), domain);
-    {
-      /*
-       * Dada a fragilidade deste dado, estou modificando o valor do busid para
-       * garantir que o teste funcione independente do barramento utilizado
-       */
-      String bus = conn.busid();
-      chain.internal_chain().bus = bus;
-    }
-    CallerChain joined;
-    try {
-      context.setCurrentConnection(conn);
-      context.joinChain(chain);
-      joined = context.makeChainFor(next);
-    }
-    finally {
-      context.exitChain();
-      context.setCurrentConnection(null);
-      conn.logout();
-    }
-    assertEquals(id, joined.caller().entity);
-    assertEquals(next, joined.target());
-    int length = joined.originators().length;
-    assertEquals(origs + 1, length);
-    assertEquals(caller.entity, joined.originators()[length - 1].entity);
-    assertEquals(caller.id, joined.originators()[length - 1].id);
   }
 
   @Test
