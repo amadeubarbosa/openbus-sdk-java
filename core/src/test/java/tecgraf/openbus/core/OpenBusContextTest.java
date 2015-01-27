@@ -49,6 +49,7 @@ import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.exception.InvalidEncodedStream;
 import tecgraf.openbus.exception.InvalidPropertyValue;
 import tecgraf.openbus.security.Cryptography;
+import tecgraf.openbus.util.Configs;
 import tecgraf.openbus.util.Utils;
 import test.CallerChainInspector;
 import test.CallerChainInspectorHelper;
@@ -60,27 +61,29 @@ public final class OpenBusContextTest {
   private static String host;
   private static int port;
   private static String entity;
-  private static String password;
+  private static byte[] password;
   private static String domain;
-  private static String serverEntity;
-  private static RSAPrivateKey privateKey;
-  private static String privateKeyFile;
+  private static String system;
+  private static RSAPrivateKey systemKey;
+  private static String systemKeyPath;
+  private static Properties orbprops;
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
-    Properties properties = Utils.readPropertyFile("/test.properties");
-    host = properties.getProperty("openbus.host.name");
-    port = Integer.valueOf(properties.getProperty("openbus.host.port"));
-    entity = properties.getProperty("entity.name");
-    password = properties.getProperty("entity.password");
-    domain = properties.getProperty("entity.domain");
-    serverEntity = properties.getProperty("server.entity.name");
-    privateKeyFile = properties.getProperty("server.private.key");
-    privateKey = Cryptography.getInstance().readKeyFromFile(privateKeyFile);
-    orb = ORBInitializer.initORB();
-    String iorfile = properties.getProperty("openbus.ior");
-    String ior = new String(Utils.readFile(iorfile));
-    busref = orb.string_to_object(ior);
+    Cryptography crypto = Cryptography.getInstance();
+    Configs configs = Configs.readConfigsFile("/test.properties");
+    Utils.setLogLevel(configs.log);
+    host = configs.host;
+    port = configs.port;
+    entity = configs.user;
+    password = configs.password;
+    domain = configs.domain;
+    system = configs.system;
+    systemKeyPath = configs.syskey;
+    systemKey = crypto.readKeyFromFile(configs.syskey);
+    orbprops = Utils.readPropertyFile(configs.orbprops);
+    orb = ORBInitializer.initORB(null, orbprops);
+    busref = orb.string_to_object(new String(Utils.readFile(configs.busref)));
     context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
   }
 
@@ -105,7 +108,7 @@ public final class OpenBusContextTest {
     assertNotNull(context.getDefaultConnection());
     assertEquals(conn, context.getDefaultConnection());
 
-    ORB orb2 = ORBInitializer.initORB();
+    ORB orb2 = ORBInitializer.initORB(null, orbprops);
     assertNotSame(orb, orb2);
 
     OpenBusContext context2 =
@@ -132,7 +135,7 @@ public final class OpenBusContextTest {
     LoginInfo[] originators = new LoginInfo[0];
     context.joinChain(buildFakeCallChain(busid, target, caller, originators));
 
-    ORB orb2 = ORBInitializer.initORB();
+    ORB orb2 = ORBInitializer.initORB(null, orbprops);
     assertNotSame(orb, orb2);
 
     OpenBusContext context2 =
@@ -184,13 +187,13 @@ public final class OpenBusContextTest {
     org.omg.CORBA.Object obj = orb.string_to_object(str);
     Connection invalid = context.connectByReference(obj);
     assertNotNull(invalid);
-    invalid.loginByPassword(entity, password.getBytes(), domain);
+    invalid.loginByPassword(entity, password, domain);
   }
 
   @Test
   public void connectByReferenceTest() throws Exception {
     final Connection conn = context.connectByReference(busref);
-    conn.loginByPassword(entity, password.getBytes(), domain);
+    conn.loginByPassword(entity, password, domain);
     assertNotNull(conn.login());
     assertTrue(conn.logout());
   }
@@ -198,7 +201,7 @@ public final class OpenBusContextTest {
   @Test
   public void accessKeyPropTest() throws Exception {
     Properties properties = new Properties();
-    properties.put(OpenBusProperty.ACCESS_KEY.getKey(), privateKeyFile);
+    properties.put(OpenBusProperty.ACCESS_KEY.getKey(), systemKeyPath);
     Connection conn = context.connectByReference(busref, properties);
     assertNull(conn.login());
     conn.loginByPassword(entity, entity.getBytes(), domain);
@@ -248,7 +251,7 @@ public final class OpenBusContextTest {
   public void defaultConnectionTest() throws Exception {
     context.setDefaultConnection(null);
     final Connection conn = context.connectByReference(busref);
-    conn.loginByPassword(entity, password.getBytes(), domain);
+    conn.loginByPassword(entity, password, domain);
     assertNull(context.getDefaultConnection());
     context.setCurrentConnection(conn);
     assertNull(context.getDefaultConnection());
@@ -272,7 +275,7 @@ public final class OpenBusContextTest {
   @Test
   public void requesterTest() throws Exception {
     final Connection conn = context.connectByReference(busref);
-    conn.loginByPassword(entity, password.getBytes(), domain);
+    conn.loginByPassword(entity, password, domain);
     assertNull(context.getCurrentConnection());
     context.setDefaultConnection(conn);
     context.onCallDispatch(new CallDispatchCallback() {
@@ -293,7 +296,7 @@ public final class OpenBusContextTest {
     context.setCurrentConnection(null);
 
     // tentativa de chamada sem conexão request setada
-    conn.loginByPassword(entity, password.getBytes(), domain);
+    conn.loginByPassword(entity, password, domain);
     assertNull(context.getCurrentConnection());
     boolean failed = false;
     ServiceProperty[] props =
@@ -334,7 +337,7 @@ public final class OpenBusContextTest {
   @Test
   public void getCallerChainInDispatchTest() throws Exception {
     Connection conn = context.connectByReference(busref);
-    conn.loginByPassword(entity, password.getBytes(), domain);
+    conn.loginByPassword(entity, password, domain);
     context.setDefaultConnection(conn);
     ComponentContext component = Utils.buildTestCallerChainComponent(context);
     ServiceProperty[] props =
@@ -355,7 +358,7 @@ public final class OpenBusContextTest {
   @Test
   public void getConnectionInDispatchTest() throws Exception {
     Connection conn = context.connectByReference(busref);
-    conn.loginByPassword(entity, password.getBytes(), domain);
+    conn.loginByPassword(entity, password, domain);
     context.setDefaultConnection(conn);
     ComponentContext component = Utils.buildTestConnectionComponent(context);
     ServiceProperty[] props =
@@ -376,7 +379,7 @@ public final class OpenBusContextTest {
   @Test
   public void getConnectionInDispatch2Test() throws Exception {
     final Connection conn = context.connectByReference(busref);
-    conn.loginByPassword(entity, password.getBytes(), domain);
+    conn.loginByPassword(entity, password, domain);
     context.setCurrentConnection(conn);
     context.onCallDispatch(new CallDispatchCallback() {
       @Override
@@ -560,7 +563,7 @@ public final class OpenBusContextTest {
     String login3 = conn3.login().id;
 
     final Connection conn = context.connectByReference(busref);
-    conn.loginByCertificate(serverEntity, privateKey);
+    conn.loginByCertificate(system, systemKey);
     context.onCallDispatch(new CallDispatchCallback() {
 
       @Override
@@ -710,7 +713,7 @@ public final class OpenBusContextTest {
   @Test
   public void encodeAndDecodeSharedAuth() throws Exception {
     Connection conn = context.connectByReference(busref);
-    conn.loginByPassword(entity, password.getBytes(), domain);
+    conn.loginByPassword(entity, password, domain);
     try {
       context.setCurrentConnection(conn);
       SharedAuthSecret secret = conn.startSharedAuth();
@@ -730,7 +733,7 @@ public final class OpenBusContextTest {
   @Test(expected = InvalidEncodedStream.class)
   public void decodeSharedAuthAsChain() throws Exception {
     Connection conn = context.connectByReference(busref);
-    conn.loginByPassword(entity, password.getBytes(), domain);
+    conn.loginByPassword(entity, password, domain);
     SharedAuthSecret secret = null;
     try {
       context.setCurrentConnection(conn);
@@ -748,7 +751,7 @@ public final class OpenBusContextTest {
   @Test
   public void encodeAndDecodeSharedAuthCheckLegacy() throws Exception {
     Connection conn = context.connectByReference(busref);
-    conn.loginByPassword(entity, password.getBytes(), domain);
+    conn.loginByPassword(entity, password, domain);
     try {
       context.setCurrentConnection(conn);
       SharedAuthSecret secret = conn.startSharedAuth();

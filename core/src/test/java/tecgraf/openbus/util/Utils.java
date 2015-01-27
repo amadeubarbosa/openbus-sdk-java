@@ -4,12 +4,17 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.text.SimpleDateFormat;
 import java.util.Properties;
 import java.util.logging.ConsoleHandler;
+import java.util.logging.Formatter;
+import java.util.logging.Handler;
 import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 import org.omg.CORBA.ORB;
@@ -46,8 +51,9 @@ public class Utils {
     Properties properties = new Properties();
     InputStream propertiesStream = Utils.class.getResourceAsStream(fileName);
     if (propertiesStream == null) {
-      throw new FileNotFoundException(String.format(
+      System.err.println(String.format(
         "O arquivo de propriedades '%s' não foi encontrado", fileName));
+      return properties;
     }
     try {
       properties.load(propertiesStream);
@@ -221,9 +227,32 @@ public class Utils {
   public static void setLogLevel(Level level) {
     Logger logger = Logger.getLogger("tecgraf.openbus");
     logger.setLevel(level);
+    for (Handler h : logger.getHandlers()) {
+      logger.removeHandler(h);
+    }
     logger.setUseParentHandlers(false);
     ConsoleHandler handler = new ConsoleHandler();
+    handler.setFormatter(new LogFormatter());
     handler.setLevel(level);
     logger.addHandler(handler);
+  }
+
+  private static class LogFormatter extends Formatter {
+    SimpleDateFormat time = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+    @Override
+    public String format(LogRecord record) {
+      String result =
+        String.format("%s [%s] %s\n", time.format(record.getMillis()), record
+          .getLevel(), record.getMessage());
+      Throwable t = record.getThrown();
+      return t == null ? result : result + getStackTrace(t);
+    }
+
+    private String getStackTrace(Throwable t) {
+      StringWriter sw = new StringWriter();
+      t.printStackTrace(new PrintWriter(sw));
+      return sw.toString();
+    }
   }
 }

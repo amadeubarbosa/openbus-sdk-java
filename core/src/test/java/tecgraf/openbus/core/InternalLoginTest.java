@@ -4,8 +4,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Properties;
-
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.omg.CORBA.ORB;
@@ -14,27 +12,26 @@ import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 import tecgraf.openbus.security.Cryptography;
+import tecgraf.openbus.util.Configs;
 import tecgraf.openbus.util.Utils;
 
 public class InternalLoginTest {
 
   private static String host;
   private static int port;
-  private static String entity;
-  private static String password;
   private static ORB orb;
-  private static OpenBusContext manager;
+  private static OpenBusContext context;
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
     Cryptography crypto = Cryptography.getInstance();
-    Properties properties = Utils.readPropertyFile("/test.properties");
-    host = properties.getProperty("openbus.host.name");
-    port = Integer.valueOf(properties.getProperty("openbus.host.port"));
-    entity = properties.getProperty("entity.name");
-    password = properties.getProperty("entity.password");
-    orb = ORBInitializer.initORB();
-    manager = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
+    Configs configs = Configs.readConfigsFile("/test.properties");
+    Utils.setLogLevel(configs.log);
+    host = configs.host;
+    port = configs.port;
+    orb =
+      ORBInitializer.initORB(null, Utils.readPropertyFile(configs.orbprops));
+    context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
   }
 
   private boolean checkLogin(LoginInfo login1, LoginInfo login2) {
@@ -46,7 +43,7 @@ public class InternalLoginTest {
 
   @Test
   public void statusTest() {
-    Connection conn = manager.connectByAddress(host, port);
+    Connection conn = context.connectByAddress(host, port);
     InternalLogin internal = new InternalLogin((ConnectionImpl) conn);
     assertNull(internal.login());
     LoginInfo login = new LoginInfo("id1", "entity1");
@@ -69,7 +66,7 @@ public class InternalLoginTest {
 
   @Test
   public void loginChangeTest() {
-    Connection conn = manager.connectByAddress(host, port);
+    Connection conn = context.connectByAddress(host, port);
     InternalLogin internal = new InternalLogin((ConnectionImpl) conn);
     LoginInfo login1 = new LoginInfo("id1", "entity1");
     internal.setLoggedIn(login1);

@@ -8,9 +8,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.security.interfaces.RSAPrivateKey;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
 
 import org.junit.After;
 import org.junit.BeforeClass;
@@ -35,6 +33,7 @@ import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.security.Cryptography;
+import tecgraf.openbus.util.Configs;
 import tecgraf.openbus.util.Utils;
 
 public final class ConnectionTest {
@@ -43,41 +42,37 @@ public final class ConnectionTest {
   private static int port;
   private static Object busref;
   private static String entity;
-  private static String password;
+  private static byte[] password;
   private static String domain;
-  private static String serverEntity;
-  private static String privateKeyFile;
-  private static RSAPrivateKey privateKey;
-  private static RSAPrivateKey wrongPrivateKey;
-  private static String entityWithoutCert;
+  private static String system;
+  private static RSAPrivateKey systemKey;
+  private static RSAPrivateKey systemWrongKey;
+  private static String systemWrongName;
   private static String admin;
-  private static String adminpwd;
+  private static byte[] adminpwd;
   private static ORB orb;
   private static OpenBusContext context;
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
     Cryptography crypto = Cryptography.getInstance();
-    Properties properties = Utils.readPropertyFile("/test.properties");
-    host = properties.getProperty("openbus.host.name");
-    port = Integer.valueOf(properties.getProperty("openbus.host.port"));
-    entity = properties.getProperty("entity.name");
-    password = properties.getProperty("entity.password");
-    domain = properties.getProperty("entity.domain");
-    serverEntity = properties.getProperty("server.entity.name");
-    privateKeyFile = properties.getProperty("server.private.key");
-    privateKey = crypto.readKeyFromFile(privateKeyFile);
-    entityWithoutCert = properties.getProperty("entity.withoutcert");
-    String wrongPrivateKeyFile = properties.getProperty("wrongkey");
-    wrongPrivateKey = crypto.readKeyFromFile(wrongPrivateKeyFile);
-    admin = properties.getProperty("admin.name");
-    adminpwd = properties.getProperty("admin.password");
-    orb = ORBInitializer.initORB();
-    String iorfile = properties.getProperty("openbus.ior");
-    String ior = new String(Utils.readFile(iorfile));
-    busref = orb.string_to_object(ior);
+    Configs configs = Configs.readConfigsFile("/test.properties");
+    Utils.setLogLevel(configs.log);
+    host = configs.host;
+    port = configs.port;
+    entity = configs.user;
+    password = configs.password;
+    domain = configs.domain;
+    system = configs.system;
+    systemKey = crypto.readKeyFromFile(configs.syskey);
+    systemWrongName = configs.wrongsystem;
+    systemWrongKey = crypto.readKeyFromFile(configs.wrongkey);
+    admin = configs.admin;
+    adminpwd = configs.admpsw;
+    orb =
+      ORBInitializer.initORB(null, Utils.readPropertyFile(configs.orbprops));
+    busref = orb.string_to_object(new String(Utils.readFile(configs.busref)));
     context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
-    Utils.setLogLevel(Level.FINEST);
   }
 
   @After
@@ -141,7 +136,7 @@ public final class ConnectionTest {
     // entidade errada
     boolean failed = false;
     try {
-      conn.loginByPassword("", password.getBytes(), domain);
+      conn.loginByPassword("", password, domain);
     }
     catch (AccessDenied e) {
       failed = true;
@@ -166,7 +161,7 @@ public final class ConnectionTest {
 
     // login válido
     assertNull(conn.login());
-    conn.loginByPassword(entity, password.getBytes(), domain);
+    conn.loginByPassword(entity, password, domain);
     assertNotNull(conn.login());
     conn.logout();
     assertNull(conn.login());
@@ -174,8 +169,8 @@ public final class ConnectionTest {
     // login repetido
     failed = false;
     try {
-      conn.loginByPassword(entity, password.getBytes(), domain);
-      conn.loginByPassword(entity, password.getBytes(), domain);
+      conn.loginByPassword(entity, password, domain);
+      conn.loginByPassword(entity, password, domain);
     }
     catch (AlreadyLoggedIn e) {
       failed = true;
@@ -195,7 +190,7 @@ public final class ConnectionTest {
     // entidade sem certificado cadastrado
     boolean failed = false;
     try {
-      conn.loginByCertificate(entityWithoutCert, privateKey);
+      conn.loginByCertificate(systemWrongName, systemKey);
     }
     catch (MissingCertificate e) {
       failed = true;
@@ -212,7 +207,7 @@ public final class ConnectionTest {
     try {
       RSAPrivateKey key =
         Cryptography.getInstance().readKeyFromBytes(new byte[0]);
-      conn.loginByCertificate(serverEntity, key);
+      conn.loginByCertificate(system, key);
     }
     catch (Exception e) {
       failed = true;
@@ -223,7 +218,7 @@ public final class ConnectionTest {
     // chave privada inválida
     failed = false;
     try {
-      conn.loginByCertificate(serverEntity, wrongPrivateKey);
+      conn.loginByCertificate(system, systemWrongKey);
     }
     catch (AccessDenied e) {
       failed = true;
@@ -236,7 +231,7 @@ public final class ConnectionTest {
 
     // login válido
     assertNull(conn.login());
-    conn.loginByCertificate(serverEntity, privateKey);
+    conn.loginByCertificate(system, systemKey);
     assertNotNull(conn.login());
     assertTrue(conn.logout());
     assertNull(conn.login());
@@ -244,8 +239,8 @@ public final class ConnectionTest {
     // login repetido
     failed = false;
     try {
-      conn.loginByCertificate(serverEntity, privateKey);
-      conn.loginByCertificate(serverEntity, privateKey);
+      conn.loginByCertificate(system, systemKey);
+      conn.loginByCertificate(system, systemKey);
     }
     catch (AlreadyLoggedIn e) {
       failed = true;
@@ -263,7 +258,7 @@ public final class ConnectionTest {
   public void loginBySharedAuthenticationFakeTest() throws Exception {
     Connection conn = context.connectByReference(busref);
     Connection conn2 = context.connectByReference(busref);
-    conn.loginByPassword(entity, password.getBytes(), domain);
+    conn.loginByPassword(entity, password, domain);
 
     // segredo errado
     boolean failed = false;
@@ -291,7 +286,7 @@ public final class ConnectionTest {
   public void loginBySharedAuthenticationTest() throws Exception {
     Connection conn = context.connectByReference(busref);
     Connection conn2 = context.connectByReference(busref);
-    conn.loginByPassword(entity, password.getBytes(), domain);
+    conn.loginByPassword(entity, password, domain);
 
     // login válido
     assertNull(conn2.login());
@@ -333,7 +328,7 @@ public final class ConnectionTest {
   public void logoutTest() throws Exception {
     final Connection conn = context.connectByReference(busref);
     assertTrue(conn.logout());
-    conn.loginByPassword(entity, password.getBytes(), domain);
+    conn.loginByPassword(entity, password, domain);
     final String busId = conn.busid();
     context.onCallDispatch(new CallDispatchCallback() {
 
@@ -376,7 +371,7 @@ public final class ConnectionTest {
       @Override
       public void invalidLogin(Connection conn, LoginInfo login) {
         try {
-          conn.loginByPassword(entity, password.getBytes(), domain);
+          conn.loginByPassword(entity, password, domain);
           called.set(true);
         }
         catch (Exception e) {
@@ -386,11 +381,11 @@ public final class ConnectionTest {
     };
     conn.onInvalidLoginCallback(callback);
     assertEquals(callback, conn.onInvalidLoginCallback());
-    conn.loginByPassword(entity, password.getBytes(), domain);
+    conn.loginByPassword(entity, password, domain);
     String id = conn.login().id;
 
     Connection adminconn = context.connectByReference(busref);
-    adminconn.loginByPassword(admin, adminpwd.getBytes(), domain);
+    adminconn.loginByPassword(admin, adminpwd, domain);
     try {
       context.setCurrentConnection(adminconn);
       context.getLoginRegistry().invalidateLogin(id);
@@ -415,9 +410,9 @@ public final class ConnectionTest {
     try {
       String sys1 = "test_entity_registration_first";
       String sys2 = "test_entity_registration_second";
-      conn1.loginByCertificate(sys1, privateKey);
+      conn1.loginByCertificate(sys1, systemKey);
       assertNotNull(conn1.login());
-      conn2.loginByCertificate(sys2, privateKey);
+      conn2.loginByCertificate(sys2, systemKey);
       assertNotNull(conn2.login());
       ServiceProperty[] props =
         new ServiceProperty[] { new ServiceProperty("offer.domain", "testing") };
@@ -462,7 +457,7 @@ public final class ConnectionTest {
       @Override
       public void invalidLogin(Connection conn, LoginInfo login) {
         try {
-          conn.loginByPassword(entity, password.getBytes(), domain);
+          conn.loginByPassword(entity, password, domain);
           called.set(true);
         }
         catch (Exception e) {
@@ -472,11 +467,11 @@ public final class ConnectionTest {
     };
     conn.onInvalidLoginCallback(callback);
     assertEquals(callback, conn.onInvalidLoginCallback());
-    conn.loginByPassword(entity, password.getBytes(), domain);
+    conn.loginByPassword(entity, password, domain);
     String id = conn.login().id;
 
     Connection adminconn = context.connectByReference(busref);
-    adminconn.loginByPassword(admin, adminpwd.getBytes(), domain);
+    adminconn.loginByPassword(admin, adminpwd, domain);
     try {
       context.setCurrentConnection(adminconn);
       boolean ok = context.getLoginRegistry().invalidateLogin(id);

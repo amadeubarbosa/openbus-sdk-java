@@ -1,9 +1,7 @@
 package tecgraf.openbus.core;
 
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.fail;
 
-import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -21,15 +19,12 @@ import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
+import tecgraf.openbus.util.Configs;
 import tecgraf.openbus.util.Utils;
 
 public class MassiveConnectionTest {
 
   private static Object busref;
-  private static String host;
-  private static int port;
-  private static String entity;
-  private static String password;
   private static String domain;
   private static ORB orb;
   private static OpenBusContext context;
@@ -38,14 +33,12 @@ public class MassiveConnectionTest {
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
-    Properties properties = Utils.readPropertyFile("/test.properties");
-    host = properties.getProperty("openbus.host.name");
-    port = Integer.valueOf(properties.getProperty("openbus.host.port"));
-    domain = properties.getProperty("entity.domain");
-    orb = ORBInitializer.initORB();
-    String iorfile = properties.getProperty("openbus.ior");
-    String ior = new String(Utils.readFile(iorfile));
-    busref = orb.string_to_object(ior);
+    Configs configs = Configs.readConfigsFile("/test.properties");
+    Utils.setLogLevel(configs.log);
+    domain = configs.domain;
+    orb =
+      ORBInitializer.initORB(null, Utils.readPropertyFile(configs.orbprops));
+    busref = orb.string_to_object(new String(Utils.readFile(configs.busref)));
     context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
   }
 
@@ -69,10 +62,6 @@ public class MassiveConnectionTest {
     threadPool.shutdown();
     try {
       threadPool.awaitTermination(2, TimeUnit.MINUTES);
-    }
-    catch (InterruptedException e) {
-      e.printStackTrace();
-      fail(e.getMessage());
     }
     finally {
       conn.logout();
