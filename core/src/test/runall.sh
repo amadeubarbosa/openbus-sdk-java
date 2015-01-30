@@ -9,8 +9,7 @@ elif [[ "$mode" != "RELEASE" && "$mode" != "DEBUG" ]]; then
 	exit 1
 fi
 
-bus1port=21011
-bus2port=21021
+bus1port=21220
 leasetime=1
 passwordpenalty=1
 
@@ -21,7 +20,6 @@ echo "password.penalty.time=$passwordpenalty" >> $OPENBUS_TESTCFG
 #echo "openbus.test.verbose=yes"               >> $OPENBUS_TESTCFG
 
 source ${OPENBUS_CORE_TEST}/runbus.sh $mode BUS01 $bus1port
-source ${OPENBUS_CORE_TEST}/runbus.sh $mode BUS02 $bus2port
 #genkey $OPENBUS_TEMP/testsyst
 
 # go to resources, where the scipt is located
@@ -46,6 +44,7 @@ echo "openbus.log.level = OFF" >> test.properties
 # go to core/pom.xml
 pushd ../../..
 mvn test
+assert_ok $?
 # back to resources
 popd
 source ${OPENBUS_CORE_TEST}/runadmin.sh $mode localhost $bus1port --undo-script=sdk_java_test.adm
