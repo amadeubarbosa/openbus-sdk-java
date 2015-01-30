@@ -578,8 +578,9 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
               logger
                 .finest(String
                   .format(
-                    "O login não é o mesmo do alvo da cadeia. É necessário refazer a sessão de credencial através de um reset. Operação: %s",
-                    ri.operation()));
+                    "O login não é o mesmo do alvo da cadeia: operation (%s) login (%s) caller (%s) caller.id (%s) target (%s)",
+                    ri.operation(), loginInfo.id, callChain.caller.entity,
+                    callChain.caller.id, callChain.target));
               // credencial não é válida. Resetando a credencial da sessão.
               doResetCredential(ri, orb, conn, credential.login, pubkey.value);
               throw new NO_PERMISSION(InvalidCredentialCode.value,

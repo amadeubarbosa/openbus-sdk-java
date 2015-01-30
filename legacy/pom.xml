@@ -19,8 +19,6 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>idlj-maven-plugin</artifactId>
-        <version>${idlj.version}</version>
-
         <configuration>
           <sourceDirectory>${openbus.legacy.idlpath}</sourceDirectory>
           <sources>
