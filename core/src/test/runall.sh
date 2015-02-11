@@ -25,7 +25,6 @@ source ${OPENBUS_CORE_TEST}/runbus.sh $mode BUS01 $bus1port
 # go to resources, where the scipt is located
 pushd resources
 source ${OPENBUS_CORE_TEST}/runadmin.sh $mode localhost $bus1port --script=sdk_java_test.adm
-source ${OPENBUS_CORE_TEST}/runadmin.sh $mode localhost $bus2port --script=sdk_java_test.adm
 
 echo "bus.reference.path = $OPENBUS_TEMP/BUS01.ior" > test.properties
 echo "bus.host.name = localhost" >> test.properties
@@ -48,13 +47,4 @@ assert_ok $?
 # back to resources
 popd
 source ${OPENBUS_CORE_TEST}/runadmin.sh $mode localhost $bus1port --undo-script=sdk_java_test.adm
-source ${OPENBUS_CORE_TEST}/runadmin.sh $mode localhost $bus2port --undo-script=sdk_java_test.adm
 
-# cd ../interop
-# source ${OPENBUS_CORE_TEST}/runadmin.sh $mode localhost $bus1port --script=script.adm
-# source ${OPENBUS_CORE_TEST}/runadmin.sh $mode localhost $bus2port --script=script.adm
-# source runall.sh $mode
-# sleep 2 # wait for offers to expire
-# source ${OPENBUS_CORE_TEST}/runadmin.sh $mode localhost $bus1port --undo-script=script.adm
-# source ${OPENBUS_CORE_TEST}/runadmin.sh $mode localhost $bus2port --undo-script=script.adm
-# cd ../test
