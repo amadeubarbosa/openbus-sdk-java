@@ -20,6 +20,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>idlj-maven-plugin</artifactId>
+        <version>${idlj.version}</version>
         <configuration>
           <sourceDirectory>idl</sourceDirectory>
         </configuration>
@@ -27,6 +28,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
+        <version>${jar.version}</version>
         <configuration>
           <excludes>
             <exclude>**/resources/*</exclude>
