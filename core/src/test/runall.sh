@@ -10,7 +10,7 @@ elif [[ "$mode" != "RELEASE" && "$mode" != "DEBUG" ]]; then
 fi
 
 bus1port=21220
-leasetime=1
+leasetime=5
 passwordpenalty=1
 
 export OPENBUS_TESTCFG=$OPENBUS_TEMP/test.properties

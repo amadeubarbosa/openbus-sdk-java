@@ -277,7 +277,6 @@
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>idlj-maven-plugin</artifactId>
         <version>${idlj.version}</version>
-
         <dependencies>
           <dependency>
             <groupId>org.jacorb</groupId>
