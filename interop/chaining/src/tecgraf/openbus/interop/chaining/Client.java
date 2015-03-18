@@ -2,8 +2,6 @@ package tecgraf.openbus.interop.chaining;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Properties;
-import java.util.logging.Level;
 
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.ORBPackage.InvalidName;
@@ -17,6 +15,7 @@ import tecgraf.openbus.core.v2_0.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
+import tecgraf.openbus.interop.util.Configs;
 import tecgraf.openbus.interop.util.Utils;
 
 /**
@@ -36,11 +35,11 @@ public final class Client {
    * @throws IOException
    */
   public static void main(String[] args) throws Exception {
-    Properties props = Utils.readPropertyFile("/test.properties");
-    String host = props.getProperty("bus.host.name");
-    int port = Integer.valueOf(props.getProperty("bus.host.port"));
+    Configs configs = Configs.readConfigsFile();
+    String host = configs.bushost;
+    int port = configs.busport;
     String entity = "interop_chaining_java_client";
-    Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
+    Utils.setLibLogLevel(configs.log);
 
     ORB orb = ORBInitializer.initORB(args);
     OpenBusContext context =

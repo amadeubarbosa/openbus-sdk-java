@@ -1,8 +1,6 @@
 package tecgraf.openbus.interop.reloggedjoin;
 
 import java.security.interfaces.RSAPrivateKey;
-import java.util.Properties;
-import java.util.logging.Level;
 
 import org.omg.CORBA.ORB;
 import org.omg.PortableServer.POA;
@@ -17,6 +15,7 @@ import tecgraf.openbus.core.v2_0.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOffer;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.simple.HelloHelper;
+import tecgraf.openbus.interop.util.Configs;
 import tecgraf.openbus.interop.util.Utils;
 import tecgraf.openbus.interop.util.Utils.ORBRunThread;
 import tecgraf.openbus.interop.util.Utils.ShutdownThread;
@@ -35,14 +34,14 @@ public final class Server {
    * @param args argumentos.
    */
   public static void main(String[] args) throws Exception {
-    Properties props = Utils.readPropertyFile("/test.properties");
-    String host = props.getProperty("bus.host.name");
-    int port = Integer.valueOf(props.getProperty("bus.host.port"));
+    Configs configs = Configs.readConfigsFile();
+    String host = configs.bushost;
+    int port = configs.busport;
     String entity = "interop_reloggedjoin_java_server";
     String privateKeyFile = "admin/InteropReloggedJoin.key";
     RSAPrivateKey privateKey =
       Cryptography.getInstance().readKeyFromFile(privateKeyFile);
-    Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
+    Utils.setLibLogLevel(configs.log);
 
     ORB orb = ORBInitializer.initORB(args);
     new ORBRunThread(orb).start();

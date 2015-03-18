@@ -2,8 +2,6 @@ package tecgraf.openbus.interop.delegation;
 
 import java.security.interfaces.RSAPrivateKey;
 import java.util.List;
-import java.util.Properties;
-import java.util.logging.Level;
 
 import org.omg.CORBA.ORB;
 import org.omg.PortableServer.POA;
@@ -17,6 +15,7 @@ import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
+import tecgraf.openbus.interop.util.Configs;
 import tecgraf.openbus.interop.util.Utils;
 import tecgraf.openbus.interop.util.Utils.ORBRunThread;
 import tecgraf.openbus.interop.util.Utils.ShutdownThread;
@@ -25,14 +24,14 @@ import tecgraf.openbus.security.Cryptography;
 public class Broadcasting {
 
   public static void main(String[] args) throws Exception {
-    Properties props = Utils.readPropertyFile("/test.properties");
-    String host = props.getProperty("bus.host.name");
-    int port = Integer.valueOf(props.getProperty("bus.host.port"));
+    Configs configs = Configs.readConfigsFile();
+    String host = configs.bushost;
+    int port = configs.busport;
     String entity = "interop_delegation_java_broadcaster";
     String privateKeyFile = "admin/InteropDelegation.key";
     RSAPrivateKey privateKey =
       Cryptography.getInstance().readKeyFromFile(privateKeyFile);
-    Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
+    Utils.setLibLogLevel(configs.log);
 
     final ORB orb = ORBInitializer.initORB(args);
     new ORBRunThread(orb).start();

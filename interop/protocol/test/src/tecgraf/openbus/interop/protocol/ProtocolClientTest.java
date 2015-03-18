@@ -1,7 +1,6 @@
 package tecgraf.openbus.interop.protocol;
 
 import java.util.Arrays;
-import java.util.Properties;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -34,7 +33,7 @@ import tecgraf.openbus.core.v2_0.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_0.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.interop.util.Utils;
+import tecgraf.openbus.interop.util.Configs;
 import tecgraf.openbus.security.Cryptography;
 
 /**
@@ -47,7 +46,7 @@ public final class ProtocolClientTest {
   private static String host;
   private static int port;
   private static String entity;
-  private static String password;
+  private static byte[] password;
   private static ORB orb;
   private static OpenBusContext context;
   private static Connection conn;
@@ -56,11 +55,11 @@ public final class ProtocolClientTest {
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
     Cryptography crypto = Cryptography.getInstance();
-    Properties properties = Utils.readPropertyFile("/test.properties");
-    host = properties.getProperty("openbus.host.name");
-    port = Integer.valueOf(properties.getProperty("openbus.host.port"));
-    entity = properties.getProperty("entity.name");
-    password = properties.getProperty("entity.password");
+    Configs configs = Configs.readConfigsFile();
+    host = configs.bushost;
+    port = configs.busport;
+    entity = configs.user;
+    password = configs.password;
     orb = ORBInitializer.initORB();
     context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     conn = context.createConnection(host, port);
@@ -68,7 +67,7 @@ public final class ProtocolClientTest {
 
   @Before
   public void beforeEachTest() throws Exception {
-    conn.loginByPassword(entity, entity.getBytes());
+    conn.loginByPassword(entity, password);
     context.setDefaultConnection(conn);
     server = findServer();
   }

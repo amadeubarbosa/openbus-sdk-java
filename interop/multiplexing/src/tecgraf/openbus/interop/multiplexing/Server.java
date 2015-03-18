@@ -3,8 +3,6 @@ package tecgraf.openbus.interop.multiplexing;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.omg.CORBA.ORB;
@@ -22,6 +20,7 @@ import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_0.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.simple.HelloHelper;
+import tecgraf.openbus.interop.util.Configs;
 import tecgraf.openbus.interop.util.Utils;
 import tecgraf.openbus.interop.util.Utils.ORBRunThread;
 import tecgraf.openbus.interop.util.Utils.ShutdownThread;
@@ -32,15 +31,15 @@ public class Server {
   private static final Logger logger = Logger.getLogger(Server.class.getName());
 
   public static void main(String[] args) throws Exception {
-    Properties props = Utils.readPropertyFile("/test.properties");
-    String host = props.getProperty("bus.host.name");
-    String host2 = props.getProperty("bus2.host.name");
-    int port = Integer.valueOf(props.getProperty("bus.host.port"));
-    int port2 = Integer.valueOf(props.getProperty("bus2.host.port"));
+    Configs configs = Configs.readConfigsFile();
+    String host = configs.bushost;
+    String host2 = configs.bus2host;
+    int port = configs.busport;
+    int port2 = configs.bus2port;
     String entity = "interop_multiplexing_java_server";
     String privateKeyFile = "admin/InteropMultiplexing.key";
-    Utils.setTestLogLevel(Level.parse(props.getProperty("log.test", "OFF")));
-    Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
+    Utils.setTestLogLevel(configs.testlog);
+    Utils.setLibLogLevel(configs.log);
 
     RSAPrivateKey privateKey =
       Cryptography.getInstance().readKeyFromFile(privateKeyFile);

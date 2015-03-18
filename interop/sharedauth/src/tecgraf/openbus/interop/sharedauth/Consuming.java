@@ -3,8 +3,6 @@ package tecgraf.openbus.interop.sharedauth;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.util.Properties;
-import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 import org.omg.CORBA.ORB;
@@ -14,15 +12,16 @@ import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.SharedAuthSecret;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_0.services.access_control.LoginInfo;
+import tecgraf.openbus.interop.util.Configs;
 import tecgraf.openbus.interop.util.Utils;
 
 public class Consuming {
   public static void main(String[] args) throws Exception {
-    Properties props = Utils.readPropertyFile("/test.properties");
-    String host = props.getProperty("bus.host.name");
-    int port = Integer.valueOf(props.getProperty("bus.host.port"));
-    String path = props.getProperty("sharedauth.file", "sharedauth.dat");
-    Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
+    Configs configs = Configs.readConfigsFile();
+    String host = configs.bushost;
+    int port = configs.busport;
+    String path = configs.sharedauth;
+    Utils.setLibLogLevel(configs.log);
 
     ORB orb = ORBInitializer.initORB();
 
