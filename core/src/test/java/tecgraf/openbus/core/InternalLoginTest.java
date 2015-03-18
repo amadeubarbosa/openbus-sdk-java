@@ -11,9 +11,8 @@ import org.omg.CORBA.ORB;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
-import tecgraf.openbus.security.Cryptography;
-import tecgraf.openbus.util.Configs;
-import tecgraf.openbus.util.Utils;
+import tecgraf.openbus.utils.Configs;
+import tecgraf.openbus.utils.Utils;
 
 public class InternalLoginTest {
 
@@ -24,11 +23,10 @@ public class InternalLoginTest {
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
-    Cryptography crypto = Cryptography.getInstance();
-    Configs configs = Configs.readConfigsFile("/test.properties");
-    Utils.setLogLevel(configs.log);
-    host = configs.host;
-    port = configs.port;
+    Configs configs = Configs.readConfigsFile();
+    Utils.setLibLogLevel(configs.log);
+    host = configs.bushost;
+    port = configs.busport;
     orb =
       ORBInitializer.initORB(null, Utils.readPropertyFile(configs.orbprops));
     context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");

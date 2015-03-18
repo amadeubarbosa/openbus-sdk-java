@@ -1,8 +1,6 @@
 package tecgraf.openbus.interop.chaining;
 
 import java.security.interfaces.RSAPrivateKey;
-import java.util.Properties;
-import java.util.logging.Level;
 
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
@@ -19,10 +17,12 @@ import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.simple.HelloHelper;
 import tecgraf.openbus.interop.util.PrivateKeyInvalidLoginCallback;
-import tecgraf.openbus.interop.util.Utils;
-import tecgraf.openbus.interop.util.Utils.ORBRunThread;
-import tecgraf.openbus.interop.util.Utils.ShutdownThread;
 import tecgraf.openbus.security.Cryptography;
+import tecgraf.openbus.utils.Configs;
+import tecgraf.openbus.utils.LibUtils;
+import tecgraf.openbus.utils.LibUtils.ORBRunThread;
+import tecgraf.openbus.utils.LibUtils.ShutdownThread;
+import tecgraf.openbus.utils.Utils;
 
 /**
  * Parte servidora do demo Hello
@@ -37,20 +37,20 @@ public final class Server {
    * @param args argumentos.
    */
   public static void main(String[] args) throws Exception {
-    Properties props = Utils.readPropertyFile("/test.properties");
-    String iorfile = props.getProperty("bus.ior");
+    Configs configs = Configs.readConfigsFile();
+    String iorfile = configs.bus2ref;
     String entity = "interop_chaining_java_server";
     String privateKeyFile = "admin/InteropChaining.key";
     RSAPrivateKey privateKey =
       Cryptography.getInstance().readKeyFromFile(privateKeyFile);
-    Utils.setTestLogLevel(Level.parse(props.getProperty("log.test", "OFF")));
-    Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
+    Utils.setTestLogLevel(configs.testlog);
+    Utils.setLibLogLevel(configs.log);
 
     ORB orb = ORBInitializer.initORB(args);
     ShutdownThread shutdown = new ShutdownThread(orb);
     Runtime.getRuntime().addShutdownHook(shutdown);
 
-    Object busref = orb.string_to_object(Utils.file2IOR(iorfile));
+    Object busref = orb.string_to_object(LibUtils.file2IOR(iorfile));
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     Connection conn = context.connectByReference(busref);

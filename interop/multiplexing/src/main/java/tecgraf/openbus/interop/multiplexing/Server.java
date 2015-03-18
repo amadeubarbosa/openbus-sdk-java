@@ -3,8 +3,6 @@ package tecgraf.openbus.interop.multiplexing;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.omg.CORBA.ORB;
@@ -23,23 +21,25 @@ import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.simple.HelloHelper;
-import tecgraf.openbus.interop.util.Utils;
-import tecgraf.openbus.interop.util.Utils.ORBRunThread;
-import tecgraf.openbus.interop.util.Utils.ShutdownThread;
 import tecgraf.openbus.security.Cryptography;
+import tecgraf.openbus.utils.Configs;
+import tecgraf.openbus.utils.LibUtils;
+import tecgraf.openbus.utils.LibUtils.ORBRunThread;
+import tecgraf.openbus.utils.LibUtils.ShutdownThread;
+import tecgraf.openbus.utils.Utils;
 
 public class Server {
 
   private static final Logger logger = Logger.getLogger(Server.class.getName());
 
   public static void main(String[] args) throws Exception {
-    Properties props = Utils.readPropertyFile("/test.properties");
-    String ior1 = props.getProperty("bus1.ior");
-    String ior2 = props.getProperty("bus2.ior");
+    Configs configs = Configs.readConfigsFile();
+    String ior1 = configs.busref;
+    String ior2 = configs.bus2ref;
     String entity = "interop_multiplexing_java_server";
     String privateKeyFile = "admin/InteropMultiplexing.key";
-    Utils.setTestLogLevel(Level.parse(props.getProperty("log.test", "OFF")));
-    Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
+    Utils.setTestLogLevel(configs.testlog);
+    Utils.setLibLogLevel(configs.log);
 
     RSAPrivateKey privateKey =
       Cryptography.getInstance().readKeyFromFile(privateKeyFile);
@@ -56,9 +56,9 @@ public class Server {
     Runtime.getRuntime().addShutdownHook(shutdown2);
 
     // connect to the bus
-    Object bus1orb1 = orb1.string_to_object(Utils.file2IOR(ior1));
-    Object bus2orb1 = orb1.string_to_object(Utils.file2IOR(ior2));
-    Object bus1orb2 = orb2.string_to_object(Utils.file2IOR(ior1));
+    Object bus1orb1 = orb1.string_to_object(LibUtils.file2IOR(ior1));
+    Object bus2orb1 = orb1.string_to_object(LibUtils.file2IOR(ior2));
+    Object bus1orb2 = orb2.string_to_object(LibUtils.file2IOR(ior1));
 
     OpenBusContext context1 =
       (OpenBusContext) orb1.resolve_initial_references("OpenBusContext");

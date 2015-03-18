@@ -20,8 +20,9 @@ import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.demo.util.Utils;
+import tecgraf.openbus.demo.util.Usage;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
+import tecgraf.openbus.utils.LibUtils;
 
 /**
  * Cliente do demo Hello
@@ -42,7 +43,7 @@ public final class CallChainClient {
     ServiceFailure {
     // verificando parametros de entrada
     if (args.length < 3) {
-      System.out.println(String.format(Utils.clientUsage, "", ""));
+      System.out.println(String.format(Usage.clientUsage, "", ""));
       System.exit(1);
       return;
     }
@@ -54,7 +55,7 @@ public final class CallChainClient {
       port = Integer.parseInt(args[1]);
     }
     catch (NumberFormatException e) {
-      System.out.println(Utils.port);
+      System.out.println(Usage.port);
       System.exit(1);
       return;
     }
@@ -162,13 +163,13 @@ public final class CallChainClient {
       // Demo
       catch (Unavailable e) {
         System.err.println(String.format(
-          "serviço com papel '%s' esta indisponível", Utils.getProperty(
-            offerDesc, "offer.role")));
+          "serviço com papel '%s' esta indisponível", LibUtils.findProperty(
+            offerDesc.properties, "offer.role")));
       }
       catch (Unauthorized e) {
         System.err.println(String.format(
-          "serviço com papel '%s' não autorizou a chamada", Utils.getProperty(
-            offerDesc, "offer.role")));
+          "serviço com papel '%s' não autorizou a chamada", LibUtils
+            .findProperty(offerDesc.properties, "offer.role")));
       }
       // Serviço
       catch (TRANSIENT e) {

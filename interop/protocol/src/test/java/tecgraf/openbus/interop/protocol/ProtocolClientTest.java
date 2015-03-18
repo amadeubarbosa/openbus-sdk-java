@@ -1,7 +1,6 @@
 package tecgraf.openbus.interop.protocol;
 
 import java.util.Arrays;
-import java.util.Properties;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -34,7 +33,8 @@ import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.interop.util.Utils;
+import tecgraf.openbus.utils.Configs;
+import tecgraf.openbus.utils.LibUtils;
 
 /**
  * Cliente do teste Protocol
@@ -44,7 +44,7 @@ import tecgraf.openbus.interop.util.Utils;
 public final class ProtocolClientTest {
 
   private static String entity;
-  private static String password;
+  private static byte[] password;
   private static String domain;
   private static ORB orb;
   private static OpenBusContext context;
@@ -53,20 +53,20 @@ public final class ProtocolClientTest {
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
-    Properties properties = Utils.readPropertyFile("/test.properties");
-    String iorfile = properties.getProperty("bus.ior");
-    entity = properties.getProperty("entity.name");
-    password = properties.getProperty("entity.password");
-    domain = properties.getProperty("auth.domain");
+    Configs configs = Configs.readConfigsFile();
+    String iorfile = configs.bus2ref;
+    entity = configs.user;
+    password = configs.password;
+    domain = configs.domain;
     orb = ORBInitializer.initORB();
-    Object busref = orb.string_to_object(Utils.file2IOR(iorfile));
+    Object busref = orb.string_to_object(LibUtils.file2IOR(iorfile));
     context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     conn = context.connectByReference(busref);
   }
 
   @Before
   public void beforeEachTest() throws Exception {
-    conn.loginByPassword(entity, entity.getBytes(), domain);
+    conn.loginByPassword(entity, password, domain);
     context.setDefaultConnection(conn);
     server = findServer();
   }

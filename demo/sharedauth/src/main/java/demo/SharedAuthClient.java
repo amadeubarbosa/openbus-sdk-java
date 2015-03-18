@@ -23,7 +23,7 @@ import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.demo.util.Utils;
+import tecgraf.openbus.demo.util.Usage;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.exception.InvalidEncodedStream;
 import tecgraf.openbus.exception.InvalidLoginProcess;
@@ -65,7 +65,7 @@ public class SharedAuthClient {
       port = Integer.parseInt(args[1]);
     }
     catch (NumberFormatException e) {
-      System.out.println(Utils.port);
+      System.out.println(Usage.port);
       System.exit(1);
       return;
     }

@@ -8,7 +8,7 @@ import org.omg.CORBA.NO_PERMISSION;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.interop.simple.HelloPOA;
-import tecgraf.openbus.interop.util.Utils;
+import tecgraf.openbus.utils.LibUtils;
 
 public class HelloImpl extends HelloPOA {
 
@@ -27,12 +27,12 @@ public class HelloImpl extends HelloPOA {
   public String sayHello() {
     CallerChain chain = context.getCallerChain();
     if (this.pattern.matcher(chain.caller().entity).matches()) {
-      logger.fine(String.format("aceitando requisição de %s", Utils
+      logger.fine(String.format("aceitando requisição de %s", LibUtils
         .chain2str(chain)));
       return String.format("Hello %s!", chain.originators()[0].entity);
     }
     else {
-      logger.fine(String.format("recusando mensagem de %s", Utils
+      logger.fine(String.format("recusando mensagem de %s", LibUtils
         .chain2str(chain)));
       throw new NO_PERMISSION();
     }

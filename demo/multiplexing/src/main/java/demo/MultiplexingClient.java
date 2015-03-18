@@ -1,7 +1,6 @@
 package demo;
 
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 
 import org.omg.CORBA.COMM_FAILURE;
 import org.omg.CORBA.NO_PERMISSION;
@@ -29,8 +28,9 @@ import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.demo.util.Utils;
+import tecgraf.openbus.demo.util.Usage;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
+import tecgraf.openbus.utils.LibUtils;
 
 /**
  * Cliente do demo Hello
@@ -59,7 +59,7 @@ public final class MultiplexingClient {
     ServiceFailure, AdapterInactive {
     // verificando parametros de entrada
     if (args.length < 3) {
-      System.out.println(String.format(Utils.clientUsage, "", ""));
+      System.out.println(String.format(Usage.clientUsage, "", ""));
       System.exit(1);
       return;
     }
@@ -70,7 +70,7 @@ public final class MultiplexingClient {
       port = Integer.parseInt(args[1]);
     }
     catch (NumberFormatException e) {
-      System.out.println(Utils.port);
+      System.out.println(Usage.port);
       System.exit(1);
       return;
     }
@@ -86,8 +86,6 @@ public final class MultiplexingClient {
     if (args.length > 4) {
       domain = args[4];
     }
-
-    Utils.setLogLevel(Level.FINEST);
 
     // inicializando e configurando o ORB
     final ORB orb = ORBInitializer.initORB();
@@ -358,7 +356,8 @@ public final class MultiplexingClient {
     @Override
     public void notifyTrigger() {
       CallerChain chain = context.getCallerChain();
-      String timerId = Utils.getProperty(offerDesc, "openbus.offer.login");
+      String timerId =
+        LibUtils.findProperty(offerDesc.properties, "openbus.offer.login");
       if (chain.caller().id.equals(timerId)) {
         System.out.println("notificação do timer esperado recebida!");
         if (chain.originators().length > 1

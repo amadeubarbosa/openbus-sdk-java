@@ -2,8 +2,6 @@ package tecgraf.openbus.interop.delegation;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
-import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 import org.omg.CORBA.ORB;
@@ -14,7 +12,9 @@ import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.interop.util.Utils;
+import tecgraf.openbus.utils.Configs;
+import tecgraf.openbus.utils.LibUtils;
+import tecgraf.openbus.utils.Utils;
 
 public class Client {
 
@@ -44,14 +44,14 @@ public class Client {
   }
 
   public static void main(String[] args) throws Exception {
-    Properties props = Utils.readPropertyFile("/test.properties");
-    String iorfile = props.getProperty("bus.ior");
+    Configs configs = Configs.readConfigsFile();
+    String iorfile = configs.bus2ref;
     String entity = "interop_delegation_java_client";
-    String domain = "testing";
-    Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
+    String domain = configs.domain;
+    Utils.setLibLogLevel(configs.log);
 
     ORB orb = ORBInitializer.initORB();
-    Object busref = orb.string_to_object(Utils.file2IOR(iorfile));
+    Object busref = orb.string_to_object(LibUtils.file2IOR(iorfile));
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     Connection conn = context.connectByReference(busref);
@@ -62,7 +62,8 @@ public class Client {
     serviceProperties[0] =
       new ServiceProperty("offer.domain", "Interoperability Tests");
     List<ServiceOfferDesc> offers =
-      Utils.findOffer(context.getOfferRegistry(), serviceProperties, 3, 10, 1);
+      LibUtils.findOffer(context.getOfferRegistry(), serviceProperties, 3, 10,
+        1);
 
     Forwarder forwarder = null;
     Messenger messenger = null;

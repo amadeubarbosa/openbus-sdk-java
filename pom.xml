@@ -236,6 +236,7 @@
     <module>legacy</module>
     <module>interop</module>
     <module>demo</module>
+    <module>utils</module>
   </modules>
 
   <build>

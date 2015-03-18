@@ -1,8 +1,6 @@
 package tecgraf.openbus.interop.delegation;
 
 import java.security.interfaces.RSAPrivateKey;
-import java.util.Properties;
-import java.util.logging.Level;
 
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
@@ -19,27 +17,29 @@ import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.util.PrivateKeyInvalidLoginCallback;
-import tecgraf.openbus.interop.util.Utils;
-import tecgraf.openbus.interop.util.Utils.ORBRunThread;
-import tecgraf.openbus.interop.util.Utils.ShutdownThread;
 import tecgraf.openbus.security.Cryptography;
+import tecgraf.openbus.utils.Configs;
+import tecgraf.openbus.utils.LibUtils;
+import tecgraf.openbus.utils.LibUtils.ORBRunThread;
+import tecgraf.openbus.utils.LibUtils.ShutdownThread;
+import tecgraf.openbus.utils.Utils;
 
 public class Messaging {
   public static void main(String[] args) throws Exception {
-    Properties props = Utils.readPropertyFile("/test.properties");
-    String ior = props.getProperty("bus.ior");
+    Configs configs = Configs.readConfigsFile();
+    String ior = configs.bus2ref;
     String entity = "interop_delegation_java_messenger";
     String privateKeyFile = "admin/InteropDelegation.key";
     RSAPrivateKey privateKey =
       Cryptography.getInstance().readKeyFromFile(privateKeyFile);
-    Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
+    Utils.setLibLogLevel(configs.log);
 
     final ORB orb = ORBInitializer.initORB(args);
     new ORBRunThread(orb).start();
     ShutdownThread shutdown = new ShutdownThread(orb);
     Runtime.getRuntime().addShutdownHook(shutdown);
 
-    Object busref = orb.string_to_object(Utils.file2IOR(ior));
+    Object busref = orb.string_to_object(LibUtils.file2IOR(ior));
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     Connection conn = context.connectByReference(busref);

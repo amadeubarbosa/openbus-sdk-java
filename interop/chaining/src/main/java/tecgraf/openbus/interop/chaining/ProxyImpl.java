@@ -15,7 +15,7 @@ import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.exception.InvalidEncodedStream;
 import tecgraf.openbus.interop.simple.Hello;
 import tecgraf.openbus.interop.simple.HelloHelper;
-import tecgraf.openbus.interop.util.Utils;
+import tecgraf.openbus.utils.LibUtils;
 
 public class ProxyImpl extends HelloProxyPOA {
 
@@ -48,7 +48,7 @@ public class ProxyImpl extends HelloProxyPOA {
     List<ServiceOfferDesc> descs;
     try {
       OfferRegistry offers = context.getOfferRegistry();
-      descs = Utils.findOffer(offers, properties, 1, 10, 1);
+      descs = LibUtils.findOffer(offers, properties, 1, 10, 1);
     }
     catch (ServiceFailure e) {
       String err = "ServiceFailure ao realizar busca";

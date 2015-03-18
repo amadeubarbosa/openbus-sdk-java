@@ -2,8 +2,6 @@ package tecgraf.openbus.interop.sharedauth;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.Properties;
-import java.util.logging.Level;
 
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
@@ -12,8 +10,10 @@ import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.SharedAuthSecret;
 import tecgraf.openbus.core.ORBInitializer;
-import tecgraf.openbus.interop.util.Utils;
 import tecgraf.openbus.security.Cryptography;
+import tecgraf.openbus.utils.Configs;
+import tecgraf.openbus.utils.LibUtils;
+import tecgraf.openbus.utils.Utils;
 
 /**
  * Demo Single Sign On.
@@ -28,15 +28,15 @@ public final class Sharing {
    * @param args argumentos.
    */
   public static void main(String[] args) throws Exception {
-    Properties props = Utils.readPropertyFile("/test.properties");
-    String iorfile = props.getProperty("bus.ior");
-    String path = props.getProperty("sharedauth.file", "sharedauth.dat");
+    Configs configs = Configs.readConfigsFile();
+    String iorfile = configs.bus2ref;
+    String path = configs.sharedauth;
     String entity = "interop_sharedauth_java_client";
-    String domain = "testing";
-    Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
+    String domain = configs.domain;
+    Utils.setLibLogLevel(configs.log);
 
     ORB orb = ORBInitializer.initORB();
-    Object busref = orb.string_to_object(Utils.file2IOR(iorfile));
+    Object busref = orb.string_to_object(LibUtils.file2IOR(iorfile));
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     Connection connection = context.connectByReference(busref);

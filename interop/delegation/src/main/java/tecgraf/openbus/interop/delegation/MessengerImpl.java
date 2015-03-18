@@ -9,7 +9,7 @@ import java.util.Map;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
-import tecgraf.openbus.interop.util.Utils;
+import tecgraf.openbus.utils.LibUtils;
 
 public class MessengerImpl extends MessengerPOA {
 
@@ -25,7 +25,7 @@ public class MessengerImpl extends MessengerPOA {
   @Override
   public void post(String to, String message) {
     CallerChain chain = context.getCallerChain();
-    String from = Utils.chain2str(chain);
+    String from = LibUtils.chain2str(chain);
     synchronized (inboxOf) {
       List<PostDesc> list = this.inboxOf.get(to);
       if (list == null) {

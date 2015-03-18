@@ -4,7 +4,6 @@ import java.security.interfaces.RSAPrivateKey;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.logging.Level;
 
 import org.omg.CORBA.COMM_FAILURE;
 import org.omg.CORBA.NO_PERMISSION;
@@ -33,7 +32,7 @@ import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidProperties;
 import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidService;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.core.v2_1.services.offer_registry.UnauthorizedFacets;
-import tecgraf.openbus.demo.util.Utils;
+import tecgraf.openbus.demo.util.Usage;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.security.Cryptography;
 
@@ -66,7 +65,7 @@ public final class MultiplexingServer {
     WrongPolicy {
     // verificando parametros de entrada
     if (args.length < 4) {
-      System.out.println(String.format(Utils.serverUsage, "", ""));
+      System.out.println(String.format(Usage.serverUsage, "", ""));
       System.exit(1);
       return;
     }
@@ -77,7 +76,7 @@ public final class MultiplexingServer {
       port = Integer.parseInt(args[1]);
     }
     catch (NumberFormatException e) {
-      System.out.println(Utils.port);
+      System.out.println(Usage.port);
       System.exit(1);
       return;
     }
@@ -89,13 +88,12 @@ public final class MultiplexingServer {
       privateKey = Cryptography.getInstance().readKeyFromFile(privateKeyFile);
     }
     catch (Exception e) {
-      System.out.println(Utils.keypath);
+      System.out.println(Usage.keypath);
       e.printStackTrace();
       System.exit(1);
       return;
     }
 
-    Utils.setLogLevel(Level.FINEST);
     // inicializando e configurando o ORB
     final ORB orb = ORBInitializer.initORB();
     // - disparando a thread para que o ORB atenda requisições

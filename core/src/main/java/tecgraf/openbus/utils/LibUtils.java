@@ -1,16 +1,10 @@
-package tecgraf.openbus.interop.util;
+package tecgraf.openbus.utils;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.ORBPackage.InvalidName;
@@ -30,42 +24,7 @@ import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 
-/**
- * Classe utilitária para os demos Java.
- * 
- * @author Tecgraf
- */
-public class Utils {
-
-  /**
-   * Lê um arquivo de propriedades.
-   * 
-   * @param fileName o nome do arquivo.
-   * @return as propriedades.
-   * @throws IOException
-   */
-  static public Properties readPropertyFile(String fileName) throws IOException {
-    Properties properties = new Properties();
-    InputStream propertiesStream = Utils.class.getResourceAsStream(fileName);
-    if (propertiesStream == null) {
-      throw new FileNotFoundException(String.format(
-        "O arquivo de propriedades '%s' não foi encontrado", fileName));
-    }
-    try {
-      properties.load(propertiesStream);
-    }
-    finally {
-      try {
-        propertiesStream.close();
-      }
-      catch (IOException e) {
-        System.err
-          .println("Ocorreu um erro ao fechar o arquivo de propriedades");
-        e.printStackTrace();
-      }
-    }
-    return properties;
-  }
+public class LibUtils {
 
   static public String findProperty(ServiceProperty[] props, String key) {
     for (int i = 0; i < props.length; i++) {
@@ -95,24 +54,6 @@ public class Utils {
     byte minor = 2;
     Encoding encoding = new Encoding(ENCODING_CDR_ENCAPS.value, major, minor);
     return codecFactory.create_codec(encoding);
-  }
-
-  public static void setTestLogLevel(Level level) {
-    Logger logger = Logger.getLogger("tecgraf.openbus.interop");
-    setLevel(logger, level);
-  }
-
-  public static void setLibLogLevel(Level level) {
-    Logger logger = Logger.getLogger("tecgraf.openbus.core");
-    setLevel(logger, level);
-  }
-
-  private static void setLevel(Logger logger, Level level) {
-    logger.setLevel(level);
-    logger.setUseParentHandlers(false);
-    ConsoleHandler handler = new ConsoleHandler();
-    handler.setLevel(level);
-    logger.addHandler(handler);
   }
 
   public static class ORBRunThread extends Thread {
@@ -209,8 +150,10 @@ public class Utils {
     }
     StringBuffer buffer = new StringBuffer();
     for (ServiceOfferDesc desc : found) {
-      String name = Utils.findProperty(desc.properties, "openbus.offer.entity");
-      String login = Utils.findProperty(desc.properties, "openbus.offer.login");
+      String name =
+        LibUtils.findProperty(desc.properties, "openbus.offer.entity");
+      String login =
+        LibUtils.findProperty(desc.properties, "openbus.offer.login");
       buffer.append(String.format("\n - %s (%s)", name, login));
     }
     String msg =

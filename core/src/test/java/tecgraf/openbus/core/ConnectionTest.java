@@ -33,8 +33,9 @@ import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.security.Cryptography;
-import tecgraf.openbus.util.Configs;
-import tecgraf.openbus.util.Utils;
+import tecgraf.openbus.util.Builder;
+import tecgraf.openbus.utils.Configs;
+import tecgraf.openbus.utils.Utils;
 
 public final class ConnectionTest {
 
@@ -56,10 +57,10 @@ public final class ConnectionTest {
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
     Cryptography crypto = Cryptography.getInstance();
-    Configs configs = Configs.readConfigsFile("/test.properties");
-    Utils.setLogLevel(configs.log);
-    host = configs.host;
-    port = configs.port;
+    Configs configs = Configs.readConfigsFile();
+    Utils.setLibLogLevel(configs.log);
+    host = configs.bushost;
+    port = configs.busport;
     entity = configs.user;
     password = configs.password;
     domain = configs.domain;
@@ -417,7 +418,7 @@ public final class ConnectionTest {
       ServiceProperty[] props =
         new ServiceProperty[] { new ServiceProperty("offer.domain", "testing") };
       ComponentContext comp1 =
-        Utils.buildTestCallerChainInspectorComponent(context);
+        Builder.buildTestCallerChainInspectorComponent(context);
 
       // conn1
       context.setDefaultConnection(conn1);

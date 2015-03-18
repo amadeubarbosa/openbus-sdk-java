@@ -1,8 +1,6 @@
 package tecgraf.openbus.interop.reloggedjoin;
 
 import java.util.List;
-import java.util.Properties;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.omg.CORBA.ORB;
@@ -15,8 +13,10 @@ import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.simple.Hello;
 import tecgraf.openbus.interop.simple.HelloHelper;
-import tecgraf.openbus.interop.util.Utils;
 import tecgraf.openbus.security.Cryptography;
+import tecgraf.openbus.utils.Configs;
+import tecgraf.openbus.utils.LibUtils;
+import tecgraf.openbus.utils.Utils;
 
 /**
  * Cliente do demo Hello
@@ -33,15 +33,15 @@ public final class Client {
    * @param args argumentos.
    */
   public static void main(String[] args) throws Exception {
-    Properties props = Utils.readPropertyFile("/test.properties");
-    String iorfile = props.getProperty("bus.ior");
+    Configs configs = Configs.readConfigsFile();
+    String iorfile = configs.bus2ref;
     String entity = "interop_reloggedjoin_java_client";
-    String domain = "testing";
-    Utils.setTestLogLevel(Level.parse(props.getProperty("log.test", "OFF")));
-    Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
+    String domain = configs.domain;
+    Utils.setTestLogLevel(configs.testlog);
+    Utils.setLibLogLevel(configs.log);
 
     ORB orb = ORBInitializer.initORB();
-    Object busref = orb.string_to_object(Utils.file2IOR(iorfile));
+    Object busref = orb.string_to_object(LibUtils.file2IOR(iorfile));
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     Connection connection = context.connectByReference(busref);
@@ -55,7 +55,8 @@ public final class Client {
           new ServiceProperty("reloggedjoin.role", "proxy"),
           new ServiceProperty("offer.domain", "Interoperability Tests") };
     List<ServiceOfferDesc> services =
-      Utils.findOffer(context.getOfferRegistry(), serviceProperties, 1, 10, 1);
+      LibUtils.findOffer(context.getOfferRegistry(), serviceProperties, 1, 10,
+        1);
 
     if (services.size() > 1) {
       logger.fine("Foram encontrados vários proxies do demo Hello: "
@@ -64,7 +65,7 @@ public final class Client {
 
     for (ServiceOfferDesc offerDesc : services) {
       String found =
-        Utils.findProperty(offerDesc.properties, "openbus.offer.entity");
+        LibUtils.findProperty(offerDesc.properties, "openbus.offer.entity");
       logger.fine("Entidade encontrada: " + found);
       org.omg.CORBA.Object helloObj =
         offerDesc.service_ref.getFacetByName("Hello");

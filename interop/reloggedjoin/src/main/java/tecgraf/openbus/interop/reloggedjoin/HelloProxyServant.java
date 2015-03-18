@@ -12,7 +12,7 @@ import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.simple.Hello;
 import tecgraf.openbus.interop.simple.HelloHelper;
 import tecgraf.openbus.interop.simple.HelloPOA;
-import tecgraf.openbus.interop.util.Utils;
+import tecgraf.openbus.utils.LibUtils;
 
 /**
  * Implementação do componente Hello
@@ -60,10 +60,10 @@ public final class HelloProxyServant extends HelloPOA {
       ServiceProperty[] properties = new ServiceProperty[1];
       properties[0] = new ServiceProperty("reloggedjoin.role", "server");
       List<ServiceOfferDesc> services =
-        Utils.findOffer(context.getOfferRegistry(), properties, 1, 10, 1);
+        LibUtils.findOffer(context.getOfferRegistry(), properties, 1, 10, 1);
       for (ServiceOfferDesc offerDesc : services) {
         String found =
-          Utils.findProperty(offerDesc.properties, "openbus.offer.entity");
+          LibUtils.findProperty(offerDesc.properties, "openbus.offer.entity");
         logger.fine("serviço da entidade encontrado: " + found);
         org.omg.CORBA.Object helloObj =
           offerDesc.service_ref.getFacetByName("Hello");

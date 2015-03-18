@@ -1,8 +1,6 @@
 package tecgraf.openbus.interop.multiplexing;
 
 import java.util.List;
-import java.util.Properties;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.omg.CORBA.ORB;
@@ -15,7 +13,9 @@ import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.simple.Hello;
 import tecgraf.openbus.interop.simple.HelloHelper;
-import tecgraf.openbus.interop.util.Utils;
+import tecgraf.openbus.utils.Configs;
+import tecgraf.openbus.utils.LibUtils;
+import tecgraf.openbus.utils.Utils;
 
 /**
  * Cliente do demo de Multiplexação.
@@ -31,17 +31,17 @@ public class Client {
    * @param args
    */
   public static void main(String[] args) throws Exception {
-    Properties props = Utils.readPropertyFile("/test.properties");
-    String ior1 = props.getProperty("bus1.ior");
-    String ior2 = props.getProperty("bus2.ior");
-    String domain = "testing";
-    Utils.setTestLogLevel(Level.parse(props.getProperty("log.test", "OFF")));
-    Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
+    Configs configs = Configs.readConfigsFile();
+    String ior1 = configs.busref;
+    String ior2 = configs.bus2ref;
+    String domain = configs.domain;
+    Utils.setTestLogLevel(configs.testlog);
+    Utils.setLibLogLevel(configs.log);
     String iors[] = { ior1, ior2 };
 
     for (String ior : iors) {
       ORB orb = ORBInitializer.initORB();
-      Object bus = orb.string_to_object(Utils.file2IOR(ior));
+      Object bus = orb.string_to_object(LibUtils.file2IOR(ior));
       OpenBusContext context =
         (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
       Connection conn = context.connectByReference(bus);
@@ -62,11 +62,11 @@ public class Client {
       serviceProperties[1] =
         new ServiceProperty("offer.domain", "Interoperability Tests");
       List<ServiceOfferDesc> services =
-        Utils.findOffer(context.getOfferRegistry(), serviceProperties, noffers,
-          10, 1);
+        LibUtils.findOffer(context.getOfferRegistry(), serviceProperties,
+          noffers, 10, 1);
       for (ServiceOfferDesc offer : services) {
         logger.fine(String
-          .format("found offer from %s on bus %s", Utils.findProperty(
+          .format("found offer from %s on bus %s", LibUtils.findProperty(
             offer.properties, "openbus.offer.entity"), conn.busid()));
         org.omg.CORBA.Object obj = offer.service_ref.getFacet(HelloHelper.id());
         Hello hello = HelloHelper.narrow(obj);

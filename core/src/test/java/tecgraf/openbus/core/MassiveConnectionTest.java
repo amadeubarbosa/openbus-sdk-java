@@ -19,8 +19,9 @@ import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.util.Configs;
-import tecgraf.openbus.util.Utils;
+import tecgraf.openbus.util.Builder;
+import tecgraf.openbus.utils.Configs;
+import tecgraf.openbus.utils.Utils;
 
 public class MassiveConnectionTest {
 
@@ -33,8 +34,8 @@ public class MassiveConnectionTest {
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
-    Configs configs = Configs.readConfigsFile("/test.properties");
-    Utils.setLogLevel(configs.log);
+    Configs configs = Configs.readConfigsFile();
+    Utils.setLibLogLevel(configs.log);
     domain = configs.domain;
     orb =
       ORBInitializer.initORB(null, Utils.readPropertyFile(configs.orbprops));
@@ -88,7 +89,7 @@ public class MassiveConnectionTest {
         final Connection conn = context.connectByReference(busref);
         conn.loginByPassword(entity, entity.getBytes(), domain);
         context.setCurrentConnection(conn);
-        ComponentContext component = Utils.buildComponent(orb);
+        ComponentContext component = Builder.buildComponent(orb);
         ServiceProperty[] props =
           new ServiceProperty[] {
               new ServiceProperty("offer.domain", "Massive Test"),

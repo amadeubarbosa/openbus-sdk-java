@@ -49,8 +49,9 @@ import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.exception.InvalidEncodedStream;
 import tecgraf.openbus.exception.InvalidPropertyValue;
 import tecgraf.openbus.security.Cryptography;
-import tecgraf.openbus.util.Configs;
-import tecgraf.openbus.util.Utils;
+import tecgraf.openbus.util.Builder;
+import tecgraf.openbus.utils.Configs;
+import tecgraf.openbus.utils.Utils;
 import test.CallerChainInspector;
 import test.CallerChainInspectorHelper;
 
@@ -71,10 +72,10 @@ public final class OpenBusContextTest {
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
     Cryptography crypto = Cryptography.getInstance();
-    Configs configs = Configs.readConfigsFile("/test.properties");
-    Utils.setLogLevel(configs.log);
-    host = configs.host;
-    port = configs.port;
+    Configs configs = Configs.readConfigsFile();
+    Utils.setLibLogLevel(configs.log);
+    host = configs.bushost;
+    port = configs.busport;
     entity = configs.user;
     password = configs.password;
     domain = configs.domain;
@@ -339,7 +340,7 @@ public final class OpenBusContextTest {
     Connection conn = context.connectByReference(busref);
     conn.loginByPassword(entity, password, domain);
     context.setDefaultConnection(conn);
-    ComponentContext component = Utils.buildTestCallerChainComponent(context);
+    ComponentContext component = Builder.buildTestCallerChainComponent(context);
     ServiceProperty[] props =
       new ServiceProperty[] { new ServiceProperty("offer.domain",
         "OpenBusContextTest") };
@@ -360,7 +361,7 @@ public final class OpenBusContextTest {
     Connection conn = context.connectByReference(busref);
     conn.loginByPassword(entity, password, domain);
     context.setDefaultConnection(conn);
-    ComponentContext component = Utils.buildTestConnectionComponent(context);
+    ComponentContext component = Builder.buildTestConnectionComponent(context);
     ServiceProperty[] props =
       new ServiceProperty[] { new ServiceProperty("offer.domain",
         "OpenBusContextTest") };
@@ -388,7 +389,7 @@ public final class OpenBusContextTest {
         return conn;
       }
     });
-    ComponentContext component = Utils.buildTestConnectionComponent(context);
+    ComponentContext component = Builder.buildTestConnectionComponent(context);
     ServiceProperty[] props =
       new ServiceProperty[] { new ServiceProperty("offer.domain",
         "OpenBusContextTest") };
@@ -584,7 +585,7 @@ public final class OpenBusContextTest {
     context.setCurrentConnection(conn);
     context.exitChain();
     ComponentContext component =
-      Utils.buildTestCallerChainInspectorComponent(context);
+      Builder.buildTestCallerChainInspectorComponent(context);
     ServiceOffer offer =
       context.getOfferRegistry().registerService(component.getIComponent(),
         new ServiceProperty[0]);

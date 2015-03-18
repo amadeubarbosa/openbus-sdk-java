@@ -3,8 +3,6 @@ package tecgraf.openbus.interop.sharedauth;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.util.Properties;
-import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 import org.omg.CORBA.ORB;
@@ -15,17 +13,19 @@ import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.SharedAuthSecret;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
-import tecgraf.openbus.interop.util.Utils;
+import tecgraf.openbus.utils.Configs;
+import tecgraf.openbus.utils.LibUtils;
+import tecgraf.openbus.utils.Utils;
 
 public class Consuming {
   public static void main(String[] args) throws Exception {
-    Properties props = Utils.readPropertyFile("/test.properties");
-    String iorfile = props.getProperty("bus.ior");
-    String path = props.getProperty("sharedauth.file", "sharedauth.dat");
-    Utils.setLibLogLevel(Level.parse(props.getProperty("log.lib", "OFF")));
+    Configs configs = Configs.readConfigsFile();
+    String iorfile = configs.bus2ref;
+    String path = configs.sharedauth;
+    Utils.setLibLogLevel(configs.log);
 
     ORB orb = ORBInitializer.initORB();
-    Object busref = orb.string_to_object(Utils.file2IOR(iorfile));
+    Object busref = orb.string_to_object(LibUtils.file2IOR(iorfile));
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     Connection connection = context.connectByReference(busref);

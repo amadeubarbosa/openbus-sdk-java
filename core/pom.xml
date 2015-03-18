@@ -125,5 +125,12 @@
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
+
+    <dependency>
+      <groupId>br.puc-rio.tecgraf.openbus</groupId>
+      <artifactId>openbus-sdk-utils</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>
