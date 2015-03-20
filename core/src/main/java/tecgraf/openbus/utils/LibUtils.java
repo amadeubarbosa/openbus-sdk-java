@@ -24,8 +24,20 @@ import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 
+/**
+ * Métodos utilitários sobre uso da biblioteca ou sobre conceitos OpenBus
+ *
+ * @author Tecgraf/PUC-Rio
+ */
 public class LibUtils {
 
+  /**
+   * Busca por uma propriedade dentro da lista de propriedades
+   * 
+   * @param props a lista de propriedades
+   * @param key a chave da propriedade buscada
+   * @return o valor da propriedade ou <code>null</code> caso não encontrada
+   */
   static public String findProperty(ServiceProperty[] props, String key) {
     for (int i = 0; i < props.length; i++) {
       ServiceProperty property = props[i];
@@ -36,6 +48,12 @@ public class LibUtils {
     return null;
   }
 
+  /**
+   * Converte uma cadeia para uma representação textual.
+   * 
+   * @param chain a cadeia
+   * @return uma representação textual da mesma.
+   */
   static public String chain2str(CallerChain chain) {
     StringBuffer buffer = new StringBuffer();
     for (LoginInfo loginInfo : chain.originators()) {
@@ -46,7 +64,15 @@ public class LibUtils {
     return buffer.toString();
   }
 
-  public static Codec getCodec(ORB orb) throws UnknownEncoding, InvalidName {
+  /**
+   * Constrói uma instância de {@link Codec}
+   * 
+   * @param orb o {@link ORB}
+   * @return um {@link Codec}
+   * @throws UnknownEncoding
+   * @throws InvalidName
+   */
+  public static Codec createCodec(ORB orb) throws UnknownEncoding, InvalidName {
     org.omg.CORBA.Object obj;
     obj = orb.resolve_initial_references("CodecFactory");
     CodecFactory codecFactory = CodecFactoryHelper.narrow(obj);
@@ -56,9 +82,20 @@ public class LibUtils {
     return codecFactory.create_codec(encoding);
   }
 
+  /**
+   * Thread para execução do {@link ORB#run()}
+   *
+   * @author Tecgraf/PUC-Rio
+   */
   public static class ORBRunThread extends Thread {
+    /** o orb */
     private ORB orb;
 
+    /**
+     * Construtor
+     * 
+     * @param orb o orb
+     */
     public ORBRunThread(ORB orb) {
       this.orb = orb;
     }
@@ -69,11 +106,25 @@ public class LibUtils {
     }
   }
 
+  /**
+   * Thread de finalização do ORB que poderia ser incluída no
+   * {@link Runtime#addShutdownHook(Thread)} para realizar limpezas necessárias
+   *
+   * @author Tecgraf/PUC-Rio
+   */
   public static class ShutdownThread extends Thread {
+    /** o orb */
     private ORB orb;
+    /** lista de conexões a serem liberadas */
     private List<Connection> conns = new ArrayList<Connection>();
+    /** lista de ofertas a serem liberadas */
     private List<ServiceOffer> offers = new ArrayList<ServiceOffer>();
 
+    /**
+     * Construtor
+     * 
+     * @param orb o orb
+     */
     public ShutdownThread(ORB orb) {
       this.orb = orb;
     }
@@ -102,23 +153,39 @@ public class LibUtils {
       this.orb.destroy();
     }
 
+    /**
+     * Inclui uma conexão na lista de conexões a serem liberadas pela thread
+     * 
+     * @param conn a conexão
+     */
     public void addConnetion(Connection conn) {
       this.conns.add(conn);
     }
 
-    public void removeConnetion(Connection conn) {
-      this.conns.remove(conn);
-    }
-
+    /**
+     * Inclui uma oferta na lista de ofertas a serem liberadas pela thread
+     * 
+     * @param offer a oferta
+     */
     public void addOffer(ServiceOffer offer) {
       this.offers.add(offer);
     }
 
-    public void removeOffer(ServiceOffer offer) {
-      this.offers.remove(offer);
-    }
   }
 
+  /**
+   * Realiza um busca por ofertas com as propriedades solicitadas, repeitando as
+   * regras de retentativas e espera entre tentativas. Caso as ofertas não sejam
+   * encontradas lança-se uma exceção de {@link IllegalStateException}
+   * 
+   * @param offers serviço de registro de ofertas do barramento
+   * @param search propriedades da busca
+   * @param count número mínimo de ofertas que se espera encontrar
+   * @param tries número de tentativas
+   * @param interval intervalo de espera entre as tentativas (em segundos)
+   * @return ofertas encontradas na busca.
+   * @throws ServiceFailure
+   */
   public static List<ServiceOfferDesc> findOffer(OfferRegistry offers,
     ServiceProperty[] search, int count, int tries, int interval)
     throws ServiceFailure {
@@ -164,6 +231,13 @@ public class LibUtils {
     throw new IllegalStateException(msg);
   }
 
+  /**
+   * Lê um arquivo de IOR e retorna a linha que representa o IOR
+   * 
+   * @param iorfile path para arquivo
+   * @return a String do IOR
+   * @throws IOException
+   */
   public static String file2IOR(String iorfile) throws IOException {
     BufferedReader in = null;
     try {
