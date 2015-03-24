@@ -62,7 +62,7 @@ public final class ConnectionTest {
     privateKeyFile = properties.getProperty("system.private.key");
     privateKey = crypto.readKeyFromFile(privateKeyFile);
     entityWithoutCert = properties.getProperty("system.wrong.name");
-    String wrongPrivateKeyFile = properties.getProperty("wrongkey");
+    String wrongPrivateKeyFile = properties.getProperty("system.wrong.key");
     wrongPrivateKey = crypto.readKeyFromFile(wrongPrivateKeyFile);
     admin = properties.getProperty("admin.entity.name");
     adminpwd = properties.getProperty("admin.password");
