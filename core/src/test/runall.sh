@@ -22,23 +22,23 @@ echo "password.penalty.time=$passwordpenalty" >> $OPENBUS_TESTCFG
 source ${OPENBUS_CORE_TEST}/runbus.sh $mode BUS01 $bus1port
 #genkey $OPENBUS_TEMP/testsyst
 
-# go to resources, where the scipt is located
+# go to resources, where the script is located
 pushd resources
 source ${OPENBUS_CORE_TEST}/runadmin.sh $mode localhost $bus1port --script=sdk_java_test.adm
 
-echo "bus.reference.path = $OPENBUS_TEMP/BUS01.ior" > test.properties
-echo "bus.host.name = localhost" >> test.properties
-echo "bus.host.port = $bus1port" >> test.properties
-echo "admin.entity.name = admin" >> test.properties
-echo "admin.password = admin" >> test.properties
-echo "user.entity.name = tester" >> test.properties
-echo "user.password = tester" >> test.properties
-echo "user.password.domain = testing" >> test.properties
-echo "system.entity.name = TestEntity" >> test.properties
-echo "system.private.key = src/test/resources/TestEntity.key" >> test.properties
-echo "system.wrong.key = src/test/resources/wrongkey.key" >> test.properties
-echo "system.wrong.name = NoCertServer" >> test.properties
-echo "openbus.log.level = OFF" >> test.properties
+echo "bus.reference.path = $OPENBUS_TEMP/BUS01.ior" > $OPENBUS_TESTCFG
+echo "bus.host.name = localhost" >> $OPENBUS_TESTCFG
+echo "bus.host.port = $bus1port" >> $OPENBUS_TESTCFG
+echo "admin.entity.name = admin" >> $OPENBUS_TESTCFG
+echo "admin.password = admin" >> $OPENBUS_TESTCFG
+echo "user.entity.name = tester" >> $OPENBUS_TESTCFG
+echo "user.password = tester" >> $OPENBUS_TESTCFG
+echo "user.password.domain = testing" >> $OPENBUS_TESTCFG
+echo "system.entity.name = TestEntity" >> $OPENBUS_TESTCFG
+echo "system.private.key = src/test/resources/TestEntity.key" >> $OPENBUS_TESTCFG
+echo "system.wrong.key = src/test/resources/wrongkey.key" >> $OPENBUS_TESTCFG
+echo "system.wrong.name = NoCertServer" >> $OPENBUS_TESTCFG
+echo "openbus.log.level = 0" >> $OPENBUS_TESTCFG
 
 # go to core/pom.xml
 pushd ../../..
