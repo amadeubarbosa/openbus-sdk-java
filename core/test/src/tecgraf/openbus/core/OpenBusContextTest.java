@@ -72,12 +72,12 @@ public final class OpenBusContextTest {
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
     Properties properties = Utils.readPropertyFile("/test.properties");
-    hostName = properties.getProperty("openbus.host.name");
-    hostPort = Integer.valueOf(properties.getProperty("openbus.host.port"));
-    entity = properties.getProperty("entity.name");
-    password = properties.getProperty("entity.password");
-    serverEntity = properties.getProperty("server.entity.name");
-    String privateKeyFile = properties.getProperty("server.private.key");
+    hostName = properties.getProperty("bus.host.name");
+    hostPort = Integer.valueOf(properties.getProperty("bus.host.port"));
+    entity = properties.getProperty("user.entity.name");
+    password = properties.getProperty("user.password");
+    serverEntity = properties.getProperty("system.entity.name");
+    String privateKeyFile = properties.getProperty("system.private.key");
     privateKey = Cryptography.getInstance().readKeyFromFile(privateKeyFile);
     orb = ORBInitializer.initORB();
     context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");

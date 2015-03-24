@@ -36,8 +36,8 @@ public class MassiveConnectionTest {
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
     Properties properties = Utils.readPropertyFile("/test.properties");
-    host = properties.getProperty("openbus.host.name");
-    port = Integer.valueOf(properties.getProperty("openbus.host.port"));
+    host = properties.getProperty("bus.host.name");
+    port = Integer.valueOf(properties.getProperty("bus.host.port"));
     orb = ORBInitializer.initORB();
     context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
   }

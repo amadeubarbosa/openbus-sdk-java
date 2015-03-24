@@ -54,17 +54,17 @@ public final class ConnectionTest {
   public static void oneTimeSetUp() throws Exception {
     Cryptography crypto = Cryptography.getInstance();
     Properties properties = Utils.readPropertyFile("/test.properties");
-    host = properties.getProperty("openbus.host.name");
-    port = Integer.valueOf(properties.getProperty("openbus.host.port"));
-    entity = properties.getProperty("entity.name");
-    password = properties.getProperty("entity.password");
-    serverEntity = properties.getProperty("server.entity.name");
-    privateKeyFile = properties.getProperty("server.private.key");
+    host = properties.getProperty("bus.host.name");
+    port = Integer.valueOf(properties.getProperty("bus.host.port"));
+    entity = properties.getProperty("user.entity.name");
+    password = properties.getProperty("user.password");
+    serverEntity = properties.getProperty("system.entity.name");
+    privateKeyFile = properties.getProperty("system.private.key");
     privateKey = crypto.readKeyFromFile(privateKeyFile);
-    entityWithoutCert = properties.getProperty("entity.withoutcert");
+    entityWithoutCert = properties.getProperty("system.wrong.name");
     String wrongPrivateKeyFile = properties.getProperty("wrongkey");
     wrongPrivateKey = crypto.readKeyFromFile(wrongPrivateKeyFile);
-    admin = properties.getProperty("admin.name");
+    admin = properties.getProperty("admin.entity.name");
     adminpwd = properties.getProperty("admin.password");
     orb = ORBInitializer.initORB();
     context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");

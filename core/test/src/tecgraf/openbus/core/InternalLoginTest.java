@@ -29,10 +29,10 @@ public class InternalLoginTest {
   public static void oneTimeSetUp() throws Exception {
     Cryptography crypto = Cryptography.getInstance();
     Properties properties = Utils.readPropertyFile("/test.properties");
-    host = properties.getProperty("openbus.host.name");
-    port = Integer.valueOf(properties.getProperty("openbus.host.port"));
-    entity = properties.getProperty("entity.name");
-    password = properties.getProperty("entity.password");
+    host = properties.getProperty("bus.host.name");
+    port = Integer.valueOf(properties.getProperty("bus.host.port"));
+    entity = properties.getProperty("user.entity.name");
+    password = properties.getProperty("user.password");
     orb = ORBInitializer.initORB();
     manager = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
   }
