@@ -134,9 +134,11 @@ public interface OpenBusContext {
   /**
    * Cria uma conexão para um barramento indicado por um endereço de rede.
    * <p>
-   * Cria uma conexão para um barramento. O barramento é indicado por um nome ou
-   * endereço de rede e um número de porta, onde os serviços núcleo daquele
-   * barramento estão executando.
+   * Cria uma conexão para um barramento. O barramento é indicado por uma
+   * referência CORBA a um componente SCS que representa os serviços núcleo do
+   * barramento. Essa função deve ser utilizada ao invés da
+   * {@link OpenBusContext#connectByAddress} para permitir o uso de SSL nas
+   * comunicações com o núcleo do barramento.
    * 
    * @param reference Referência CORBA a um componente SCS que representa os
    *        serviços núcleo do barramento.
