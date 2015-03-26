@@ -29,8 +29,8 @@ import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Usage;
+import tecgraf.openbus.demo.util.Utils;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
-import tecgraf.openbus.utils.LibUtils;
 
 /**
  * Cliente do demo Hello
@@ -357,7 +357,7 @@ public final class MultiplexingClient {
     public void notifyTrigger() {
       CallerChain chain = context.getCallerChain();
       String timerId =
-        LibUtils.findProperty(offerDesc.properties, "openbus.offer.login");
+        Utils.findProperty(offerDesc.properties, "openbus.offer.login");
       if (chain.caller().id.equals(timerId)) {
         System.out.println("notificação do timer esperado recebida!");
         if (chain.originators().length > 1

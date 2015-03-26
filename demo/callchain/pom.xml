@@ -36,12 +36,6 @@
     </dependency>
 
     <dependency>
-      <groupId>tecgraf.scs</groupId>
-      <artifactId>scs-core</artifactId>
-      <version>${scs.version}</version>
-    </dependency>
-
-    <dependency>
       <groupId>br.puc-rio.tecgraf.openbus</groupId>
       <artifactId>openbus-sdk-demo-util</artifactId>
       <version>${project.version}</version>

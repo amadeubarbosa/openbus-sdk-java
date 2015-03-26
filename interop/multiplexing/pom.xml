@@ -48,7 +48,13 @@
 
     <dependency>
       <groupId>br.puc-rio.tecgraf.openbus</groupId>
-      <artifactId>openbus-sdk-utils</artifactId>
+      <artifactId>openbus-sdk-utils-test</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>br.puc-rio.tecgraf.openbus</groupId>
+      <artifactId>openbus-sdk-utils-lib</artifactId>
       <version>${project.version}</version>
     </dependency>
 

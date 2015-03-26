@@ -12,29 +12,49 @@ import java.util.logging.Level;
  * @author Tecgraf/PUC-Rio
  */
 public class Configs {
-
+  /** Host */
   public String bushost;
+  /** Porta */
   public int busport;
+  /** Referencia */
   public String busref;
+  /** Certificado */
   public String buscrt;
+  /** Host */
   public String bus2host;
+  /** Porta */
   public int bus2port;
+  /** Referencia */
   public String bus2ref;
+  /** Certificado */
   public String bus2crt;
+  /** Admin */
   public String admin;
+  /** Senha Admin */
   public byte[] admpsw;
+  /** Dominio */
   public String domain;
+  /** Usuario */
   public String user;
+  /** Senha */
   public byte[] password;
+  /** Sistema */
   public String system;
+  /** Chave privada */
   public String syskey;
+  /** Path para arquivo sharedauth */
   public String sharedauth;
+  /** Nivel de log do teste */
   public Level testlog;
+  /** Nível de log da lib */
   public Level log;
+  /** Propriedades do ORB */
   public String orbprops;
 
   //Java's particular props
+  /** Chave privada errada */
   public String wrongkey;
+  /** Sistema sem certificado cadastrado */
   public String wrongsystem;
 
   /**

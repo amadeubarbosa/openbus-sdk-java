@@ -48,14 +48,14 @@
 
     <dependency>
       <groupId>br.puc-rio.tecgraf.openbus</groupId>
-      <artifactId>openbus-sdk-utils</artifactId>
+      <artifactId>openbus-sdk-utils-test</artifactId>
       <version>${project.version}</version>
     </dependency>
 
     <dependency>
-      <groupId>tecgraf.scs</groupId>
-      <artifactId>scs-core</artifactId>
-      <version>${scs.version}</version>
+      <groupId>br.puc-rio.tecgraf.openbus</groupId>
+      <artifactId>openbus-sdk-utils-lib</artifactId>
+      <version>${project.version}</version>
     </dependency>
 
     <dependency>
@@ -64,12 +64,6 @@
       <version>${project.version}</version>
     </dependency>
 
-    <dependency>
-      <groupId>org.jacorb</groupId>
-      <artifactId>jacorb</artifactId>
-      <version>${jacorb.version}</version>
-    </dependency> 
-  
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
