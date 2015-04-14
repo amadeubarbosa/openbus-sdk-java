@@ -234,6 +234,7 @@
   <modules>
     <module>core</module>
     <module>legacy</module>
+    <module>admin</module>
     <module>interop</module>
     <module>demo</module>
     <module>utils</module>
