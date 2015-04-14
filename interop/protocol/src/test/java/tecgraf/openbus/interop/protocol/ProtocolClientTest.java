@@ -54,7 +54,7 @@ public final class ProtocolClientTest {
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
     Configs configs = Configs.readConfigsFile();
-    String iorfile = configs.bus2ref;
+    String iorfile = configs.busref;
     entity = configs.user;
     password = configs.password;
     domain = configs.domain;
