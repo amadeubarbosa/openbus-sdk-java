@@ -1,14 +1,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-
   <groupId>br.puc-rio.tecgraf.openbus</groupId>
   <artifactId>openbus-sdk</artifactId>
   <packaging>pom</packaging>
   <version>2.1.0.0-RC1</version>
   <inceptionYear>2008</inceptionYear>
-  
   <name>OpenBus - SDK</name>
-  <url>${nexus.url}/content/sites/site/openbus-sdk/${project.version}</url>
+  <!-- <url>${site.url}/${ob.component}/${project.version}</url> -->
   <description>Biblioteca para desenvolvimento de integrações de sistemas através do Middleware OpenBus</description>
   
   <organization>
@@ -16,20 +14,146 @@
     <url>http://www.tecgraf.puc-rio.br</url>
   </organization>
 
+  <scm>
+    <url>${scm.baseurl}/sdk/java/trunk</url>
+    <connection>scm:svn:${scm.baseurl}/sdk/java/trunk</connection>
+    <developerConnection>scm:svn:${scm.baseurl}/sdk/java/trunk</developerConnection>
+  </scm>
+
   <properties>
+    <!-- versions -->
     <java.version>1.6</java.version>
     <scs.version>1.2.1.3</scs.version>
     <junit.version>4.11</junit.version>
     <jacorb.version>3.5</jacorb.version>
     <idlj.version>1.2.1</idlj.version>
     <jar.version>2.5</jar.version>
-    <commons.lang.version>3.3.2</commons.lang.version>
-    <project.build.sourceEncoding>ISO-8859-1</project.build.sourceEncoding>
-    <nexus.url>http://nexus.tecgraf.puc-rio.br:8081/nexus</nexus.url>
     <javadoc.version>2.10.1</javadoc.version>
     <source.version>2.4</source.version>
     <surefire.version>2.18.1</surefire.version>
+    <commons.lang.version>3.3.2</commons.lang.version>
+    <!-- properties -->
+    <ob.component>maven</ob.component>
+    <project.build.sourceEncoding>ISO-8859-1</project.build.sourceEncoding>
+    <nexus.url>http://maven.tecgraf.puc-rio.br:8081/nexus/content</nexus.url>
+    <site.url>${nexus.url}/sites/site/openbus</site.url>
+    <scm.baseurl>https://subversion.tecgraf.puc-rio.br/engdist/openbus</scm.baseurl>
   </properties>
+
+  <distributionManagement>
+    <repository>
+      <id>tecgraf-pub-releases</id>
+      <name>Releases do Tecgraf</name>
+      <url>${nexus.url}/repositories/releases</url>
+    </repository>
+    <snapshotRepository>
+      <id>tecgraf-pub-snapshots</id>
+      <name>Snapshots do Tecgraf</name>
+      <url>${nexus.url}/repositories/snapshots</url>
+    </snapshotRepository>
+<!--     <site>
+      <id>tecgraf-pub-site</id>
+      <name>Site</name>
+      <url>dav:${project.url}</url>
+    </site>
+ -->  </distributionManagement>
+  
+  <repositories>
+    <repository>
+      <id>nexus</id>
+      <url>${nexus.url}/groups/public</url>
+    </repository>
+  </repositories>
+
+  <modules>
+    <module>core</module>
+    <module>legacy</module>
+    <module>admin</module>
+    <module>interop</module>
+    <module>demo</module>
+    <module>utils</module>
+  </modules>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>1.0</version>
+        <executions>
+          <execution>
+            <id>enforce-versions</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireJavaVersion>
+                  <version>[1.6,1.7)</version>
+                </requireJavaVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>2.3.2</version>
+        <configuration>
+          <source>${java.version}</source>
+          <target>${java.version}</target>
+          <compilerArgument>-Xbootclasspath/p:${settings.localRepository}/org/jacorb/jacorb-omgapi/${jacorb.version}/jacorb-omgapi-${jacorb.version}.jar</compilerArgument>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>idlj-maven-plugin</artifactId>
+        <version>${idlj.version}</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.jacorb</groupId>
+            <artifactId>jacorb-idl-compiler</artifactId>
+            <version>${jacorb.version}</version>
+            <scope>compile</scope>
+          </dependency>
+        </dependencies>
+        
+        <executions>
+          <execution>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
+
+        <configuration>
+          <compiler>jacorb</compiler>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-site-plugin</artifactId>
+        <version>3.4</version>
+        <configuration>
+          <locales>pt_BR</locales>
+        </configuration>
+      </plugin>
+    </plugins>
+
+    <extensions>
+      <extension>
+        <groupId>org.apache.maven.wagon</groupId>
+        <artifactId>wagon-webdav-jackrabbit</artifactId>
+        <version>2.8</version>
+      </extension>
+    </extensions>
+  </build>
 
   <reporting>
     <plugins>
@@ -55,6 +179,7 @@
           <showAvatarImages>false</showAvatarImages>
         </configuration>
       </plugin>
+      
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
@@ -196,130 +321,7 @@
     </license>
   </licenses>
 
-  <distributionManagement>
-    <repository>
-      <id>tecgraf-releases</id>
-      <name>Releases do Tecgraf</name>
-      <url>${nexus.url}/content/repositories/releases</url>
-    </repository>
-    <snapshotRepository>
-      <id>tecgraf-snapshots</id>
-      <name>Snapshots do Tecgraf</name>
-      <url>${nexus.url}/content/repositories/snapshots</url>
-    </snapshotRepository>
-    <site>
-      <id>tecgraf-site</id>
-      <name>Site</name>
-      <url>dav:${project.url}</url>
-    </site>
-  </distributionManagement>
-  
-  <repositories>
-    <repository>
-      <id>nexus</id>
-      <url>http://nexus.tecgraf.puc-rio.br:8081/nexus/content/groups/public</url>
-    </repository>
-  </repositories>
-
-  <scm>
-    <developerConnection>
-        scm:svn:https://subversion.tecgraf.puc-rio.br/engdist/openbus/sdk/java/trunk
-    </developerConnection>
-    <url>
-        scm:svn:https://subversion.tecgraf.puc-rio.br/viewvc/engdist/openbus/sdk/java/trunk
-    </url>
-  </scm>
-
-  <modules>
-    <module>core</module>
-    <module>legacy</module>
-    <module>admin</module>
-    <module>interop</module>
-    <module>demo</module>
-    <module>utils</module>
-  </modules>
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <version>1.0</version>
-        <executions>
-          <execution>
-            <id>enforce-versions</id>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-            <configuration>
-              <rules>
-                <requireJavaVersion>
-                  <version>[1.6,1.7)</version>
-                </requireJavaVersion>
-              </rules>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>2.3.2</version>
-        <configuration>
-          <source>${java.version}</source>
-          <target>${java.version}</target>
-          <compilerArgument>-Xbootclasspath/p:${settings.localRepository}/org/jacorb/jacorb-omgapi/${jacorb.version}/jacorb-omgapi-${jacorb.version}.jar</compilerArgument>
-        </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>idlj-maven-plugin</artifactId>
-        <version>${idlj.version}</version>
-        <dependencies>
-          <dependency>
-            <groupId>org.jacorb</groupId>
-            <artifactId>jacorb-idl-compiler</artifactId>
-            <version>${jacorb.version}</version>
-            <scope>compile</scope>
-          </dependency>
-        </dependencies>
-        
-        <executions>
-          <execution>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-          </execution>
-        </executions>
-
-        <configuration>
-          <compiler>jacorb</compiler>
-        </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-site-plugin</artifactId>
-        <version>3.4</version>
-        <configuration>
-          <locales>pt_BR</locales>
-        </configuration>
-      </plugin>
-    </plugins>
-    <extensions>
-      <extension>
-        <groupId>org.apache.maven.wagon</groupId>
-        <artifactId>wagon-webdav-jackrabbit</artifactId>
-        <version>2.4</version>
-      </extension>
-    </extensions>
-  </build>
-
-  <dependencyManagement>
+ <dependencyManagement>
     <dependencies>
       <dependency>
         <groupId>tecgraf.scs</groupId>

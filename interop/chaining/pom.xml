@@ -1,17 +1,14 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
+  <artifactId>openbus-sdk-interop-chaining</artifactId>
+  <packaging>jar</packaging>
+  <name>OpenBus - SDK - Testes de Interoperabilidade - Chaining</name>
 
   <parent>
     <groupId>br.puc-rio.tecgraf.openbus</groupId>
     <artifactId>openbus-sdk-interop</artifactId>
     <version>2.1.0.0-RC1</version>
   </parent>
-
-  <artifactId>openbus-sdk-interop-chaining</artifactId>
-  <packaging>jar</packaging>
-
-  <name>OpenBus - SDK - Testes de Interoperabilidade - Chaining</name>
-  <url>http://www.tecgraf.puc-rio.br/openbus</url>
 
   <build>
     <plugins>
