@@ -5,8 +5,10 @@
   </bannerLeft>
 
   <body>
-<!--    <menu ref="parent" inherit="top" />
-    <menu ref="modules" inherit="top"/> -->
+<!--    
+    <menu ref="parent" inherit="top" />
+    <menu ref="modules" inherit="top"/>
+-->
     <menu ref="reports" inherit="top"/>
   </body>
 
