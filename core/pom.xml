@@ -12,7 +12,7 @@
   </parent>
 
   <properties>
-    <ob.component>sdk-core</ob.component>
+    <ob.component>sdk</ob.component>
   </properties>
   
   <distributionManagement>
