@@ -1,0 +1,45 @@
+Nesta seção procuramos apresentar uma visão geral de como se realizam integrações através do barramento \openbus{} e os conceitos principais associados.
+Tomaremos como cenário de exemplo para ilustrar a realização das integrações um uso baseado na figura~\ref{fig:theneed}, onde temos 4 atores principais:
+\begin{itemize}
+	\item Base de Dados: serviço~\footnote{Utilizamos a palavra serviço com o significado de provedor de uma dada funcionalidade.} responsável por manter e prover dados.
+	\item Busca de Dados: serviço que oferece mecanismos de buscas de dados.
+	\item Processamento de Dados: serviço que provê funcionalidades de processamento de dados.
+	\item Aplicação Cliente: aplicação que deseja realizar um processamento de dados, porém não é detentora dos dados de entrada e nem deve assumir resposabilidade de manter os dados de saída.
+\end{itemize}
+
+Para realizar a integração envolvendo todos os atores, o primeiro requisito é de que todos precisam se conectar ao barramento, dado que este é o meio de comunicação pelo qual toda a integração se baseia.
+Uma conexão no barramento só se concretiza após passar por alguma prova de autenticação, onde cada parte precisa confirmar a sua identidade.
+Como resultado de uma autenticação bem sucedida é gerado um \term{login} dentro do barramento, que fica associado a identidade autenticada, ilustrado na figura~\ref{fig:bus_02}.
+Utilizaremos o termo entidade para referenciar uma parte que se conecta ao barramento, onde a entidade pode se referir a qualquer coisa a que possa associar uma identidade, seja uma pessoa, sistema, intituição, etc.
+
+\inputimage{bus_02}{As partes conectadas ao barramento após uma prova de autenticação. O crachá representa o \term{login} associado a entidade autenticada.}
+
+Uma vez conectados ao barramento, as partes que são provedores de serviços da integração devem publicar seus serviços no barramento, de forma que os mesmos possam ser buscados e utilizados por outras entidades que se conectarem ao barramento.
+O \openbus{} define que os serviços devem ser oferecidos como um componente SCS, que é o formato padrão para publicação de serviços.
+Todos os serviços ofertados no barramento possuem um conjunto de propriedades que os definem.
+Algumas dessas propriedades são geradas automaticamente pelo barramento, porém as entidades provedores de serviço podem acrescentar um conjunto de propriedades a serem associadas ao serviço ofertado no momento da publicação dos mesmos.
+A figura~\ref{fig:bus_06} ilustra os serviços publicados no barramento.
+
+\inputimage{bus_06}{Publicação de serviços no barramento. A caixa representa a formatação dos serviços como componentes SCS, e a etiqueta representa as propriedades associadas ao serviço ofertado.}
+
+Com todas as partes conectadas ao barramento e todos os serviços necessários publicados, pode-se então dar início as interações (chamadas) que de fato realizam a integração entre as entidades envolvidas neste cenário.
+Esta integração se realiza através de uma sequência de interações, são elas:
+\begin{enumerate}
+	\item \label{itm:1st} Cliente solicita a realização de um processamento de dados (vide figura~\ref{fig:bus_07});
+	\inputimage{bus_07}{Cliente solicita processamento de dados.}
+	
+	\item \label{itm:2nd} Para executar o processamento, a entidade de processamento de dados se comunica com o serviço de busca para encontrar os dados necessários para a realização do processamento (vide figura~\ref{fig:bus_09});
+	\inputimage{bus_09}{Requisição por busca dos dados requeridos para processamento.}
+
+	\item \label{itm:3rd} O serviço de busca, por sua vez, interage com a base de dados para encontrar o dado requerido para o processamento (vide figura~\ref{fig:bus_10});
+	\inputimage{bus_10}{Recuperação dos dados}
+
+	\item \label{itm:4th} A conclusão do processamento gera um novo dado, que o serviço de processamento pode solicitar que seja persisitido na base de dados (vide figura~\ref{fig:bus_11}).
+	\inputimage{bus_11}{Persistindo o dado resultante do processamento}
+\end{enumerate}
+
+Todas as interações que ocorrem através do barramento, são realizadas respeitando o protocolo definido pelo OpenBus.
+Sendo assim, em todas as invocações são anexados às chamadas um conjunto de informações que definem as identificaçãoes das entidades envolvidas em cada requisição, denominadas cadeia de chamadas.
+Toda entidade que atende uma requisição pode inspecionar as informações desta cadeia de chamadas para implementar suas regras de permissionamento (autorização), registrar informações de auditoria, ou qualquer outro uso que for pertinente.
+% As figuras~\ref{fig:bus_07}, \ref{fig:bus_09}, \ref{fig:bus_10} e \ref{fig:bus_11} ilustram os passos \ref{itm:1st}, \ref{itm:2nd}, \ref{itm:3rd} e \ref{itm:4th} respectivamente enumerados anteriormente.
+

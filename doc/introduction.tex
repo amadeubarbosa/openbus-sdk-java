@@ -1,0 +1,54 @@
+O \openbus{} é um middleware para integrar sistemas corporativos através de uma arquitetura orientada a serviços.
+Esses sistemas podem estar desenvolvidos em diferentes linguagens e ser específicos de plataforma (Linux, Solaris, Windows, MacOSX ou outras).
+O \openbus{} é composto por:
+
+\begin{itemize}
+  \item infraestrutura que oferece comunicação remota eficiente entre as pontas, catálogo de serviços, mecanismo para auditoria nas transações distribuídas, controle de acesso e diferentes níveis de segurança;
+  \item bibliotecas de desenvolvimento (em diferentes linguagens) para a criação de novos serviços a serem integrados através do OpenBus;
+  \item um conjunto de aplicações de exemplo;
+  \item utilitários de apoio à implantação de ambos: o middleware e novos serviços desenvolvidos para esse.
+\end{itemize}
+
+A infraestrutura mínima do \openbus{} é representada pelo seu núcleo principal, que é composto por um barramento de comunicação e serviços essenciais, denominados serviços núcleo.
+Além do núcleo do barramento, a arquitetura \openbus{} também define um conjunto de elementos adicionais que fornecem outras facilidades importantes, tais como bibliotecas e serviços extras.
+Essencialmente o OpenBus é dividido em três partes:
+\begin{description}
+  \item[Núcleo do barramento (Core):] 
+  Composto por um barramento de comunicação e serviços essenciais, denominados serviços núcleo. Os serviços núcleo são oferecidos pelo próprio barramento e tipicamente acessados através da API da Biblioteca de Acesso.
+  \item[Serviços Extras:] 
+  Serviços que acrescentam funcionalidades para auxiliar a integração entre serviços e aplicações, mas que não são parte do núcleo do barramento. 
+  \item[Biblioteca de Acesso:] 
+  Biblioteca de programação que implementa a API do OpenBus. O projeto OpenBus oferece implementações dessa biblioteca nas linguagens Lua, Java, C++ e C\#.
+\end{description}
+
+O \openbus{} se baseia em duas tecnologias complementares para constituir sua infraestrutura básica de integração de sistemas.
+São elas:
+%
+\begin{description}
+  \item[\corba{}]
+  \foreign{Common Object Requester Broker Architecture}~\cite{omg08corbaspec} é um padrão da indústria que especifica um middleware para sistemas distribuídos heterogêneos orientados a objetos.
+  \corba{} define o modelo básico de comunicação usado nas integrações de sistemas feitas com o \openbus{}.
+  \corba{} tem suporte para inúmeras linguagens de programação e plataformas computacionais, que nos permite integrar com o \openbus{} uma grande variedade de sistemas.
+  \item[\scs{}]
+  \foreign{Software Component System}~\cite{web:SCS} é um modelo simples e flexível de componentes de software baseado em \corba{} que permite estruturar sistemas usando uma arquitetura baseada em componentes.
+  O \scs{} é usado no \openbus{} tanto como um modelo arquitetural básico para a infraestrutura básica oferecida como também para estruturar a forma como as integrações são feitas.
+\end{description}
+
+%%% MOVER??
+Uma característica importante do barramento \openbus{} é que ele mantém compatibilidade com a API da versão imediatamente anterior. 
+Ou seja, mesmo que a versão do barramento evolua, os sistemas (serviços, aplicações e usuários) ainda conseguem acessar o barramento utilizando bibliotecas de acesso de uma versão anterior.
+O \openbus{} utiliza um esquema de versionamento com quatro números, no formato A.B.C.D.
+Sendo assim, o barramento 2.0 permite a realização de acesso utilizando as bibliotecas de acesso de versão 1.5.x, onde x pode assumir qualquer valor de C.D.
+
+Este documento foca-se em apresentar a Biblioteca de Acesso.
+Para maiores informações sobre o barramento, consulte as demais fontes de documentação do projeto. \cite{web:OPENBUS,ob2.0core,ob2.0protospec,ob2.0install}
+A Biblioteca de Acesso faz parte do kit de desenvolvimento (SDK) do OpenBus, que é disponibilizado para as linguagens de programação Lua, Java, C++ e C\#, e em geral é composto por:
+\begin{itemize}
+  \item Compilador de IDL.
+  \item Biblioteca de acesso.
+  \item Classes utilitárias.
+  \item Documentação.
+  \item Aplicações de demonstração.
+\end{itemize}
+
+APRESENTAR ESTRUTURA DO DOCUMENTO...

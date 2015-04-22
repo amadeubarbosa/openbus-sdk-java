@@ -1,0 +1,83 @@
+A atual natureza ubíqua da tecnologia da informação resulta que a maioria das empresas contam com uma variedade de sistemas computacionais para realizar suas atividades.
+Tais sistemas são geralmente especializados em tarefas específicas, como a manipulação de algum tipo específico de dados ou aplicação de certas regras de negócio.
+A medida que os sistemas evoluem e incorporam mais aspectos das atividades que realizam, eles se tornam mais complexos e começam a sobreporem-se com outros sistemas.
+Se tais sistemas são projetados e evoluem de forma independente um do outro, eles acabam mantendo a sua própria coleção de dados e implementações de regras de negócios.
+Em última análise, isso tende a causar problemas, tais como replicação e inconsistência de dados e regras, multiplicidade de representações de dados, fluxos de trabalho não-automáticas e passíveis de erros, entre outros.
+Integração de sistemas busca redesenhar ou adaptar sistemas independentes para comunicar e cooperar uns com os outros, a fim de evitar automaticamente ou minimizar esses problemas compartilhando recursos de dados e implementações.
+
+Em essência, o requisito mais básico para a integração do sistema é uma espécie de suporte à comunicação, de modo que os sistemas possam interagir uns com os outros.
+As abordagens mais comuns adoptadas nesta matéria podem ser resumidas em quatro estilos principais de integração \cite{hohpe2004enterprise}:
+\begin{itemize}
+	\item\textbf{Transferência de arquivo:}
+	sistemas exportam dados em arquivos que são disponibilizados para outros sistemas.
+	Isto pode ser feito automaticamente ou manualmente com auxílio de sistemas de usuários.
+	\item\textbf{Compartilhamento de Base de Dados:}
+	sistemas compartilham dados usando algum repositório de dados compartilhados, como um sistema de gerenciamento de banco de dados (DBMS) ou sistema de arquivos compartilhado.
+	\item\textbf{Invocação Remota de Processo (RPI):}
+	sistemas oferecem uma interface remota estruturada composta por operações ou procedimentos que outros sistemas podem invocar para solicitar dados ou serviços.
+	\item\textbf{Mensagens:}
+	sistemas trocam mensagens de forma síncrona, assíncrona ou ambos, para trocar dados e colaborar uns com os outros.
+
+\end{itemize}
+
+Uma estratégia para promover a integração de sistemas é através do uso de barramentos de comunicação, middlewares ou frameworks de integração (EAI - Enterprise Application Integration), que visam definir uma tecnologia comum pela qual todas as partes poderiam se integrar.
+Nesse modelo, cada aplicação se conecta ao barramento, segundo um protocolo próprio deste barramento, e carrega ou exporta dados para outras aplicações também conectadas ao barramento.
+
+\inputimage{theneed}{Uma Proposta para Integração de Serviços}
+
+\subsection{Requisitos}
+
+\subsubsection{Comunicação Padronizada}
+\begin{itemize}
+    \item Aberto e independente de tecnologia.
+    \begin{itemize}
+      \item Implementações heterogêneas.
+      \item Implementações por terceiros.
+    \end{itemize}
+    \item Dados estruturados.
+    \begin{itemize}
+      \item Dados complexos.
+      \item Alto nível de processamento.
+    \end{itemize}
+    \item Eficiente (rápido, pequeno e escalável).
+    \begin{itemize}
+      \item Grandes volumes de dados.
+      \item Muitos clientes.
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Acesso Identificado}
+\begin{itemize}
+	\item Serviços são confidenciais e estrategicamente valiosos.
+	\item Mesmo dentro de uma corporação nem todos devem ter acesso a tudo.
+	\item É necessário pelo menos saber quem solicita cada serviço.
+	\begin{itemize}
+	  	\item Aplicações podem negar ou aceitar de acordo com quem solicita.
+	  	\item Ou seja, autorização fica a cargo das aplicações.
+	\end{itemize}
+	\item Permitir fazer solicitações em nome de alguém (delegação).
+	\begin{itemize}
+	  	\item Quando um serviço recebe uma solicitação, poder solicitar outros serviços em nome do originador da solicitação.
+	\end{itemize}
+\end{itemize}
+
+\subsubsection{Descoberta de Serviços}
+\begin{itemize}
+	\item Quais serviços estão disponiveis?
+	\item Quais serviços devem ser utilizados?
+	\item Como acessar esses serviços?
+	\item Como oferecer serviços de forma fácil e simplificada?
+\end{itemize}
+
+
+\subsubsection{Governança Centralizada}
+\begin{itemize}
+    \item Dentro do domínio de uma instituição é necessário ter controle e imposição de regras e padrões.
+    \begin{itemize}
+      \item Otimização de processos da instituição.
+      \item Aderência às estratégias da instituição.
+      \item Acompanhamento do desempenho dentro da instituição.
+    \end{itemize}
+    \item A governança é realizada por uma equipe técnica responsável pela monitoração, avaliação e controle das integrações.
+\end{itemize}
+

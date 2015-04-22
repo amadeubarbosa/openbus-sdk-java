@@ -1,0 +1,58 @@
+%
+%  SDK OpenBus 2.0
+%
+%  Copyright (c) 2012 Tecgraf/PUC-Rio. All rights reserved.
+%
+\documentclass[]{article}
+
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+
+% Use utf-8 encoding for foreign characters
+\usepackage[latin1]{inputenc}
+\usepackage[brazil]{babel}
+
+% Setup for fullpage use
+\usepackage{fullpage}
+\usepackage{mwlabinputs2}
+\usepackage{graphicx,url}
+
+%% Redefines the label 'Listing' for ..
+\def\lstlistingname{Código}
+\codestyle{colorful}
+
+% new commands
+\newcommand{\foreign}[1]{\textit{#1}}
+\newcommand{\term}[1]{\textit{#1}}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\newcommand{\openbus}{\textsc{OpenBus}}
+\newcommand{\corba}{\textsc{CORBA}}
+\newcommand{\orb}{\textsc{ORB}}
+\newcommand{\jacorb}{\textsc{JacORB}}
+\newcommand{\scs}{\textsc{SCS}}
+\newcommand{\version}{2.0.2}
+
+\title{Biblioteca de Acesso \version{} do \openbus{} - Java}
+\author{Tecgraf/PUC-Rio}
+
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\inputsection{introduction}{Introdução}
+\inputsection{history}{De Onde Surgiu?}
+\inputsection{overview}{Visão Geral}
+\inputsection{architecture}{Arquitetura Interna}
+\inputsection{hands-on}{Como se usa?}
+
+% \include{glossary}
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}
