@@ -334,16 +334,14 @@ public interface OpenBusContext {
   CallerChain getJoinedChain();
 
   /**
-   * Cria uma cadeia de chamadas para a entidade para a entidade especificada.
+   * Cria uma cadeia de chamadas para a entidade especificada.
    * <p>
    * Cria uma nova cadeia de chamadas para a entidade especificada, onde o dono
    * da cadeia é a conexão corrente ({@link #getCurrentConnection()}) e
    * utiliza-se a cadeia atual ({@link #getJoinedChain()}) como a cadeia que se
-   * deseja dar seguimento ao encadeamento. O identificador de login
-   * especificado deve ser um login atualmente válido para que a operação tenha
-   * sucesso.
+   * deseja dar seguimento ao encadeamento.
    * 
-   * @param entity entidade para a qual deseja-se enviar a cadeia.
+   * @param entity nome da entidade para a qual deseja-se enviar a cadeia.
    * @return a cadeia gerada para ser utilizada pela entidade com o login
    *         especificado.
    * 
