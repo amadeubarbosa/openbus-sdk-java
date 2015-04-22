@@ -339,7 +339,11 @@ public interface OpenBusContext {
    * Cria uma nova cadeia de chamadas para a entidade especificada, onde o dono
    * da cadeia é a conexão corrente ({@link #getCurrentConnection()}) e
    * utiliza-se a cadeia atual ({@link #getJoinedChain()}) como a cadeia que se
-   * deseja dar seguimento ao encadeamento.
+   * que se deseja dar seguimento ao encadeamento. É permitido especificar
+   * qualquer nome de entidade, tendo ela um login ativo no momento ou não. A
+   * cadeia resultante só poderá ser utilizada ({@link #joinChain(CallerChain)}
+   * ) com sucesso por uma conexão que possua a mesma identidade da entidade
+   * especificada.
    * 
    * @param entity nome da entidade para a qual deseja-se enviar a cadeia.
    * @return a cadeia gerada para ser utilizada pela entidade com o login
