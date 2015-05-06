@@ -1,3 +1,57 @@
-A figura~\ref{fig:bussoa} apresenta a arquitetura do barramento \openbus{} e seus componentes principais.
+Vimos na sessão anterior os conceitos principais envolvidos na integração de serviços através do barramento.
+São eles:
+\begin{inparaenum}[(i)]
+	\item barramento, \label{conc:1}
+	\item conexão, \label{conc:2}
+	\item autenticação, \label{conc:3}
+	\item entidade, \label{conc:4}
+	\item login, \label{conc:5}
+	\item cadeia de chamadas, \label{conc:6}
+	\item serviço, \label{conc:7}
+	\item contrato de serviço, e \label{conc:8}
+	\item oferta de serviço. \label{conc:9}
+\end{inparaenum}
+
+Os conceitos (\ref{conc:1}) e (\ref{conc:2}) atuam diretamente para prover o requisito de comunicação (abordado na seção~\ref{subsec:comm}), os conceitos (\ref{conc:3}) a (\ref{conc:6}) atendem o requisito de identificação (abordado na seção~\ref{subsec:id}), e os conceitos (\ref{conc:7}) a (\ref{conc:9}) atendem o requisito de prover mecanismo de descoberta de serviços (abordado na seção~\ref{subsec:find}).
+
+Entraremos agora em mais detalhes sobre a arquitetura interna do barramento e seus componentes principais.
+A figura~\ref{fig:bussoa} ilustra esta visão da arquitetura do barramento \openbus{}.
 
 \inputimage{bussoa}{Arquitetura do barramento OpenBus}
+
+\begin{description}
+	\item[Biblioteca de Acesso] \hfill \\
+	É a biblioteca de programação que implementa o protocolo e define a API de programação do \openbus{}.
+	Ela visa facilitar o trabalho de desenvolvimento da integração de entidades no barramento \openbus{}, e a mesma é disponibilizada nas linguagens C++, C\#, Java e Lua.
+	\item[Protocolo OpenBus 2.0] \hfill \\
+	É o protocolo de comunicação especificado na versão 2.0 do barramento que define as regras de comunicação para garantir a identificação das partes envolvidas na integração, evitar a personificação, e prover informações de delegação.
+	\item[Serviços Núcleo] \hfill \\
+	Conjunto de serviços essenciais para o funcionamento do barramento, e que têm suas funcionalidades utilizadas e expostas pela API da Biblioteca de Acesso.
+	Estes serviços devem existir em qualquer instância de barramento \openbus{}.
+	São eles:
+	\begin{description}
+		\item[Controle de Acesso] \hfill \\
+		Serve como ponto de entrada do barramento, sendo responsável por autenticar, renovar e gerenciar os logins de entidades no barramento.
+		\item[Registro de Ofertas] \hfill \\
+		Serviço que permite o registro e busca de ofertas de serviços no barramento.
+		\item[Registro de Logins] \hfill \\
+		Expõe informações de identificação dos logins referenciados nas comunicações no barramento.
+	\end{description}
+	\item[Serviços de Governança] \hfill \\
+	Conjunto de serviços que visam permitir que um governante no barramento possa ter algum controle sobre quem se autentica no barramento e quem possui permissão para publicar ofertas no barramento.
+	Estes serviços atendem o requisito de governança, exposto na seção~\ref{subsec:gov}, mas podem não ser utilizados em instâncias de barramento caso sejam de interesse do ambiente de integração provido.
+	\begin{description}
+		\item[Registro de Certificados] \hfill \\
+		Provê um mecanismo de configuração de cadastro de entidades que podem se autenticar no barramento utilizando-se de um par de chave privada e certificado.
+		\item[Registro de Interfaces] \hfill \\
+		Cadastro de contratos de serviços que podem ser publicados no barramento.
+		\item[Registro de Entidades] \hfill \\
+		Cadastro de entidades que possuem permissão para publicar determinados contratos de serviços como ofertas no barramento.
+	\end{description}
+	\item[Serviços Legados] \hfill \\
+	Conjunto de serviços que garantem o suporte à versão anterior do protocolo do barramento.
+	Eles permitem que bibliotecas de acesso da versão legada do protocolo ainda consigam se conectar ao barramento e se integrar com as demais entidades conectadas, desde que as partes envolvidas mantenham o suporte ao protocolo legado ativo.
+	Estes serviços podem ser desativados, o que desliga o suporte ao protocolo legado na intância de barramento.
+	No caso de barramentos \openbus{} 2.0, o protocolo legado é o de versão 1.5.
+\end{description}
+
