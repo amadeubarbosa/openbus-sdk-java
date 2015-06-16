@@ -26,6 +26,41 @@
   <build>
     <plugins>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>1.8</version>
+        <executions>
+          <execution>
+            <id>copy-idls</id>
+            <phase>initialize</phase>
+            <configuration>
+              <target name="Copying 2.1 IDL files">
+                <copy todir="${project.basedir}/idl/" >
+                  <fileset dir="${v2_1.idlpath}/src" includes="*.idl"/> 
+                </copy>
+              </target>
+            </configuration>
+            <goals>
+              <goal>run</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-clean-plugin</artifactId>
+        <version>2.6.1</version>
+        <configuration>
+          <filesets>
+            <fileset>
+              <directory>${project.basedir}/idl</directory>
+              <includes>
+                <include>*-2.1.idl</include>
+              </includes>
+            </fileset>
+          </filesets>
+        </configuration>
+      </plugin>
+      <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>idlj-maven-plugin</artifactId>
         <version>${idlj.version}</version>
@@ -39,7 +74,7 @@
             <configuration>
               <sourceDirectory>${project.basedir}/idl</sourceDirectory>
               <includeDirs>
-                <includeDir>${project.basedir}/../legacy/idl</includeDir>
+                <includeDir>${v2_0.idlpath}/src</includeDir>
                 <includeDir>${scs.idlpath}/src</includeDir>
               </includeDirs>
             </configuration>

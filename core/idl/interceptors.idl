@@ -4,8 +4,8 @@
 #ifndef __TECGRAF_OPENBUS_INTERCEPTORS_IDL__
 #define __TECGRAF_OPENBUS_INTERCEPTORS_IDL__
 
-#include "tecgraf/openbus/core/v2_1/credential.idl"
-#include "legacy_credential.idl"
+#include "openbus_creden-2.1.idl"
+#include "credential.idl"
 
 /** \brief Módulo dos sistemas e aplicações do Tecgraf. */
 module tecgraf {

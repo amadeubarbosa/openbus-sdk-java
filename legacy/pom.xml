@@ -17,7 +17,18 @@
         <artifactId>idlj-maven-plugin</artifactId>
         <version>${idlj.version}</version>
         <configuration>
-          <sourceDirectory>${project.basedir}/idl</sourceDirectory>
+          <sourceDirectory>${v2_0.idlpath}/src</sourceDirectory>
+          <sources>
+            <source>
+            <includes>
+            <include>core.idl</include>
+            <include>credential.idl</include>
+            <include>access_control.idl</include>
+            <!-- <include>offer_registry.idl</include> -->
+            <include>data_export.idl</include>
+            </includes>
+            </source>
+          </sources>
           <includeDirs>
             <includeDir>${scs.idlpath}/src</includeDir>
           </includeDirs>
