@@ -34,7 +34,7 @@
             <id>copy-idls</id>
             <phase>initialize</phase>
             <configuration>
-              <target name="Copying 2.1 IDL files">
+              <target name="Copying 2.1 IDL files" unless="skip.copy-idls">
                 <copy todir="${project.basedir}/idl/" >
                   <fileset dir="${v2_1.idlpath}/src" includes="*.idl"/> 
                 </copy>

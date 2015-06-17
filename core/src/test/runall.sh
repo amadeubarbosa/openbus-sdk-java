@@ -41,7 +41,8 @@ source ${OPENBUS_CORE_TEST}/runadmin.sh $mode localhost $bus1port --script=sdk_j
 
 # go to core/pom.xml
 pushd ../../..
-mvn test
+# TODO: review this strategy: skip.copy-idls
+mvn test -Dskip.copy-idls
 assert_ok $?
 # back to resources
 popd
