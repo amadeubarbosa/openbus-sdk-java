@@ -2,6 +2,7 @@ package tecgraf.openbus.core;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
@@ -466,11 +467,11 @@ public final class OpenBusContextTest {
       String unknown = "<unknown>";
       assertEquals(conn1.busid(), imported.busid());
       assertEquals(actor1, imported.target());
-      assertEquals(unknown, imported.caller().id);
+      assertNotEquals(unknown, imported.caller().id);
       assertEquals(caller, imported.caller().entity);
       assertEquals(origs, imported.originators().length);
       for (LoginInfo info : imported.originators()) {
-        assertEquals(unknown, info.id);
+        assertNotEquals(unknown, info.id);
       }
     }
     finally {
