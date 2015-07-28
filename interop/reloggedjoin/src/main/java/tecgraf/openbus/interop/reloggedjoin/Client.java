@@ -34,7 +34,7 @@ public final class Client {
    */
   public static void main(String[] args) throws Exception {
     Configs configs = Configs.readConfigsFile();
-    String iorfile = configs.bus2ref;
+    String iorfile = configs.busref;
     String entity = "interop_reloggedjoin_java_client";
     String domain = configs.domain;
     Utils.setTestLogLevel(configs.testlog);

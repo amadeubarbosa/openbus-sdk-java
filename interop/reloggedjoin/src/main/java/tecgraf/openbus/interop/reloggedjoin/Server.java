@@ -38,7 +38,7 @@ public final class Server {
    */
   public static void main(String[] args) throws Exception {
     Configs configs = Configs.readConfigsFile();
-    String iorfile = configs.bus2ref;
+    String iorfile = configs.busref;
     String entity = "interop_reloggedjoin_java_server";
     String privateKeyFile = "admin/InteropReloggedJoin.key";
     RSAPrivateKey privateKey =

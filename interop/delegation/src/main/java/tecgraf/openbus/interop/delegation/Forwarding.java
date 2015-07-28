@@ -29,7 +29,7 @@ import tecgraf.openbus.utils.Utils;
 public class Forwarding {
   public static void main(String[] args) throws Exception {
     Configs configs = Configs.readConfigsFile();
-    String iorfile = configs.bus2ref;
+    String iorfile = configs.busref;
     String entity = "interop_delegation_java_forwarder";
     String privateKeyFile = "admin/InteropDelegation.key";
     RSAPrivateKey privateKey =

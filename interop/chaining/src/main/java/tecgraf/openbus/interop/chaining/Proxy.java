@@ -37,7 +37,7 @@ public final class Proxy {
    */
   public static void main(String[] args) throws Exception {
     Configs configs = Configs.readConfigsFile();
-    String iorfile = configs.bus2ref;
+    String iorfile = configs.busref;
     String entity = "interop_chaining_java_proxy";
     String privateKeyFile = "admin/InteropChaining.key";
     RSAPrivateKey privateKey =

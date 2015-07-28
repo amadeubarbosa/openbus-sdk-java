@@ -20,7 +20,7 @@ import tecgraf.openbus.utils.Utils;
 public class Consuming {
   public static void main(String[] args) throws Exception {
     Configs configs = Configs.readConfigsFile();
-    String iorfile = configs.bus2ref;
+    String iorfile = configs.busref;
     String path = configs.sharedauth;
     Utils.setLibLogLevel(configs.log);
 

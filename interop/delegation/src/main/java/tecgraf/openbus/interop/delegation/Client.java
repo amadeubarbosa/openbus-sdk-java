@@ -45,7 +45,7 @@ public class Client {
 
   public static void main(String[] args) throws Exception {
     Configs configs = Configs.readConfigsFile();
-    String iorfile = configs.bus2ref;
+    String iorfile = configs.busref;
     String entity = "interop_delegation_java_client";
     String domain = configs.domain;
     Utils.setLibLogLevel(configs.log);
