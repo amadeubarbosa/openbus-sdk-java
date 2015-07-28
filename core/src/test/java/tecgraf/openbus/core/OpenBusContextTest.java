@@ -41,6 +41,7 @@ import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChainHelper;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidToken;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
@@ -450,7 +451,6 @@ public final class OpenBusContextTest {
     Connection conn1 = context.connectByReference(busref);
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes(), domain);
-
     String caller = "ExternalCaller";
     StringBuffer buffer = new StringBuffer();
     int origs = 2;
@@ -460,7 +460,6 @@ public final class OpenBusContextTest {
     buffer.append(caller);
     String token =
       String.format("%s@%s:%s", actor1, conn1.login().id, buffer.toString());
-
     try {
       context.setCurrentConnection(conn1);
       CallerChain imported = context.importChain(token.getBytes(), domain);
@@ -477,7 +476,22 @@ public final class OpenBusContextTest {
     finally {
       context.setCurrentConnection(null);
       conn1.logout();
+    }
+  }
 
+  @Test(expected = InvalidToken.class)
+  public void importChainInvalidTokenTest() throws Exception {
+    String token = "any";
+    Connection conn1 = context.connectByReference(busref);
+    String actor1 = "actor-1";
+    context.setCurrentConnection(conn1);
+    conn1.loginByPassword(actor1, actor1.getBytes(), domain);
+    try {
+      context.importChain(token.getBytes(), domain);
+    }
+    finally {
+      context.setCurrentConnection(null);
+      conn1.logout();
     }
   }
 

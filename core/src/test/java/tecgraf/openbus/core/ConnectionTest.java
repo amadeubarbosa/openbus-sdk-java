@@ -26,6 +26,7 @@ import tecgraf.openbus.SharedAuthSecret;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
@@ -394,7 +395,8 @@ public final class ConnectionTest {
       adminconn.logout();
 
       context.setCurrentConnection(conn);
-      int validity = context.getLoginRegistry().getLoginValidity(id);
+      LoginRegistry logins = context.getLoginRegistry();
+      int validity = logins.getLoginValidity(id);
       context.setCurrentConnection(null);
       assertTrue(validity <= 0);
       assertTrue(called.get());
