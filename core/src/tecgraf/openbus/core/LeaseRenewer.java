@@ -87,7 +87,6 @@ final class LeaseRenewer {
      * Indica se a <i>thread</i> está dormindo.
      */
     private volatile boolean isSleeping;
-
     /**
      * A conexão.
      */
@@ -115,7 +114,14 @@ final class LeaseRenewer {
      */
     @Override
     public void run() {
-      // TODO [OPENBUS-1849] Avaliar uso de join thread
+      long t = defaultLease * 1000;
+      try {
+        Thread.sleep(t);
+      }
+      catch (InterruptedException e) {
+        this.mustContinue = false;
+        this.isSleeping = false;
+      }
       while (this.mustContinue) {
         Connection conn = weakConn.get();
         if (conn == null) {
@@ -159,9 +165,9 @@ final class LeaseRenewer {
               time = this.defaultLease;
             }
             this.isSleeping = true;
-            logger.finest("Thread de renovação indo dormir.");
+            logger.fine("Thread de renovação indo dormir.");
             Thread.sleep(time * 1000);
-            logger.finest("Thread de renovação acordando.");
+            logger.fine("Thread de renovação acordando.");
             this.isSleeping = false;
           }
           catch (InterruptedException e) {
