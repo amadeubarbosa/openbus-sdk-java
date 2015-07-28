@@ -41,11 +41,6 @@
       <artifactId>openbus-sdk-core</artifactId>
       <version>${project.version}</version>
     </dependency>
-
-    <dependency>
-      <groupId>org.jacorb</groupId>
-      <artifactId>jacorb</artifactId>
-    </dependency>
   </dependencies>
 
 </project>
