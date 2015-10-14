@@ -203,17 +203,9 @@
       <timezone>-3</timezone>
     </developer>
     <developer>
-      <id>caeaugusto</id>
+      <id>augusto</id>
       <name>Carlos Eduardo Lara Augusto</name>
-      <email>caeaugusto@tecgraf.puc-rio.br</email>
-      <organization>Tecgraf/PUC-Rio</organization>
-      <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
-      <timezone>-3</timezone>
-    </developer>
-    <developer>
-      <id>hroenick</id>
-      <name>Hugo Roenick</name>
-      <email>hroenick@tecgraf.puc-rio.br</email>
+      <email>augusto@tecgraf.puc-rio.br</email>
       <organization>Tecgraf/PUC-Rio</organization>
       <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
       <timezone>-3</timezone>
@@ -231,22 +223,6 @@
       <id>rcosme</id>
       <name>Ricardo Cosme</name>
       <email>rcosme@tecgraf.puc-rio.br</email>
-      <organization>Tecgraf/PUC-Rio</organization>
-      <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
-      <timezone>-3</timezone>
-    </developer>
-    <developer>
-      <id>tmartins</id>
-      <name>Tadeu Martins Chamuinho Bastos</name>
-      <email>tmartins@tecgraf.puc-rio.br</email>
-      <organization>Tecgraf/PUC-Rio</organization>
-      <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
-      <timezone>-3</timezone>
-    </developer>
-    <developer>
-      <id>schauw</id>
-      <name>Wagner Schau</name>
-      <email>schauw@tecgraf.puc-rio.br</email>
       <organization>Tecgraf/PUC-Rio</organization>
       <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
       <timezone>-3</timezone>
@@ -295,6 +271,15 @@
     </contributor>
     <contributor>
       <name>Victor Sá Freire Fusco</name>
+    </contributor>
+    <contributor>
+      <name>Wagner Schau</name>
+    </contributor>
+    <contributor>
+      <name>Hugo Roenick</name>
+    </contributor>
+    <contributor>
+      <name>Tadeu Martins Chamuinho Bastos</name>
     </contributor>
     <contributor>
       <name>Todos os membros da lista de usuários</name>
