@@ -263,21 +263,35 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    */
   @Override
   public Connection setCurrentConnection(Connection conn) {
-    int id = ORBUtils.getMediator(orb).getUniqueId();
-    Any any = this.orb.create_any();
-    if (conn != null) {
-      any.insert_long(id);
-    }
     Current current = ORBUtils.getPICurrent(orb);
     try {
-      current.set_slot(CURRENT_CONNECTION_SLOT_ID, any);
+      // tenta reaproveitar o id
+      Any currentId = current.get_slot(CURRENT_CONNECTION_SLOT_ID);
+      int id;
+      if (currentId.type().kind().value() != TCKind._tk_null) {
+        id = currentId.extract_long();
+        if (conn == null) {
+          // insere any com valor null no current e remove conexão do mapa
+          current.set_slot(CURRENT_CONNECTION_SLOT_ID, this.orb.create_any());
+          return setConnectionById(id, null);
+        }
+      }
+      else {
+        if (conn == null) {
+          return null;
+        }
+        id = ORBUtils.getMediator(this.orb).getUniqueId();
+        Any newId = this.orb.create_any();
+        newId.insert_long(id);
+        current.set_slot(CURRENT_CONNECTION_SLOT_ID, newId);
+      }
+      return setConnectionById(id, conn);
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao acessar o slot da thread corrente";
       logger.log(Level.SEVERE, message, e);
       throw new OpenBusInternalException(message, e);
     }
-    return setConnectionById(id, conn);
   }
 
   /**

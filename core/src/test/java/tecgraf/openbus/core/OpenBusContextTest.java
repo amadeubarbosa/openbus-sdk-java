@@ -1,14 +1,5 @@
 package tecgraf.openbus.core;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.security.interfaces.RSAPrivateKey;
 import java.util.Properties;
 
@@ -38,12 +29,7 @@ import tecgraf.openbus.SharedAuthSecret;
 import tecgraf.openbus.core.v2_1.BusObjectKey;
 import tecgraf.openbus.core.v2_1.credential.SignedData;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
-import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
-import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
-import tecgraf.openbus.core.v2_1.services.access_control.CallChainHelper;
-import tecgraf.openbus.core.v2_1.services.access_control.InvalidToken;
-import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.*;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
@@ -56,6 +42,8 @@ import tecgraf.openbus.utils.Configs;
 import tecgraf.openbus.utils.Utils;
 import test.CallerChainInspector;
 import test.CallerChainInspectorHelper;
+
+import static org.junit.Assert.*;
 
 public final class OpenBusContextTest {
   private static ORB orb;
@@ -109,7 +97,7 @@ public final class OpenBusContextTest {
     assertNull(context.getDefaultConnection());
     context.setDefaultConnection(conn);
     assertNotNull(context.getDefaultConnection());
-    assertEquals(conn, context.getDefaultConnection());
+    assertSame(conn, context.getDefaultConnection());
 
     ORB orb2 = ORBInitializer.initORB(null, orbprops);
     assertNotSame(orb, orb2);
@@ -121,7 +109,7 @@ public final class OpenBusContextTest {
     try {
       context2.setDefaultConnection(conn2);
       assertNotNull(context2.getDefaultConnection());
-      assertEquals(conn2, context2.getDefaultConnection());
+      assertSame(conn2, context2.getDefaultConnection());
     }
     finally {
       context2.setDefaultConnection(null);
@@ -260,7 +248,7 @@ public final class OpenBusContextTest {
     assertNull(context.getDefaultConnection());
     context.setCurrentConnection(null);
     context.setDefaultConnection(conn);
-    assertEquals(context.getDefaultConnection(), conn);
+    assertSame(context.getDefaultConnection(), conn);
     context.onCallDispatch(new CallDispatchCallback() {
       @Override
       public Connection dispatch(OpenBusContext context, String busid,
@@ -268,11 +256,72 @@ public final class OpenBusContextTest {
         return conn;
       }
     });
-    assertEquals(context.getDefaultConnection(), conn);
+    assertSame(context.getDefaultConnection(), conn);
     context.onCallDispatch(null);
     assertTrue(conn.logout());
-    assertEquals(context.getDefaultConnection(), conn);
+    assertSame(context.getDefaultConnection(), conn);
     context.setDefaultConnection(null);
+  }
+
+  @Test
+  public void currentConnectionTest() throws WrongEncoding, AlreadyLoggedIn,
+    ServiceFailure, UnknownDomain, TooManyAttempts, AccessDenied {
+
+    final Connection conn = context.connectByReference(busref);
+    conn.loginByPassword(entity, password, domain);
+    assertNull(context.getCurrentConnection());
+    context.setDefaultConnection(conn);
+    context.onCallDispatch(new CallDispatchCallback() {
+      @Override
+      public Connection dispatch(OpenBusContext context, String busid,
+                                 String loginId, byte[] object_id, String operation) {
+        return conn;
+      }
+    });
+    assertSame(context.getCurrentConnection(), conn);
+    context.setCurrentConnection(conn);
+    assertSame(context.getCurrentConnection(), conn);
+    context.setDefaultConnection(null);
+    context.onCallDispatch(null);
+    assertTrue(conn.logout());
+    assertSame(context.getCurrentConnection(), conn);
+    Connection previous = context.setCurrentConnection(null);
+    assertSame(previous, conn);
+
+    // tentativa de chamada sem current connection setado nem default connection
+    conn.loginByPassword(entity, password, domain);
+    assertNull(context.getCurrentConnection());
+    boolean failed = false;
+    ServiceProperty[] props = {new ServiceProperty("a", "b")};
+    try {
+      context.getOfferRegistry().findServices(props);
+    }
+    catch (NO_PERMISSION e) {
+      failed = true;
+      if (e.minor != NoLoginCode.value) {
+        fail("A exceção deveria ser NO_PERMISSION com minor code NoLoginCode." +
+          " Minor code recebido: " + e.minor);
+      }
+    }
+    catch (Exception e) {
+      fail("A exceção deveria ser NO_PERMISSION com minor code NoLoginCode. " +
+        "Exceção recebida: " + e);
+    }
+    assertTrue(failed);
+    // tentativa com current connection setado
+    previous = context.setCurrentConnection(conn);
+    assertNull(previous);
+    try {
+      context.getOfferRegistry().findServices(props);
+    }
+    catch (Exception e) {
+      fail("A chamada com current connection setado deveria ser bem-sucedida." +
+        " Exceção recebida: " + e);
+    }
+    finally {
+      previous = context.setCurrentConnection(null);
+    }
+    assertSame(previous, conn);
   }
 
   @Test
@@ -289,13 +338,13 @@ public final class OpenBusContextTest {
       }
     });
     assertNotNull(context.getCurrentConnection());
-    assertEquals(context.getCurrentConnection(), context.getDefaultConnection());
+    assertSame(context.getCurrentConnection(), context.getDefaultConnection());
     context.setCurrentConnection(conn);
-    assertEquals(context.getCurrentConnection(), conn);
+    assertSame(context.getCurrentConnection(), conn);
     context.setDefaultConnection(null);
     context.onCallDispatch(null);
     assertTrue(conn.logout());
-    assertEquals(context.getCurrentConnection(), conn);
+    assertSame(context.getCurrentConnection(), conn);
     context.setCurrentConnection(null);
 
     // tentativa de chamada sem conexão request setada
