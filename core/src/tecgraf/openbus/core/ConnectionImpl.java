@@ -534,6 +534,7 @@ final class ConnectionImpl implements Connection {
    */
   @Override
   public boolean logout() throws ServiceFailure {
+    stopRenewerThread();
     LoginInfo login = this.internalLogin.login();
     if (login == null) {
       if (this.internalLogin.invalid() != null) {
