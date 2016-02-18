@@ -3,7 +3,7 @@
   <groupId>br.puc-rio.tecgraf.openbus</groupId>
   <artifactId>openbus-sdk</artifactId>
   <packaging>pom</packaging>
-  <version>2.1.0.0-SNAPSHOT</version>
+  <version>2.1.0.0</version>
   <inceptionYear>2008</inceptionYear>
   <name>OpenBus - SDK</name>
   <!-- <url>${site.url}/${ob.component}/${project.version}</url> -->
@@ -15,9 +15,9 @@
   </organization>
 
   <scm>
-    <url>${scm.baseurl}/sdk/java/trunk</url>
-    <connection>scm:svn:${scm.baseurl}/sdk/java/trunk</connection>
-    <developerConnection>scm:svn:${scm.baseurl}/sdk/java/trunk</developerConnection>
+    <url>${scm.baseurl}/sdk/java/tags/02_01_00_00</url>
+    <connection>scm:svn:${scm.baseurl}/sdk/java/tags/02_01_00_00</connection>
+    <developerConnection>scm:svn:${scm.baseurl}/sdk/java/tags/02_01_00_00</developerConnection>
   </scm>
 
   <properties>
@@ -89,7 +89,7 @@
             <configuration>
               <rules>
                 <requireJavaVersion>
-                  <version>[1.6,1.7)</version>
+                  <version>[1.6,1.8)</version>
                 </requireJavaVersion>
               </rules>
             </configuration>
