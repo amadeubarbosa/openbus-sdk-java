@@ -1,0 +1,52 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>openbus-sdk-demo-hello-ssl</artifactId>
+  <packaging>jar</packaging>
+  <name>OpenBus - SDK - Demonstracoes - Hello SSL</name>
+
+  <parent>
+    <groupId>br.puc-rio.tecgraf.openbus</groupId>
+    <artifactId>openbus-sdk-demo</artifactId>
+    <version>2.1.0.0</version>
+  </parent>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>idlj-maven-plugin</artifactId>
+        <version>${idlj.version}</version>
+        <configuration>
+          <sourceDirectory>idl</sourceDirectory>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <dependencies>
+    <dependency>
+      <groupId>br.puc-rio.tecgraf.openbus</groupId>
+      <artifactId>openbus-sdk-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>tecgraf.scs</groupId>
+      <artifactId>scs-core</artifactId>
+      <version>${scs.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>br.puc-rio.tecgraf.openbus</groupId>
+      <artifactId>openbus-sdk-demo-util</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jacorb</groupId>
+      <artifactId>jacorb</artifactId>
+      <version>${jacorb.version}</version>
+    </dependency> 
+  </dependencies>
+</project>
+

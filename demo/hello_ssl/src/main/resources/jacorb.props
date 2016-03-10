@@ -1,0 +1,13 @@
+jacorb.security.support_ssl=on
+jacorb.ssl.socket_factory=org.jacorb.security.ssl.sun_jsse.SSLSocketFactory
+jacorb.ssl.server_socket_factory=org.jacorb.security.ssl.sun_jsse.SSLServerSocketFactory
+jacorb.security.ssl.client.supported_options=60
+jacorb.security.ssl.client.required_options=60
+jacorb.security.ssl.server.supported_options=60
+jacorb.security.ssl.server.required_options=60
+jacorb.security.keystore=demo_keystore.jks
+jacorb.security.keystore_password=123456
+jacorb.security.jsse.trustees_from_ks=on
+jacorb.security.jsse.log.verbosity=4
+jacorb.log.default.verbosity=3
+jacorb.security.ssl.always_open_unsecured_endpoint=on
