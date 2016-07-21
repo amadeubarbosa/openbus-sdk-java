@@ -18,6 +18,27 @@
   <build>
     <plugins>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>1.8</version>
+        <executions>
+          <execution>
+            <id>copy-greetings-demo-idls</id>
+            <phase>initialize</phase>
+            <configuration>
+              <target name="Copying greetings demo IDL files" unless="skip.copy-idls">
+                <copy todir="idl" >
+                  <fileset dir="${openbus-sdk-idl-demo-greetings.idlpath}/" includes="*.idl"/> 
+                </copy>
+              </target>
+            </configuration>
+            <goals>
+              <goal>run</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>idlj-maven-plugin</artifactId>
         <configuration>
