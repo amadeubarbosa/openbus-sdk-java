@@ -27,7 +27,7 @@ import tecgraf.openbus.utils.Utils;
 public class Messaging {
   public static void main(String[] args) throws Exception {
     Configs configs = Configs.readConfigsFile();
-    String ior = configs.bus2ref;
+    String ior = configs.busref;
     String entity = "interop_delegation_java_messenger";
     String privateKeyFile = "admin/InteropDelegation.key";
     RSAPrivateKey privateKey =
