@@ -1,5 +1,7 @@
 package tecgraf.openbus.interop.util;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -43,18 +45,25 @@ public class Utils {
    * @throws IOException
    */
   static public Properties readPropertyFile(String fileName) throws IOException {
+    InputStream in = null;
     Properties properties = new Properties();
-    InputStream propertiesStream = Utils.class.getResourceAsStream(fileName);
-    if (propertiesStream == null) {
+    File file = new File(fileName);
+    if (file.exists() && !file.isDirectory() && file.canRead()) {
+      in = new FileInputStream(file);
+    }
+    else {
+      in = Utils.class.getResourceAsStream(fileName);
+    }
+    if (in == null) {
       throw new FileNotFoundException(String.format(
         "O arquivo de propriedades '%s' não foi encontrado", fileName));
     }
     try {
-      properties.load(propertiesStream);
+      properties.load(in);
     }
     finally {
       try {
-        propertiesStream.close();
+        in.close();
       }
       catch (IOException e) {
         System.err
