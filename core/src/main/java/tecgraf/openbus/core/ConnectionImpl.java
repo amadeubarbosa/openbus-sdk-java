@@ -9,12 +9,14 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.google.common.util.concurrent.Uninterruptibles;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.IntHolder;
 import org.omg.CORBA.NO_PERMISSION;
@@ -23,12 +25,10 @@ import org.omg.CORBA.ORB;
 import org.omg.CORBA.SystemException;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
 
+import org.omg.PortableServer.POA;
 import scs.core.IComponent;
 import scs.core.IComponentHelper;
-import tecgraf.openbus.CallerChain;
-import tecgraf.openbus.Connection;
-import tecgraf.openbus.InvalidLoginCallback;
-import tecgraf.openbus.SharedAuthSecret;
+import tecgraf.openbus.*;
 import tecgraf.openbus.core.Credential.Chain;
 import tecgraf.openbus.core.Session.ClientSideSession;
 import tecgraf.openbus.core.Session.ServerSideSession;
@@ -57,6 +57,7 @@ import tecgraf.openbus.exception.InvalidLoginProcess;
 import tecgraf.openbus.exception.InvalidPropertyValue;
 import tecgraf.openbus.exception.OpenBusInternalException;
 import tecgraf.openbus.exception.WrongBus;
+import tecgraf.openbus.retry.RetryTaskPool;
 import tecgraf.openbus.security.Cryptography;
 
 /**
@@ -64,7 +65,7 @@ import tecgraf.openbus.security.Cryptography;
  * 
  * @author Tecgraf
  */
-final class ConnectionImpl implements Connection {
+final class ConnectionImpl implements Connection, InvalidLoginCallback {
 
   /** Identificador da conexão */
   private final String connId = UUID.randomUUID().toString();
@@ -75,11 +76,22 @@ final class ConnectionImpl implements Connection {
   private Cryptography crypto;
 
   /** ORB associado a esta conexão */
-  private ORB orb;
+  private final ORB orb;
+  /** POA que essa conexão deve utilizar. Aqui na conexão esse objeto é final
+   para evitar contenções. */
+  private final POA poa;
   /** Gerente da conexão. */
   private OpenBusContextImpl context;
   /** Informações sobre o barramento ao qual a conexão pertence */
   private BusInfo bus;
+  /** Registro de logins local */
+  private final LoginRegistryImpl loginRegistry;
+  /** Registro de ofertas local */
+  private final OfferRegistryImpl offerRegistry;
+  /** Intervalo de tempo entre tentativas */
+  private final long interval;
+  /** Unidade de tempo do intervalo */
+  private final TimeUnit unit;
   /** Chave pública do sdk */
   private RSAPublicKey publicKey;
   /** Chave privada do sdk */
@@ -96,8 +108,8 @@ final class ConnectionImpl implements Connection {
 
   /** Thread de renovação de login */
   private LeaseRenewer renewer;
-  /** Callback a ser disparada caso o login se encontre inválido */
-  private InvalidLoginCallback invalidLoginCallback;
+  /** Callback com dados de autenticação para login */
+  private LoginCallback cb;
 
   /** Caches da conexão */
   Caches cache;
@@ -112,33 +124,67 @@ final class ConnectionImpl implements Connection {
    * Construtor.
    * 
    * @param reference referêcia para o barramento
-   * @param manager Implementação do multiplexador de conexão.
-   * @param orb ORB que essa conexão ira utilizar;
-   * @throws InvalidPropertyValue Existe uma propriedade com um valor inválido.
-   */
-  public ConnectionImpl(org.omg.CORBA.Object reference,
-    OpenBusContextImpl manager, ORB orb) throws InvalidPropertyValue {
-    this(reference, manager, orb, new Properties());
-  }
-
-  /**
-   * Construtor.
-   * 
-   * @param reference referêcia para o barramento
    * @param context Implementação do multiplexador de conexão.
    * @param orb ORB que essa conexão ira utilizar;
+   * @param poa POA que essa conexão ira utilizar;
    * @param props Propriedades da conexão.
    * @throws InvalidPropertyValue Existe uma propriedade com um valor inválido.
    */
-  public ConnectionImpl(org.omg.CORBA.Object reference,
-    OpenBusContextImpl context, ORB orb, Properties props)
+  ConnectionImpl(org.omg.CORBA.Object reference,
+    OpenBusContextImpl context, ORB orb, POA poa, Properties props)
     throws InvalidPropertyValue {
     this.orb = orb;
+    this.poa = poa;
     this.context = context;
     this.bus = new BusInfo(reference);
     if (props == null) {
       props = new Properties();
     }
+    String threads = OpenBusProperty.THREAD_NUM.getProperty(props);
+    int threadNum;
+    if (threads == null) {
+      threadNum = 10;
+    } else {
+      threadNum = Integer.parseInt(threads);
+    }
+    if (threadNum <= 0) {
+      throw new InvalidPropertyValue(OpenBusProperty.THREAD_NUM.getKey(),
+        threads);
+    }
+    RetryTaskPool pool = new RetryTaskPool(threadNum);
+    String interval = OpenBusProperty.TIME_INTERVAL.getProperty(props);
+    if (interval == null) {
+      this.interval = 1000;
+    } else {
+      this.interval = Long.parseLong(interval);
+    }
+    if (this.interval < 0) {
+      throw new InvalidPropertyValue(OpenBusProperty.TIME_INTERVAL.getKey(),
+        interval);
+    }
+    String unit = OpenBusProperty.TIME_UNIT.getProperty(props);
+    if (unit == null || unit.equals("ms") || unit.equals("millis") || unit
+      .equals("milliseconds")) {
+      this.unit = TimeUnit.MILLISECONDS;
+    } else if (unit.equals("s") || unit.equals("secs") || unit
+        .equals("seconds")) {
+        this.unit = TimeUnit.SECONDS;
+    } else if (unit.equals("ns") || unit.equals("nanos") || unit
+      .equals("nanoseconds")) {
+        this.unit = TimeUnit.NANOSECONDS;
+    } else if (unit.equals("m") || unit.equals("mins") || unit
+    .equals("minutes")) {
+      this.unit = TimeUnit.MINUTES;
+    } else {
+      throw new InvalidPropertyValue(OpenBusProperty.TIME_UNIT.getKey(),
+        unit);
+    }
+
+    this.loginRegistry = new LoginRegistryImpl(context, this, poa, pool,
+      this.interval, this.unit);
+    this.offerRegistry = new OfferRegistryImpl(context, this, poa, pool,
+      this.interval, this.unit);
+
     String prop = OpenBusProperty.LEGACY_DISABLE.getProperty(props);
     Boolean disabled = Boolean.valueOf(prop);
     this.legacy = !disabled;
@@ -146,7 +192,12 @@ final class ConnectionImpl implements Connection {
     // verificando por valor de tamanho de cache
     String ssize = OpenBusProperty.CACHE_SIZE.getProperty(props);
     try {
-      int size = Integer.parseInt(ssize);
+      int size;
+      if (ssize == null) {
+        size = 30;
+      } else {
+        size = Integer.parseInt(ssize);
+      }
       if (size <= 0) {
         throw new InvalidPropertyValue(OpenBusProperty.CACHE_SIZE.getKey(),
           ssize);
@@ -207,6 +258,22 @@ final class ConnectionImpl implements Connection {
    * {@inheritDoc}
    */
   @Override
+  public POA poa() {
+    return this.poa;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public OpenBusContext context() {
+    return this.context;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public String busid() {
     return getBus().getId();
   }
@@ -254,7 +321,30 @@ final class ConnectionImpl implements Connection {
    * {@inheritDoc}
    */
   @Override
-  public void loginByPassword(String entity, byte[] password, String domain)
+  public void loginByPassword(final String login, final byte[] password, final String
+    domain) throws AccessDenied, AlreadyLoggedIn, TooManyAttempts,
+    UnknownDomain, WrongEncoding, ServiceFailure {
+    try {
+      loginByCallback(new LoginCallback() {
+        @Override
+        public AuthArgs login() {
+          return new AuthArgs(login, password, domain);
+        }
+      });
+    } catch (WrongBus e) {
+      throw new OpenBusInternalException("Exceção de login por autenticação " +
+        "compartilhada recebida ao realizar login por senha.", e);
+    } catch (InvalidLoginProcess e) {
+      throw new OpenBusInternalException("Exceção de login por autenticação " +
+        "compartilhada recebida ao realizar login por senha.", e);
+    } catch (MissingCertificate e) {
+      throw new OpenBusInternalException("Exceção de login por chave privada " +
+        "recebida ao realizar login por senha.", e);
+    }
+  }
+
+  private void loginByPasswordPvt(String entity, byte[] password, String
+    domain, LoginCallback cb, boolean relogin)
     throws AccessDenied, AlreadyLoggedIn, TooManyAttempts, UnknownDomain,
     WrongEncoding, ServiceFailure {
     checkLoggedIn();
@@ -270,7 +360,7 @@ final class ConnectionImpl implements Connection {
         this.access().loginByPassword(entity, domain,
           this.publicKey.getEncoded(), encryptedLoginAuthenticationInfo,
           validityHolder);
-      localLogin(newLogin, validityHolder.value);
+      localLogin(newLogin, validityHolder.value, cb, relogin);
     }
     catch (InvalidPublicKey e) {
       throw new OpenBusInternalException(
@@ -326,7 +416,33 @@ final class ConnectionImpl implements Connection {
    * 
    */
   @Override
-  public void loginByCertificate(String entity, RSAPrivateKey privateKey)
+  public void loginByPrivateKey(final String entity, final RSAPrivateKey key) throws
+    AlreadyLoggedIn, AccessDenied, MissingCertificate, WrongEncoding,
+    ServiceFailure {
+    try {
+      loginByCallback(new LoginCallback() {
+        @Override
+        public AuthArgs login() {
+          return new AuthArgs(entity, key);
+        }
+      });
+    } catch (WrongBus e) {
+      throw new OpenBusInternalException("Exceção de login por autenticação " +
+        "compartilhada recebida ao realizar login por chave privada.", e);
+    } catch (InvalidLoginProcess e) {
+      throw new OpenBusInternalException("Exceção de login por autenticação " +
+        "compartilhada recebida ao realizar login por chave privada.", e);
+    } catch (TooManyAttempts e) {
+      throw new OpenBusInternalException("Exceção de login por senha " +
+        "recebida ao realizar login por chave privada.", e);
+    } catch (UnknownDomain e) {
+      throw new OpenBusInternalException("Exceção de login por senha " +
+        "recebida ao realizar login por chave privada.", e);
+    }
+  }
+
+  private void loginByPrivateKeyPvt(String entity, RSAPrivateKey privateKey,
+                                    LoginCallback cb, boolean relogin)
     throws AlreadyLoggedIn, MissingCertificate, AccessDenied, WrongEncoding,
     ServiceFailure {
     checkLoggedIn();
@@ -348,7 +464,7 @@ final class ConnectionImpl implements Connection {
       newLogin =
         loginProcess.login(this.publicKey.getEncoded(),
           encryptedLoginAuthenticationInfo, validityHolder);
-      localLogin(newLogin, validityHolder.value);
+      localLogin(newLogin, validityHolder.value, cb, relogin);
     }
     catch (CryptographyException e) {
       loginProcess.cancel();
@@ -367,6 +483,16 @@ final class ConnectionImpl implements Connection {
         .format(
           "Login por certificado efetuada com sucesso: busid (%s) login (%s) entidade (%s)",
           busid(), newLogin.id, newLogin.entity));
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void loginByCallback(LoginCallback cb) throws AlreadyLoggedIn,
+    WrongBus, InvalidLoginProcess, AccessDenied, TooManyAttempts,
+    UnknownDomain, WrongEncoding, MissingCertificate, ServiceFailure {
+    loginByCallback(cb, false);
   }
 
   /**
@@ -409,10 +535,26 @@ final class ConnectionImpl implements Connection {
   }
 
   /**
-   * {@inheritDoc}
+   * Efetua login de uma entidade usando autenticação compartilhada.
+   * <p>
+   * A autenticação compartilhada é feita a partir de um segredo obtido através
+   * da operação {@link #startSharedAuth() startSharedAuth} de uma conexão
+   * autenticada.
+   *
+   * @param secret Segredo a ser fornecido na conclusão do processo de login.
+   *
+   * @exception InvalidLoginProcess A tentativa de login associada ao segredo
+   *            informado é inválido, por exemplo depois do segredo ser
+   *            cancelado, ter expirado, ou já ter sido utilizado.
+   * @exception AlreadyLoggedIn A conexão já está autenticada.
+   * @exception WrongBus O segredo não pertence ao barramento contactado.
+   * @exception AccessDenied O segredo fornecido não corresponde ao esperado
+   *            pelo barramento.
+   * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
+   *            barramento que impediu a autenticação da conexão.
    */
-  @Override
-  public void loginBySharedAuth(SharedAuthSecret secret)
+  private void loginBySharedAuth(SharedAuthSecret secret, LoginCallback cb,
+                                 boolean relogin)
     throws AlreadyLoggedIn, WrongBus, ServiceFailure, AccessDenied,
     InvalidLoginProcess {
     checkLoggedIn();
@@ -436,7 +578,7 @@ final class ConnectionImpl implements Connection {
               encryptedLoginAuthenticationInfo, validity);
           newLogin = new LoginInfo(legacy.id, legacy.entity);
         }
-        localLogin(newLogin, validity.value);
+        localLogin(newLogin, validity.value, cb, relogin);
       }
       else {
         throw new WrongBus();
@@ -477,6 +619,83 @@ final class ConnectionImpl implements Connection {
         .format(
           "Login por compatilhamento de autenticação efetuado com sucesso: busid (%s) login (%s) entidade (%s)",
           busid(), newLogin.id, newLogin.entity));
+  }
+
+  private void loginByCallback(LoginCallback cb, boolean relogin) throws
+    AlreadyLoggedIn, WrongBus, InvalidLoginProcess, AccessDenied,
+    TooManyAttempts, UnknownDomain, WrongEncoding, MissingCertificate,
+    ServiceFailure {
+    AuthArgs args = cb.login();
+    switch (args.mode) {
+      case AuthByPassword:
+        loginByPasswordPvt(args.entity, args.password, args.domain, cb,
+          relogin);
+        break;
+      case AuthByPrivateKey:
+        loginByPrivateKeyPvt(args.entity, args.privkey, cb, relogin);
+        break;
+      case AuthBySharedSecret:
+        loginBySharedAuth(args.secret, cb, relogin);
+        break;
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   */
+  @Override
+  public void invalidLogin(LoginInfo loginInfo) {
+    logger.info("Refazendo login.");
+    boolean retry = true;
+    boolean loggedOut = true;
+    if (login() != null) {
+      // já possui um login válido
+      retry = false;
+      loggedOut = false;
+    }
+    while (retry && loggedOut) {
+      try {
+        LoginCallback cb;
+        this.readLock.lock();
+        try {
+          cb = this.cb;
+        }
+        finally {
+          this.readLock.unlock();
+        }
+        loginByCallback(cb, true);
+        retry = false;
+      } catch (AlreadyLoggedIn e) {
+        retry = false;
+      } catch (Exception e) {
+        logger.warning("Erro ao tentar refazer o login. " + e);
+        retry = true;
+      }
+      if (retry) {
+        Uninterruptibles.sleepUninterruptibly(interval, unit);
+      }
+      loggedOut = login() == null;
+    }
+    logger.info("Login refeito.");
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   */
+  @Override
+  public tecgraf.openbus.LoginRegistry loginRegistry() {
+    return loginRegistry;
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   */
+  @Override
+  public tecgraf.openbus.OfferRegistry offerRegistry() {
+    return offerRegistry;
   }
 
   /**
@@ -527,7 +746,8 @@ final class ConnectionImpl implements Connection {
    * @param validity tempo de validade do login.
    * @throws AlreadyLoggedIn se a conexão já estiver logada.
    */
-  private void localLogin(LoginInfo newLogin, int validity)
+  private void localLogin(LoginInfo newLogin, int validity, LoginCallback cb,
+                          boolean relogin)
     throws AlreadyLoggedIn {
     if (legacy) {
       activateLegacySupport();
@@ -536,6 +756,14 @@ final class ConnectionImpl implements Connection {
     try {
       checkLoggedIn();
       internalLogin.setLoggedIn(newLogin);
+      this.cb = cb;
+      if (relogin) {
+        loginRegistry.fireEvent(LoginEvent.RELOGIN, newLogin);
+        offerRegistry.fireEvent(LoginEvent.RELOGIN, newLogin);
+      } else {
+        loginRegistry.fireEvent(LoginEvent.LOGGED_IN, newLogin);
+        offerRegistry.fireEvent(LoginEvent.LOGGED_IN, newLogin);
+      }
     }
     finally {
       writeLock().unlock();
@@ -548,14 +776,21 @@ final class ConnectionImpl implements Connection {
    */
   @Override
   public boolean logout() throws ServiceFailure {
+    LoginInfo login;
     // adianta a finalização da thread de renovação de login
-    stopRenewerThread();
-    LoginInfo login = this.internalLogin.login();
-    if (login == null) {
-      if (this.internalLogin.invalid() != null) {
-        localLogout(false);
+    this.writeLock().lock();
+    try {
+      stopRenewerThread();
+      login = this.internalLogin.login();
+      if (login == null) {
+        if (this.internalLogin.invalid() != null) {
+          localLogout(false);
+        }
+        return true;
       }
-      return true;
+    }
+    finally {
+      this.writeLock().unlock();
     }
 
     Connection previousConnection = context.getCurrentConnection();
@@ -567,10 +802,9 @@ final class ConnectionImpl implements Connection {
       this.access().logout();
     }
     catch (NO_PERMISSION e) {
-      if (e.minor == InvalidLoginCode.value) {
-        // ignore error. Result is the same of a successful call to logout
-      }
-      else {
+      // ignora erro se for invalidlogin. O resultado é o mesmo de uma
+      // chamada bem-sucedida a logout
+      if (e.minor != InvalidLoginCode.value) {
         logger.log(Level.WARNING, String.format(
           "Erro durante chamada remota de logout: "
             + "busid (%s) login (%s) entidade (%s)", busid(), login.id,
@@ -599,21 +833,29 @@ final class ConnectionImpl implements Connection {
    * <code>true</code> seta o estado da conexão para INVÁLIDO, se for
    * <code>false</code> seta o estado para DESLOGADO.
    * 
-   * @param invalidated
+   * @param invalidated indica se o login está inválido
    */
   void localLogout(boolean invalidated) {
-    this.cache.clear();
-    this.bus.clearBusInfos();
-    stopRenewerThread();
-    if (invalidated) {
-      this.internalLogin.setInvalid();
-    }
-    else {
-      LoginInfo old = this.internalLogin.setLoggedOut();
-      if (old != null) {
-        logger.info(String.format("Logout efetuado: id (%s) entidade (%s)",
-          old.id, old.entity));
+    this.writeLock.lock();
+    try {
+      this.cache.clear();
+      this.bus.clearBusInfos();
+      stopRenewerThread();
+      if (invalidated) {
+        this.internalLogin.setInvalid();
       }
+      else {
+        LoginInfo old = this.internalLogin.setLoggedOut();
+        loginRegistry.fireEvent(LoginEvent.LOGGED_OUT, null);
+        offerRegistry.fireEvent(LoginEvent.LOGGED_OUT, null);
+        if (old != null) {
+          logger.info(String.format("Logout efetuado: id (%s) entidade (%s)",
+            old.id, old.entity));
+        }
+      }
+    }
+    finally {
+      this.writeLock.unlock();
     }
   }
 
@@ -653,10 +895,7 @@ final class ConnectionImpl implements Connection {
    *         caso contrário.
    */
   public boolean legacy() {
-    if (legacy) {
-      return this.legacySupport != null;
-    }
-    return false;
+    return legacy && this.legacySupport != null;
   }
 
   /**
@@ -666,22 +905,6 @@ final class ConnectionImpl implements Connection {
    */
   LegacySupport legacySupport() {
     return legacySupport;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void onInvalidLoginCallback(InvalidLoginCallback callback) {
-    this.invalidLoginCallback = callback;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public InvalidLoginCallback onInvalidLoginCallback() {
-    return this.invalidLoginCallback;
   }
 
   /**
@@ -721,13 +944,6 @@ final class ConnectionImpl implements Connection {
   }
 
   /**
-   * Configura o login como inválido.
-   */
-  void setLoginInvalid() {
-    this.internalLogin.setInvalid();
-  }
-
-  /**
    * Recupera o próximo indentificador de sessão disponível.
    * 
    * @return o Identificador de sessão.
@@ -749,7 +965,7 @@ final class ConnectionImpl implements Connection {
    */
   @Override
   public boolean equals(Object obj) {
-    ConnectionImpl other = null;
+    ConnectionImpl other;
     if (obj instanceof ConnectionImpl) {
       other = (ConnectionImpl) obj;
       return this.connId.equals(other.connId);
@@ -817,16 +1033,16 @@ final class ConnectionImpl implements Connection {
     final int CACHE_SIZE;
     /* Caches Cliente da conexão */
     /** Mapa de profile do interceptador para o cliente alvo da chamanha */
-    Map<EffectiveProfile, String> entities;
+    final Map<EffectiveProfile, String> entities;
     /** Cache de sessão: mapa de cliente alvo da chamada para sessão */
-    Map<String, ClientSideSession> cltSessions;
+    final Map<String, ClientSideSession> cltSessions;
     /** Cache de cadeias assinadas */
-    Map<ChainCacheKey, Chain> chains;
+    final Map<ChainCacheKey, Chain> chains;
     /* Caches servidor da conexão */
     /** Cache de sessão: mapa de cliente alvo da chamada para sessão */
-    Map<Integer, ServerSideSession> srvSessions;
+    final Map<Integer, ServerSideSession> srvSessions;
     /** Cache de login */
-    LoginCache logins;
+    final LoginCache logins;
 
     /**
      * Construtor.

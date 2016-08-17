@@ -26,7 +26,20 @@ enum OpenBusProperty {
    * Chave da propriedade que define tamanho de cada cache utilizada pela
    * conexão.
    */
-  CACHE_SIZE("cache.size", "30");
+  CACHE_SIZE("cache.size", "30"),
+  /**
+   * Número de threads a serem utilizadas para chamadas assíncronas.
+   */
+  THREAD_NUM("thread.number", "10"),
+  /**
+   * Intervalo de tempo entre tentativas de chamadas remotas.
+   */
+  TIME_INTERVAL("time.interval", "1000"),
+  /**
+   * Unidade de tempo do intervalo. Utilize "ns" para nanosegundos, "ms" para
+   * milisegundos, "s" para segundos e "m" para minutos.
+   */
+  TIME_UNIT("time.unit", "ms");
 
   /** Nome da propriedade */
   private final String key;

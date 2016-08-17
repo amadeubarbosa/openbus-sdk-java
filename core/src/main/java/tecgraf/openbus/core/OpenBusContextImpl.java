@@ -20,6 +20,7 @@ import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.LocalObject;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.ORBPackage.InvalidName;
 import org.omg.CORBA.TCKind;
 import org.omg.CORBA.UserException;
 import org.omg.IOP.Codec;
@@ -29,6 +30,8 @@ import org.omg.IOP.CodecPackage.TypeMismatch;
 import org.omg.PortableInterceptor.Current;
 import org.omg.PortableInterceptor.InvalidSlot;
 
+import org.omg.PortableServer.POA;
+import org.omg.PortableServer.POAHelper;
 import tecgraf.openbus.CallDispatchCallback;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
@@ -92,7 +95,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
   private int SKIP_INVLOGIN_SLOT_ID;
 
   /** Mapa de conexão por Requester */
-  private Map<Integer, Connection> connectedById;
+  private final Map<Integer, Connection> connectedById;
   /** Conexão padrão */
   private Connection defaultConn;
   /** Callback a ser disparada caso o login se encontre inválido */
@@ -100,6 +103,8 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
 
   /** Referência para o ORB ao qual pertence */
   private ORB orb;
+  /** Referência para o POA no qual deve registrar objetos */
+  private volatile POA poa;
 
   /** Lock para operações sobre conexões */
   private final ReentrantReadWriteLock rwlock =
@@ -117,12 +122,13 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * @param invLoginSlotId identificador de slot de invalid login
    */
   public OpenBusContextImpl(int currentConnectionSlotId,
-    int ignoreThreadSlotId, int invLoginSlotId) {
+    int ignoreThreadSlotId, int invLoginSlotId, POA poa) {
     this.connectedById =
       Collections.synchronizedMap(new HashMap<Integer, Connection>());
     this.CURRENT_CONNECTION_SLOT_ID = currentConnectionSlotId;
     this.IGNORE_THREAD_SLOT_ID = ignoreThreadSlotId;
     this.SKIP_INVLOGIN_SLOT_ID = invLoginSlotId;
+    this.poa = poa;
   }
 
   /**
@@ -131,6 +137,33 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
   @Override
   public ORB orb() {
     return this.orb;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public POA poa() {
+    return this.poa;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void setPOA(POA poa) {
+    if (poa != null) {
+      this.poa = poa;
+      return;
+    }
+    try {
+      this.poa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
+    } catch (InvalidName e) {
+      // troca uma exceção checked que nunca deveria acontecer por uma
+      // unchecked para desonerar a API
+      throw new OpenBusInternalException(
+        "BUG: O ORB perdeu a referência para o RootPOA.", e);
+    }
   }
 
   /**
@@ -196,7 +229,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       throw new IllegalArgumentException(
         "Referência inválida para o barramento.");
     }
-    return new ConnectionImpl(reference, this, orb, props);
+    return new ConnectionImpl(reference, this, orb, null, props);
   }
 
   /**
@@ -640,7 +673,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       logger.log(Level.SEVERE, message, e);
       throw new OpenBusInternalException(message, e);
     }
-  };
+  }
 
   /**
    * {@inheritDoc}
@@ -692,7 +725,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       logger.log(Level.SEVERE, message, e);
       throw new InvalidEncodedStream(message, e);
     }
-  };
+  }
 
   /**
    * Codifica um conjunto de dados no formato padrão de exportação.

@@ -5,6 +5,7 @@ import java.security.interfaces.RSAPrivateKey;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 
+import org.omg.PortableServer.POA;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
@@ -52,6 +53,20 @@ public interface Connection {
   org.omg.CORBA.ORB orb();
 
   /**
+   * Recupera o POA associado a essa conexão.
+   *
+   * @return o POA
+   */
+  POA poa();
+
+  /**
+   * Recupera contexto do OpenBus associado a essa conexão.
+   *
+   * @return o contexto do OpenBus
+   */
+  OpenBusContext context();
+
+  /**
    * Recupera o identificador do barramento ao qual essa conexão se refere.
    * 
    * @return o identificador do barramento.
@@ -93,9 +108,9 @@ public interface Connection {
     WrongEncoding, ServiceFailure;
 
   /**
-   * Efetua login de uma entidade usando autenticação por certificado.
+   * Efetua login de uma entidade usando autenticação por chave privada.
    * <p>
-   * A autenticação por certificado é validada usando um certificado de login
+   * A autenticação por chave privada é validada usando um certificado de login
    * registrado pelo adminsitrador do barramento.
    * 
    * @param entity Identificador da entidade a ser autenticada.
@@ -113,9 +128,38 @@ public interface Connection {
    * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu a autenticação da conexão.
    */
-  void loginByCertificate(String entity, RSAPrivateKey privateKey)
+  void loginByPrivateKey(String entity, RSAPrivateKey privateKey)
     throws AlreadyLoggedIn, AccessDenied, MissingCertificate, WrongEncoding,
     ServiceFailure;
+
+  /**
+   * Efetua login de uma entidade utilizando uma callback que retorne dados de
+   * autenticação, como autenticações compartilhadas.
+   * <p>
+   * No caso específico da autenticação compartilhada, esta deve ser feita a
+   * partir de um segredo obtido através da operação
+   * {@link #startSharedAuth() startSharedAuth} de uma conexão autenticada.
+   *
+   * @param callback Callback a ser utilizada para obter os dados de
+   *                 autenticação a serem utilizados no login.
+   *
+   * @exception InvalidLoginProcess A tentativa de login associada ao segredo
+   *            informado é inválido, por exemplo depois do segredo ser
+   *            cancelado, ter expirado, ou já ter sido utilizado.
+   * @exception AlreadyLoggedIn A conexão já está autenticada.
+   * @exception WrongBus As informações de autenticação não pertencem ao
+   *            barramento contactado.
+   * @exception AccessDenied As informações de autenticação não correspondem
+   *            ao esperado pelo barramento.
+   * @exception WrongEncoding A autenticação falhou, pois a resposta ao desafio
+   *            não foi codificada corretamente com a chave pública do
+   *            barramento.
+   * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
+   *            barramento que impediu a autenticação da conexão.
+   */
+  void loginByCallback(LoginCallback callback) throws AlreadyLoggedIn, WrongBus,
+    InvalidLoginProcess, AccessDenied, TooManyAttempts, UnknownDomain,
+    WrongEncoding, MissingCertificate, ServiceFailure;
 
   /**
    * Inicia o processo de login por autenticação compartilhada.
@@ -125,11 +169,11 @@ public interface Connection {
    * pode ser chamada enquanto a conexão estiver autenticada, caso contrário a
    * exceção de sistema {@link NO_PERMISSION}[{@link NoLoginCode}] é lançada. As
    * informações fornecidas por essa operação devem ser passadas para a operação
-   * {@link #loginBySharedAuth(SharedAuthSecret) loginBySharedAuth} para
-   * conclusão do processo de login por autenticação compartilhada. Isso deve
-   * ser feito dentro do tempo de lease definido pelo administrador do
-   * barramento. Caso contrário essas informações se tornam inválidas e não
-   * podem mais ser utilizadas para criar um login.
+   * {@link #loginByCallback(LoginCallback)} para conclusão do processo de
+   * login por autenticação compartilhada. Isso deve ser feito dentro do
+   * tempo de lease definido pelo administrador do barramento. Caso contrário
+   * essas informações se tornam inválidas e não podem mais ser utilizadas
+   * para criar um login.
    * 
    * @return Segredo a ser fornecido na conclusão do processo de login.
    * 
@@ -137,31 +181,6 @@ public interface Connection {
    *            barramento que impediu a obtenção do objeto de login e segredo.
    */
   SharedAuthSecret startSharedAuth() throws ServiceFailure;
-
-  /**
-   * Efetua login de uma entidade usando autenticação compartilhada.
-   * <p>
-   * A autenticação compartilhada é feita a partir de um segredo obtido através
-   * da operação {@link #startSharedAuth() startSharedAuth} de uma conexão
-   * autenticada.
-   * 
-   * @param secret Segredo a ser fornecido na conclusão do processo de login.
-   * 
-   * @exception InvalidLoginProcess A tentativa de login associada ao segredo
-   *            informado é inválido, por exemplo depois do segredo ser
-   *            cancelado, ter expirado, ou já ter sido utilizado.
-   * @exception AlreadyLoggedIn A conexão já está autenticada.
-   * @exception WrongBus O segredo não pertence ao barramento contactado.
-   * @exception AccessDenied O segredo fornecido não corresponde ao esperado
-   *            pelo barramento.
-   * @exception WrongEncoding A autenticação falhou, pois a resposta ao desafio
-   *            não foi codificado corretamente com a chave pública do
-   *            barramento.
-   * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
-   *            barramento que impediu a autenticação da conexão.
-   */
-  void loginBySharedAuth(SharedAuthSecret secret) throws AlreadyLoggedIn,
-    WrongBus, InvalidLoginProcess, AccessDenied, WrongEncoding, ServiceFailure;
 
   /**
    * Efetua logout da conexão, tornando o login atual inválido.
@@ -173,7 +192,11 @@ public interface Connection {
    * {@link NO_PERMISSION}[{@link UnknownBusCode}] indicando que não foi
    * possível validar a chamada pois a conexão está temporariamente
    * desautenticada.
-   * 
+   * Um logout explícito incorre na remoção de todas as ofertas e todos os tipos
+   * de observadores mantidos pela biblioteca de acesso OpenBus, tanto
+   * localmente como no barramento. Um login posterior não levará ao
+   * recadastro automático desses recursos.
+   *
    * @return <code>true</code> se o processo de logout for concluído com êxito e
    *         <code>false</code> se não for possível invalidar o login atual.
    * 
@@ -183,41 +206,16 @@ public interface Connection {
   boolean logout() throws ServiceFailure;
 
   /**
-   * Callback a ser chamada quando o login atual se tornar inválido.
-   * <p>
-   * Esse atributo é utilizado para definir um objeto que implementa uma
-   * interface de callback a ser chamada sempre que a conexão receber uma
-   * notificação de que o seu login está inválido. Essas notificações ocorrem
-   * durante chamadas realizadas ou recebidas pelo barramento usando essa
-   * conexão. Um login pode se tornar inválido caso o administrador
-   * explicitamente o torne inválido ou caso a thread interna de renovação de
-   * login não seja capaz de renovar o lease do login a tempo. Caso esse
-   * atributo seja <code>null</code>, nenhum objeto de callback é chamado na
-   * ocorrência desse evento.
-   * <p>
-   * Durante a execução dessa callback um novo login pode ser restabelecido.
-   * Neste caso, a chamada do barramento que recebeu a notificação de login
-   * inválido é refeita usando o novo login, caso contrário, a chamada original
-   * lança a exceção de de sistema {@link NO_PERMISSION}[ {@link NoLoginCode}].
-   * <p>
-   * Importante observar que a primeira chamada remota que esta callback
-   * realizar <b>deve</b> ser uma tentativa de autenticação junto ao barramento
-   * (loginBy*). Caso a callback realize qualquer outra chamada remota, a mesma
-   * potencialmenete ocasionará um laço infinito, pois esta outra chamada irá
-   * falhar, devido ao login invalidado, e chamará novamente a callback para
-   * tentar refazer a autenticação.
-   * 
-   * @param callback Objeto que implementa a interface de callback a ser chamada
-   *        ou <code>null</code> caso nenhum objeto deva ser chamado na
-   *        ocorrência desse evento.
+   * Recupera o registro de logins.
+   *
+   * @return o registro de logins.
    */
-  void onInvalidLoginCallback(InvalidLoginCallback callback);
+  LoginRegistry loginRegistry();
 
   /**
-   * Recupera a callback a ser chamada sempre que o login se torna inválido.
-   * 
-   * @return a callback ou <code>null</code> caso ela não exista.
+   * Recupera o registro de ofertas.
+   *
+   * @return o registro de ofertas.
    */
-  InvalidLoginCallback onInvalidLoginCallback();
-
+  OfferRegistry offerRegistry();
 }

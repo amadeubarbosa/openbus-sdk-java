@@ -3,7 +3,6 @@ package tecgraf.openbus.core;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 
 /**
@@ -77,32 +76,23 @@ class InternalLogin {
     conn.readLock().unlock();
     if (login == null) {
       while (invalid != null) {
-        InvalidLoginCallback callback = conn.onInvalidLoginCallback();
-        if (callback != null) {
-          try {
-            callback.invalidLogin(conn, invalid);
-          }
-          catch (Exception ex) {
-            logger.log(Level.SEVERE,
-              "Callback 'onInvalidLogin' gerou um erro durante execução.", ex);
-          }
-          LoginInfo curr = this.invalid();
-          if (curr != null && curr.id.equals(invalid.id)
-            && curr.entity.equals(invalid.entity)) {
-            invalid = null;
-            conn.writeLock().lock();
-            this.invalid = null;
-            conn.writeLock().unlock();
-          }
-          else {
-            invalid = curr;
-          }
+        try {
+          conn.invalidLogin(invalid);
         }
-        else {
+        catch (Exception ex) {
+          logger.log(Level.SEVERE,
+            "Callback 'onInvalidLogin' gerou um erro durante execução.", ex);
+        }
+        LoginInfo curr = this.invalid();
+        if (curr != null && curr.id.equals(invalid.id)
+          && curr.entity.equals(invalid.entity)) {
           invalid = null;
           conn.writeLock().lock();
           this.invalid = null;
           conn.writeLock().unlock();
+        }
+        else {
+          invalid = curr;
         }
       }
       login = this.login();

@@ -5,6 +5,7 @@ import java.util.Properties;
 import org.omg.CORBA.ORB;
 import org.omg.PortableInterceptor.Current;
 
+import org.omg.PortableServer.POA;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidToken;
@@ -54,6 +55,20 @@ public interface OpenBusContext {
    * @return o ORB
    */
   org.omg.CORBA.ORB orb();
+
+  /**
+   * Recupera o POA associado ao ConnectionManager.
+   *
+   * @return o ORB
+   */
+  POA poa();
+
+  /**
+   * Configura o POA que o ConnectionManager esta associado.
+   *
+   * @param poa o POA.
+   */
+  void setPOA(POA poa);
 
   /**
    * Callback a ser chamada para determinar a conexão a ser utilizada para

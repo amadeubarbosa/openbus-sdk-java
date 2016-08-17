@@ -20,8 +20,7 @@ public interface InvalidLoginCallback {
    * durante a execução do método e não seja tratada, o erro será capturado pelo
    * interceptador e registrado no log.
    * 
-   * @param conn Conexão que recebeu a notificação de login inválido.
    * @param login Informações do login que se tornou inválido.
    */
-  void invalidLogin(Connection conn, LoginInfo login);
+  void invalidLogin(LoginInfo login);
 }

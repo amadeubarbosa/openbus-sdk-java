@@ -177,7 +177,7 @@ public class ORBInitializer {
    *        operação {@link ORB#init} definida pelo padrão CORBA.
    * @param props Propriedades usados na inicialização do {@link ORB}, similar à
    *        operação {@link ORB#init} definida pelo padrão CORBA.
-   * 
+   *
    * @return O {@link ORB} inicializado, similar à operação {@link ORB#init}
    *         definida pelo padrão CORBA.
    */
@@ -187,6 +187,7 @@ public class ORBInitializer {
     mediator.setORB(orb);
     OpenBusContextImpl context = ORBUtils.getOpenBusContext(orb);
     context.setORB(orb);
+    context.setPOA(null);
     return orb;
   }
 

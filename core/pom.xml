@@ -180,6 +180,11 @@
     </dependency>
 
     <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>br.puc-rio.tecgraf.openbus</groupId>
       <artifactId>openbus-sdk-utils-test</artifactId>
       <version>${project.version}</version>
