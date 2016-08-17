@@ -37,18 +37,15 @@ public class RetryTaskPool {
    * @param size número de threads alocáveis por este mecanismo.
    */
   public RetryTaskPool(int size) {
+    /**
+     * Cria threads Daemon para serem utilizadas pelo pool
+     */
     this.pool =
       MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(size,
-        new ThreadFactory() {
-          /**
-           * Cria threads Daemon para serem utilizadas pelo pool
-           */
-          @Override
-          public Thread newThread(Runnable task) {
-            Thread thread = new Thread(task);
-            thread.setDaemon(true);
-            return thread;
-          }
+        task -> {
+          Thread thread = new Thread(task);
+          thread.setDaemon(true);
+          return thread;
         }));
   }
 

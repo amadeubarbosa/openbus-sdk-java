@@ -217,15 +217,10 @@ final class ConnectionImpl implements Connection, InvalidLoginCallback {
         this.crypto = Cryptography.getInstance();
         keyPair = crypto.readKeyPairFromFile(path);
       }
-      catch (InvalidKeySpecException e) {
+      catch (InvalidKeySpecException | IOException e) {
         throw new InvalidPropertyValue(OpenBusProperty.ACCESS_KEY.getKey(),
           path, e);
-      }
-      catch (IOException e) {
-        throw new InvalidPropertyValue(OpenBusProperty.ACCESS_KEY.getKey(),
-          path, e);
-      }
-      catch (CryptographyException e) {
+      } catch (CryptographyException e) {
         throw new OpenBusInternalException(
           "Erro inexperado ao carregar chave privada.", e);
       }
@@ -325,16 +320,8 @@ final class ConnectionImpl implements Connection, InvalidLoginCallback {
     domain) throws AccessDenied, AlreadyLoggedIn, TooManyAttempts,
     UnknownDomain, WrongEncoding, ServiceFailure {
     try {
-      loginByCallback(new LoginCallback() {
-        @Override
-        public AuthArgs login() {
-          return new AuthArgs(login, password, domain);
-        }
-      });
-    } catch (WrongBus e) {
-      throw new OpenBusInternalException("Exceção de login por autenticação " +
-        "compartilhada recebida ao realizar login por senha.", e);
-    } catch (InvalidLoginProcess e) {
+      loginByCallback(() -> new AuthArgs(login, password, domain));
+    } catch (WrongBus | InvalidLoginProcess e) {
       throw new OpenBusInternalException("Exceção de login por autenticação " +
         "compartilhada recebida ao realizar login por senha.", e);
     } catch (MissingCertificate e) {
@@ -420,22 +407,11 @@ final class ConnectionImpl implements Connection, InvalidLoginCallback {
     AlreadyLoggedIn, AccessDenied, MissingCertificate, WrongEncoding,
     ServiceFailure {
     try {
-      loginByCallback(new LoginCallback() {
-        @Override
-        public AuthArgs login() {
-          return new AuthArgs(entity, key);
-        }
-      });
-    } catch (WrongBus e) {
+      loginByCallback(() -> new AuthArgs(entity, key));
+    } catch (WrongBus | InvalidLoginProcess e) {
       throw new OpenBusInternalException("Exceção de login por autenticação " +
         "compartilhada recebida ao realizar login por chave privada.", e);
-    } catch (InvalidLoginProcess e) {
-      throw new OpenBusInternalException("Exceção de login por autenticação " +
-        "compartilhada recebida ao realizar login por chave privada.", e);
-    } catch (TooManyAttempts e) {
-      throw new OpenBusInternalException("Exceção de login por senha " +
-        "recebida ao realizar login por chave privada.", e);
-    } catch (UnknownDomain e) {
+    } catch (TooManyAttempts | UnknownDomain e) {
       throw new OpenBusInternalException("Exceção de login por senha " +
         "recebida ao realizar login por chave privada.", e);
     }
@@ -584,13 +560,9 @@ final class ConnectionImpl implements Connection, InvalidLoginCallback {
         throw new WrongBus();
       }
     }
-    catch (WrongEncoding e) {
+    catch (WrongEncoding | tecgraf.openbus.core.v2_0.services.access_control.WrongEncoding e) {
       throw new AccessDenied("Erro durante tentativa de login.");
-    }
-    catch (tecgraf.openbus.core.v2_0.services.access_control.WrongEncoding e) {
-      throw new AccessDenied("Erro durante tentativa de login.");
-    }
-    catch (OBJECT_NOT_EXIST e) {
+    } catch (OBJECT_NOT_EXIST e) {
       throw new InvalidLoginProcess("Objeto de processo de login é inválido");
     }
     catch (InvalidPublicKey e) {
@@ -1054,16 +1026,16 @@ final class ConnectionImpl implements Connection, InvalidLoginCallback {
     public Caches(ConnectionImpl conn, int size) {
       this.CACHE_SIZE = size;
       this.entities =
-        Collections.synchronizedMap(new LRUCache<EffectiveProfile, String>(
+        Collections.synchronizedMap(new LRUCache<>(
           CACHE_SIZE));
       this.cltSessions =
-        Collections.synchronizedMap(new LRUCache<String, ClientSideSession>(
+        Collections.synchronizedMap(new LRUCache<>(
           CACHE_SIZE));
       this.chains =
-        Collections.synchronizedMap(new LRUCache<ChainCacheKey, Chain>(
+        Collections.synchronizedMap(new LRUCache<>(
           CACHE_SIZE));
       this.srvSessions =
-        Collections.synchronizedMap(new LRUCache<Integer, ServerSideSession>(
+        Collections.synchronizedMap(new LRUCache<>(
           CACHE_SIZE));
       this.logins = new LoginCache(conn, CACHE_SIZE);
     }

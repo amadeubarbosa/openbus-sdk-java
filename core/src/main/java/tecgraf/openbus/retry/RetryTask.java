@@ -91,12 +91,9 @@ class RetryTask<T> {
    */
   public RetryTask(ListeningScheduledExecutorService scheduler,
     final Runnable runnable, RetryContext context) {
-    this(scheduler, new Callable<T>() {
-      @Override
-      public T call() throws Exception {
-        runnable.run();
-        return null;
-      }
+    this(scheduler, () -> {
+      runnable.run();
+      return null;
     }, context);
   }
 

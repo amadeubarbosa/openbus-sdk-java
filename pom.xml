@@ -22,7 +22,7 @@
 
   <properties>
     <!-- versions -->
-    <java.version>1.6</java.version>
+    <java.version>1.8</java.version>
     <scs.version>1.2.1.3</scs.version>
     <junit.version>4.11</junit.version>
     <jacorb.version>3.8</jacorb.version>

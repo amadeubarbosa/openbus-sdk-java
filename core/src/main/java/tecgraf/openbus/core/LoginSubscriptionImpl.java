@@ -20,7 +20,7 @@ class LoginSubscriptionImpl implements LoginSubscription, LoginObserver {
   /** Observador */
   private final LoginObserver observer;
   /** Lista de logins observáveis pelo observador */
-  private final List<String> logins = new ArrayList<String>();
+  private final List<String> logins = new ArrayList<>();
   private final Object lock = new Object();
 
   /**
@@ -90,7 +90,7 @@ class LoginSubscriptionImpl implements LoginSubscription, LoginObserver {
   public List<LoginInfo> watchedLogins() {
     // watched é uma cópia não-compartilhada
     List<LoginInfo> watched = registry.getWatchedLogins();
-    List<LoginInfo> ret = new ArrayList<LoginInfo>();
+    List<LoginInfo> ret = new ArrayList<>();
     // aqui fiquei na dúvida se seria melhor colocar o synchronized dentro do
     // for. Deixei fora pois me parece que tipicamente o processamento dessa
     // lista será mais rápido do que realizar a sincronização diversas vezes.

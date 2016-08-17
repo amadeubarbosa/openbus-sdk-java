@@ -130,7 +130,7 @@ class RemoteOfferImpl implements RemoteOffer {
 
   public static Map<String, String> convertPropertiesToHashMap
     (ServiceProperty[] properties) {
-    Map<String, String> map = new HashMap<String, String>(properties.length);
+    Map<String, String> map = new HashMap<>(properties.length);
     for (ServiceProperty property : properties) {
       map.put(property.name, property.value);
     }

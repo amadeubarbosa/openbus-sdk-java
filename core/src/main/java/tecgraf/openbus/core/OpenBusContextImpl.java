@@ -124,7 +124,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
   public OpenBusContextImpl(int currentConnectionSlotId,
     int ignoreThreadSlotId, int invLoginSlotId, POA poa) {
     this.connectedById =
-      Collections.synchronizedMap(new HashMap<Integer, Connection>());
+      Collections.synchronizedMap(new HashMap<>());
     this.CURRENT_CONNECTION_SLOT_ID = currentConnectionSlotId;
     this.IGNORE_THREAD_SLOT_ID = ignoreThreadSlotId;
     this.SKIP_INVLOGIN_SLOT_ID = invLoginSlotId;
@@ -524,12 +524,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       throw new OpenBusInternalException(
         "Erro de criptografia com uso de chave pública.", e);
     }
-    catch (FormatMismatch e) {
-      String message = "Falha inesperada ao decodificar uma cadeia exportada.";
-      logger.log(Level.SEVERE, message, e);
-      throw new OpenBusInternalException(message, e);
-    }
-    catch (TypeMismatch e) {
+    catch (FormatMismatch | TypeMismatch e) {
       String message = "Falha inesperada ao decodificar uma cadeia exportada.";
       logger.log(Level.SEVERE, message, e);
       throw new OpenBusInternalException(message, e);
@@ -549,7 +544,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     Codec codec = mediator.getCodec();
     Any anyChain;
     try {
-      List<VersionedData> list = new ArrayList<VersionedData>();
+      List<VersionedData> list = new ArrayList<>();
       Chain internal = ((CallerChainImpl) chain).internal_chain();
       if (internal.signedChain != null) {
         anyChain = orb.create_any();
@@ -647,7 +642,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     ORBMediator mediator = ORBUtils.getMediator(orb);
     Codec codec = mediator.getCodec();
     try {
-      List<VersionedData> list = new ArrayList<VersionedData>();
+      List<VersionedData> list = new ArrayList<>();
       Any anySecret = orb.create_any();
       SharedAuthSecretImpl secretImpl = (SharedAuthSecretImpl) secret;
       if (secretImpl.attempt() != null) {

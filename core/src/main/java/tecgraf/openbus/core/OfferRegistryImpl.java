@@ -110,7 +110,7 @@ class OfferRegistryImpl implements OfferRegistry {
     if (registry == null) {
       return new ArrayList<RemoteOffer>();
     }
-    Connection prev = context.getCurrentConnection(conn);
+    Connection prev = context.getCurrentConnection();
     try {
       ServiceOfferDesc[] descs = registry.findServices(convertMapToProperties
         (properties));

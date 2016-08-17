@@ -20,19 +20,16 @@ class OfferRegistryObserverImpl extends OfferRegistryObserverPOA {
 
   @Override
   public void offerRegistered(final ServiceOfferDesc offer) {
-    Thread t = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        RemoteOffer remote = new RemoteOfferImpl (registry, offer);
-        String login = remote.owner().id;
-        String entity = remote.owner().entity;
-        try {
-          observer.offerRegistered(remote);
-        } catch (Exception e) {
-          logger.error("Erro ao avisar um observador da aplicação de que " +
-            "uma oferta do login " + login + " da entidade " + entity + " " +
-            "foi registrada.", e);
-        }
+    Thread t = new Thread(() -> {
+      RemoteOffer remote = new RemoteOfferImpl (registry, offer);
+      String login = remote.owner().id;
+      String entity = remote.owner().entity;
+      try {
+        observer.offerRegistered(remote);
+      } catch (Exception e) {
+        logger.error("Erro ao avisar um observador da aplicação de que " +
+          "uma oferta do login " + login + " da entidade " + entity + " " +
+          "foi registrada.", e);
       }
     });
     t.start();
