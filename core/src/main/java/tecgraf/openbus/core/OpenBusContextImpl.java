@@ -122,13 +122,12 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * @param invLoginSlotId identificador de slot de invalid login
    */
   public OpenBusContextImpl(int currentConnectionSlotId,
-    int ignoreThreadSlotId, int invLoginSlotId, POA poa) {
+    int ignoreThreadSlotId, int invLoginSlotId) {
     this.connectedById =
       Collections.synchronizedMap(new HashMap<>());
     this.CURRENT_CONNECTION_SLOT_ID = currentConnectionSlotId;
     this.IGNORE_THREAD_SLOT_ID = ignoreThreadSlotId;
     this.SKIP_INVLOGIN_SLOT_ID = invLoginSlotId;
-    setPOA(poa);
   }
 
   /**

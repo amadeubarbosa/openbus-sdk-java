@@ -48,7 +48,7 @@ public final class InternalJacORBInitializer extends LocalObject implements
     int invLoginSlotId = info.allocate_slot_id();
     OpenBusContextImpl context =
       new OpenBusContextImpl(currentThreadSlotId, ignoreThreadSlotId,
-        invLoginSlotId, null);
+        invLoginSlotId);
     try {
       info.register_initial_reference("OpenBusContext", context);
     }
@@ -78,7 +78,15 @@ public final class InternalJacORBInitializer extends LocalObject implements
    */
   @Override
   public void post_init(ORBInitInfo info) {
-
+    try {
+      OpenBusContextImpl context = (OpenBusContextImpl) info
+        .resolve_initial_references("OpenBusContext");
+      context.setPOA(null);
+    } catch (InvalidName e) {
+      String message = "Falha inesperada ao registrar o POA no multiplexador";
+      logger.log(Level.SEVERE, message, e);
+      throw new INITIALIZE(message);
+    }
   }
 
   /**
