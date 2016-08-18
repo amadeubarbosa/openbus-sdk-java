@@ -431,6 +431,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     synchronized (lock) {
       Connection prev = context.getCurrentConnection();
       try {
+        context.setCurrentConnection(conn);
         registry = context.getLoginRegistry();
         if (subs == null) {
           subs = new ArrayList<>();

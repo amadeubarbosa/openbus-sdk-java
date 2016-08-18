@@ -9,10 +9,8 @@ import org.omg.PortableServer.POA;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidToken;
-import tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
 import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
-import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.exception.InvalidEncodedStream;
 import tecgraf.openbus.exception.InvalidPropertyValue;
 
@@ -443,20 +441,4 @@ public interface OpenBusContext {
    *         esperado.
    */
   SharedAuthSecret decodeSharedAuth(byte[] encoded) throws InvalidEncodedStream;
-
-  /**
-   * Referência ao serviço núcleo de registro de logins do barramento
-   * referenciado no contexto atual.
-   * 
-   * @return o serviço de registro de logins.
-   */
-  LoginRegistry getLoginRegistry();
-
-  /**
-   * Referência ao serviço núcleo de registro de ofertas do barramento
-   * referenciado no contexto atual.
-   * 
-   * @return o serviço de registro de ofertas.
-   */
-  OfferRegistry getOfferRegistry();
 }

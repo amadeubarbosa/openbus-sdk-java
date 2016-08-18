@@ -34,8 +34,8 @@ import tecgraf.openbus.utils.Utils;
 
 public final class ConnectionTest {
 
-  private static String host;
-  private static int port;
+  //private static String host;
+  //private static int port;
   private static Object busref;
   private static String entity;
   private static byte[] password;
@@ -47,15 +47,15 @@ public final class ConnectionTest {
   private static String admin;
   private static byte[] adminpwd;
   private static ORB orb;
-  private static OpenBusContext context;
+  private static OpenBusContextImpl context;
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
     Cryptography crypto = Cryptography.getInstance();
     Configs configs = Configs.readConfigsFile();
     Utils.setLibLogLevel(configs.log);
-    host = configs.bushost;
-    port = configs.busport;
+    //host = configs.bushost;
+    //port = configs.busport;
     entity = configs.user;
     password = configs.password;
     domain = configs.domain;
@@ -68,7 +68,8 @@ public final class ConnectionTest {
     orb =
       ORBInitializer.initORB(null, Utils.readPropertyFile(configs.orbprops));
     busref = orb.string_to_object(new String(Utils.readFile(configs.busref)));
-    context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
+    context = (OpenBusContextImpl) orb.resolve_initial_references
+      ("OpenBusContext");
   }
 
   @After
@@ -264,9 +265,7 @@ public final class ConnectionTest {
         (SharedAuthSecretImpl) conn.startSharedAuth();
       context.setCurrentConnection(null);
       conn2.loginByCallback(() -> new AuthArgs(new SharedAuthSecretImpl(conn
-        .busid(), secret.attempt(), null, new byte[0], (OpenBusContextImpl)
-        context)));
-
+        .busid(), secret.attempt(), null, new byte[0], context)));
     }
     catch (AccessDenied e) {
       failed = true;

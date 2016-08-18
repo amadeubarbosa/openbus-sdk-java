@@ -32,6 +32,7 @@ import org.omg.PortableInterceptor.InvalidSlot;
 
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
+import org.omg.PortableServer.POAManagerPackage.AdapterInactive;
 import tecgraf.openbus.CallDispatchCallback;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
@@ -155,13 +156,16 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       this.poa = poa;
       return;
     }
+    // troca exceções checked que nunca deveriam acontecer por uncheckeds
+    // para desonerar a API
     try {
       this.poa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
+      this.poa.the_POAManager().activate();
     } catch (InvalidName e) {
-      // troca uma exceção checked que nunca deveria acontecer por uma
-      // unchecked para desonerar a API
       throw new OpenBusInternalException(
         "BUG: O ORB perdeu a referência para o RootPOA.", e);
+    } catch (AdapterInactive e) {
+      throw new OpenBusInternalException("BUG: O RootPOA está inativo.", e);
     }
   }
 
@@ -228,7 +232,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       throw new IllegalArgumentException(
         "Referência inválida para o barramento.");
     }
-    return new ConnectionImpl(reference, this, orb, null, props);
+    return new ConnectionImpl(reference, this, orb, poa, props);
   }
 
   /**
@@ -919,10 +923,12 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
   }
 
   /**
-   * {@inheritDoc}
+   * Referência ao serviço núcleo de registro de logins do barramento
+   * referenciado no contexto atual.
+   *
+   * @return o serviço de registro de logins.
    */
-  @Override
-  public LoginRegistry getLoginRegistry() {
+  LoginRegistry getLoginRegistry() {
     ConnectionImpl conn = (ConnectionImpl) getCurrentConnection();
     if (conn == null || conn.login() == null) {
       throw new NO_PERMISSION(NoLoginCode.value, CompletionStatus.COMPLETED_NO);
@@ -931,10 +937,12 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
   }
 
   /**
-   * {@inheritDoc}
+   * Referência ao serviço núcleo de registro de ofertas do barramento
+   * referenciado no contexto atual.
+   *
+   * @return o serviço de registro de ofertas.
    */
-  @Override
-  public OfferRegistry getOfferRegistry() {
+  OfferRegistry getOfferRegistry() {
     ConnectionImpl conn = (ConnectionImpl) getCurrentConnection();
     if (conn == null || conn.login() == null) {
       throw new NO_PERMISSION(NoLoginCode.value, CompletionStatus.COMPLETED_NO);

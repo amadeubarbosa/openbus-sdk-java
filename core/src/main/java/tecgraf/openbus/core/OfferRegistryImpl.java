@@ -481,6 +481,7 @@ class OfferRegistryImpl implements OfferRegistry {
     synchronized (lock) {
       Connection prev = context.getCurrentConnection();
       try {
+        context.setCurrentConnection(conn);
         registry = context.getOfferRegistry();
         if (maintainedOffers == null) {
           maintainedOffers = new HashMap<>();
@@ -503,6 +504,7 @@ class OfferRegistryImpl implements OfferRegistry {
 
       Connection prev = context.getCurrentConnection();
       try {
+        context.setCurrentConnection(conn);
         if (this.maintainedOffers != null) {
           for (LocalOfferImpl offer : maintainedOffers.keySet()) {
             offer.loggedOut();

@@ -43,7 +43,7 @@ import static org.junit.Assert.*;
 
 public final class OpenBusContextTest {
   private static ORB orb;
-  private static OpenBusContext context;
+  private static OpenBusContextImpl context;
   private static Object busref;
   private static String host;
   private static int port;
@@ -71,7 +71,8 @@ public final class OpenBusContextTest {
     orbprops = Utils.readPropertyFile(configs.orbprops);
     orb = ORBInitializer.initORB(null, orbprops);
     busref = orb.string_to_object(new String(Utils.readFile(configs.busref)));
-    context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
+    context = (OpenBusContextImpl) orb.resolve_initial_references
+      ("OpenBusContext");
   }
 
   @Before
@@ -163,7 +164,7 @@ public final class OpenBusContextTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void connectByReferenceIllegalArgumentTest() {
-    Connection invalid = context.connectByReference(null);
+    context.connectByReference(null);
   }
 
   @Test(expected = TRANSIENT.class)
@@ -202,7 +203,7 @@ public final class OpenBusContextTest {
     Properties properties = new Properties();
     properties.put(OpenBusProperty.ACCESS_KEY.getKey(),
       "/invalid/path/to/access.key");
-    Connection conn = context.connectByReference(busref, properties);
+    context.connectByReference(busref, properties);
   }
 
   @Test
@@ -777,7 +778,9 @@ public final class OpenBusContextTest {
       context.decodeChain(data);
     }
     finally {
-      secret.cancel();
+      if (secret != null) {
+        secret.cancel();
+      }
       conn.logout();
       context.setCurrentConnection(null);
     }
