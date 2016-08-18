@@ -163,21 +163,46 @@ final class ConnectionImpl implements Connection, InvalidLoginCallback {
         interval);
     }
     String unit = OpenBusProperty.TIME_UNIT.getProperty(props);
-    if (unit == null || unit.equals("ms") || unit.equals("millis") || unit
-      .equals("milliseconds")) {
-      this.unit = TimeUnit.MILLISECONDS;
-    } else if (unit.equals("s") || unit.equals("secs") || unit
-        .equals("seconds")) {
-        this.unit = TimeUnit.SECONDS;
-    } else if (unit.equals("ns") || unit.equals("nanos") || unit
-      .equals("nanoseconds")) {
+    if (unit == null) {
+      unit = "millis";
+    }
+    switch (unit) {
+      case "ns":
+      case "nanos":
+      case "nanosecs":
+      case "nanoseconds":
         this.unit = TimeUnit.NANOSECONDS;
-    } else if (unit.equals("m") || unit.equals("mins") || unit
-    .equals("minutes")) {
-      this.unit = TimeUnit.MINUTES;
-    } else {
-      throw new InvalidPropertyValue(OpenBusProperty.TIME_UNIT.getKey(),
-        unit);
+        break;
+      case "us":
+      case "micros":
+      case "microsecs":
+      case "microseconds":
+        this.unit = TimeUnit.MICROSECONDS;
+        break;
+      case "ms":
+      case "millis":
+      case "millisecs":
+      case "milliseconds":
+        this.unit = TimeUnit.MILLISECONDS;
+        break;
+      case "s":
+      case "secs":
+      case "seconds":
+        this.unit = TimeUnit.SECONDS;
+        break;
+      case "m":
+      case "mins":
+      case "minutes":
+        this.unit = TimeUnit.MINUTES;
+        break;
+      case "h":
+      case "hrs":
+      case "hours":
+        this.unit = TimeUnit.HOURS;
+        break;
+      default:
+        throw new InvalidPropertyValue(OpenBusProperty.TIME_UNIT.getKey(),
+          unit);
     }
 
     this.loginRegistry = new LoginRegistryImpl(context, this, poa, pool,

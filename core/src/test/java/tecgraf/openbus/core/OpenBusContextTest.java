@@ -21,11 +21,7 @@ import org.omg.IOP.CodecFactoryPackage.UnknownEncoding;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
 
 import scs.core.ComponentContext;
-import tecgraf.openbus.CallDispatchCallback;
-import tecgraf.openbus.CallerChain;
-import tecgraf.openbus.Connection;
-import tecgraf.openbus.OpenBusContext;
-import tecgraf.openbus.SharedAuthSecret;
+import tecgraf.openbus.*;
 import tecgraf.openbus.core.v2_1.BusObjectKey;
 import tecgraf.openbus.core.v2_1.credential.SignedData;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
@@ -142,7 +138,7 @@ public final class OpenBusContextTest {
     try {
       invalid = context.connectByAddress("", port);
     }
-    catch (IllegalArgumentException e) {
+    catch (IllegalArgumentException ignored) {
     }
     finally {
       assertNull(invalid);
@@ -150,7 +146,7 @@ public final class OpenBusContextTest {
     try {
       invalid = context.connectByAddress(host, -1);
     }
-    catch (IllegalArgumentException e) {
+    catch (IllegalArgumentException ignored) {
     }
     finally {
       assertNull(invalid);
@@ -249,13 +245,8 @@ public final class OpenBusContextTest {
     context.setCurrentConnection(null);
     context.setDefaultConnection(conn);
     assertSame(context.getDefaultConnection(), conn);
-    context.onCallDispatch(new CallDispatchCallback() {
-      @Override
-      public Connection dispatch(OpenBusContext context, String busid,
-        String loginId, byte[] object_id, String operation) {
-        return conn;
-      }
-    });
+    context.onCallDispatch((context1, busid, loginId, object_id, operation)
+      -> conn);
     assertSame(context.getDefaultConnection(), conn);
     context.onCallDispatch(null);
     assertTrue(conn.logout());
@@ -271,13 +262,8 @@ public final class OpenBusContextTest {
     conn.loginByPassword(entity, password, domain);
     assertNull(context.getCurrentConnection());
     context.setDefaultConnection(conn);
-    context.onCallDispatch(new CallDispatchCallback() {
-      @Override
-      public Connection dispatch(OpenBusContext context, String busid,
-                                 String loginId, byte[] object_id, String operation) {
-        return conn;
-      }
-    });
+    context.onCallDispatch((context1, busid, loginId, object_id, operation)
+      -> conn);
     assertSame(context.getCurrentConnection(), conn);
     context.setCurrentConnection(conn);
     assertSame(context.getCurrentConnection(), conn);
@@ -330,13 +316,8 @@ public final class OpenBusContextTest {
     conn.loginByPassword(entity, password, domain);
     assertNull(context.getCurrentConnection());
     context.setDefaultConnection(conn);
-    context.onCallDispatch(new CallDispatchCallback() {
-      @Override
-      public Connection dispatch(OpenBusContext context, String busid,
-        String loginId, byte[] object_id, String operation) {
-        return conn;
-      }
-    });
+    context.onCallDispatch((context1, busid, loginId, object_id, operation)
+      -> conn);
     assertNotNull(context.getCurrentConnection());
     assertSame(context.getCurrentConnection(), context.getDefaultConnection());
     context.setCurrentConnection(conn);
@@ -433,13 +414,8 @@ public final class OpenBusContextTest {
     final Connection conn = context.connectByReference(busref);
     conn.loginByPassword(entity, password, domain);
     context.setCurrentConnection(conn);
-    context.onCallDispatch(new CallDispatchCallback() {
-      @Override
-      public Connection dispatch(OpenBusContext context, String busid,
-        String loginId, byte[] object_id, String operation) {
-        return conn;
-      }
-    });
+    context.onCallDispatch((context1, busid, loginId, object_id, operation)
+      -> conn);
     ComponentContext component = Builder.buildTestConnectionComponent(context);
     ServiceProperty[] props =
       new ServiceProperty[] { new ServiceProperty("offer.domain",
@@ -501,10 +477,10 @@ public final class OpenBusContextTest {
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes(), domain);
     String caller = "ExternalCaller";
-    StringBuffer buffer = new StringBuffer();
+    StringBuilder buffer = new StringBuilder();
     int origs = 2;
     for (int i = 1; i <= origs; i++) {
-      buffer.append("ExternalOriginator" + i + ", ");
+      buffer.append("ExternalOriginator").append(i).append(", ");
     }
     buffer.append(caller);
     String token =
@@ -628,15 +604,9 @@ public final class OpenBusContextTest {
     String login3 = conn3.login().id;
 
     final Connection conn = context.connectByReference(busref);
-    conn.loginByCertificate(system, systemKey);
-    context.onCallDispatch(new CallDispatchCallback() {
-
-      @Override
-      public Connection dispatch(OpenBusContext context, String busid,
-        String loginId, byte[] object_id, String operation) {
-        return conn;
-      }
-    });
+    conn.loginByPrivateKey(system, systemKey);
+    context.onCallDispatch((context1, busid, loginId, object_id, operation)
+      -> conn);
 
     context.setCurrentConnection(conn1);
     CallerChain chain1For2 = context.makeChainFor(conn2.login().entity);
@@ -785,7 +755,7 @@ public final class OpenBusContextTest {
       byte[] data = context.encodeSharedAuth(secret);
       Connection conn2 = context.connectByReference(busref);
       SharedAuthSecret secret2 = context.decodeSharedAuth(data);
-      conn2.loginBySharedAuth(secret2);
+      conn2.loginByCallback(() -> new AuthArgs(secret2));
       assertNotNull(conn2.login());
       assertFalse(conn.login().id.equals(conn2.login().id));
       assertEquals(conn.login().entity, conn2.login().entity);

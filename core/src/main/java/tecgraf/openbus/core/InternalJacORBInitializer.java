@@ -48,7 +48,7 @@ public final class InternalJacORBInitializer extends LocalObject implements
     int invLoginSlotId = info.allocate_slot_id();
     OpenBusContextImpl context =
       new OpenBusContextImpl(currentThreadSlotId, ignoreThreadSlotId,
-        invLoginSlotId);
+        invLoginSlotId, null);
     try {
       info.register_initial_reference("OpenBusContext", context);
     }

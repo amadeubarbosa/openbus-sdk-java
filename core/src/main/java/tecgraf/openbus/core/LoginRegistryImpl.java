@@ -79,13 +79,13 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry registry
       = registry();
     if (registry == null) {
-      return new ArrayList<LoginInfo>();
+      return new ArrayList<>();
     }
-    Connection prev = context.getCurrentConnection(conn);
+    Connection prev = context.getCurrentConnection();
     try {
       return convertLoginArrayToList(registry.getAllLogins());
     } finally {
-      context.getCurrentConnection(prev);
+      context.setCurrentConnection(prev);
     }
   }
 
@@ -95,13 +95,13 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry registry
       = registry();
     if (registry == null) {
-      return new ArrayList<LoginInfo>();
+      return new ArrayList<>();
     }
-    Connection prev = context.getCurrentConnection(conn);
+    Connection prev = context.getCurrentConnection();
     try {
       return convertLoginArrayToList(registry.getEntityLogins(entity));
     } finally {
-      context.getCurrentConnection(prev);
+      context.setCurrentConnection(prev);
     }
   }
 
@@ -110,11 +110,11 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     UnauthorizedOperation {
     tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry registry
       = registry();
-    Connection prev = context.getCurrentConnection(conn);
+    Connection prev = context.getCurrentConnection();
     try {
       return registry != null && registry.invalidateLogin(loginId);
     } finally {
-      context.getCurrentConnection(prev);
+      context.setCurrentConnection(prev);
     }
   }
 
@@ -126,11 +126,11 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     if (registry == null) {
       return new LoginInfo();
     }
-    Connection prev = context.getCurrentConnection(conn);
+    Connection prev = context.getCurrentConnection();
     try {
       return registry.getLoginInfo(loginId, pubkey);
     } finally {
-      context.getCurrentConnection(prev);
+      context.setCurrentConnection(prev);
     }
   }
 
@@ -141,11 +141,11 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     if (registry == null) {
       return -1;
     }
-    Connection prev = context.getCurrentConnection(conn);
+    Connection prev = context.getCurrentConnection();
     try {
       return registry.getLoginValidity(loginId);
     } finally {
-      context.getCurrentConnection(prev);
+      context.setCurrentConnection(prev);
     }
   }
 
@@ -156,7 +156,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     if (registry == null) {
       return null;
     }
-    Connection prev = context.getCurrentConnection(conn);
+    Connection prev = context.getCurrentConnection();
     try {
       LoginSubscriptionImpl ret = new LoginSubscriptionImpl(callback, this);
       synchronized (lock) {
@@ -201,7 +201,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
       }
       return ret;
     } finally {
-      context.getCurrentConnection(prev);
+      context.setCurrentConnection(prev);
     }
   }
 
@@ -215,18 +215,15 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
       // cópia rasa, só para liberar o mutex
       subs = new ArrayList<>(this.subs);
     }
-    Thread t = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        context.getCurrentConnection(conn);
-        for (LoginSubscriptionImpl sub : subs) {
-          try {
-            sub.observer().entityLogout(login);
-          } catch (Exception e) {
-            logger.error("Erro ao avisar um observador da aplicação de que o" +
-              " login " + login.id + " da entidade " + login.entity + " foi " +
-              "desfeito.", e);
-          }
+    Thread t = new Thread(() -> {
+      context.setCurrentConnection(conn);
+      for (LoginSubscriptionImpl sub1 : subs) {
+        try {
+          sub1.observer().entityLogout(login);
+        } catch (Exception e) {
+          logger.error("Erro ao avisar um observador da aplicação de que o" +
+            " login " + login.id + " da entidade " + login.entity + " foi " +
+            "desfeito.", e);
         }
       }
     });
@@ -249,7 +246,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
 
   protected boolean watchLogin(String loginId) throws ServiceFailure {
     LoginObserverSubscription sub = sub();
-    Connection prev = context.getCurrentConnection(conn);
+    Connection prev = context.getCurrentConnection();
     try {
       while (true) {
         try {
@@ -260,13 +257,13 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
         }
       }
     } finally {
-      context.getCurrentConnection(prev);
+      context.setCurrentConnection(prev);
     }
   }
 
   protected void forgetLogin(String loginId) throws ServiceFailure {
     LoginObserverSubscription sub = sub();
-    Connection prev = context.getCurrentConnection(conn);
+    Connection prev = context.getCurrentConnection();
     try {
       while (true) {
         try {
@@ -284,14 +281,14 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
         }
       }
     } finally {
-      context.getCurrentConnection(prev);
+      context.setCurrentConnection(prev);
     }
   }
 
   protected void watchLogins(List<String> loginIds) throws ServiceFailure,
     InvalidLogins {
     LoginObserverSubscription sub = sub();
-    Connection prev = context.getCurrentConnection(conn);
+    Connection prev = context.getCurrentConnection();
     try {
       while (true) {
         try {
@@ -309,13 +306,13 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
         }
       }
     } finally {
-      context.getCurrentConnection(prev);
+      context.setCurrentConnection(prev);
     }
   }
 
   protected void forgetLogins(List<String> loginIds) throws ServiceFailure {
     LoginObserverSubscription sub = sub();
-    Connection prev = context.getCurrentConnection(conn);
+    Connection prev = context.getCurrentConnection();
     try {
       while (true) {
         try {
@@ -333,18 +330,18 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
         }
       }
     } finally {
-      context.getCurrentConnection(prev);
+      context.setCurrentConnection(prev);
     }
   }
 
   protected List<LoginInfo> getWatchedLogins() {
     LoginObserverSubscription sub = sub();
-    Connection prev = context.getCurrentConnection(conn);
+    Connection prev = context.getCurrentConnection();
     try {
       while (true) {
         try {
           if (sub == null) {
-            return new ArrayList<LoginInfo>();
+            return new ArrayList<>();
           }
           return convertLoginArrayToList(sub.getWatchedLogins());
         } catch (OBJECT_NOT_EXIST e) {
@@ -356,7 +353,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
         }
       }
     } finally {
-      context.getCurrentConnection(prev);
+      context.setCurrentConnection(prev);
     }
   }
 
@@ -432,15 +429,15 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
 
   private void onLogin() {
     synchronized (lock) {
-      Connection prev = context.getCurrentConnection(conn);
+      Connection prev = context.getCurrentConnection();
       try {
         registry = context.getLoginRegistry();
         if (subs == null) {
-          subs = new ArrayList<LoginSubscriptionImpl>();
+          subs = new ArrayList<>();
         }
         lock.notifyAll();
       } finally {
-        context.getCurrentConnection(prev);
+        context.setCurrentConnection(prev);
       }
     }
   }
@@ -655,7 +652,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
   }
 
   private static List<LoginInfo> convertLoginArrayToList(LoginInfo[] infos) {
-    List<LoginInfo> ret = new ArrayList<LoginInfo>();
+    List<LoginInfo> ret = new ArrayList<>();
     Collections.addAll(ret, infos);
     return ret;
   }
@@ -681,7 +678,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     @Override
     public Void call() throws ServiceFailure {
       try {
-        context.getCurrentConnection(conn);
+        context.setCurrentConnection(conn);
         sub.remove();
       } catch (OBJECT_NOT_EXIST ignored) {}
       return null;
@@ -705,7 +702,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
 
     @Override
     public LoginObserverSubscription call() throws ServiceFailure {
-      context.getCurrentConnection(conn);
+      context.setCurrentConnection(conn);
       LoginObserverSubscription sub = registry.subscribeObserver(observer);
       if (watchedLogins != null) {
         try {
@@ -716,11 +713,8 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
             if (subs != null) {
               for (final LoginSubscriptionImpl loginSubscription : subs) {
                 // arrisco criar várias threads para não compartilhar subs
-                Thread t = new Thread(new Runnable() {
-                  @Override
-                  public void run() {
-                    loginSubscription.nonExistentLogins(e.loginIds);
-                  }
+                Thread t = new Thread(() -> {
+                  loginSubscription.nonExistentLogins(e.loginIds);
                 });
                 t.start();
               }

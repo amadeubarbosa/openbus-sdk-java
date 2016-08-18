@@ -8,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.security.interfaces.RSAPrivateKey;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.After;
 import org.junit.BeforeClass;
@@ -18,14 +17,9 @@ import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
 
 import scs.core.ComponentContext;
-import tecgraf.openbus.CallDispatchCallback;
-import tecgraf.openbus.Connection;
-import tecgraf.openbus.InvalidLoginCallback;
-import tecgraf.openbus.OpenBusContext;
-import tecgraf.openbus.SharedAuthSecret;
+import tecgraf.openbus.*;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
-import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
@@ -187,12 +181,12 @@ public final class ConnectionTest {
   }
 
   @Test
-  public void loginByCertificateTest() throws Exception {
+  public void loginByPrivateKeyTest() throws Exception {
     Connection conn = context.connectByReference(busref);
     // entidade sem certificado cadastrado
     boolean failed = false;
     try {
-      conn.loginByCertificate(systemWrongName, systemKey);
+      conn.loginByPrivateKey(systemWrongName, systemKey);
     }
     catch (MissingCertificate e) {
       failed = true;
@@ -209,7 +203,7 @@ public final class ConnectionTest {
     try {
       RSAPrivateKey key =
         Cryptography.getInstance().readKeyFromBytes(new byte[0]);
-      conn.loginByCertificate(system, key);
+      conn.loginByPrivateKey(system, key);
     }
     catch (Exception e) {
       failed = true;
@@ -220,7 +214,7 @@ public final class ConnectionTest {
     // chave privada inválida
     failed = false;
     try {
-      conn.loginByCertificate(system, systemWrongKey);
+      conn.loginByPrivateKey(system, systemWrongKey);
     }
     catch (AccessDenied e) {
       failed = true;
@@ -233,7 +227,7 @@ public final class ConnectionTest {
 
     // login válido
     assertNull(conn.login());
-    conn.loginByCertificate(system, systemKey);
+    conn.loginByPrivateKey(system, systemKey);
     assertNotNull(conn.login());
     assertTrue(conn.logout());
     assertNull(conn.login());
@@ -241,8 +235,8 @@ public final class ConnectionTest {
     // login repetido
     failed = false;
     try {
-      conn.loginByCertificate(system, systemKey);
-      conn.loginByCertificate(system, systemKey);
+      conn.loginByPrivateKey(system, systemKey);
+      conn.loginByPrivateKey(system, systemKey);
     }
     catch (AlreadyLoggedIn e) {
       failed = true;
@@ -269,8 +263,10 @@ public final class ConnectionTest {
       SharedAuthSecretImpl secret =
         (SharedAuthSecretImpl) conn.startSharedAuth();
       context.setCurrentConnection(null);
-      conn2.loginBySharedAuth(new SharedAuthSecretImpl(conn.busid(), secret
-        .attempt(), null, new byte[0], (OpenBusContextImpl) context));
+      conn2.loginByCallback(() -> new AuthArgs(new SharedAuthSecretImpl(conn
+        .busid(), secret.attempt(), null, new byte[0], (OpenBusContextImpl)
+        context)));
+
     }
     catch (AccessDenied e) {
       failed = true;
@@ -293,9 +289,9 @@ public final class ConnectionTest {
     // login válido
     assertNull(conn2.login());
     context.setCurrentConnection(conn);
-    SharedAuthSecret secret = conn.startSharedAuth();
+    final SharedAuthSecret secret = conn.startSharedAuth();
     context.setCurrentConnection(null);
-    conn2.loginBySharedAuth(secret);
+    conn2.loginByCallback(() -> new AuthArgs(secret));
     assertNotNull(conn2.login());
     conn2.logout();
     assertNull(conn2.login());
@@ -305,11 +301,11 @@ public final class ConnectionTest {
     boolean failed = false;
     try {
       context.setCurrentConnection(conn);
-      secret = conn.startSharedAuth();
+      final SharedAuthSecret secret2 = conn.startSharedAuth();
       context.setCurrentConnection(null);
-      conn2.loginBySharedAuth(secret);
+      conn2.loginByCallback(() -> new AuthArgs(secret2));
       assertNotNull(conn2.login());
-      conn2.loginBySharedAuth(secret);
+      conn2.loginByCallback(() -> new AuthArgs(secret2));
     }
     catch (AlreadyLoggedIn e) {
       failed = true;
@@ -332,16 +328,11 @@ public final class ConnectionTest {
     assertTrue(conn.logout());
     conn.loginByPassword(entity, password, domain);
     final String busId = conn.busid();
-    context.onCallDispatch(new CallDispatchCallback() {
-
-      @Override
-      public Connection dispatch(OpenBusContext context, String busid,
-        String loginId, byte[] object_id, String operation) {
-        if (busId.equals(busid)) {
-          return conn;
-        }
-        return null;
+    context.onCallDispatch((context1, busid, loginId, object_id, operation) -> {
+      if (busId.equals(busid)) {
+        return conn;
       }
+      return null;
     });
     assertTrue(conn.logout());
     assertNull(conn.busid());
@@ -367,22 +358,6 @@ public final class ConnectionTest {
   @Test
   public void onInvalidLoginCallbackTest() throws Exception {
     Connection conn = context.connectByReference(busref);
-    assertNull(conn.onInvalidLoginCallback());
-    final AtomicBoolean called = new AtomicBoolean(false);
-    InvalidLoginCallback callback = new InvalidLoginCallback() {
-      @Override
-      public void invalidLogin(Connection conn, LoginInfo login) {
-        try {
-          conn.loginByPassword(entity, password, domain);
-          called.set(true);
-        }
-        catch (Exception e) {
-          // failed
-        }
-      }
-    };
-    conn.onInvalidLoginCallback(callback);
-    assertEquals(callback, conn.onInvalidLoginCallback());
     conn.loginByPassword(entity, password, domain);
     String id = conn.login().id;
 
@@ -399,7 +374,7 @@ public final class ConnectionTest {
       int validity = logins.getLoginValidity(id);
       context.setCurrentConnection(null);
       assertTrue(validity <= 0);
-      assertTrue(called.get());
+      assertNotNull(conn.login());
     }
     finally {
       context.setCurrentConnection(null);
@@ -413,9 +388,9 @@ public final class ConnectionTest {
     try {
       String sys1 = "test_entity_registration_first";
       String sys2 = "test_entity_registration_second";
-      conn1.loginByCertificate(sys1, systemKey);
+      conn1.loginByPrivateKey(sys1, systemKey);
       assertNotNull(conn1.login());
-      conn2.loginByCertificate(sys2, systemKey);
+      conn2.loginByPrivateKey(sys2, systemKey);
       assertNotNull(conn2.login());
       ServiceProperty[] props =
         new ServiceProperty[] { new ServiceProperty("offer.domain", "testing") };
@@ -454,22 +429,6 @@ public final class ConnectionTest {
   @Test
   public void logoutOnInvalidLoginCallbackTest() throws Exception {
     Connection conn = context.connectByReference(busref);
-    assertNull(conn.onInvalidLoginCallback());
-    final AtomicBoolean called = new AtomicBoolean(false);
-    InvalidLoginCallback callback = new InvalidLoginCallback() {
-      @Override
-      public void invalidLogin(Connection conn, LoginInfo login) {
-        try {
-          conn.loginByPassword(entity, password, domain);
-          called.set(true);
-        }
-        catch (Exception e) {
-          // failed
-        }
-      }
-    };
-    conn.onInvalidLoginCallback(callback);
-    assertEquals(callback, conn.onInvalidLoginCallback());
     conn.loginByPassword(entity, password, domain);
     String id = conn.login().id;
 
@@ -486,7 +445,7 @@ public final class ConnectionTest {
 
       boolean logout = conn.logout();
       assertTrue(logout);
-      assertFalse(called.get());
+      assertNull(conn.login());
     }
     finally {
       context.setCurrentConnection(null);
