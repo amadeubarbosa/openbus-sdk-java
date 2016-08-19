@@ -8,6 +8,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.security.interfaces.RSAPrivateKey;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.junit.After;
 import org.junit.BeforeClass;
@@ -20,12 +23,8 @@ import scs.core.ComponentContext;
 import tecgraf.openbus.*;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
-import tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
-import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.security.Cryptography;
 import tecgraf.openbus.util.Builder;
@@ -91,9 +90,9 @@ public final class ConnectionTest {
   public void offerRegistryNoLoginTest() {
     Connection conn = context.connectByReference(busref);
     try {
-      OfferRegistry registryService = context.getOfferRegistry();
-      ServiceProperty[] props =
-        new ServiceProperty[] { new ServiceProperty("a", "b") };
+      OfferRegistry registryService = conn.offerRegistry();
+      Map<String, String> props = new HashMap<>();
+      props.put("a", "b");
       registryService.findServices(props);
     }
     catch (NO_PERMISSION e) {
@@ -260,12 +259,7 @@ public final class ConnectionTest {
     // segredo errado
     boolean failed = false;
     try {
-      context.setCurrentConnection(conn);
-      SharedAuthSecretImpl secret =
-        (SharedAuthSecretImpl) conn.startSharedAuth();
-      context.setCurrentConnection(null);
-      conn2.loginByCallback(() -> new AuthArgs(new SharedAuthSecretImpl(conn
-        .busid(), secret.attempt(), null, new byte[0], context)));
+      conn2.loginByCallback(new TestLoginCallback(conn, true));
     }
     catch (AccessDenied e) {
       failed = true;
@@ -276,7 +270,6 @@ public final class ConnectionTest {
     assertTrue("O login com segredo errado foi bem-sucedido.", failed);
     conn.logout();
     assertNull(conn.login());
-    context.setCurrentConnection(null);
   }
 
   @Test
@@ -287,24 +280,18 @@ public final class ConnectionTest {
 
     // login válido
     assertNull(conn2.login());
-    context.setCurrentConnection(conn);
-    final SharedAuthSecret secret = conn.startSharedAuth();
-    context.setCurrentConnection(null);
-    conn2.loginByCallback(() -> new AuthArgs(secret));
+    LoginCallback cb = new TestLoginCallback(conn, false);
+    conn2.loginByCallback(cb);
     assertNotNull(conn2.login());
     conn2.logout();
     assertNull(conn2.login());
-    context.setCurrentConnection(null);
 
     // login repetido
     boolean failed = false;
     try {
-      context.setCurrentConnection(conn);
-      final SharedAuthSecret secret2 = conn.startSharedAuth();
-      context.setCurrentConnection(null);
-      conn2.loginByCallback(() -> new AuthArgs(secret2));
+      conn2.loginByCallback(cb);
       assertNotNull(conn2.login());
-      conn2.loginByCallback(() -> new AuthArgs(secret2));
+      conn2.loginByCallback(cb);
     }
     catch (AlreadyLoggedIn e) {
       failed = true;
@@ -318,7 +305,6 @@ public final class ConnectionTest {
     assertNull(conn2.login());
     conn.logout();
     assertNull(conn.login());
-    context.setCurrentConnection(null);
   }
 
   @Test
@@ -338,8 +324,7 @@ public final class ConnectionTest {
     assertNull(conn.login());
     boolean failed = false;
     try {
-      context.setCurrentConnection(conn);
-      context.getOfferRegistry().findServices(new ServiceProperty[0]);
+      conn.offerRegistry().findServices(new HashMap<>());
     }
     catch (NO_PERMISSION e) {
       failed = true;
@@ -357,27 +342,21 @@ public final class ConnectionTest {
   @Test
   public void onInvalidLoginCallbackTest() throws Exception {
     Connection conn = context.connectByReference(busref);
+    assertNotNull(conn);
     conn.loginByPassword(entity, password, domain);
     String id = conn.login().id;
 
     Connection adminconn = context.connectByReference(busref);
     adminconn.loginByPassword(admin, adminpwd, domain);
-    try {
-      context.setCurrentConnection(adminconn);
-      context.getLoginRegistry().invalidateLogin(id);
-      context.setCurrentConnection(null);
-      adminconn.logout();
-
-      context.setCurrentConnection(conn);
-      LoginRegistry logins = context.getLoginRegistry();
-      int validity = logins.getLoginValidity(id);
-      context.setCurrentConnection(null);
-      assertTrue(validity <= 0);
-      assertNotNull(conn.login());
-    }
-    finally {
-      context.setCurrentConnection(null);
-    }
+    adminconn.loginRegistry().invalidateLogin(id);
+    int validity = adminconn.loginRegistry().loginValidity(id);
+    assertTrue(validity <= 0);
+    adminconn.logout();
+    // faz chamada para refazer login
+    conn.loginRegistry().entityLogins(entity);
+    validity = conn.loginRegistry().loginValidity(conn.login().id);
+    assertTrue(validity > 0);
+    conn.logout();
   }
 
   @Test
@@ -391,63 +370,64 @@ public final class ConnectionTest {
       assertNotNull(conn1.login());
       conn2.loginByPrivateKey(sys2, systemKey);
       assertNotNull(conn2.login());
-      ServiceProperty[] props =
-        new ServiceProperty[] { new ServiceProperty("offer.domain", "testing") };
+      Map<String, String> props = new HashMap<>();
+      props.put("offer.domain", "testing");
       ComponentContext comp1 =
         Builder.buildTestCallerChainInspectorComponent(context);
 
+      context.onCallDispatch((context1, busid, loginId, object_id, operation)
+        -> conn1);
       // conn1
-      context.setDefaultConnection(conn1);
-      context.getOfferRegistry().registerService(comp1.getIComponent(), props);
+      LocalOffer local = conn1.offerRegistry().registerService(comp1
+        .getIComponent(), props);
+      local.remoteOffer(1000, 0);
+      context.onCallDispatch((context1, busid, loginId, object_id, operation)
+        -> conn2);
       // conn2
-      context.setCurrentConnection(conn2);
-      context.getOfferRegistry().registerService(comp1.getIComponent(), props);
-      context.setCurrentConnection(null);
+      LocalOffer local2 = conn2.offerRegistry().registerService(comp1
+        .getIComponent(), props);
+      local2.remoteOffer(1000, 0);
 
-      props =
-        new ServiceProperty[] { new ServiceProperty("offer.domain", "testing"),
-            new ServiceProperty("openbus.offer.entity", sys1) };
-      ServiceOfferDesc[] services =
-        context.getOfferRegistry().findServices(props);
-      assertEquals(1, services.length);
+      props.clear();
+      props.put("offer.domain", "testing");
+      props.put("openbus.offer.entity", sys1);
+      List<RemoteOffer> services = conn1.offerRegistry().findServices(props);
+      assertEquals(1, services.size());
       // invert property list order
-      props =
-        new ServiceProperty[] {
-            new ServiceProperty("openbus.offer.entity", sys1),
-            new ServiceProperty("offer.domain", "testing") };
-      services = context.getOfferRegistry().findServices(props);
-      assertEquals(1, services.length);
+      props.clear();
+      props.put("openbus.offer.entity", sys1);
+      props.put("offer.domain", "testing");
+      services = conn1.offerRegistry().findServices(props);
+      assertEquals(1, services.size());
     }
     finally {
-      context.setDefaultConnection(null);
       conn1.logout();
       conn2.logout();
     }
   }
 
-  @Test
-  public void logoutOnInvalidLoginCallbackTest() throws Exception {
-    Connection conn = context.connectByReference(busref);
-    conn.loginByPassword(entity, password, domain);
-    String id = conn.login().id;
+  private class TestLoginCallback implements LoginCallback {
+    private Connection conn;
+    private boolean fake;
 
-    Connection adminconn = context.connectByReference(busref);
-    adminconn.loginByPassword(admin, adminpwd, domain);
-    try {
-      context.setCurrentConnection(adminconn);
-      boolean ok = context.getLoginRegistry().invalidateLogin(id);
-      int validity = context.getLoginRegistry().getLoginValidity(id);
-      context.setCurrentConnection(null);
-      adminconn.logout();
-      assertTrue(ok);
-      assertTrue(validity <= 0);
-
-      boolean logout = conn.logout();
-      assertTrue(logout);
-      assertNull(conn.login());
+    public TestLoginCallback(Connection conn, boolean fake) {
+      this.conn = conn;
+      this.fake = fake;
     }
-    finally {
-      context.setCurrentConnection(null);
+
+    @Override
+    public AuthArgs login() {
+      SharedAuthSecret secret;
+      try {
+        secret = conn.startSharedAuth();
+      } catch (ServiceFailure serviceFailure) {
+        return null;
+      }
+      if (fake) {
+        secret = new SharedAuthSecretImpl(conn.busid(), (
+          (SharedAuthSecretImpl)secret).attempt(), null, new byte[0], context);
+      }
+      return new AuthArgs(secret);
     }
   }
 }
