@@ -77,7 +77,7 @@ public interface OpenBusContext {
    * barramento. Essa callback deve devolver a conexão a ser utilizada para para
    * receber a chamada. A conexão utilizada para receber a chamada será a única
    * conexão através do qual novas chamadas aninhadas à chamada recebida poderão
-   * ser feitas (veja a operação {@link OpenBusContext#joinChain}).
+   * ser feitas (veja a operação {@link Connection#joinChain}).
    * <p>
    * Se o objeto de callback for definido como <code>null</code> ou devolver
    * <code>null</code>, a conexão padrão é utilizada para receber achamada, caso
@@ -288,12 +288,9 @@ public interface OpenBusContext {
   /**
    * Devolve a cadeia de chamadas à qual a execução corrente pertence.
    * <p>
-   * Caso a contexto corrente (e.g. definido pelo {@link Current}) seja o
-   * contexto de execução de uma chamada remota oriunda do barramento dessa
-   * conexão, essa operação devolve um objeto que representa a cadeia de
-   * chamadas do barramento que esta chamada faz parte. Caso contrário, devolve
-   * <code>null</code>.
-   * 
+   * Essa operação devolve um objeto que representa a cadeia de chamadas do
+   * barramento que esta chamada faz parte.
+   *
    * @return Cadeia da chamada em execução.
    */
   CallerChain getCallerChain();
@@ -304,7 +301,7 @@ public interface OpenBusContext {
    * Associa uma cadeia de chamadas ao contexto corrente (e.g. definido pelo
    * {@link Current}), de forma que todas as chamadas remotas seguintes neste
    * mesmo contexto sejam feitas como parte dessa cadeia de chamadas.
-   * 
+   *
    * @param chain Cadeia de chamadas a ser associada ao contexto corrente.
    */
   void joinChain(CallerChain chain);
@@ -340,55 +337,11 @@ public interface OpenBusContext {
    * chamadas informada foi associada previamente pela operação
    * {@link #joinChain(CallerChain) joinChain}. Caso o contexto corrente não
    * tenha nenhuma cadeia associada, essa operação devolve <code>null</code>.
-   * 
+   *
    * @return Cadeia de chamadas associada ao contexto corrente ou
    *         <code>null</code> .
    */
   CallerChain getJoinedChain();
-
-  /**
-   * Cria uma cadeia de chamadas para a entidade especificada.
-   * <p>
-   * Cria uma nova cadeia de chamadas para a entidade especificada, onde o dono
-   * da cadeia é a conexão corrente ({@link #getCurrentConnection()}) e
-   * utiliza-se a cadeia atual ({@link #getJoinedChain()}) como a cadeia que se
-   * que se deseja dar seguimento ao encadeamento. É permitido especificar
-   * qualquer nome de entidade, tendo ela um login ativo no momento ou não. A
-   * cadeia resultante só poderá ser utilizada ({@link #joinChain(CallerChain)}
-   * ) com sucesso por uma conexão que possua a mesma identidade da entidade
-   * especificada.
-   * 
-   * @param entity nome da entidade para a qual deseja-se enviar a cadeia.
-   * @return a cadeia gerada para ser utilizada pela entidade com o login
-   *         especificado.
-   * 
-   * @throws ServiceFailure Ocorreu uma falha interna nos serviços do barramento
-   *         que impediu a criação da cadeia.
-   */
-  CallerChain makeChainFor(String entity) throws ServiceFailure;
-
-  /**
-   * Cria uma cadeia de chamadas assinada pelo barramento com informações de uma
-   * autenticação externa ao barramento.
-   * <p>
-   * A cadeia criada pode somente ser utilizada pela entidade do login que faz a
-   * chamada. O conteúdo da cadeia é dado pelas informações obtidas através do
-   * token indicado.
-   * 
-   * @param token Valor opaco que representa uma informação de autenticação
-   *        externa.
-   * @param domain Identificador do domínio de autenticação.
-   * @return A nova cadeia de chamadas assinada.
-   *
-   * @exception InvalidToken O token fornecido não foi reconhecido.
-   * @exception UnknownDomain O domínio de autenticação não é conhecido.
-   * @exception WrongEncoding A importação falhou, pois o token não foi
-   *            codificado corretamente com a chave pública do barramento.
-   * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
-   *            barramento que impediu a criação da cadeia.
-   */
-  CallerChain importChain(byte[] token, String domain) throws InvalidToken,
-    UnknownDomain, ServiceFailure, WrongEncoding;
 
   /**
    * Codifica uma cadeia de chamadas ({@link CallerChain}) para um stream de
@@ -396,7 +349,7 @@ public interface OpenBusContext {
    * <p>
    * Codifica uma cadeia de chamadas em um stream de bytes para permitir a
    * persistência ou transferência da informação.
-   * 
+   *
    * @param chain a cadeia a ser codificada.
    * @return a cadeia codificada em um stream de bytes.
    */
@@ -408,7 +361,7 @@ public interface OpenBusContext {
    * <p>
    * Decodifica um stream de bytes de uma cadeia para o formato
    * {@link CallerChain}.
-   * 
+   *
    * @param encoded o stream de bytes que representam a cadeia
    * @return a cadeia de chamadas no formato {@link CallerChain}.
    * @throws InvalidEncodedStream Caso a stream de bytes não seja do formato
@@ -419,10 +372,10 @@ public interface OpenBusContext {
   /**
    * \brief Codifica um segredo de autenticação compartilhada (
    * {@link SharedAuthSecret}) para um stream de bytes.
-   * 
+   *
    * Codifica um segredo de autenticação compartilhada em um stream de bytes
    * para permitir a persistência ou transferência da informação.
-   * 
+   *
    * @param secret Segredo de autenticação compartilhada a ser codificado.
    * @return Cadeia codificada em um stream de bytes.
    */
@@ -434,7 +387,7 @@ public interface OpenBusContext {
    * <p>
    * Decodifica um segredo de autenticação compartilhada a partir de um stream
    * de bytes.
-   * 
+   *
    * @param encoded Stream de bytes contendo a codificação do segredo.
    * @return Segredo de autenticação compartilhada decodificado.
    * @throws InvalidEncodedStream Caso a stream de bytes não seja do formato

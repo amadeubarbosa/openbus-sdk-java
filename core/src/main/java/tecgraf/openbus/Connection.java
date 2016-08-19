@@ -5,17 +5,12 @@ import java.security.interfaces.RSAPrivateKey;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 
+import org.omg.PortableInterceptor.Current;
 import org.omg.PortableServer.POA;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
-import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
-import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
-import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
-import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
-import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
-import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
-import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
+import tecgraf.openbus.core.v2_1.services.access_control.*;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
+import tecgraf.openbus.exception.InvalidEncodedStream;
 import tecgraf.openbus.exception.InvalidLoginProcess;
 import tecgraf.openbus.exception.WrongBus;
 
@@ -218,4 +213,48 @@ public interface Connection {
    * @return o registro de ofertas.
    */
   OfferRegistry offerRegistry();
+
+  /**
+   * Cria uma cadeia de chamadas para a entidade especificada.
+   * <p>
+   * Cria uma nova cadeia de chamadas para a entidade especificada, onde o dono
+   * da cadeia é esta conexão e utiliza-se a cadeia atual
+   * ({@link OpenBusContext#getJoinedChain()}) como a cadeia que se deseja dar
+   * seguimento
+   * ao encadeamento. É permitido especificar qualquer nome de entidade,
+   * tendo ela um login ativo no momento ou não. A cadeia resultante só
+   * poderá ser utilizada ({@link OpenBusContext#joinChain(CallerChain)}) com sucesso por
+   * uma conexão que possua a mesma identidade da entidade especificada.
+   *
+   * @param entity nome da entidade para a qual deseja-se enviar a cadeia.
+   * @return a cadeia gerada para ser utilizada pela entidade com o login
+   *         especificado.
+   *
+   * @throws ServiceFailure Ocorreu uma falha interna nos serviços do barramento
+   *         que impediu a criação da cadeia.
+   */
+  CallerChain makeChainFor(String entity) throws ServiceFailure;
+
+  /**
+   * Cria uma cadeia de chamadas assinada pelo barramento com informações de uma
+   * autenticação externa ao barramento.
+   * <p>
+   * A cadeia criada pode somente ser utilizada pela entidade do login que faz a
+   * chamada. O conteúdo da cadeia é dado pelas informações obtidas através do
+   * token indicado.
+   *
+   * @param token Valor opaco que representa uma informação de autenticação
+   *        externa.
+   * @param domain Identificador do domínio de autenticação.
+   * @return A nova cadeia de chamadas assinada.
+   *
+   * @exception InvalidToken O token fornecido não foi reconhecido.
+   * @exception UnknownDomain O domínio de autenticação não é conhecido.
+   * @exception WrongEncoding A importação falhou, pois o token não foi
+   *            codificado corretamente com a chave pública do barramento.
+   * @exception ServiceFailure Ocorreu uma falha interna nos serviços do
+   *            barramento que impediu a criação da cadeia.
+   */
+  CallerChain importChain(byte[] token, String domain) throws InvalidToken,
+    UnknownDomain, ServiceFailure, WrongEncoding;
 }

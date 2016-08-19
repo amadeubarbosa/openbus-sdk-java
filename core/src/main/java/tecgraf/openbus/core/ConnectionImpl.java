@@ -1,14 +1,12 @@
 package tecgraf.openbus.core;
 
 import java.io.IOException;
+import java.lang.Object;
 import java.security.KeyPair;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Properties;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
@@ -17,12 +15,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.google.common.util.concurrent.Uninterruptibles;
-import org.omg.CORBA.Any;
-import org.omg.CORBA.IntHolder;
-import org.omg.CORBA.NO_PERMISSION;
-import org.omg.CORBA.OBJECT_NOT_EXIST;
-import org.omg.CORBA.ORB;
-import org.omg.CORBA.SystemException;
+import org.omg.CORBA.*;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
 
 import org.omg.PortableServer.POA;
@@ -35,28 +28,12 @@ import tecgraf.openbus.core.Session.ServerSideSession;
 import tecgraf.openbus.core.v2_0.services.access_control.AccessControlHelper;
 import tecgraf.openbus.core.v2_1.EncryptedBlockHolder;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
-import tecgraf.openbus.core.v2_1.services.access_control.AccessControl;
-import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
-import tecgraf.openbus.core.v2_1.services.access_control.InvalidLoginCode;
-import tecgraf.openbus.core.v2_1.services.access_control.InvalidPublicKey;
-import tecgraf.openbus.core.v2_1.services.access_control.LoginAuthenticationInfo;
-import tecgraf.openbus.core.v2_1.services.access_control.LoginAuthenticationInfoHelper;
-import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_1.services.access_control.LoginProcess;
+import tecgraf.openbus.core.v2_1.services.access_control.*;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry;
-import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
-import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
-import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
-import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_1.services.legacy_support.LegacyConverter;
 import tecgraf.openbus.core.v2_1.services.legacy_support.LegacyConverterHelper;
 import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
-import tecgraf.openbus.exception.AlreadyLoggedIn;
-import tecgraf.openbus.exception.CryptographyException;
-import tecgraf.openbus.exception.InvalidLoginProcess;
-import tecgraf.openbus.exception.InvalidPropertyValue;
-import tecgraf.openbus.exception.OpenBusInternalException;
-import tecgraf.openbus.exception.WrongBus;
+import tecgraf.openbus.exception.*;
 import tecgraf.openbus.retry.RetryTaskPool;
 import tecgraf.openbus.security.Cryptography;
 
@@ -693,6 +670,35 @@ final class ConnectionImpl implements Connection, InvalidLoginCallback {
   @Override
   public tecgraf.openbus.OfferRegistry offerRegistry() {
     return offerRegistry;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public CallerChain makeChainFor(String entity) throws ServiceFailure {
+    Connection prev = context.getCurrentConnection();
+    try {
+      context.setCurrentConnection(this);
+      return context.makeChainFor(entity);
+    } finally {
+      context.setCurrentConnection(prev);
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public CallerChain importChain(byte[] token, String domain)
+    throws InvalidToken, UnknownDomain, WrongEncoding, ServiceFailure {
+    Connection prev = context.getCurrentConnection();
+    try {
+      context.setCurrentConnection(this);
+      return context.importChain(token, domain);
+    } finally {
+      context.setCurrentConnection(prev);
+    }
   }
 
   /**

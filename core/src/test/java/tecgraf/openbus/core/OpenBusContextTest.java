@@ -487,8 +487,7 @@ public final class OpenBusContextTest {
     String token =
       String.format("%s@%s:%s", actor1, conn1.login().id, buffer.toString());
     try {
-      context.setCurrentConnection(conn1);
-      CallerChain imported = context.importChain(token.getBytes(), domain);
+      CallerChain imported = conn1.importChain(token.getBytes(), domain);
       String unknown = "<unknown>";
       assertEquals(conn1.busid(), imported.busid());
       assertEquals(actor1, imported.target());
@@ -500,7 +499,6 @@ public final class OpenBusContextTest {
       }
     }
     finally {
-      context.setCurrentConnection(null);
       conn1.logout();
     }
   }
@@ -510,13 +508,11 @@ public final class OpenBusContextTest {
     String token = "any";
     Connection conn1 = context.connectByReference(busref);
     String actor1 = "actor-1";
-    context.setCurrentConnection(conn1);
     conn1.loginByPassword(actor1, actor1.getBytes(), domain);
     try {
-      context.importChain(token.getBytes(), domain);
+      conn1.importChain(token.getBytes(), domain);
     }
     finally {
-      context.setCurrentConnection(null);
       conn1.logout();
     }
   }
@@ -530,8 +526,7 @@ public final class OpenBusContextTest {
     String actor2 = "actor-2";
     conn2.loginByPassword(actor2, actor2.getBytes(), domain);
 
-    context.setCurrentConnection(conn1);
-    CallerChain chain1to2 = context.makeChainFor(conn2.login().entity);
+    CallerChain chain1to2 = conn1.makeChainFor(conn2.login().entity);
     assertEquals(actor2, chain1to2.target());
     assertEquals(actor1, chain1to2.caller().entity);
     assertEquals(conn1.login().id, chain1to2.caller().id);
@@ -552,15 +547,13 @@ public final class OpenBusContextTest {
     String actor3 = "actor-3";
     conn3.loginByPassword(actor3, actor3.getBytes(), domain);
 
-    context.setCurrentConnection(conn1);
-    CallerChain chain1to2 = context.makeChainFor(conn2.login().entity);
+    CallerChain chain1to2 = conn1.makeChainFor(conn2.login().entity);
     assertEquals(actor2, chain1to2.target());
     assertEquals(actor1, chain1to2.caller().entity);
     assertEquals(conn1.login().id, chain1to2.caller().id);
 
-    context.setCurrentConnection(conn2);
     context.joinChain(chain1to2);
-    CallerChain chain1_2to3 = context.makeChainFor(conn3.login().entity);
+    CallerChain chain1_2to3 = conn2.makeChainFor(conn3.login().entity);
     assertEquals(actor3, chain1_2to3.target());
     assertEquals(actor2, chain1_2to3.caller().entity);
     assertEquals(conn2.login().id, chain1_2to3.caller().id);
@@ -582,9 +575,8 @@ public final class OpenBusContextTest {
     String actor1 = "actor-1";
     conn1.loginByPassword(actor1, actor1.getBytes(), domain);
 
-    context.setCurrentConnection(conn1);
     String invalidEntity = "invalid-one";
-    CallerChain chain = context.makeChainFor(invalidEntity);
+    CallerChain chain = conn1.makeChainFor(invalidEntity);
     assertEquals(invalidEntity, chain.target());
     conn1.logout();
   }
@@ -609,13 +601,10 @@ public final class OpenBusContextTest {
     context.onCallDispatch((context1, busid, loginId, object_id, operation)
       -> conn);
 
-    context.setCurrentConnection(conn1);
-    CallerChain chain1For2 = context.makeChainFor(conn2.login().entity);
-    CallerChain chain1For3 = context.makeChainFor(conn3.login().entity);
-    context.setCurrentConnection(conn2);
+    CallerChain chain1For2 = conn1.makeChainFor(conn2.login().entity);
+    CallerChain chain1For3 = conn1.makeChainFor(conn3.login().entity);
     context.joinChain(chain1For2);
-    CallerChain chain1_2For3 = context.makeChainFor(conn3.login().entity);
-    context.setCurrentConnection(conn3);
+    CallerChain chain1_2For3 = conn2.makeChainFor(conn3.login().entity);
 
     context.setCurrentConnection(conn);
     context.exitChain();
@@ -684,8 +673,7 @@ public final class OpenBusContextTest {
     String actor3 = "actor-3";
     conn3.loginByPassword(actor3, actor3.getBytes(), domain);
 
-    context.setCurrentConnection(conn1);
-    CallerChain chain1For2 = context.makeChainFor(actor2);
+    CallerChain chain1For2 = conn1.makeChainFor(actor2);
 
     byte[] encodeChain = context.encodeChain(chain1For2);
     CallerChain decodedChain = context.decodeChain(encodeChain);
@@ -695,9 +683,8 @@ public final class OpenBusContextTest {
     assertEquals(actor1, decodedChain.caller().entity);
     assertEquals(login1, decodedChain.caller().id);
 
-    context.setCurrentConnection(conn2);
     context.joinChain(decodedChain);
-    CallerChain chain1_2For3 = context.makeChainFor(actor3);
+    CallerChain chain1_2For3 = conn2.makeChainFor(actor3);
 
     encodeChain = context.encodeChain(chain1_2For3);
     decodedChain = context.decodeChain(encodeChain);
@@ -729,9 +716,7 @@ public final class OpenBusContextTest {
     String actor2 = "actor-2";
     conn2.loginByPassword(actor2, actor2.getBytes(), domain);
 
-    context.setCurrentConnection(conn1);
-    CallerChain chain1For2 = context.makeChainFor(actor2);
-    context.setCurrentConnection(null);
+    CallerChain chain1For2 = conn1.makeChainFor(actor2);
 
     byte[] encodeChain = context.encodeChain(chain1For2);
     CallerChainImpl decodedChain =
@@ -817,13 +802,11 @@ public final class OpenBusContextTest {
     conn2.loginByPassword(actor2, actor2.getBytes(), domain);
     String login2 = conn2.login().id;
     try {
-      context.setCurrentConnection(conn1);
-      CallerChain chain1For2 = context.makeChainFor(login2);
+      CallerChain chain1For2 = conn1.makeChainFor(login2);
       byte[] data = context.encodeChain(chain1For2);
       context.decodeSharedAuth(data);
     }
     finally {
-      context.setCurrentConnection(null);
       conn1.logout();
       conn2.logout();
     }

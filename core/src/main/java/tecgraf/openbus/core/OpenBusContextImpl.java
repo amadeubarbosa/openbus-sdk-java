@@ -466,11 +466,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public CallerChain makeChainFor(String entity) throws ServiceFailure {
+  CallerChain makeChainFor(String entity) throws ServiceFailure {
     ConnectionImpl conn = (ConnectionImpl) getCurrentConnection();
     SignedData signed = conn.access().signChainFor(entity);
     try {
@@ -492,11 +488,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public CallerChain importChain(byte[] token, String domain)
+  CallerChain importChain(byte[] token, String domain)
     throws InvalidToken, UnknownDomain, WrongEncoding, ServiceFailure {
     ORBMediator mediator = ORBUtils.getMediator(orb);
     Codec codec = mediator.getCodec();
