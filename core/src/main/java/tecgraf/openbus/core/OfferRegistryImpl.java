@@ -112,6 +112,7 @@ class OfferRegistryImpl implements OfferRegistry {
     }
     Connection prev = context.getCurrentConnection();
     try {
+      context.setCurrentConnection(conn);
       ServiceOfferDesc[] descs = registry.findServices(convertMapToProperties
         (properties));
       List<RemoteOffer> offers = new ArrayList<>(descs.length);
@@ -133,6 +134,7 @@ class OfferRegistryImpl implements OfferRegistry {
     }
     Connection prev = context.getCurrentConnection();
     try {
+      context.setCurrentConnection(conn);
       ServiceOfferDesc[] descs = registry.getAllServices();
       List<RemoteOffer> offers = new ArrayList<>(descs.length);
       for (ServiceOfferDesc desc : descs) {
@@ -667,6 +669,7 @@ class OfferRegistryImpl implements OfferRegistry {
   private void clearOfferSubscription(OfferSubscriptionContext context) {
     Connection prev = this.context.getCurrentConnection();
     try {
+      this.context.setCurrentConnection(conn);
       // best effort
       try {
         context.sub.remove();

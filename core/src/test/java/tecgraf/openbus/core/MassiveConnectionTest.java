@@ -88,7 +88,6 @@ public class MassiveConnectionTest {
         // register
         Connection conn = context.connectByReference(busref);
         conn.loginByPassword(entity, entity.getBytes(), domain);
-        context.setCurrentConnection(conn);
         final Connection tempConn = conn;
         context.onCallDispatch((openBusContext, s, s1, bytes, s2) -> tempConn);
         ComponentContext component = Builder.buildComponent(orb);
@@ -180,7 +179,6 @@ public class MassiveConnectionTest {
         conn2.loginByPassword(entity, entity.getBytes(), domain);
         RemoteOffer remoteConn1 = local.remoteOffer(remoteSleepTime, 0);
         assertNotNull(remoteConn1);
-        context.setCurrentConnection(conn2);
         final Connection tempConn2 = conn2;
         context.onCallDispatch((openBusContext, s, s1, bytes, s2) -> tempConn2);
         final RemoteOffer remoteConn2 = conn2.offerRegistry().findServices
@@ -190,7 +188,6 @@ public class MassiveConnectionTest {
         OfferObserver offerObserver = new OfferObserver() {
           @Override
           public void propertiesChanged(RemoteOffer offer) {
-            context.setCurrentConnection(tempConn2);
             assertTrue(Boolean.parseBoolean(offer.properties(false).get(
               "offer.altered")));
             // testa props locais se foram atualizadas
@@ -225,7 +222,6 @@ public class MassiveConnectionTest {
         //aguarda ocorrer a subscrição
         Thread.sleep(sleepTime);
 
-        context.setCurrentConnection(conn);
         props.put("offer.altered", "true");
         remoteConn1.propertiesRemote(props);
         mutex.acquire();
@@ -236,12 +232,10 @@ public class MassiveConnectionTest {
         mutex.acquire();
         assertTrue(ids3.check());
 
-        context.setCurrentConnection(conn2);
         offerSub.remove();
         Thread.sleep(logoutSleepTime);
         conn.logout();
         conn2.logout();
-        context.setCurrentConnection(null);
       }
       catch (Exception e) {
         failed.set(true);

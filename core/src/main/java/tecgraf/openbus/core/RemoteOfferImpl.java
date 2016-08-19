@@ -4,6 +4,7 @@ import org.omg.CORBA.OBJECT_NOT_EXIST;
 import org.omg.PortableServer.POAPackage.ServantNotActive;
 import org.omg.PortableServer.POAPackage.WrongPolicy;
 import scs.core.IComponent;
+import tecgraf.openbus.*;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.UnauthorizedOperation;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
@@ -11,9 +12,6 @@ import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidProperties;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.OfferObserver;
-import tecgraf.openbus.OfferSubscription;
-import tecgraf.openbus.RemoteOffer;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +22,8 @@ class RemoteOfferImpl implements RemoteOffer {
   private ServiceOfferDesc offer;
   private final LoginInfo owner;
   private Map<String, String> properties;
+  private final OpenBusContext context;
+  private final Connection conn;
 
   protected RemoteOfferImpl(OfferRegistryImpl registry, ServiceOfferDesc
     offer) {
@@ -33,6 +33,8 @@ class RemoteOfferImpl implements RemoteOffer {
     // .owner(), evito fazer uma chamada remota
     this.owner = OfferRegistryImpl.getOwnerFromOffer(offer);
     this.properties = convertPropertiesToHashMap(offer.properties);
+    this.conn = registry.conn();
+    this.context = this.conn.context();
   }
 
   @Override
@@ -52,10 +54,16 @@ class RemoteOfferImpl implements RemoteOffer {
     if (update) {
       ServiceOfferDesc offer = offer();
       if (offer != null) {
-        ServiceProperty[] props = offer.ref.properties();
-        synchronized (lock) {
-          properties = convertPropertiesToHashMap(props);
-          return properties;
+        Connection prev = context.getCurrentConnection();
+        try {
+          context.setCurrentConnection(conn);
+          ServiceProperty[] props = offer.ref.properties();
+          synchronized (lock) {
+            properties = convertPropertiesToHashMap(props);
+            return properties;
+          }
+        } finally {
+          context.setCurrentConnection(prev);
         }
       }
     }
@@ -76,8 +84,14 @@ class RemoteOfferImpl implements RemoteOffer {
     if (offerDesc == null || offerDesc.ref == null) {
       throw new OBJECT_NOT_EXIST("A oferta foi removida do barramento.");
     }
-    offerDesc.ref.setProperties(OfferRegistryImpl.convertMapToProperties
-      (properties));
+    Connection prev = context.getCurrentConnection();
+    try {
+      context.setCurrentConnection(conn);
+      offerDesc.ref.setProperties(OfferRegistryImpl.convertMapToProperties
+        (properties));
+    } finally {
+      context.setCurrentConnection(prev);
+    }
     updateProperties(properties);
   }
 
@@ -91,9 +105,13 @@ class RemoteOfferImpl implements RemoteOffer {
     if (offer == null) {
       return;
     }
+    Connection prev = context.getCurrentConnection();
     try {
+      context.setCurrentConnection(conn);
       offer.remove();
     } catch (OBJECT_NOT_EXIST ignored) {
+    } finally {
+      context.setCurrentConnection(prev);
     }
     removed();
   }

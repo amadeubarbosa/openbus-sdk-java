@@ -233,13 +233,16 @@ public interface OpenBusContext {
     throws InvalidPropertyValue;
 
   /**
-   * Define a conexão padrão a ser usada nas chamadas.
+   * Define a conexão padrão a ser usada nas chamadas de stubs do usuário.
    * <p>
    * Define uma conexão a ser utilizada em chamadas sempre que não houver uma
    * conexão específica definida no contexto atual, como é feito através da
    * operação {@link OpenBusContext#setCurrentConnection(Connection)
    * setRequester}. Quando <code>conn</code> é <code>null</code> nenhuma conexão
    * fica definida como a conexão padrão.
+   *
+   * A conexão padrão não afeta chamadas feitas pela API do SDK, apenas
+   * chamadas feitas por stubs criados pelo usuário.
    * 
    * @param conn Conexão a ser definida como conexão padrão.
    * 
@@ -250,22 +253,31 @@ public interface OpenBusContext {
   Connection setDefaultConnection(Connection conn);
 
   /**
-   * Devolve a conexão padrão.
+   * Devolve a conexão padrão a ser usada nas chamadas de stubs do usuário.
    * <p>
    * Veja operação {@link OpenBusContext#setDefaultConnection
    * setDefaultConnection}.
-   * 
+   *
+   * A conexão padrão não afeta chamadas feitas pela API do SDK, apenas
+   * chamadas feitas por stubs criados pelo usuário.
+   *
    * @return Conexão definida como conexão padrão.
    */
   Connection getDefaultConnection();
 
   /**
-   * Define a conexão associada ao contexto corrente.
+   * Define a conexão associada ao contexto corrente, a ser usada nas
+   * chamadas de stubs do usuário.
    * <p>
    * Define a conexão a ser utilizada em todas as chamadas feitas no contexto
    * atual. Quando <code>conn</code> é <code>null</code> o contexto passa a
-   * ficar sem nenhuma conexão associada.
-   * 
+   * ficar sem nenhuma conexão associada, a não ser que haja uma conexão
+   * padrão definida através da operação {@link #setDefaultConnection
+   * setDefaultConnection}.
+   *
+   * A conexão padrão não afeta chamadas feitas pela API do SDK, apenas
+   * chamadas feitas por stubs criados pelo usuário.
+   *
    * @param conn Conexão a ser associada ao contexto corrente.
    * 
    * @return Conexão definida como a conexão corrente anteriormente, ou null se
@@ -274,12 +286,16 @@ public interface OpenBusContext {
   Connection setCurrentConnection(Connection conn);
 
   /**
-   * Devolve a conexão associada ao contexto corrente.
+   * Devolve a conexão associada ao contexto corrente, a ser usada nas
+   * chamadas de stubs do usuário.
    * <p>
    * Devolve a conexão associada ao contexto corrente, que pode ter sido
    * definida usando a operação {@link OpenBusContext#setCurrentConnection} ou
    * {@link OpenBusContext#setDefaultConnection}.
-   * 
+   *
+   * A conexão padrão não afeta chamadas feitas pela API do SDK, apenas
+   * chamadas feitas por stubs criados pelo usuário.
+   *
    * @return Conexão associada ao contexto corrente, ou <code>null</code> caso
    *         não haja nenhuma conexão associada.
    */

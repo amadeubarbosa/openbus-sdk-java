@@ -83,6 +83,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     }
     Connection prev = context.getCurrentConnection();
     try {
+      context.setCurrentConnection(conn);
       return convertLoginArrayToList(registry.getAllLogins());
     } finally {
       context.setCurrentConnection(prev);
@@ -99,6 +100,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     }
     Connection prev = context.getCurrentConnection();
     try {
+      context.setCurrentConnection(conn);
       return convertLoginArrayToList(registry.getEntityLogins(entity));
     } finally {
       context.setCurrentConnection(prev);
@@ -112,6 +114,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
       = registry();
     Connection prev = context.getCurrentConnection();
     try {
+      context.setCurrentConnection(conn);
       return registry != null && registry.invalidateLogin(loginId);
     } finally {
       context.setCurrentConnection(prev);
@@ -128,6 +131,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     }
     Connection prev = context.getCurrentConnection();
     try {
+      context.setCurrentConnection(conn);
       return registry.getLoginInfo(loginId, pubkey);
     } finally {
       context.setCurrentConnection(prev);
@@ -143,6 +147,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     }
     Connection prev = context.getCurrentConnection();
     try {
+      context.setCurrentConnection(conn);
       return registry.getLoginValidity(loginId);
     } finally {
       context.setCurrentConnection(prev);
@@ -158,6 +163,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     }
     Connection prev = context.getCurrentConnection();
     try {
+      context.setCurrentConnection(conn);
       LoginSubscriptionImpl ret = new LoginSubscriptionImpl(callback, this);
       synchronized (lock) {
         List<LoginSubscriptionImpl> subs = subs();
@@ -248,6 +254,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     LoginObserverSubscription sub = sub();
     Connection prev = context.getCurrentConnection();
     try {
+      context.setCurrentConnection(conn);
       while (true) {
         try {
           return sub != null && sub.watchLogin(loginId);
@@ -265,6 +272,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     LoginObserverSubscription sub = sub();
     Connection prev = context.getCurrentConnection();
     try {
+      context.setCurrentConnection(conn);
       while (true) {
         try {
           if (sub == null) {
@@ -290,6 +298,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     LoginObserverSubscription sub = sub();
     Connection prev = context.getCurrentConnection();
     try {
+      context.setCurrentConnection(conn);
       while (true) {
         try {
           if (sub == null) {
@@ -314,6 +323,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     LoginObserverSubscription sub = sub();
     Connection prev = context.getCurrentConnection();
     try {
+      context.setCurrentConnection(conn);
       while (true) {
         try {
           if (sub == null) {
@@ -338,6 +348,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     LoginObserverSubscription sub = sub();
     Connection prev = context.getCurrentConnection();
     try {
+      context.setCurrentConnection(conn);
       while (true) {
         try {
           if (sub == null) {
