@@ -61,7 +61,8 @@ public class LocalAPITest {
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     Connection localConn = context.connectByReference(orb.string_to_object(new String(Utils.readFile(ref))));
-    context.setDefaultConnection(localConn);
+    context.onCallDispatch((context1, busid, loginId, object_id, operation)
+      -> localConn);
     localConn.loginByPassword(entity, password, domain);
     return localConn;
   }
@@ -150,6 +151,8 @@ public class LocalAPITest {
     List<RemoteOffer> foundServices = offers.findServices(findProps);
     assertTrue(foundServices.size() >= 1);
     boolean foundOne = false;
+    // conexão corrente para a chamada getFacet abaixo
+    conn.context().setCurrentConnection(conn);
     for (RemoteOffer offer : foundServices) {
       IComponent ic = offer.service_ref();
       try {
@@ -169,7 +172,6 @@ public class LocalAPITest {
       InvalidService, SCSException, UnauthorizedFacets, InvalidProperties,
       InterruptedException, IOException {
       Connection conn = loginByPassword();
-      conn.context().setDefaultConnection(conn);
       OfferRegistry offers = conn.offerRegistry();
       Map<String, String> properties = new HashMap<>();
       properties.put("offer.domain", "testing");
@@ -191,7 +193,6 @@ public class LocalAPITest {
 
       sub.remove();
       conn.logout();
-      conn.context().setDefaultConnection(null);
     }
 
     @Test
