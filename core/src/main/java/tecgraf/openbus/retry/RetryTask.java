@@ -4,41 +4,39 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListenableScheduledFuture;
-import com.google.common.util.concurrent.ListeningScheduledExecutorService;
-import com.google.common.util.concurrent.SettableFuture;
+import com.google.common.util.concurrent.*;
 
 /**
- * Classe que permite retentativas de execuÁ„o em caso de falhas.
+ * Classe que permite retentativas de execu√ß√£o em caso de falhas.
  *
  * @author Tecgraf
  * @param <T> Tipo de retorno esperado
  */
 class RetryTask<T> {
 
-  /** Inst‚ncia do logger */
+  /** Inst√¢ncia do logger */
   private static final Logger logger = Logger.getLogger(RetryTask.class
     .getName());
 
-  /** ServiÁo de execuÁ„o de tarefas. */
+  /** Servi√ßo de execu√ß√£o de tarefas. */
   private ListeningScheduledExecutorService pool;
   /** A tarefa a ser executada */
   private Callable<T> task;
-  /** Objeto futuro associado a esta tarefa */
+  /** Objeto futuro associado a esta tarefa e retornado ao usu√°rio. S√≥ √©
+   * setado quando result termina, para que possam ser feitas retentativas */
   private SettableFuture<T> future;
-  /** Contexto de execuÁ„o desta tarefa */
+  /** Objeto futuro que realiza o trabalho em si */
+  private ListenableFuture<T> result;
+  /** Contexto de execu√ß√£o desta tarefa */
   private RetryContext context;
-  /** Callback de pÛs execuÁ„o de uma tarefa */
+  /** Callback de p√≥s execu√ß√£o de uma tarefa */
   private FutureCallback<T> callback;
 
   /**
    * Construtor
-   * 
-   * @param scheduler executor de tarefas.
-   * @param callable tarefa a ser executada.
+   *
+   * @param scheduler O thread pool respons√°vel por executar as tarefas.
+   * @param callable A tarefa a ser executada.
    */
   public RetryTask(ListeningScheduledExecutorService scheduler,
     Callable<T> callable) {
@@ -48,13 +46,14 @@ class RetryTask<T> {
   /**
    * Construtor
    * 
-   * @param scheduler executor de tarefas.
-   * @param callable tarefa a ser executada.
-   * @param context contexto associado a tarefa a ser executada.
+   * @param scheduler O thread pool respons√°vel por executar as tarefas.
+   * @param callable A tarefa a ser executada.
+   * @param context O contexto de configura√ß√£o da tarefa.
    */
   public RetryTask(ListeningScheduledExecutorService scheduler,
     Callable<T> callable, RetryContext context) {
     this.future = SettableFuture.create();
+    this.result = null;
     this.pool = scheduler;
     this.task = callable;
     this.context = context;
@@ -73,9 +72,9 @@ class RetryTask<T> {
 
   /**
    * Construtor
-   * 
-   * @param scheduler executor de tarefas.
-   * @param runnable tarefa a ser executada.
+   *
+   * @param scheduler O thread pool respons√°vel por executar as tarefas.
+   * @param runnable A tarefa a ser executada.
    */
   public RetryTask(ListeningScheduledExecutorService scheduler,
     Runnable runnable) {
@@ -84,10 +83,10 @@ class RetryTask<T> {
 
   /**
    * Construtor
-   * 
-   * @param scheduler executor de tarefas.
-   * @param runnable tarefa a ser executada.
-   * @param context contexto associado a tarefa a ser executada.
+   *
+   * @param scheduler O thread pool respons√°vel por executar as tarefas.
+   * @param runnable A tarefa a ser executada.
+   * @param context O contexto de configura√ß√£o da tarefa.
    */
   public RetryTask(ListeningScheduledExecutorService scheduler,
     final Runnable runnable, RetryContext context) {
@@ -98,22 +97,18 @@ class RetryTask<T> {
   }
 
   /**
-   * MÈtodo respons·vel por iniciar a execuÁ„o da tarefa com retentativas em
+   * M√©todo respons√°vel por iniciar a execu√ß√£o da tarefa com retentativas em
    * uma nova thread.
    */
   public void execute() {
-    ListenableFuture<T> result = pool.submit(task);
-    // aqui n„o preciso me preocupar com o resultado de setFuture pois a
-    // aplicaÁ„o n„o o recebeu ainda e RetryTaskPool n„o o cancela nem seta
-    // antes que este mÈtodo acabe.
-    future.setFuture(result);
+    result = pool.submit(task);
     Futures.addCallback(result, callback, pool);
   }
 
   /**
    * Tratamento em caso de falhas.
    * 
-   * @param t exceÁ„o ocorrida na ˙ltima execuÁ„o.
+   * @param t exce√ß√£o ocorrida na √∫ltima execu√ß√£o.
    */
   protected void handleException(Throwable t) {
     context.setLastException((Exception) t);
@@ -124,9 +119,11 @@ class RetryTask<T> {
       }
       else {
         logger.finest(String.format(
-          "Failure! Max retries reached! Last exception: %s", t));
-        future.setException(t);
+          "M√°ximo de tentativas alcan√ßado. √öltima exce√ß√£o: %s", t));
+        future.setFuture(result);
       }
+    } else {
+      logger.finest("Execu√ß√£o cancelada pelo usu√°rio, n√£o vai fazer retry");
     }
   }
 
@@ -138,33 +135,23 @@ class RetryTask<T> {
     long delay = context.getDelay();
     TimeUnit unit = context.getDelayUnit();
     Exception ex = context.getLastException();
-    ListenableScheduledFuture<T> submit = pool.schedule(task, delay, unit);
-    if (!future.setFuture(submit)) {
-      // ja terminou ou foi cancelado, nao deveria retentar.
-      // se foi cancelado, submit automaticamente foi cancelado em setFuture.
-      // se future ja terminou, devo cancelar submit e pode ser bug de
-      // concorrÍncia
-      if (future.isDone()) {
-        //TODO quando chega aqui n„o est· cancelando corretamente!
-        submit.cancel(false);
-        logger.severe("The task had already completed but a retry was being " +
-          "attempted. Check for concurrency problems.");
-      }
-    } else {
-      Futures.addCallback(submit, callback, pool);
-      logger.finest(String
-        .format("Task failed! Scheduled next retry in %d time units. The time unit is %s. Last exception: %s",
-          delay, unit, ex));
-    }
+    logger.finest(String
+      .format("Falha na tarefa. Uma nova tentativa ser√° agendada " +
+          "para ocorrer em %d %s. √öltima exce√ß√£o: %s", delay, unit, ex));
+    result = pool.schedule(task, delay, unit);
+    Futures.addCallback(result, callback, pool);
   }
 
   /**
    * Tratamento em caso de sucesso.
    * 
-   * @param result o resultado da execuÁ„o da tarefa.
+   * @param result o resultado da execu√ß√£o da tarefa.
    */
   protected void complete(T result) {
-    logger.finest("Success on execution!");
+    // n√£o preciso checar se foi cancelado pois se tiver sido o m√©todo vai
+    // retornar false e continuar cancelado.
+    future.setFuture(this.result);
+    logger.finest("Execu√ß√£o bem-sucedida.");
   }
 
   /**
@@ -175,5 +162,4 @@ class RetryTask<T> {
   public ListenableFuture<T> getFuture() {
     return future;
   }
-
 }
