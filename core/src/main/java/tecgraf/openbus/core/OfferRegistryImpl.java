@@ -1,5 +1,6 @@
 package tecgraf.openbus.core;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -85,7 +86,7 @@ class OfferRegistryImpl implements OfferRegistry {
 
   @Override
   public LocalOffer registerService(IComponent service_ref,
-                                    Map<String, String> properties) {
+    ArrayListMultimap<String, String> properties) {
     tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry registry
       = registry();
     if (registry == null) {
@@ -103,8 +104,8 @@ class OfferRegistryImpl implements OfferRegistry {
   }
 
   @Override
-  public List<RemoteOffer> findServices(Map<String, String> properties)
-    throws ServiceFailure {
+  public List<RemoteOffer> findServices(ArrayListMultimap<String, String>
+    properties) throws ServiceFailure {
     tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry registry
       = registry();
     if (registry == null) {
@@ -148,8 +149,8 @@ class OfferRegistryImpl implements OfferRegistry {
 
   @Override
   public OfferRegistrySubscription subscribeObserver(OfferRegistryObserver
-    observer, Map<String, String> properties) throws ServantNotActive,
-    WrongPolicy {
+    observer, ArrayListMultimap<String, String> properties) throws
+    ServantNotActive, WrongPolicy {
     tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry registry
       = registry();
     if (registry == null) {
@@ -450,7 +451,8 @@ class OfferRegistryImpl implements OfferRegistry {
       for (Map.Entry<OfferSubscriptionContext,
         ListenableFuture<OfferObserverSubscription>> entry : offerSubs.entrySet
         ()) {
-        String receivedId = offer.properties(false).get(ServiceProperties.ID);
+        String receivedId = offer.properties(false).get(ServiceProperties.ID)
+          .get(0);
         OfferSubscriptionContext context = entry.getKey();
         String iterId = getOfferIdFromProperties(context.offerDesc);
         if (receivedId.equals(iterId)) {
@@ -934,11 +936,11 @@ class OfferRegistryImpl implements OfferRegistry {
    * @param properties The properties map.
    * @return The properties arranged in a ServiceProperty array.
    */
-  protected static ServiceProperty[] convertMapToProperties(Map<String, String>
-                                                           properties) {
+  protected static ServiceProperty[] convertMapToProperties(
+    ArrayListMultimap<String, String> properties) {
     ServiceProperty[] props = new ServiceProperty[properties.size()];
     int i = 0;
-    for (Map.Entry<String, String> entry : properties.entrySet()) {
+    for (Map.Entry<String, String> entry : properties.entries()) {
       props[i] = new ServiceProperty(entry.getKey(), entry.getValue());
       i++;
     }
@@ -1117,12 +1119,13 @@ class OfferRegistryImpl implements OfferRegistry {
     public final OfferRegistryObserverImpl observer;
     public final tecgraf.openbus.core.v2_1.services.offer_registry
       .OfferRegistryObserver proxy;
-    public final Map<String, String> properties;
+    public final ArrayListMultimap<String, String> properties;
     public volatile OfferRegistryObserverSubscription sub;
 
     public OfferRegistrySubscriptionContext(OfferRegistryObserverImpl
       observer, tecgraf.openbus.core.v2_1.services.offer_registry
-      .OfferRegistryObserver proxy, Map<String, String> properties) {
+      .OfferRegistryObserver proxy, ArrayListMultimap<String, String>
+      properties) {
       this.observer = observer;
       this.proxy = proxy;
       this.properties = properties;

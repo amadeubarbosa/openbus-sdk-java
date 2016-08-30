@@ -1,5 +1,6 @@
 package tecgraf.openbus.core;
 
+import com.google.common.collect.ArrayListMultimap;
 import tecgraf.openbus.OfferRegistryObserver;
 import tecgraf.openbus.OfferRegistrySubscription;
 
@@ -21,7 +22,7 @@ class OfferRegistrySubscriptionImpl implements OfferRegistrySubscription {
   }
 
   @Override
-  public Map<String, String> properties() {
+  public ArrayListMultimap<String, String> properties() {
     return context.properties;
   }
 

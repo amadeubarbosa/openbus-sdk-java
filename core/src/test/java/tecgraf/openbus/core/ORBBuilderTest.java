@@ -4,8 +4,6 @@ import java.util.Properties;
 
 import org.junit.Test;
 
-import tecgraf.openbus.core.ORBBuilder;
-
 public final class ORBBuilderTest {
   @Test
   public void create() {

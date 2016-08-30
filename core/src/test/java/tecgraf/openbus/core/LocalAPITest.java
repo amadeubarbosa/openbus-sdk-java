@@ -6,6 +6,8 @@ import java.util.*;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+
+import com.google.common.collect.ArrayListMultimap;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.omg.CORBA.ORB;
@@ -73,7 +75,7 @@ public class LocalAPITest {
     ServiceFailure {
     ComponentContext component = Builder.buildComponent(offers.conn().context()
       .orb());
-    Map<String, String> properties = new HashMap<>();
+    ArrayListMultimap<String, String> properties = ArrayListMultimap.create();
     properties.put("offer.domain", "testing");
     return offers.registerService(component.getIComponent(), properties);
   }
@@ -146,7 +148,7 @@ public class LocalAPITest {
     LocalOffer anOffer = buildAndRegister(offers);
     anOffer.remoteOffer(1000, 0);
 
-    Map<String, String> findProps = new HashMap<>();
+    ArrayListMultimap<String, String> findProps = ArrayListMultimap.create();
     findProps.put("offer.domain", "testing");
     List<RemoteOffer> foundServices = offers.findServices(findProps);
     assertTrue(foundServices.size() >= 1);
@@ -173,7 +175,7 @@ public class LocalAPITest {
       InterruptedException, IOException {
       Connection conn = loginByPassword();
       OfferRegistry offers = conn.offerRegistry();
-      Map<String, String> properties = new HashMap<>();
+      ArrayListMultimap<String, String> properties = ArrayListMultimap.create();
       properties.put("offer.domain", "testing");
       final IdEqualityChecker ids = new
         IdEqualityChecker();
@@ -211,19 +213,19 @@ public class LocalAPITest {
         @Override
         public void propertiesChanged(RemoteOffer offer) {
           assertTrue(Boolean.parseBoolean(offer.properties(false).get(
-            "offer.altered")));
+            "offer.altered").get(0)));
           // testa props locais se foram atualizadas
-          assertTrue(remote.properties(false).entrySet().containsAll(offer
-            .properties(false).entrySet()));
+          assertTrue(remote.properties(false).entries().containsAll(offer
+            .properties(false).entries()));
           // atualiza props locais manualmente
-          Map<String, String> updatedProps = new HashMap<>(remote.properties
-            (false));
+          ArrayListMultimap<String, String> updatedProps = ArrayListMultimap
+            .create(remote.properties(false));
           remote.propertiesLocal(updatedProps);
-          assertTrue(remote.properties(false).entrySet().containsAll(offer
-            .properties(false).entrySet()));
+          assertTrue(remote.properties(false).entries().containsAll(offer
+            .properties(false).entries()));
           // testa props locais atualizadas de acordo com o estado do barramento
-          assertTrue(remote.properties(true).entrySet().containsAll(offer
-            .properties(false).entrySet()));
+          assertTrue(remote.properties(true).entries().containsAll(offer
+            .properties(false).entries()));
           // seta informação de offer id para checagem posterior
           ids.id1 = OfferRegistryImpl.getOfferIdFromProperties((
             (RemoteOfferImpl)offer).offer());
@@ -238,7 +240,7 @@ public class LocalAPITest {
       OfferSubscription sub = remote.subscribeObserver(observer);
       assertSame(observer, sub.observer());
 
-      Map<String, String> properties = new HashMap<>();
+      ArrayListMultimap<String, String> properties = ArrayListMultimap.create();
       properties.put("offer.domain", "testing");
       properties.put("offer.altered", "true");
       remote.propertiesRemote(properties);

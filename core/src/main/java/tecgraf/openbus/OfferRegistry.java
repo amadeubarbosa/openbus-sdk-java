@@ -1,8 +1,8 @@
 package tecgraf.openbus;
 
 import java.util.List;
-import java.util.Map;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.omg.PortableServer.POAPackage.ServantNotActive;
 import org.omg.PortableServer.POAPackage.WrongPolicy;
 
@@ -41,8 +41,8 @@ public interface OfferRegistry {
    * @return Uma representação local da oferta que será mantida publicada no
    * barramento.
    */
-  LocalOffer registerService(IComponent service_ref, Map<String, String>
-    properties);
+  LocalOffer registerService(IComponent service_ref, ArrayListMultimap<String,
+    String> properties);
 
   /**
    * Busca por ofertas que apresentem um conjunto de propriedades definido.
@@ -65,7 +65,7 @@ public interface OfferRegistry {
    * @throws ServiceFailure Caso o registro de ofertas reporte alguma falha ao
    * realizar a operação.
    */
-  List<RemoteOffer> findServices(Map<String, String> properties)
+  List<RemoteOffer> findServices(ArrayListMultimap<String, String> properties)
     throws ServiceFailure;
 
   /**
@@ -113,6 +113,6 @@ public interface OfferRegistry {
    * notificações do barramento.
    */
   OfferRegistrySubscription subscribeObserver(OfferRegistryObserver observer,
-                                              Map<String, String> properties)
-    throws ServantNotActive, WrongPolicy;
+    ArrayListMultimap<String, String> properties) throws ServantNotActive,
+    WrongPolicy;
 }

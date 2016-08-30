@@ -9,6 +9,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.omg.CORBA.ORB;
@@ -91,7 +92,7 @@ public class MassiveConnectionTest {
         final Connection tempConn = conn;
         context.onCallDispatch((openBusContext, s, s1, bytes, s2) -> tempConn);
         ComponentContext component = Builder.buildComponent(orb);
-        Map<String, String> props = new HashMap<>();
+        ArrayListMultimap<String, String> props = ArrayListMultimap.create();
         props.put("offer.domain", "Massive Test");
         props.put("thread.id", entity);
         props.put("time", "" + System.currentTimeMillis());
@@ -189,20 +190,19 @@ public class MassiveConnectionTest {
           @Override
           public void propertiesChanged(RemoteOffer offer) {
             assertTrue(Boolean.parseBoolean(offer.properties(false).get(
-              "offer.altered")));
+              "offer.altered").get(0)));
             // testa props locais se foram atualizadas
-            assertTrue(remoteConn2.properties(false).entrySet().containsAll
-              (offer.properties(false).entrySet()));
+            assertTrue(remoteConn2.properties(false).entries().containsAll
+              (offer.properties(false).entries()));
             // atualiza props locais manualmente
-            Map<String, String> updatedProps = new HashMap<>(remoteConn2
-              .properties
-              (false));
+            ArrayListMultimap<String, String> updatedProps =
+              ArrayListMultimap.create(remoteConn2.properties(false));
             remoteConn2.propertiesLocal(updatedProps);
-            assertTrue(remoteConn2.properties(false).entrySet().containsAll(offer
-              .properties(false).entrySet()));
+            assertTrue(remoteConn2.properties(false).entries().containsAll(offer
+              .properties(false).entries()));
             // testa props locais atualizadas de acordo com o estado do barramento
-            assertTrue(remoteConn2.properties(true).entrySet().containsAll(offer
-              .properties(false).entrySet()));
+            assertTrue(remoteConn2.properties(true).entries().containsAll(offer
+              .properties(false).entries()));
             // seta informação de offer id para checagem posterior
             ids3.id1 = OfferRegistryImpl.getOfferIdFromProperties((
               (RemoteOfferImpl)offer).offer());

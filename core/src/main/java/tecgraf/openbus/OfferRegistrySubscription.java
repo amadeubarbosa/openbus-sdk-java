@@ -1,5 +1,7 @@
 package tecgraf.openbus;
 
+import com.google.common.collect.ArrayListMultimap;
+
 import java.util.Map;
 
 /**
@@ -27,7 +29,7 @@ public interface OfferRegistrySubscription {
    * 
    * @return a lista de propriedades.
    */
-  Map<String, String> properties();
+  ArrayListMultimap<String, String> properties();
 
   /**
    * Remove a incrição do observador, localmente. Uma outra thread será

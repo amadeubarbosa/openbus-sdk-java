@@ -1,5 +1,6 @@
 package tecgraf.openbus.core;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.OBJECT_NOT_EXIST;
 import org.omg.PortableServer.POAPackage.ServantNotActive;
 import org.omg.PortableServer.POAPackage.WrongPolicy;
@@ -13,15 +14,12 @@ import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 
-import java.util.HashMap;
-import java.util.Map;
-
 class RemoteOfferImpl implements RemoteOffer {
   private final Object lock = new Object();
   private final OfferRegistryImpl registry;
   private ServiceOfferDesc offer;
   private final LoginInfo owner;
-  private Map<String, String> properties;
+  private ArrayListMultimap<String, String> properties;
   private final OpenBusContext context;
   private final Connection conn;
 
@@ -50,7 +48,7 @@ class RemoteOfferImpl implements RemoteOffer {
   }
 
   @Override
-  public Map<String, String> properties(boolean update) {
+  public ArrayListMultimap<String, String> properties(boolean update) {
     if (update) {
       ServiceOfferDesc offer = offer();
       if (offer != null) {
@@ -73,13 +71,13 @@ class RemoteOfferImpl implements RemoteOffer {
   }
 
   @Override
-  public void propertiesLocal(Map<String, String> properties) {
+  public void propertiesLocal(ArrayListMultimap<String, String> properties) {
     updateProperties(properties);
   }
 
   @Override
-  public void propertiesRemote(Map<String, String> properties) throws
-    UnauthorizedOperation, InvalidProperties, ServiceFailure {
+  public void propertiesRemote(ArrayListMultimap<String, String> properties)
+    throws UnauthorizedOperation, InvalidProperties, ServiceFailure {
     ServiceOfferDesc offerDesc = offer();
     if (offerDesc == null || offerDesc.ref == null) {
       throw new OBJECT_NOT_EXIST("A oferta foi removida do barramento.");
@@ -140,15 +138,15 @@ class RemoteOfferImpl implements RemoteOffer {
     }
   }
 
-  protected void updateProperties(Map<String, String> props) {
+  protected void updateProperties(ArrayListMultimap<String, String> props) {
     synchronized (lock) {
       this.properties = props;
     }
   }
 
-  public static Map<String, String> convertPropertiesToHashMap
+  public static ArrayListMultimap<String, String> convertPropertiesToHashMap
     (ServiceProperty[] properties) {
-    Map<String, String> map = new HashMap<>(properties.length);
+    ArrayListMultimap<String, String> map = ArrayListMultimap.create();
     for (ServiceProperty property : properties) {
       map.put(property.name, property.value);
     }

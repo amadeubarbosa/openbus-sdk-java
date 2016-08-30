@@ -18,7 +18,6 @@ public class InternalLoginTest {
 
   private static String host;
   private static int port;
-  private static ORB orb;
   private static OpenBusContext context;
 
   @BeforeClass
@@ -27,16 +26,13 @@ public class InternalLoginTest {
     Utils.setLibLogLevel(configs.log);
     host = configs.bushost;
     port = configs.busport;
-    orb =
-      ORBInitializer.initORB(null, Utils.readPropertyFile(configs.orbprops));
+    ORB orb = ORBInitializer.initORB(null, Utils.readPropertyFile(configs.orbprops));
     context = (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
   }
 
   private boolean checkLogin(LoginInfo login1, LoginInfo login2) {
-    if ((login1.id != login2.id) || (login1.entity != login2.entity)) {
-      return false;
-    }
-    return true;
+    return !((!login1.id.equals(login2.id)) || (!login1.entity.equals(login2
+      .entity)));
   }
 
   @Test

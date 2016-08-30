@@ -1,5 +1,6 @@
 package tecgraf.openbus;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.omg.PortableServer.POAPackage.ServantNotActive;
 import org.omg.PortableServer.POAPackage.WrongPolicy;
 import scs.core.IComponent;
@@ -7,8 +8,6 @@ import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.UnauthorizedOperation;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidProperties;
-
-import java.util.Map;
 
 /**
  * Representação de uma oferta registrada no barramento.
@@ -44,7 +43,7 @@ public interface RemoteOffer {
    *               realizada para a atualização do mapa de propriedades.
    * @return O mapa de propriedades.
    */
-  Map<String, String> properties(boolean update);
+  ArrayListMultimap<String, String> properties(boolean update);
 
   /**
    * Altera o mapa local de propriedades associadas à oferta. O mapa da
@@ -56,7 +55,7 @@ public interface RemoteOffer {
    *
    * @param properties As novas propriedades para a oferta local.
    */
-  void propertiesLocal(Map<String, String> properties);
+  void propertiesLocal(ArrayListMultimap<String, String> properties);
 
   /**
    * Altera o mapa de propriedades associadas à oferta remota. Realiza uma
@@ -71,7 +70,7 @@ public interface RemoteOffer {
    * @throws ServiceFailure Caso o registro de ofertas reporte alguma falha ao
    * realizar a operação.
    */
-  void propertiesRemote(Map<String, String> properties) throws
+  void propertiesRemote(ArrayListMultimap<String, String> properties) throws
     UnauthorizedOperation, InvalidProperties, ServiceFailure;
 
   /**

@@ -42,7 +42,7 @@ import tecgraf.openbus.security.Cryptography;
  * 
  * @author Tecgraf
  */
-final class ConnectionImpl implements Connection, InvalidLoginCallback {
+final class ConnectionImpl implements Connection {
 
   /** Identificador da conexão */
   private final String connId = UUID.randomUUID().toString();
@@ -615,12 +615,17 @@ final class ConnectionImpl implements Connection, InvalidLoginCallback {
   }
 
   /**
-   * {@inheritDoc}
+   * Callback de login inválido.
+   * <p>
+   * Método a ser chamado quando uma notificação de login inválido é recebida.
+   * Caso alguma exceção ocorra durante a execução do método e não seja
+   * tratada, o erro será capturado pelo interceptador e registrado no log.
    *
+   * @param loginInfo Informações do login que se tornou inválido.
    */
-  @Override
   public void invalidLogin(LoginInfo loginInfo) {
-    logger.info("Refazendo login.");
+    logger.info("Refazendo login da entidade " + loginInfo.entity +
+      ". Login perdido: " + loginInfo.id);
     boolean retry = true;
     boolean loggedOut = true;
     if (login() != null) {

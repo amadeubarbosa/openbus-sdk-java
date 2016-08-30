@@ -5,13 +5,11 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import tecgraf.openbus.core.LRUCache;
-
 public class LRUCacheTest {
 
   @Test
   public void addTest() {
-    LRUCache<Integer, String> cache = new LRUCache<Integer, String>(3);
+    LRUCache<Integer, String> cache = new LRUCache<>(3);
     cache.put(1, "entry 1");
     cache.put(2, "entry 2");
     cache.put(3, "entry 3");
@@ -26,7 +24,7 @@ public class LRUCacheTest {
 
   @Test
   public void addGetTest() {
-    LRUCache<Integer, String> cache = new LRUCache<Integer, String>(3);
+    LRUCache<Integer, String> cache = new LRUCache<>(3);
     cache.put(1, "entry 1");
     cache.put(2, "entry 2");
     cache.put(3, "entry 3");
@@ -50,7 +48,7 @@ public class LRUCacheTest {
    */
   @Test
   public void containsTest() {
-    LRUCache<Integer, String> cache = new LRUCache<Integer, String>(3);
+    LRUCache<Integer, String> cache = new LRUCache<>(3);
     cache.put(3, "entry 3");
     cache.put(2, "entry 2");
     cache.put(1, "entry 1");

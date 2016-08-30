@@ -8,10 +8,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.security.interfaces.RSAPrivateKey;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -91,7 +90,7 @@ public final class ConnectionTest {
     Connection conn = context.connectByReference(busref);
     try {
       OfferRegistry registryService = conn.offerRegistry();
-      Map<String, String> props = new HashMap<>();
+      ArrayListMultimap<String, String> props = ArrayListMultimap.create();
       props.put("a", "b");
       registryService.findServices(props);
     }
@@ -324,7 +323,7 @@ public final class ConnectionTest {
     assertNull(conn.login());
     boolean failed = false;
     try {
-      conn.offerRegistry().findServices(new HashMap<>());
+      conn.offerRegistry().findServices(ArrayListMultimap.create());
     }
     catch (NO_PERMISSION e) {
       failed = true;
@@ -370,7 +369,7 @@ public final class ConnectionTest {
       assertNotNull(conn1.login());
       conn2.loginByPrivateKey(sys2, systemKey);
       assertNotNull(conn2.login());
-      Map<String, String> props = new HashMap<>();
+      ArrayListMultimap<String, String> props = ArrayListMultimap.create();
       props.put("offer.domain", "testing");
       ComponentContext comp1 =
         Builder.buildTestCallerChainInspectorComponent(context);
