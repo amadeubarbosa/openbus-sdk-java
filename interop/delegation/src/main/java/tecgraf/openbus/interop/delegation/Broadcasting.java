@@ -3,21 +3,16 @@ package tecgraf.openbus.interop.delegation;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.List;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
 import org.omg.PortableServer.POA;
-import org.omg.PortableServer.POAHelper;
 
 import scs.core.ComponentContext;
 import scs.core.ComponentId;
 import scs.core.IComponent;
-import tecgraf.openbus.Connection;
-import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.*;
 import tecgraf.openbus.core.ORBInitializer;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.interop.util.PrivateKeyInvalidLoginCallback;
 import tecgraf.openbus.security.Cryptography;
 import tecgraf.openbus.utils.Configs;
 import tecgraf.openbus.utils.LibUtils;
@@ -46,40 +41,42 @@ public class Broadcasting {
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     Connection conn = context.connectByReference(busref);
     context.setDefaultConnection(conn);
-    conn.loginByCertificate(entity, privateKey);
-    PrivateKeyInvalidLoginCallback callback =
-      new PrivateKeyInvalidLoginCallback(entity, privateKey);
-    conn.onInvalidLoginCallback(callback);
+    conn.loginByPrivateKey(entity, privateKey);
     shutdown.addConnetion(conn);
 
-    ServiceProperty[] messengerProps = new ServiceProperty[2];
-    messengerProps[0] =
-      new ServiceProperty("openbus.component.interface", MessengerHelper.id());
-    messengerProps[1] =
-      new ServiceProperty("offer.domain", "Interoperability Tests");
-    List<ServiceOfferDesc> services =
-      LibUtils.findOffer(context.getOfferRegistry(), messengerProps, 1, 10, 1);
+    ArrayListMultimap<String, String> messengerProps = ArrayListMultimap
+      .create();
+    messengerProps.put("offer.domain", "Interoperability Tests");
+    messengerProps.put("openbus.component.interface", MessengerHelper.id());
+    List<RemoteOffer> services =
+      LibUtils.findOffer(conn.offerRegistry(), messengerProps, 1, 10, 1);
 
     Messenger messenger =
-      MessengerHelper.narrow(services.get(0).service_ref
+      MessengerHelper.narrow(services.get(0).service_ref()
         .getFacet(MessengerHelper.id()));
 
-    POA poa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
-    poa.the_POAManager().activate();
+    POA poa = context.poa();
     ComponentContext component =
       new ComponentContext(orb, poa, new ComponentId("Broadcaster", (byte) 1,
         (byte) 0, (byte) 0, "java"));
     component.addFacet("broadcaster", BroadcasterHelper.id(),
       new BroadcasterImpl(context, messenger));
 
-    ServiceProperty[] serviceProperties = new ServiceProperty[1];
-    serviceProperties[0] =
-      new ServiceProperty("offer.domain", "Interoperability Tests");
+    ArrayListMultimap<String, String> serviceProperties = ArrayListMultimap
+      .create();
+    serviceProperties.put("offer.domain", "Interoperability Tests");
 
     IComponent ic = component.getIComponent();
-    ServiceOffer offer =
-      context.getOfferRegistry().registerService(ic, serviceProperties);
-    callback.addOffer(ic, serviceProperties);
-    shutdown.addOffer(offer);
+    OfferRegistry registry = conn.offerRegistry();
+    LocalOffer localOffer =
+      registry.registerService(ic, serviceProperties);
+    RemoteOffer myOffer = localOffer.remoteOffer(60000, 0);
+    if (myOffer != null) {
+      shutdown.addOffer(myOffer);
+    } else {
+      localOffer.remove();
+      shutdown.run();
+      System.exit(1);
+    }
   }
 }

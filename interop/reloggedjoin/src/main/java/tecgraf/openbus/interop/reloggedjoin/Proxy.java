@@ -2,6 +2,7 @@ package tecgraf.openbus.interop.reloggedjoin;
 
 import java.security.interfaces.RSAPrivateKey;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
 import org.omg.PortableServer.POA;
@@ -9,14 +10,11 @@ import org.omg.PortableServer.POAHelper;
 
 import scs.core.ComponentContext;
 import scs.core.ComponentId;
-import tecgraf.openbus.Connection;
-import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.*;
 import tecgraf.openbus.core.ORBInitializer;
-import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.simple.HelloHelper;
-import tecgraf.openbus.interop.util.PrivateKeyInvalidLoginCallback;
 import tecgraf.openbus.security.Cryptography;
 import tecgraf.openbus.utils.Configs;
 import tecgraf.openbus.utils.LibUtils;
@@ -56,10 +54,7 @@ public final class Proxy {
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     Connection conn = context.connectByReference(busref);
     context.setDefaultConnection(conn);
-    conn.loginByCertificate(entity, privateKey);
-    PrivateKeyInvalidLoginCallback callback =
-      new PrivateKeyInvalidLoginCallback(entity, privateKey);
-    conn.onInvalidLoginCallback(callback);
+    conn.loginByPrivateKey(entity, privateKey);
     shutdown.addConnetion(conn);
 
     POA poa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
@@ -70,14 +65,20 @@ public final class Proxy {
     component.addFacet("Hello", HelloHelper.id(), new HelloProxyServant(
       context, entity, privateKey));
 
-    ServiceProperty[] serviceProperties =
-      new ServiceProperty[] {
-          new ServiceProperty("reloggedjoin.role", "proxy"),
-          new ServiceProperty("offer.domain", "Interoperability Tests") };
-    OfferRegistry registry = context.getOfferRegistry();
-    ServiceOffer offer =
+    ArrayListMultimap<String, String> serviceProperties = ArrayListMultimap
+      .create();
+    serviceProperties.put("reloggedjoin.role", "proxy");
+    serviceProperties.put("offer.domain", "Interoperability Tests");
+    OfferRegistry registry = conn.offerRegistry();
+    LocalOffer localOffer =
       registry.registerService(component.getIComponent(), serviceProperties);
-    callback.addOffer(component.getIComponent(), serviceProperties);
-    shutdown.addOffer(offer);
+    RemoteOffer myOffer = localOffer.remoteOffer(60000, 0);
+    if (myOffer != null) {
+      shutdown.addOffer(myOffer);
+    } else {
+      localOffer.remove();
+      shutdown.run();
+      System.exit(1);
+    }
   }
 }

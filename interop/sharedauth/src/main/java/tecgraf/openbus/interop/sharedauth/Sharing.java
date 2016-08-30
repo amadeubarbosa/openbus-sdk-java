@@ -47,15 +47,13 @@ public final class Sharing {
     SharedAuthSecret secret = connection.startSharedAuth();
     byte[] encoded = context.encodeSharedAuth(secret);
     File file = new File(path);
-    file.createNewFile();
-    FileOutputStream fstream = new FileOutputStream(file);
-    try {
-      fstream.write(encoded);
+    if (!file.createNewFile()) {
+      assert file.delete();
+      assert file.createNewFile();
     }
-    finally {
-      fstream.close();
+    try (FileOutputStream fstream = new FileOutputStream(file)) {
+      fstream.write(encoded);
     }
     connection.logout();
   }
-
 }

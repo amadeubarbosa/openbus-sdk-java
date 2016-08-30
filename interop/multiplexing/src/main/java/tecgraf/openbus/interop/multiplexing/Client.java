@@ -3,14 +3,14 @@ package tecgraf.openbus.interop.multiplexing;
 import java.util.List;
 import java.util.logging.Logger;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.RemoteOffer;
 import tecgraf.openbus.core.ORBInitializer;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.simple.Hello;
 import tecgraf.openbus.interop.simple.HelloHelper;
 import tecgraf.openbus.utils.Configs;
@@ -27,8 +27,6 @@ public class Client {
 
   /**
    * Função principal.
-   * 
-   * @param args
    */
   public static void main(String[] args) throws Exception {
     Configs configs = Configs.readConfigsFile();
@@ -49,26 +47,24 @@ public class Client {
       String login = "interop_multiplexing_java_client";
       conn.loginByPassword(login, login.getBytes(), domain);
 
-      int noffers;
+      int nOffers;
       if (ior.equals(ior1)) {
-        noffers = 3;
+        nOffers = 3;
       }
       else {
-        noffers = 1;
+        nOffers = 1;
       }
-      ServiceProperty[] serviceProperties = new ServiceProperty[2];
-      serviceProperties[0] =
-        new ServiceProperty("openbus.component.interface", HelloHelper.id());
-      serviceProperties[1] =
-        new ServiceProperty("offer.domain", "Interoperability Tests");
-      List<ServiceOfferDesc> services =
-        LibUtils.findOffer(context.getOfferRegistry(), serviceProperties,
-          noffers, 10, 1);
-      for (ServiceOfferDesc offer : services) {
+      ArrayListMultimap<String, String> props = ArrayListMultimap.create();
+      props.put("offer.domain", "Interoperability Tests");
+      props.put("openbus.component.interface", HelloHelper.id());
+      List<RemoteOffer> services =
+        LibUtils.findOffer(conn.offerRegistry(), props, nOffers, 10, 1);
+      for (RemoteOffer offer : services) {
         logger.fine(String
-          .format("found offer from %s on bus %s", LibUtils.findProperty(
-            offer.properties, "openbus.offer.entity"), conn.busid()));
-        org.omg.CORBA.Object obj = offer.service_ref.getFacet(HelloHelper.id());
+          .format("found offer from %s on bus %s", offer.properties(false)
+            .get("openbus.offer.entity"), conn.busid()));
+        org.omg.CORBA.Object obj = offer.service_ref().getFacet(HelloHelper.id
+          ());
         Hello hello = HelloHelper.narrow(obj);
         String expected = String.format("Hello %s@%s!", login, conn.busid());
         String sayHello = hello.sayHello();

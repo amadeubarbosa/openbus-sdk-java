@@ -4,21 +4,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.RemoteOffer;
 import tecgraf.openbus.core.ORBInitializer;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.utils.Configs;
 import tecgraf.openbus.utils.LibUtils;
 import tecgraf.openbus.utils.Utils;
 
 public class Client {
 
-  private static final String demo = "demo";
   private static final String forwarder =
     "interop_delegation_(cpp|java|lua|csharp)_forwarder";
   private static final String broadcaster =
@@ -26,7 +25,7 @@ public class Client {
   private static final String expectedfrom = "steve->" + broadcaster;
   private static final String expectedmsg = "Testing the list!";
 
-  public static enum User {
+  public enum User {
     willian(forwarder, "forwarded message by steve->" + broadcaster + ": "
       + expectedmsg),
     bill("", ""),
@@ -58,31 +57,30 @@ public class Client {
     conn.loginByPassword(entity, entity.getBytes(), domain);
     context.setDefaultConnection(conn);
 
-    ServiceProperty[] serviceProperties = new ServiceProperty[1];
-    serviceProperties[0] =
-      new ServiceProperty("offer.domain", "Interoperability Tests");
-    List<ServiceOfferDesc> offers =
-      LibUtils.findOffer(context.getOfferRegistry(), serviceProperties, 3, 10,
-        1);
+    ArrayListMultimap<String, String> serviceProperties = ArrayListMultimap
+      .create();
+    serviceProperties.put("offer.domain", "Interoperability Tests");
+    List<RemoteOffer> offers =
+      LibUtils.findOffer(conn.offerRegistry(), serviceProperties, 3, 10, 1);
 
     Forwarder forwarder = null;
     Messenger messenger = null;
     Broadcaster broadcaster = null;
-    for (ServiceOfferDesc desc : offers) {
-      for (ServiceProperty prop : desc.properties) {
-        if (prop.name.equals("openbus.component.interface")) {
-          if (prop.value.equals(ForwarderHelper.id())) {
-            Object facet = desc.service_ref.getFacet(ForwarderHelper.id());
-            forwarder = ForwarderHelper.narrow(facet);
-          }
-          else if (prop.value.equals(MessengerHelper.id())) {
-            Object facet = desc.service_ref.getFacet(MessengerHelper.id());
-            messenger = MessengerHelper.narrow(facet);
-          }
-          else if (prop.value.equals(BroadcasterHelper.id())) {
-            Object facet = desc.service_ref.getFacet(BroadcasterHelper.id());
-            broadcaster = BroadcasterHelper.narrow(facet);
-          }
+    for (RemoteOffer offer : offers) {
+      List<String> contracts = offer.properties(false).
+        get("openbus.component.interface");
+      for (String contract : contracts) {
+        if (contract.equals(ForwarderHelper.id())) {
+          Object facet = offer.service_ref().getFacet(ForwarderHelper.id());
+          forwarder = ForwarderHelper.narrow(facet);
+        }
+        else if (contract.equals(MessengerHelper.id())) {
+          Object facet = offer.service_ref().getFacet(MessengerHelper.id());
+          messenger = MessengerHelper.narrow(facet);
+        }
+        else if (contract.equals(BroadcasterHelper.id())) {
+          Object facet = offer.service_ref().getFacet(BroadcasterHelper.id());
+          broadcaster = BroadcasterHelper.narrow(facet);
         }
       }
     }
@@ -113,7 +111,7 @@ public class Client {
     // Esperando que as mensagens se propaguem
     Thread.sleep(10000);
 
-    List<User> users = new ArrayList<User>();
+    List<User> users = new ArrayList<>();
     users.add(User.willian);
     users.add(User.bill);
     users.add(User.paul);

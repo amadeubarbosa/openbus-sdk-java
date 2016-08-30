@@ -4,11 +4,11 @@ import java.security.interfaces.RSAPrivateKey;
 import java.util.List;
 import java.util.logging.Logger;
 
+import com.google.common.collect.ArrayListMultimap;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
+import tecgraf.openbus.RemoteOffer;
 import tecgraf.openbus.interop.simple.Hello;
 import tecgraf.openbus.interop.simple.HelloHelper;
 import tecgraf.openbus.interop.simple.HelloPOA;
@@ -51,25 +51,24 @@ public final class HelloProxyServant extends HelloPOA {
     try {
       Connection conn = context.getCurrentConnection();
       conn.logout();
-      conn.loginByCertificate(entity, privateKey);
+      conn.loginByPrivateKey(entity, privateKey);
       CallerChain callerChain = context.getCallerChain();
       String entity = callerChain.caller().entity;
       logger.fine("Chamada recebida de: " + entity);
 
       context.joinChain(callerChain);
-      ServiceProperty[] properties = new ServiceProperty[1];
-      properties[0] = new ServiceProperty("reloggedjoin.role", "server");
-      List<ServiceOfferDesc> services =
-        LibUtils.findOffer(context.getOfferRegistry(), properties, 1, 10, 1);
-      for (ServiceOfferDesc offerDesc : services) {
-        String found =
-          LibUtils.findProperty(offerDesc.properties, "openbus.offer.entity");
-        logger.fine("serviço da entidade encontrado: " + found);
-        org.omg.CORBA.Object helloObj =
-          offerDesc.service_ref.getFacetByName("Hello");
-        Hello hello = HelloHelper.narrow(helloObj);
-        return hello.sayHello();
-      }
+      ArrayListMultimap<String, String> properties = ArrayListMultimap.create();
+      properties.put("reloggedjoin.role", "server");
+      List<RemoteOffer> services =
+        LibUtils.findOffer(conn.offerRegistry(), properties, 1, 10, 1);
+      RemoteOffer offer = services.get(0);
+      String found = offer.properties(false).get("openbus.offer.entity")
+        .get(0);
+      logger.fine("serviço da entidade encontrado: " + found);
+      org.omg.CORBA.Object helloObj =
+        offer.service_ref().getFacetByName("Hello");
+      Hello hello = HelloHelper.narrow(helloObj);
+      return hello.sayHello();
     }
     catch (Exception e) {
       e.printStackTrace();

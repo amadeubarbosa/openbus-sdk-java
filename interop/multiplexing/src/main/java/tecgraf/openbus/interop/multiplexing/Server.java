@@ -1,25 +1,18 @@
 package tecgraf.openbus.interop.multiplexing;
 
 import java.security.interfaces.RSAPrivateKey;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.logging.Logger;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
 import org.omg.PortableServer.POA;
-import org.omg.PortableServer.POAHelper;
 
 import scs.core.ComponentContext;
 import scs.core.ComponentId;
-import scs.core.IComponent;
-import tecgraf.openbus.CallDispatchCallback;
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.ORBInitializer;
-import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.simple.HelloHelper;
 import tecgraf.openbus.security.Cryptography;
 import tecgraf.openbus.utils.Configs;
@@ -73,140 +66,61 @@ public class Server {
     final Connection conn3AtBus1WithOrb2 =
       context2.connectByReference(bus1orb2);
 
-    List<Connection> conns = new ArrayList<Connection>();
-    conns.add(conn1AtBus1WithOrb1);
-    conns.add(conn1AtBus2WithOrb1);
-    conns.add(conn3AtBus1WithOrb2);
-
-    // setup action on login termination
-    conn1AtBus1WithOrb1.onInvalidLoginCallback(new Callback(
-      conn1AtBus1WithOrb1, "conn1AtBus1WithOrb1"));
-    conn2AtBus1WithOrb1.onInvalidLoginCallback(new Callback(
-      conn2AtBus1WithOrb1, "conn2AtBus1WithOrb1"));
-    conn1AtBus2WithOrb1.onInvalidLoginCallback(new Callback(
-      conn1AtBus2WithOrb1, "connAtBus2WithOrb1"));
-    conn3AtBus1WithOrb2.onInvalidLoginCallback(new Callback(
-      conn3AtBus1WithOrb2, "connAtBus1WithOrb2"));
-
     // create service SCS component
     ComponentId id =
       new ComponentId("Hello", (byte) 1, (byte) 0, (byte) 0, "java");
-    POA poa1 = POAHelper.narrow(orb1.resolve_initial_references("RootPOA"));
-    poa1.the_POAManager().activate();
+    POA poa1 = context1.poa();
     ComponentContext component1 = new ComponentContext(orb1, poa1, id);
     component1.addFacet("Hello", HelloHelper.id(), new HelloServant(context1));
-    POA poa2 = POAHelper.narrow(orb2.resolve_initial_references("RootPOA"));
-    poa2.the_POAManager().activate();
+    POA poa2 = context2.poa();
     ComponentContext component2 = new ComponentContext(orb2, poa2, id);
     component2.addFacet("Hello", HelloHelper.id(), new HelloServant(context2));
 
     // login to the bus
-    conn1AtBus1WithOrb1.loginByCertificate(entity, privateKey);
-    conn2AtBus1WithOrb1.loginByCertificate(entity, privateKey);
-    conn3AtBus1WithOrb2.loginByCertificate(entity, privateKey);
-    conn1AtBus2WithOrb1.loginByCertificate(entity, privateKey);
-
-    final String busId1 = conn1AtBus1WithOrb1.busid();
-    final String busId2 = conn1AtBus2WithOrb1.busid();
-    context1.onCallDispatch(new CallDispatchCallback() {
-
-      @Override
-      public Connection dispatch(OpenBusContext context, String busid,
-        String loginId, byte[] object_id, String operation) {
-        if (busId1.equals(busid)) {
-          return conn1AtBus1WithOrb1;
-        }
-        else if (busId2.equals(busid)) {
-          return conn1AtBus2WithOrb1;
-        }
-        logger.fine("Não encontrou dispatch!!!");
-        return null;
-      }
-    });
+    conn1AtBus1WithOrb1.loginByPrivateKey(entity, privateKey);
+    conn2AtBus1WithOrb1.loginByPrivateKey(entity, privateKey);
+    conn3AtBus1WithOrb2.loginByPrivateKey(entity, privateKey);
+    conn1AtBus2WithOrb1.loginByPrivateKey(entity, privateKey);
 
     shutdown1.addConnetion(conn1AtBus1WithOrb1);
     shutdown1.addConnetion(conn2AtBus1WithOrb1);
     shutdown1.addConnetion(conn1AtBus2WithOrb1);
     shutdown2.addConnetion(conn3AtBus1WithOrb2);
 
-    Thread thread1 =
-      new RegisterThread(conn1AtBus1WithOrb1, context1, component1
-        .getIComponent());
-    thread1.start();
-
-    Thread thread2 =
-      new RegisterThread(conn2AtBus1WithOrb1, context1, component1
-        .getIComponent());
-    thread2.start();
-
-    context1.setCurrentConnection(conn1AtBus2WithOrb1);
-    context1.getOfferRegistry().registerService(component1.getIComponent(),
-      getProps());
-
-    context2.setCurrentConnection(conn3AtBus1WithOrb2);
-    context2.onCallDispatch(new CallDispatchCallback() {
-
-      @Override
-      public Connection dispatch(OpenBusContext context, String busid,
-        String loginId, byte[] object_id, String operation) {
-        if (busId1.equals(busid)) {
-          return conn3AtBus1WithOrb2;
-        }
-        logger.fine("Não encontrou dispatch!!!");
-        return null;
+    final String busId1 = conn1AtBus1WithOrb1.busid();
+    final String busId2 = conn1AtBus2WithOrb1.busid();
+    context1.onCallDispatch((context, busid, loginId, object_id, operation) -> {
+      if (busId1.equals(busid)) {
+        return conn1AtBus1WithOrb1;
       }
+      else if (busId2.equals(busid)) {
+        return conn1AtBus2WithOrb1;
+      }
+      logger.fine("Não encontrou dispatch!!!");
+      return null;
     });
-    context2.getOfferRegistry().registerService(component2.getIComponent(),
-      getProps());
-    context2.setCurrentConnection(null);
-  }
 
-  public static ServiceProperty[] getProps() {
-    ServiceProperty[] serviceProperties = new ServiceProperty[1];
-    serviceProperties[0] =
-      new ServiceProperty("offer.domain", "Interoperability Tests");
-    return serviceProperties;
-  }
+    ArrayListMultimap<String, String> serviceProperties = ArrayListMultimap.
+      create();
+    serviceProperties.put("offer.domain", "Interoperability Tests");
 
-  private static class Callback implements InvalidLoginCallback {
+    conn1AtBus1WithOrb1.offerRegistry().registerService(component1
+      .getIComponent(), serviceProperties);
 
-    private String name;
-    private Connection conn;
+    conn2AtBus1WithOrb1.offerRegistry().registerService(component1
+      .getIComponent(), serviceProperties);
 
-    public Callback(Connection conn, String name) {
-      this.name = name;
-      this.conn = conn;
-    }
+    conn1AtBus2WithOrb1.offerRegistry().registerService(component1
+      .getIComponent(), serviceProperties);
 
-    @Override
-    public void invalidLogin(Connection conn, LoginInfo login) {
-      logger.fine("login terminated: " + name);
-    }
-  }
-
-  private static class RegisterThread extends Thread {
-
-    private Connection conn;
-    private OpenBusContext context;
-    private IComponent component;
-
-    public RegisterThread(Connection conn, OpenBusContext context,
-      IComponent component) {
-      this.conn = conn;
-      this.context = context;
-      this.component = component;
-    }
-
-    @Override
-    public void run() {
-      context.setCurrentConnection(conn);
-      try {
-        context.getOfferRegistry().registerService(component, getProps());
+    context2.onCallDispatch((context, busid, loginId, object_id, operation) -> {
+      if (busId1.equals(busid)) {
+        return conn3AtBus1WithOrb2;
       }
-      catch (Exception e) {
-        assert false : "failed registration";
-      }
-    }
-  };
-
+      logger.fine("Não encontrou dispatch!!!");
+      return null;
+    });
+    conn3AtBus1WithOrb2.offerRegistry().registerService(component2
+      .getIComponent(), serviceProperties);
+  }
 }

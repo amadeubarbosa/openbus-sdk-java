@@ -1,7 +1,9 @@
 package tecgraf.openbus.interop.protocol;
 
 import java.util.Arrays;
+import java.util.List;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -17,6 +19,7 @@ import org.omg.CORBA.TRANSIENT;
 import scs.core.IComponent;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.RemoteOffer;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_1.EncryptedBlockSize;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
@@ -31,8 +34,6 @@ import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnavailableBusCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.utils.Configs;
 import tecgraf.openbus.utils.LibUtils;
 
@@ -88,25 +89,22 @@ public final class ProtocolClientTest {
   }
 
   private static Server findServer() throws ServiceFailure {
-    ServiceProperty[] props =
-      new ServiceProperty[] { new ServiceProperty(
-        "openbus.component.interface", ServerHelper.id()) };
-    ServiceOfferDesc[] offers = context.getOfferRegistry().findServices(props);
-    if (offers.length > 0) {
-      for (ServiceOfferDesc offer : offers) {
+    ArrayListMultimap<String, String> props = ArrayListMultimap
+      .create();
+    props.put("openbus.component.interface", ServerHelper.id());
+    List<RemoteOffer> offers = conn.offerRegistry().findServices(props);
+    if (offers.size() > 0) {
+      for (RemoteOffer offer : offers) {
         try {
-          if (!offer.service_ref._non_existent()) {
-            IComponent scs = offer.service_ref;
+          if (!offer.service_ref()._non_existent()) {
+            IComponent scs = offer.service_ref();
             Object facet = scs.getFacet(ServerHelper.id());
             if (facet != null) {
               return ServerHelper.narrow(facet);
             }
           }
         }
-        catch (TRANSIENT e) {
-          // do nothing
-        }
-        catch (COMM_FAILURE e) {
+        catch (TRANSIENT | COMM_FAILURE e) {
           // do nothing
         }
       }

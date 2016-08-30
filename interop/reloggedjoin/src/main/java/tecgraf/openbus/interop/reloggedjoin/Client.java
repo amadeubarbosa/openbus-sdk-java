@@ -3,14 +3,14 @@ package tecgraf.openbus.interop.reloggedjoin;
 import java.util.List;
 import java.util.logging.Logger;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.RemoteOffer;
 import tecgraf.openbus.core.ORBInitializer;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.simple.Hello;
 import tecgraf.openbus.interop.simple.HelloHelper;
 import tecgraf.openbus.security.Cryptography;
@@ -50,12 +50,12 @@ public final class Client {
     connection.loginByPassword(entity, entity.getBytes(Cryptography.CHARSET),
       domain);
 
-    ServiceProperty[] serviceProperties =
-      new ServiceProperty[] {
-          new ServiceProperty("reloggedjoin.role", "proxy"),
-          new ServiceProperty("offer.domain", "Interoperability Tests") };
-    List<ServiceOfferDesc> services =
-      LibUtils.findOffer(context.getOfferRegistry(), serviceProperties, 1, 10,
+    ArrayListMultimap<String, String> serviceProperties = ArrayListMultimap
+      .create();
+    serviceProperties.put("reloggedjoin.role", "proxy");
+    serviceProperties.put("offer.domain", "Interoperability Tests");
+    List<RemoteOffer> services =
+      LibUtils.findOffer(connection.offerRegistry(), serviceProperties, 1, 10,
         1);
 
     if (services.size() > 1) {
@@ -63,12 +63,11 @@ public final class Client {
         + services.size());
     }
 
-    for (ServiceOfferDesc offerDesc : services) {
-      String found =
-        LibUtils.findProperty(offerDesc.properties, "openbus.offer.entity");
+    for (RemoteOffer offer : services) {
+      String found = offer.properties(false).get("openbus.offer.entity").get(0);
       logger.fine("Entidade encontrada: " + found);
-      org.omg.CORBA.Object helloObj =
-        offerDesc.service_ref.getFacetByName("Hello");
+      org.omg.CORBA.Object helloObj = offer.service_ref().getFacetByName
+        ("Hello");
       if (helloObj == null) {
         logger.fine("Não foi possível encontrar uma faceta com esse nome.");
         continue;

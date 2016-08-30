@@ -2,14 +2,14 @@ package tecgraf.openbus.interop.simple;
 
 import java.util.List;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.RemoteOffer;
 import tecgraf.openbus.core.ORBInitializer;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.security.Cryptography;
 import tecgraf.openbus.utils.Configs;
 import tecgraf.openbus.utils.LibUtils;
@@ -43,20 +43,16 @@ public final class Client {
     connection.loginByPassword(entity, entity.getBytes(Cryptography.CHARSET),
       domain);
 
-    ServiceProperty[] serviceProperties = new ServiceProperty[2];
-    serviceProperties[0] =
-      new ServiceProperty("openbus.component.interface", HelloHelper.id());
-    serviceProperties[1] =
-      new ServiceProperty("offer.domain", "Interoperability Tests");
-    List<ServiceOfferDesc> services =
-      LibUtils.findOffer(context.getOfferRegistry(), serviceProperties, 1, 10,
-        1);
+    ArrayListMultimap<String, String> props = ArrayListMultimap.create();
+    props.put("offer.domain", "Interoperability Tests");
+    props.put("openbus.component.interface", HelloHelper.id());
+    List<RemoteOffer> services =
+      LibUtils.findOffer(connection.offerRegistry(), props, 1, 10, 1);
 
-    for (ServiceOfferDesc offerDesc : services) {
-      String found =
-        LibUtils.findProperty(offerDesc.properties, "openbus.offer.entity");
-      org.omg.CORBA.Object helloObj =
-        offerDesc.service_ref.getFacetByName("Hello");
+    for (RemoteOffer offer : services) {
+      String found = offer.properties(false).get("openbus.offer.entity").get(0);
+      org.omg.CORBA.Object helloObj = offer.service_ref().getFacetByName
+        ("Hello");
       if (helloObj == null) {
         continue;
       }

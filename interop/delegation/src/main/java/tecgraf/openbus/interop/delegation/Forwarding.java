@@ -3,21 +3,16 @@ package tecgraf.openbus.interop.delegation;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.List;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
 import org.omg.PortableServer.POA;
-import org.omg.PortableServer.POAHelper;
 
 import scs.core.ComponentContext;
 import scs.core.ComponentId;
 import scs.core.IComponent;
-import tecgraf.openbus.Connection;
-import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.*;
 import tecgraf.openbus.core.ORBInitializer;
-import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.delegation.ForwarderImpl.Timer;
 import tecgraf.openbus.security.Cryptography;
 import tecgraf.openbus.utils.Configs;
@@ -47,25 +42,23 @@ public class Forwarding {
     Connection conn = context.connectByReference(busref);
     context.setDefaultConnection(conn);
 
-    conn.loginByCertificate(entity, privateKey);
+    conn.loginByPrivateKey(entity, privateKey);
     shutdown.addConnetion(conn);
-    OfferRegistry offers = context.getOfferRegistry();
+    OfferRegistry offers = conn.offerRegistry();
 
-    ServiceProperty[] messengerProps = new ServiceProperty[2];
-    messengerProps[0] =
-      new ServiceProperty("openbus.component.interface", MessengerHelper.id());
-    messengerProps[1] =
-      new ServiceProperty("offer.domain", "Interoperability Tests");
-    List<ServiceOfferDesc> services =
+    ArrayListMultimap<String, String> messengerProps = ArrayListMultimap
+      .create();
+    messengerProps.put("offer.domain", "Interoperability Tests");
+    messengerProps.put("openbus.component.interface", MessengerHelper.id());
+    List<RemoteOffer> services =
       LibUtils.findOffer(offers, messengerProps, 1, 10, 1);
 
     Messenger messenger =
-      MessengerHelper.narrow(services.get(0).service_ref
+      MessengerHelper.narrow(services.get(0).service_ref()
         .getFacet(MessengerHelper.id()));
 
     ForwarderImpl forwarderServant = new ForwarderImpl(context);
-    POA poa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
-    poa.the_POAManager().activate();
+    POA poa = context.poa();
     ComponentContext ctx =
       new ComponentContext(orb, poa, new ComponentId("Forwarder", (byte) 1,
         (byte) 0, (byte) 0, "java"));
@@ -74,13 +67,20 @@ public class Forwarding {
     final Timer timer = new Timer(context, forwarderServant, messenger);
     timer.start();
 
-    ServiceProperty[] serviceProperties = new ServiceProperty[1];
-    serviceProperties[0] =
-      new ServiceProperty("offer.domain", "Interoperability Tests");
+    ArrayListMultimap<String, String> serviceProperties = ArrayListMultimap
+      .create();
+    serviceProperties.put("offer.domain", "Interoperability Tests");
     IComponent ic = ctx.getIComponent();
-    ServiceOffer offer = offers.registerService(ic, serviceProperties);
-    conn.onInvalidLoginCallback(new ForwarderInvalidLoginCallback(entity,
-      privateKey, ic, serviceProperties, timer));
-    shutdown.addOffer(offer);
+    OfferRegistry registry = conn.offerRegistry();
+    LocalOffer localOffer =
+      registry.registerService(ic, serviceProperties);
+    RemoteOffer myOffer = localOffer.remoteOffer(60000, 0);
+    if (myOffer != null) {
+      shutdown.addOffer(myOffer);
+    } else {
+      localOffer.remove();
+      shutdown.run();
+      System.exit(1);
+    }
   }
 }

@@ -4,14 +4,14 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.INTERNAL;
 
 import tecgraf.openbus.CallerChain;
+import tecgraf.openbus.OfferRegistry;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.RemoteOffer;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
-import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.exception.InvalidEncodedStream;
 import tecgraf.openbus.interop.simple.Hello;
 import tecgraf.openbus.interop.simple.HelloHelper;
@@ -40,15 +40,14 @@ public class ProxyImpl extends HelloProxyPOA {
     }
     context.joinChain(chain);
 
-    ServiceProperty[] properties =
-      new ServiceProperty[] {
-          new ServiceProperty("offer.domain", "Interoperability Tests"),
-          new ServiceProperty("openbus.component.interface", HelloHelper.id()),
-          new ServiceProperty("openbus.component.name", "RestrictedHello") };
-    List<ServiceOfferDesc> descs;
+    ArrayListMultimap<String, String> props = ArrayListMultimap.create();
+    props.put("offer.domain", "Interoperability Tests");
+    props.put("openbus.component.interface", HelloHelper.id());
+    props.put("openbus.component.name", "RestrictedHello");
+    List<RemoteOffer> descs;
     try {
-      OfferRegistry offers = context.getOfferRegistry();
-      descs = LibUtils.findOffer(offers, properties, 1, 10, 1);
+      OfferRegistry offers = context.getCurrentConnection().offerRegistry();
+      descs = LibUtils.findOffer(offers, props, 1, 10, 1);
     }
     catch (ServiceFailure e) {
       String err = "ServiceFailure ao realizar busca";
@@ -56,9 +55,9 @@ public class ProxyImpl extends HelloProxyPOA {
       throw new INTERNAL(err);
     }
 
-    for (ServiceOfferDesc desc : descs) {
+    for (RemoteOffer offer : descs) {
       org.omg.CORBA.Object helloObj =
-        desc.service_ref.getFacet(HelloHelper.id());
+        offer.service_ref().getFacet(HelloHelper.id());
       if (helloObj == null) {
         continue;
       }

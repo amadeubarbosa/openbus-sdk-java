@@ -10,12 +10,12 @@ import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 public class BroadcasterImpl extends BroadcasterPOA {
 
   private OpenBusContext context;
-  private List<String> subscribers;
+  private final List<String> subscribers;
   private Messenger messenger;
 
   public BroadcasterImpl(OpenBusContext context, Messenger messenger) {
     this.context = context;
-    this.subscribers = Collections.synchronizedList(new ArrayList<String>());
+    this.subscribers = Collections.synchronizedList(new ArrayList<>());
     this.messenger = messenger;
   }
 

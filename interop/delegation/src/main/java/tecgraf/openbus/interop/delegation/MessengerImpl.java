@@ -14,12 +14,12 @@ import tecgraf.openbus.utils.LibUtils;
 public class MessengerImpl extends MessengerPOA {
 
   private OpenBusContext context;
-  private Map<String, List<PostDesc>> inboxOf;
+  private final Map<String, List<PostDesc>> inboxOf;
 
   public MessengerImpl(OpenBusContext context) {
     this.context = context;
     this.inboxOf =
-      Collections.synchronizedMap(new HashMap<String, List<PostDesc>>());
+      Collections.synchronizedMap(new HashMap<>());
   }
 
   @Override
@@ -29,7 +29,7 @@ public class MessengerImpl extends MessengerPOA {
     synchronized (inboxOf) {
       List<PostDesc> list = this.inboxOf.get(to);
       if (list == null) {
-        list = new ArrayList<PostDesc>();
+        list = new ArrayList<>();
         inboxOf.put(to, list);
       }
       list.add(new PostDesc(from, message));
@@ -47,7 +47,7 @@ public class MessengerImpl extends MessengerPOA {
     }
     List<PostDesc> list = this.inboxOf.remove(owner);
     if (list == null) {
-      list = new ArrayList<PostDesc>();
+      list = new ArrayList<>();
     }
     return list.toArray(new PostDesc[list.size()]);
   }

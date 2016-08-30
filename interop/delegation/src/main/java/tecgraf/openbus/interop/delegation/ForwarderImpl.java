@@ -11,12 +11,12 @@ import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 public class ForwarderImpl extends ForwarderPOA {
 
   private OpenBusContext context;
-  private Map<String, ForwardInfo> forwardsOf;
+  private final Map<String, ForwardInfo> forwardsOf;
 
   public ForwarderImpl(OpenBusContext context) {
     this.context = context;
     this.forwardsOf =
-      Collections.synchronizedMap(new HashMap<String, ForwardInfo>());
+      Collections.synchronizedMap(new HashMap<>());
   }
 
   @Override
@@ -62,13 +62,13 @@ public class ForwarderImpl extends ForwarderPOA {
   public static class Timer extends Thread {
 
     private volatile boolean stop = false;
-    private ForwarderImpl forwarder;
+    private final Map<String, ForwardInfo> forwardsOf;
     private OpenBusContext context;
     private Messenger messenger;
 
     public Timer(OpenBusContext context, ForwarderImpl forwarder,
       Messenger messenger) {
-      this.forwarder = forwarder;
+      this.forwardsOf = forwarder.getForwardsOf();
       this.messenger = messenger;
       this.context = context;
     }
@@ -84,9 +84,8 @@ public class ForwarderImpl extends ForwarderPOA {
           Thread.sleep(5000);
         }
         catch (InterruptedException e) {
-          this.stop = true;
+          stopTimer();
         }
-        Map<String, ForwardInfo> forwardsOf = forwarder.getForwardsOf();
         synchronized (forwardsOf) {
           for (ForwardInfo info : forwardsOf.values()) {
             context.joinChain(info.chain);
@@ -101,5 +100,4 @@ public class ForwarderImpl extends ForwarderPOA {
       }
     }
   }
-
 }

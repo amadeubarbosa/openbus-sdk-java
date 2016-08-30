@@ -3,6 +3,7 @@ package tecgraf.openbus.interop.chaining;
 import java.io.IOException;
 import java.util.List;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
 import org.omg.CORBA.ORBPackage.InvalidName;
@@ -10,14 +11,13 @@ import org.omg.CORBA.ORBPackage.InvalidName;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.RemoteOffer;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
 import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.utils.Configs;
 import tecgraf.openbus.utils.LibUtils;
@@ -57,23 +57,21 @@ public final class Client {
     context.setDefaultConnection(connection);
 
     connection.loginByPassword(entity, entity.getBytes(), domain);
-    ServiceProperty[] properties =
-      new ServiceProperty[] {
-          new ServiceProperty("offer.domain", "Interoperability Tests"),
-          new ServiceProperty("openbus.component.interface", HelloProxyHelper
-            .id()) };
-    List<ServiceOfferDesc> services =
-      LibUtils.findOffer(context.getOfferRegistry(), properties, 1, 10, 1);
+    ArrayListMultimap<String, String> props = ArrayListMultimap.create();
+    props.put("offer.domain", "Interoperability Tests");
+    props.put("openbus.component.interface", HelloProxyHelper.id());
+    List<RemoteOffer> services =
+      LibUtils.findOffer(connection.offerRegistry(), props, 1, 10, 1);
 
-    for (ServiceOfferDesc desc : services) {
+    for (RemoteOffer offer : services) {
       org.omg.CORBA.Object msgObj =
-        desc.service_ref.getFacet(HelloProxyHelper.id());
+        offer.service_ref().getFacet(HelloProxyHelper.id());
       if (msgObj == null) {
         continue;
       }
-      String destination =
-        LibUtils.findProperty(desc.properties, "openbus.offer.entity");
-      CallerChain chain = context.makeChainFor(destination);
+      String destination = offer.properties(false).get(
+        "openbus.offer.entity").get(0);
+      CallerChain chain = connection.makeChainFor(destination);
       byte[] encodedChain = context.encodeChain(chain);
       HelloProxy proxy = HelloProxyHelper.narrow(msgObj);
       String sayHello = proxy.fetchHello(encodedChain);

@@ -10,7 +10,7 @@ import org.omg.CORBA.Object;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
-import tecgraf.openbus.SharedAuthSecret;
+import tecgraf.openbus.core.AuthArgs;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 import tecgraf.openbus.utils.Configs;
@@ -31,29 +31,35 @@ public class Consuming {
     Connection connection = context.connectByReference(busref);
     context.setDefaultConnection(connection);
 
-    byte[] encoded;
-    File file = new File(path);
-    FileInputStream fstream = null;
-    for (int i = 0; i < 10; i++) {
+    connection.loginByCallback(() -> {
       try {
-        fstream = new FileInputStream(file);
+        byte[] encoded;
+        File file = new File(path);
+        FileInputStream fstream = null;
+        for (int i = 0; i < 10; i++) {
+          try {
+            fstream = new FileInputStream(file);
+          }
+          catch (FileNotFoundException e) {
+            Thread.sleep(1000);
+          }
+        }
+        assert fstream != null;
+        try {
+          encoded = new byte[(int) file.length()];
+          int read = fstream.read(encoded);
+          assert read == file.length() : "Erro de leitura!";
+        }
+        finally {
+          fstream.close();
+          file.delete();
+        }
+        return new AuthArgs(context.decodeSharedAuth(encoded));
+      } catch (Exception e) {
+        assert false;
       }
-      catch (FileNotFoundException e) {
-        Thread.sleep(1 * 1000);
-      }
-    }
-    assert fstream != null;
-    try {
-      encoded = new byte[(int) file.length()];
-      int read = fstream.read(encoded);
-      assert read == file.length() : "Erro de leitura!";
-    }
-    finally {
-      fstream.close();
-      file.delete();
-    }
-    SharedAuthSecret secret = context.decodeSharedAuth(encoded);
-    connection.loginBySharedAuth(secret);
+      return null;
+    });
 
     Pattern pattern =
       Pattern.compile("interop_sharedauth_(java|cpp|lua|csharp)_client");
