@@ -7,18 +7,20 @@ import org.omg.CORBA.TRANSIENT;
 
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.RemoteOffer;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidRemoteCode;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.demo.util.Utils;
+
+import java.util.List;
 
 public class ProxyMessengerImpl extends MessengerPOA {
 
   private OpenBusContext context;
   private String entity;
-  private ServiceOfferDesc[] offers;
+  private List<RemoteOffer> offers;
 
   public ProxyMessengerImpl(OpenBusContext context, String entity) {
     this.context = context;
@@ -31,10 +33,10 @@ public class ProxyMessengerImpl extends MessengerPOA {
     System.out.println(String.format("repassando mensagem de %s", Utils
       .chain2str(chain)));
     context.joinChain(chain);
-    for (ServiceOfferDesc offer : this.offers) {
+    for (RemoteOffer offer : this.offers) {
       boolean failed = true;
       try {
-        Object facet = offer.service_ref.getFacet(MessengerHelper.id());
+        Object facet = offer.service_ref().getFacet(MessengerHelper.id());
         Messenger messenger = MessengerHelper.narrow(facet);
         messenger.showMessage(message);
         failed = false;
@@ -66,17 +68,15 @@ public class ProxyMessengerImpl extends MessengerPOA {
             break;
         }
       }
-      finally {
-        if (!failed) {
-          return;
-        }
+      if (!failed) {
+        return;
       }
     }
     System.err.println("serviços encontrados não estão disponíveis");
     throw new Unavailable();
   }
 
-  public void setOffers(ServiceOfferDesc[] offers) {
+  public void setOffers(List<RemoteOffer> offers) {
     this.offers = offers;
   }
 }

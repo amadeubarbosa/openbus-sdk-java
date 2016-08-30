@@ -3,7 +3,9 @@ package demo;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.COMM_FAILURE;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
@@ -11,21 +13,18 @@ import org.omg.CORBA.TRANSIENT;
 import org.omg.CORBA.ORBPackage.InvalidName;
 
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.InvalidLoginCallback;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.RemoteOffer;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidRemoteCode;
-import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
 import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Usage;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 
@@ -107,12 +106,83 @@ public final class IndependentClockClient {
     final OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
 
+    // conectando ao barramento.
+    Connection connection = context.connectByAddress(host, port);
+    context.setDefaultConnection(connection);
+    boolean failed;
+    do {
+      failed = true;
+      try {
+        // autentica-se no barramento
+        connection.loginByPassword(entity, password.getBytes(), domain);
+        failed = false;
+      }
+      catch (AlreadyLoggedIn e) {
+        // ignorando exceção
+        failed = false;
+      }
+      // login by password
+      catch (AccessDenied e) {
+        System.err.println(String.format(
+          "a senha fornecida para a entidade '%s' foi negada", entity));
+      }
+      catch (TooManyAttempts e) {
+        System.err.println(String.format(
+          "excedeu o limite de tentativas de login. Aguarde %s seg",
+          e.penaltyTime));
+        System.exit(1);
+        return;
+      }
+      catch (UnknownDomain e) {
+        System.err
+          .println("Tentativa de autenticação em domínio desconhecido.");
+        System.exit(1);
+        return;
+      }
+      catch (WrongEncoding e) {
+        System.err
+          .println("incompatibilidade na codifição de informação para o barramento");
+        System.exit(1);
+        return;
+      }
+      // bus core
+      catch (ServiceFailure e) {
+        System.err.println(String
+          .format("falha severa no barramento em %s:%s : %s", host, port,
+            e.message));
+      }
+      catch (TRANSIENT e) {
+        System.err.println(String.format(
+          "o barramento em %s:%s esta inacessível no momento", host, port));
+      }
+      catch (COMM_FAILURE e) {
+        System.err
+          .println("falha de comunicação ao acessar serviços núcleo do barramento");
+      }
+      catch (NO_PERMISSION e) {
+        if (e.minor == NoLoginCode.value) {
+          System.err.println(String.format(
+            "não há um login de '%s' válido no momento", entity));
+        }
+      }
+      finally {
+        if (failed) {
+          try {
+            Thread.sleep(interval * 1000);
+          }
+          catch (InterruptedException e) {
+            // do nothing
+          }
+        }
+      }
+    } while (failed);
+
     Thread client = new Thread() {
       @Override
       public void run() {
         for (int i = 0; i < 10; i++) {
           Long timestamp = null;
-          Clock clock = null;
+          Clock clock;
           synchronized (options.lock) {
             clock = options.found;
           }
@@ -157,7 +227,12 @@ public final class IndependentClockClient {
                 }
               }
             }
+          } else {
+            synchronized (options.lock) {
+              activateSearch(context, interval);
+            }
           }
+
           if (timestamp == null) {
             synchronized (options.lock) {
               activateSearch(context, interval);
@@ -200,99 +275,9 @@ public final class IndependentClockClient {
         finally {
           System.out.println("cliente deslogado...");
         }
-      };
+      }
     };
     client.start();
-
-    // conectando ao barramento.
-    Connection connection = context.connectByAddress(host, port);
-    context.setDefaultConnection(connection);
-
-    connection.onInvalidLoginCallback(new InvalidLoginCallback() {
-
-      @Override
-      public void invalidLogin(Connection conn, LoginInfo login) {
-        // autentica-se no barramento
-        login(conn, entity, password, host, port);
-        // buscando serviço no barramento
-        activateSearch(context, interval);
-      }
-
-      private void login(Connection conn, String entity, String password,
-        Object host, Object port) {
-        // autentica-se no barramento
-        boolean failed;
-        do {
-          failed = true;
-          try {
-            // autentica-se no barramento
-            conn.loginByPassword(entity, password.getBytes(), domain);
-            failed = false;
-          }
-          catch (AlreadyLoggedIn e) {
-            // ignorando exceção
-            failed = false;
-          }
-          // login by password
-          catch (AccessDenied e) {
-            System.err.println(String.format(
-              "a senha fornecida para a entidade '%s' foi negada", entity));
-          }
-          catch (TooManyAttempts e) {
-            System.err.println(String.format(
-              "excedeu o limite de tentativas de login. Aguarde %s seg",
-              e.penaltyTime));
-            System.exit(1);
-            return;
-          }
-          catch (UnknownDomain e) {
-            System.err
-              .println("Tentativa de autenticação em domínio desconhecido.");
-            System.exit(1);
-            return;
-          }
-          catch (WrongEncoding e) {
-            System.err
-              .println("incompatibilidade na codifição de informação para o barramento");
-            System.exit(1);
-            return;
-          }
-          // bus core
-          catch (ServiceFailure e) {
-            System.err.println(String
-              .format("falha severa no barramento em %s:%s : %s", host, port,
-                e.message));
-          }
-          catch (TRANSIENT e) {
-            System.err.println(String.format(
-              "o barramento em %s:%s esta inacessível no momento", host, port));
-          }
-          catch (COMM_FAILURE e) {
-            System.err
-              .println("falha de comunicação ao acessar serviços núcleo do barramento");
-          }
-          catch (NO_PERMISSION e) {
-            if (e.minor == NoLoginCode.value) {
-              System.err.println(String.format(
-                "não há um login de '%s' válido no momento", entity));
-            }
-          }
-          finally {
-            if (failed) {
-              try {
-                Thread.sleep(interval * 1000);
-              }
-              catch (InterruptedException e) {
-                // do nothing
-              }
-            }
-          }
-        } while (failed);
-      }
-
-    });
-    connection.onInvalidLoginCallback().invalidLogin(connection, null);
-
   }
 
   private static void activateSearch(final OpenBusContext context,
@@ -313,15 +298,16 @@ public final class IndependentClockClient {
 
   private static void find(OpenBusContext context, int interval) {
     do {
-      ServiceOfferDesc[] services = null;
+      List<RemoteOffer> services = null;
       Clock clock = null;
       boolean failed = true;
       try {
         // busca por serviço
-        ServiceProperty[] properties = new ServiceProperty[1];
-        properties[0] =
-          new ServiceProperty("offer.domain", "Demo Independent Clock");
-        services = context.getOfferRegistry().findServices(properties);
+        ArrayListMultimap<String, String> properties = ArrayListMultimap
+          .create();
+        properties.put("offer.domain", "Demo Independent Clock");
+        services = context.getCurrentConnection().offerRegistry()
+          .findServices(properties);
         failed = false;
       }
       // bus core
@@ -343,23 +329,21 @@ public final class IndependentClockClient {
             "não há um login de '%s' válido no momento", entity));
         }
       }
-      finally {
-        if (failed) {
-          try {
-            Thread.sleep(interval * 1000);
-          }
-          catch (InterruptedException e) {
-            // do nothing
-          }
-          continue;
+      if (failed) {
+        try {
+          Thread.sleep(interval * 1000);
         }
+        catch (InterruptedException e) {
+          // do nothing
+        }
+        continue;
       }
 
       // analisa as ofertas encontradas
-      for (ServiceOfferDesc offerDesc : services) {
+      for (RemoteOffer offer : services) {
         try {
           org.omg.CORBA.Object helloObj =
-            offerDesc.service_ref.getFacet(ClockHelper.id());
+            offer.service_ref().getFacet(ClockHelper.id());
           if (helloObj == null) {
             System.out
               .println("o serviço encontrado não provê a faceta ofertada");
@@ -420,7 +404,7 @@ public final class IndependentClockClient {
   public static class ConcurrencyControl {
     public volatile boolean active = false;
     public Clock found = null;
-    public Object lock = new Object();
+    public final Object lock = new Object();
   }
 
 }

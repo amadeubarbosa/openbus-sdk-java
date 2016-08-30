@@ -1,5 +1,6 @@
 package demo;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.COMM_FAILURE;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
@@ -8,6 +9,7 @@ import org.omg.CORBA.ORBPackage.InvalidName;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.RemoteOffer;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
@@ -18,11 +20,10 @@ import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
 import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Usage;
-import tecgraf.openbus.demo.util.Utils;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
+
+import java.util.List;
 
 /**
  * Cliente do demo Hello
@@ -37,7 +38,6 @@ public final class CallChainClient {
    * @throws AlreadyLoggedIn
    * @throws InvalidName
    * @throws ServiceFailure
-   * @throws WrongEncoding
    */
   public static void main(String[] args) throws AlreadyLoggedIn, InvalidName,
     ServiceFailure {
@@ -81,17 +81,15 @@ public final class CallChainClient {
     Connection connection = context.connectByAddress(host, port);
     context.setDefaultConnection(connection);
 
-    ServiceOfferDesc[] services;
+    List<RemoteOffer> offers;
     try {
       // autentica-se no barramento
       connection.loginByPassword(entity, password.getBytes(), domain);
       // busca por serviço
-      ServiceProperty[] props =
-        new ServiceProperty[] {
-            new ServiceProperty("offer.domain", "Demo Call Chain"),
-            new ServiceProperty("openbus.component.interface", MessengerHelper
-              .id()), };
-      services = context.getOfferRegistry().findServices(props);
+      ArrayListMultimap<String, String> props = ArrayListMultimap.create();
+      props.put("offer.domain", "Demo Call Chain");
+      props.put("openbus.component.interface", MessengerHelper.id());
+      offers = connection.offerRegistry().findServices(props);
     }
     // login by password
     catch (AccessDenied e) {
@@ -147,10 +145,10 @@ public final class CallChainClient {
     }
 
     // analisa as ofertas encontradas
-    for (ServiceOfferDesc offerDesc : services) {
+    for (RemoteOffer offer : offers) {
       try {
         org.omg.CORBA.Object msgObj =
-          offerDesc.service_ref.getFacet(MessengerHelper.id());
+          offer.service_ref().getFacet(MessengerHelper.id());
         if (msgObj == null) {
           System.out
             .println("o serviço encontrado não provê a faceta ofertada");
@@ -163,13 +161,13 @@ public final class CallChainClient {
       // Demo
       catch (Unavailable e) {
         System.err.println(String.format(
-          "serviço com papel '%s' esta indisponível", Utils.findProperty(
-            offerDesc.properties, "offer.role")));
+          "serviço com papel '%s' esta indisponível", offer.properties(false)
+            .get("offer.role")));
       }
       catch (Unauthorized e) {
         System.err.println(String.format(
-          "serviço com papel '%s' não autorizou a chamada", Utils.findProperty(
-            offerDesc.properties, "offer.role")));
+          "serviço com papel '%s' não autorizou a chamada", offer.properties
+            (false).get("offer.role")));
       }
       // Serviço
       catch (TRANSIENT e) {

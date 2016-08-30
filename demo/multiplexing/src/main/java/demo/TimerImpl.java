@@ -69,7 +69,7 @@ public class TimerImpl extends TimerPOA {
               break;
           }
         }
-      };
+      }
     }.start();
   }
 

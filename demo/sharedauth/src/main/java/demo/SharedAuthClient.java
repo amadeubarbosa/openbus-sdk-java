@@ -3,26 +3,20 @@ package demo;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.List;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.COMM_FAILURE;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.TRANSIENT;
 import org.omg.CORBA.ORBPackage.InvalidName;
 
-import tecgraf.openbus.Connection;
-import tecgraf.openbus.OpenBusContext;
-import tecgraf.openbus.SharedAuthSecret;
+import tecgraf.openbus.*;
+import tecgraf.openbus.core.AuthArgs;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
-import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
-import tecgraf.openbus.core.v2_1.services.access_control.InvalidRemoteCode;
-import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
-import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
-import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
-import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
+import tecgraf.openbus.core.v2_1.services.access_control.*;
 import tecgraf.openbus.demo.util.Usage;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.exception.InvalidEncodedStream;
@@ -39,13 +33,12 @@ public class SharedAuthClient {
   /**
    * Função main.
    * 
-   * @param args
    * @throws ServiceFailure
    * @throws InvalidName
    * @throws AlreadyLoggedIn
    */
   public static void main(String[] args) throws ServiceFailure, InvalidName,
-    AlreadyLoggedIn {
+    AlreadyLoggedIn, TooManyAttempts, UnknownDomain, MissingCertificate {
     String help =
       "Usage: 'demo' <host> <port> [file] \n"
         + "  - host = é o host do barramento\n"
@@ -70,10 +63,11 @@ public class SharedAuthClient {
       return;
     }
     // - arquivo
-    String path = "sharedauth.dat";
+    String temp = "sharedauth.dat";
     if (args.length > 2) {
-      path = args[2];
+      temp = args[2];
     }
+    final String path = temp;
 
     // inicializando e configurando o ORB
     ORB orb = ORBInitializer.initORB();
@@ -84,50 +78,51 @@ public class SharedAuthClient {
     Connection connection = context.connectByAddress(host, port);
     context.setDefaultConnection(connection);
 
-    // recuperando informações de compartilhamento de autenticação
-    /*
-     * OBS: talvez seja mais interessante para a aplicação trocar esses dados de
-     * outra forma. No mínimo, essas informações deveriam estar encriptadas.
-     * Além disso, o cliente Hello escreve apenas uma vez esses dados, que têm
-     * validade igual ao lease do login dele, portanto uma outra forma mais
-     * dinâmica seria mais eficaz. No entanto, isso foge ao escopo dessa demo.
-     */
-    byte[] data = null;
+    List<RemoteOffer> services;
     try {
-      File file = new File(path);
-      FileInputStream is = new FileInputStream(file);
-      try {
-        int length = (int) file.length();
-        data = new byte[length];
-        int offset = is.read(data);
-        while (offset < length) {
-          int read = is.read(data, offset, length - offset);
-          if (read < 0) {
-            System.err.println("Não foi possível ler todo o arquivo");
-            System.exit(1);
-          }
-          offset += read;
-        }
-      }
-      finally {
-        is.close();
-      }
-    }
-    catch (IOException e) {
-      System.err.println("Erro ao ler recuperar dados de arquivo.");
-      e.printStackTrace();
-      System.exit(1);
-    }
-
-    ServiceOfferDesc[] services;
-    try {
-      SharedAuthSecret secret = context.decodeSharedAuth(data);
       // autentica-se no barramento
-      connection.loginBySharedAuth(secret);
+      connection.loginByCallback(() -> {
+      // recuperando informações de compartilhamento de autenticação
+      /*
+       * OBS: talvez seja mais interessante para a aplicação trocar esses dados de
+       * outra forma. No mínimo, essas informações deveriam estar encriptadas.
+       * Além disso, o cliente Hello escreve apenas uma vez esses dados, que têm
+       * validade igual ao lease do login dele, portanto uma outra forma mais
+       * dinâmica seria mais eficaz. No entanto, isso foge ao escopo dessa demo.
+       */
+        byte[] data;
+        try {
+          File file = new File(path);
+          try (FileInputStream is = new FileInputStream(file)) {
+            int length = (int) file.length();
+            data = new byte[length];
+            int offset = is.read(data);
+            while (offset < length) {
+              int read = is.read(data, offset, length - offset);
+              if (read < 0) {
+                System.err.println("Não foi possível ler todo o arquivo");
+                System.exit(1);
+              }
+              offset += read;
+            }
+          }
+          return new AuthArgs(context.decodeSharedAuth(data));
+        } catch (IOException e) {
+          System.err.println("Erro ao recuperar dados do arquivo.");
+          e.printStackTrace();
+          System.exit(1);
+        } catch (InvalidEncodedStream e) {
+          System.err
+            .println("erro ao decodificar compartilhamento de autenticação");
+          System.exit(1);
+        }
+        return null;
+      });
       // busca por serviço
-      ServiceProperty[] properties = new ServiceProperty[1];
-      properties[0] = new ServiceProperty("offer.domain", "Demo Hello");
-      services = context.getOfferRegistry().findServices(properties);
+      ArrayListMultimap<String, String> properties = ArrayListMultimap
+        .create();
+      properties.put("offer.domain", "Demo Hello");
+      services = connection.offerRegistry().findServices(properties);
     }
     // login by password
     catch (AccessDenied e) {
@@ -178,18 +173,12 @@ public class SharedAuthClient {
       System.exit(1);
       return;
     }
-    catch (InvalidEncodedStream e) {
-      System.err
-        .println("erro ao decodificar compartilhamento de autenticação");
-      System.exit(1);
-      return;
-    }
 
     // analisa as ofertas encontradas
-    for (ServiceOfferDesc offerDesc : services) {
+    for (RemoteOffer offer : services) {
       try {
         org.omg.CORBA.Object helloObj =
-          offerDesc.service_ref.getFacet(HelloHelper.id());
+          offer.service_ref().getFacet(HelloHelper.id());
         if (helloObj == null) {
           System.out
             .println("o serviço encontrado não provê a faceta ofertada");

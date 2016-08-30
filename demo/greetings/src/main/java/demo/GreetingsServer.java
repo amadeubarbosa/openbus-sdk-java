@@ -4,13 +4,13 @@ import java.security.interfaces.RSAPrivateKey;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.COMM_FAILURE;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.TRANSIENT;
 import org.omg.CORBA.ORBPackage.InvalidName;
 import org.omg.PortableServer.POA;
-import org.omg.PortableServer.POAHelper;
 import org.omg.PortableServer.POAManagerPackage.AdapterInactive;
 
 import scs.core.ComponentContext;
@@ -24,10 +24,6 @@ import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
-import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidProperties;
-import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidService;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.core.v2_1.services.offer_registry.UnauthorizedFacets;
 import tecgraf.openbus.demo.util.Usage;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.security.Cryptography;
@@ -112,14 +108,11 @@ public final class GreetingsServer {
     // recuperando o gerente de contexto de chamadas a barramentos 
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
+    POA poa = context.poa();
 
     // criando o serviço a ser ofertado
-    // - ativando o POA
-    POA poa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
-    poa.the_POAManager().activate();
     // - construindo os componentes
-    HashMap<Language, ComponentContext> components =
-      new HashMap<GreetingsImpl.Language, ComponentContext>();
+    HashMap<Language, ComponentContext> components = new HashMap<>();
     for (Language language : Language.values()) {
       ComponentId id =
         new ComponentId(language.name() + Greetings.class.getSimpleName(),
@@ -139,16 +132,15 @@ public final class GreetingsServer {
     // autentica-se no barramento
     boolean failed = true;
     try {
-      conn.loginByCertificate(entity, privateKey);
+      conn.loginByPrivateKey(entity, privateKey);
       // registrando serviço no barramento
-      ServiceProperty[] serviceProperties = new ServiceProperty[2];
-      serviceProperties[0] =
-        new ServiceProperty("offer.domain", "Demo Greetings");
       for (Entry<Language, ComponentContext> entry : components.entrySet()) {
-        serviceProperties[1] =
-          new ServiceProperty("greetings.language", entry.getKey().name());
-        context.getOfferRegistry().registerService(
-          entry.getValue().getIComponent(), serviceProperties);
+        ArrayListMultimap<String, String> serviceProperties = ArrayListMultimap
+          .create();
+        serviceProperties.put("offer.domain", "Demo Greetings");
+        serviceProperties.put("greetings.language", entry.getKey().name());
+        conn.offerRegistry().registerService(entry.getValue().getIComponent(),
+          serviceProperties);
       }
       failed = false;
     }
@@ -165,34 +157,6 @@ public final class GreetingsServer {
     catch (WrongEncoding e) {
       System.err
         .println("incompatibilidade na codifição de informação para o barramento");
-    }
-    // register
-    catch (UnauthorizedFacets e) {
-      StringBuffer interfaces = new StringBuffer();
-      for (String facet : e.facets) {
-        interfaces.append("\n  - ");
-        interfaces.append(facet);
-      }
-      System.err
-        .println(String
-          .format(
-            "a entidade '%s' não foi autorizada pelo administrador do barramento a ofertar os serviços: %s",
-            entity, interfaces.toString()));
-    }
-    catch (InvalidService e) {
-      System.err
-        .println("o serviço ofertado apresentou alguma falha durante o registro.");
-    }
-    catch (InvalidProperties e) {
-      StringBuffer props = new StringBuffer();
-      for (ServiceProperty prop : e.properties) {
-        props.append("\n  - ");
-        props.append(String.format("name = %s, value = %s", prop.name,
-          prop.value));
-      }
-      System.err.println(String.format(
-        "tentativa de registrar serviço com propriedades inválidas: %s", props
-          .toString()));
     }
     // bus core
     catch (ServiceFailure e) {
@@ -220,6 +184,5 @@ public final class GreetingsServer {
         System.exit(1);
       }
     }
-
   }
 }

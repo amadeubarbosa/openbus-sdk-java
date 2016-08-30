@@ -3,7 +3,9 @@ package demo;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.List;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.COMM_FAILURE;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
@@ -12,6 +14,7 @@ import org.omg.CORBA.ORBPackage.InvalidName;
 
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.RemoteOffer;
 import tecgraf.openbus.SharedAuthSecret;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
@@ -23,8 +26,6 @@ import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
 import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Usage;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 
@@ -93,7 +94,7 @@ public final class Client {
     Connection connection = context.connectByAddress(host, port);
     context.setDefaultConnection(connection);
 
-    ServiceOfferDesc[] services;
+    List<RemoteOffer> services;
     try {
       // autentica-se no barramento
       connection.loginByPassword(entity, password.getBytes(), domain);
@@ -120,9 +121,10 @@ public final class Client {
       }
 
       // busca por serviço
-      ServiceProperty[] properties = new ServiceProperty[1];
-      properties[0] = new ServiceProperty("offer.domain", "Demo Hello");
-      services = context.getOfferRegistry().findServices(properties);
+      ArrayListMultimap<String, String> properties = ArrayListMultimap
+        .create();
+      properties.put("offer.domain", "Demo Hello");
+      services = connection.offerRegistry().findServices(properties);
     }
     // login by password
     catch (AccessDenied e) {
@@ -190,10 +192,10 @@ public final class Client {
     }
 
     // analisa as ofertas encontradas
-    for (ServiceOfferDesc offerDesc : services) {
+    for (RemoteOffer offer : services) {
       try {
         org.omg.CORBA.Object helloObj =
-          offerDesc.service_ref.getFacet(HelloHelper.id());
+          offer.service_ref().getFacet(HelloHelper.id());
         if (helloObj == null) {
           System.out
             .println("o serviço encontrado não provê a faceta ofertada");

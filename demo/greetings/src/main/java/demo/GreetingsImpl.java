@@ -14,28 +14,28 @@ public class GreetingsImpl extends GreetingsPOA {
    * 
    * @author Tecgraf
    */
-  static public enum Language {
+  public enum Language {
     /** Inglês */
     English,
     /** Espanhol */
     Spanish,
     /** Português */
-    Portuguese;
-  };
+    Portuguese
+  }
 
   /**
    * Períodos em que se realiza o cumprimento.
    * 
    * @author Tecgraf
    */
-  static public enum Period {
+  public enum Period {
     /** Manhã */
     Morning,
     /** Tarde */
     Afternoon,
     /** Noite */
-    Night;
-  };
+    Night
+  }
 
   /** Contexto com o barramento. */
   private OpenBusContext context;

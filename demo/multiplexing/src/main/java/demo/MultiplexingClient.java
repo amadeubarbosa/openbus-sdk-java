@@ -1,14 +1,15 @@
 package demo;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.COMM_FAILURE;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.TRANSIENT;
 import org.omg.CORBA.ORBPackage.InvalidName;
 import org.omg.PortableServer.POA;
-import org.omg.PortableServer.POAHelper;
 import org.omg.PortableServer.POAManagerPackage.AdapterInactive;
 import org.omg.PortableServer.POAPackage.ServantNotActive;
 import org.omg.PortableServer.POAPackage.WrongPolicy;
@@ -16,6 +17,7 @@ import org.omg.PortableServer.POAPackage.WrongPolicy;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.RemoteOffer;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
@@ -26,10 +28,7 @@ import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
 import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Usage;
-import tecgraf.openbus.demo.util.Utils;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 
 /**
@@ -106,24 +105,25 @@ public final class MultiplexingClient {
       }
     };
     Runtime.getRuntime().addShutdownHook(shutdown);
-    // ativando o POA
-    final POA poa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
-    poa.the_POAManager().activate();
 
-    // recuperando o gerente de contexto de chamadas a barramentos 
+    // recuperando o gerente de contexto de chamadas a barramentos
     final OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
 
-    ServiceOfferDesc[] services;
+    // obtendo o RootPOA
+    final POA poa = context.poa();
+
+    List<RemoteOffer> services;
     try {
       // conecta-se ao barramento
-      context.setDefaultConnection(newLogin(context));
+      Connection conn = newLogin(context);
+      context.setDefaultConnection(conn);
       // busca por serviço
-      ServiceProperty[] properties =
-        new ServiceProperty[] {
-            new ServiceProperty("offer.domain", "Demo Multiplexing"),
-            new ServiceProperty("openbus.component.interface", TimerHelper.id()) };
-      services = context.getOfferRegistry().findServices(properties);
+      ArrayListMultimap<String, String> properties = ArrayListMultimap
+        .create();
+      properties.put("offer.domain", "Demo Multiplexing");
+      properties.put("openbus.component.interface", TimerHelper.id());
+      services = conn.offerRegistry().findServices(properties);
     }
     // login by password
     catch (AccessDenied e) {
@@ -179,14 +179,14 @@ public final class MultiplexingClient {
     }
 
     // analisa as ofertas encontradas
-    for (int i = 0; i < services.length; i++) {
+    for (int i = 0; i < services.size(); i++) {
       final int index = i;
-      final ServiceOfferDesc offerDesc = services[i];
+      final RemoteOffer offer = services.get(i);
       // utiliza a oferta em uma thread separada
       new Thread() {
         @Override
         public void run() {
-          Connection conn = null;
+          Connection conn;
           try {
             // conecta-se ao barramento
             conn = newLogin(context);
@@ -248,7 +248,7 @@ public final class MultiplexingClient {
           try {
             context.setCurrentConnection(conn);
             org.omg.CORBA.Object timerObj =
-              offerDesc.service_ref.getFacet(TimerHelper.id());
+              offer.service_ref().getFacet(TimerHelper.id());
             if (timerObj == null) {
               System.out
                 .println("o serviço encontrado não provê a faceta ofertada");
@@ -256,7 +256,7 @@ public final class MultiplexingClient {
             }
 
             CallbackImpl cb =
-              new CallbackImpl(context, conn.login().id, offerDesc);
+              new CallbackImpl(context, conn.login().id, offer);
             poa.servant_to_reference(cb);
             Timer timer = TimerHelper.narrow(timerObj);
             timer.newTrigger(index, cb._this());
@@ -289,11 +289,7 @@ public final class MultiplexingClient {
                 break;
             }
           }
-          catch (ServantNotActive e) {
-            // nunca deveria ser lançada, mas o Thread.run obriga a captura
-            System.err.println("erro ao ativar o servant");
-          }
-          catch (WrongPolicy e) {
+          catch (ServantNotActive | WrongPolicy e) {
             // nunca deveria ser lançada, mas o Thread.run obriga a captura
             System.err.println("erro ao ativar o servant");
           }
@@ -324,7 +320,7 @@ public final class MultiplexingClient {
                 "não há um login de '%s' válido no momento", entity));
             }
           }
-        };
+        }
       }.start();
 
     }
@@ -342,22 +338,22 @@ public final class MultiplexingClient {
 
   public static class CallbackImpl extends CallbackPOA {
 
-    private ServiceOfferDesc offerDesc;
+    private RemoteOffer offer;
     private String loginId;
     private OpenBusContext context;
 
     public CallbackImpl(OpenBusContext context, String loginId,
-      ServiceOfferDesc offerDesc) {
+      RemoteOffer offer) {
       this.context = context;
       this.loginId = loginId;
-      this.offerDesc = offerDesc;
+      this.offer = offer;
     }
 
     @Override
     public void notifyTrigger() {
       CallerChain chain = context.getCallerChain();
-      String timerId =
-        Utils.findProperty(offerDesc.properties, "openbus.offer.login");
+      String timerId = offer.properties(false).get("openbus.offer.login").get
+        (0);
       if (chain.caller().id.equals(timerId)) {
         System.out.println("notificação do timer esperado recebida!");
         if (chain.originators().length > 1

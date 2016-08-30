@@ -1,33 +1,27 @@
 package demo;
 
 import java.security.interfaces.RSAPrivateKey;
+import java.util.List;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.COMM_FAILURE;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.TRANSIENT;
 import org.omg.CORBA.ORBPackage.InvalidName;
 import org.omg.PortableServer.POA;
-import org.omg.PortableServer.POAHelper;
 import org.omg.PortableServer.POAManagerPackage.AdapterInactive;
 
 import scs.core.ComponentContext;
 import scs.core.ComponentId;
 import scs.core.exception.SCSException;
-import tecgraf.openbus.Connection;
-import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.*;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
-import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidProperties;
-import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidService;
-import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.core.v2_1.services.offer_registry.UnauthorizedFacets;
 import tecgraf.openbus.demo.util.Usage;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.security.Cryptography;
@@ -101,8 +95,7 @@ public class CallChainProxy {
 
     // criando o serviço a ser ofertado
     // - ativando o POA
-    POA poa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
-    poa.the_POAManager().activate();
+    POA poa = context.poa();
     // - construindo o componente
     ComponentId id =
       new ComponentId("Messenger", (byte) 1, (byte) 0, (byte) 0, "java");
@@ -114,31 +107,35 @@ public class CallChainProxy {
     Connection conn = context.connectByAddress(host, port);
     context.setDefaultConnection(conn);
 
+    LocalOffer localOffer;
     boolean failed = true;
     try {
       // autentica-se no barramento
-      conn.loginByCertificate(entity, privateKey);
+      conn.loginByPrivateKey(entity, privateKey);
       // recupera o serviço de registro de ofertas
-      OfferRegistry offerRegistry = context.getOfferRegistry();
+      OfferRegistry offerRegistry = conn.offerRegistry();
       // buscando serviço ofertado
-      ServiceProperty[] findProperties =
-        new ServiceProperty[] {
-            new ServiceProperty("offer.role", "actual messenger"),
-            new ServiceProperty("offer.domain", "Demo Call Chain"),
-            new ServiceProperty("openbus.component.interface", MessengerHelper
-              .id()) };
-      ServiceOfferDesc[] offers = offerRegistry.findServices(findProperties);
+      ArrayListMultimap<String, String> findProperties = ArrayListMultimap
+        .create();
+      findProperties.put("offer.role", "actual messenger");
+      findProperties.put("offer.domain", "Demo Call Chain");
+      findProperties.put("openbus.component.interface", MessengerHelper.id());
+      List<RemoteOffer> offers = offerRegistry.findServices(findProperties);
       proxy.setOffers(offers);
 
       // registrando serviço no barramento
-      ServiceProperty[] serviceProperties =
-        new ServiceProperty[] {
-            new ServiceProperty("offer.role", "proxy messenger"),
-            new ServiceProperty("offer.domain", "Demo Call Chain") };
-
-      offerRegistry.registerService(component.getIComponent(),
+      ArrayListMultimap<String, String> serviceProperties = ArrayListMultimap
+        .create();
+      serviceProperties.put("offer.role", "proxy messenger");
+      serviceProperties.put("offer.domain", "Demo Call Chain");
+      localOffer = offerRegistry.registerService(component.getIComponent(),
         serviceProperties);
-      failed = false;
+      RemoteOffer myOffer = localOffer.remoteOffer(60000, 0);
+      if (myOffer != null) {
+        failed = false;
+      } else {
+        localOffer.remove();
+      }
     }
     // login by certificate
     catch (AccessDenied e) {
@@ -153,34 +150,6 @@ public class CallChainProxy {
     catch (WrongEncoding e) {
       System.err
         .println("incompatibilidade na codifição de informação para o barramento");
-    }
-    // register
-    catch (UnauthorizedFacets e) {
-      StringBuffer interfaces = new StringBuffer();
-      for (String facet : e.facets) {
-        interfaces.append("\n  - ");
-        interfaces.append(facet);
-      }
-      System.err
-        .println(String
-          .format(
-            "a entidade '%s' não foi autorizada pelo administrador do barramento a ofertar os serviços: %s",
-            entity, interfaces.toString()));
-    }
-    catch (InvalidService e) {
-      System.err
-        .println("o serviço ofertado apresentou alguma falha durante o registro.");
-    }
-    catch (InvalidProperties e) {
-      StringBuffer props = new StringBuffer();
-      for (ServiceProperty prop : e.properties) {
-        props.append("\n  - ");
-        props.append(String.format("name = %s, value = %s", prop.name,
-          prop.value));
-      }
-      System.err.println(String.format(
-        "tentativa de registrar serviço com propriedades inválidas: %s", props
-          .toString()));
     }
     // bus core
     catch (ServiceFailure e) {
@@ -200,8 +169,7 @@ public class CallChainProxy {
         System.err.println(String.format(
           "não há um login de '%s' válido no momento", entity));
       }
-    }
-    finally {
+    } finally {
       if (failed) {
         try {
           context.getCurrentConnection().logout();
@@ -228,6 +196,5 @@ public class CallChainProxy {
         System.exit(1);
       }
     }
-
   }
 }

@@ -1,12 +1,15 @@
 package demo;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.COMM_FAILURE;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.TRANSIENT;
 import org.omg.CORBA.ORBPackage.InvalidName;
 
+import tecgraf.openbus.Connection;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.RemoteOffer;
 import tecgraf.openbus.core.ORBInitializer;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
@@ -17,12 +20,12 @@ import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
 import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.demo.util.Usage;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import demo.GreetingsImpl.Language;
 import demo.GreetingsImpl.Period;
+
+import java.util.List;
 
 /**
  * Cliente do demo Greetings
@@ -96,19 +99,18 @@ public final class GreetingsClient {
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     // conectando ao barramento.
-    context.setDefaultConnection(context.connectByAddress(host, port));
+    Connection conn = context.connectByAddress(host, port);
+    context.setDefaultConnection(conn);
 
-    ServiceOfferDesc[] services;
+    List<RemoteOffer> services;
     try {
       // autentica-se no barramento
-      context.getCurrentConnection().loginByPassword(entity,
-        password.getBytes(), domain);
+      conn.loginByPassword(entity, password.getBytes(), domain);
       // busca por serviço
-      ServiceProperty[] properties = new ServiceProperty[2];
-      properties[0] = new ServiceProperty("offer.domain", "Demo Greetings");
-      properties[1] =
-        new ServiceProperty("greetings.language", language.name());
-      services = context.getOfferRegistry().findServices(properties);
+      ArrayListMultimap<String, String> properties = ArrayListMultimap.create();
+      properties.put("offer.domain", "Demo Greetings");
+      properties.put("greetings.language", language.name());
+      services = conn.offerRegistry().findServices(properties);
     }
     // login by password
     catch (AccessDenied e) {
@@ -164,12 +166,12 @@ public final class GreetingsClient {
     }
 
     // analisa as ofertas encontradas
-    for (ServiceOfferDesc offerDesc : services) {
+    for (RemoteOffer offer : services) {
       try {
         for (Period period : Period.values()) {
           String name = "Good" + period.name();
           org.omg.CORBA.Object greetingObj =
-            offerDesc.service_ref.getFacetByName(name);
+            offer.service_ref().getFacetByName(name);
           if (greetingObj == null) {
             System.out.println("o serviço encontrado não provê a faceta "
               + name);
