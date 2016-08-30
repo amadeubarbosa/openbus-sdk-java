@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.ORBPackage.InvalidName;
 import org.omg.IOP.Codec;
@@ -17,12 +18,10 @@ import org.omg.IOP.CodecFactoryPackage.UnknownEncoding;
 
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
+import tecgraf.openbus.OfferRegistry;
+import tecgraf.openbus.RemoteOffer;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
-import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 
 /**
  * Métodos utilitários sobre uso da biblioteca ou sobre conceitos OpenBus
@@ -32,30 +31,13 @@ import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 public class LibUtils {
 
   /**
-   * Busca por uma propriedade dentro da lista de propriedades
-   * 
-   * @param props a lista de propriedades
-   * @param key a chave da propriedade buscada
-   * @return o valor da propriedade ou <code>null</code> caso não encontrada
-   */
-  static public String findProperty(ServiceProperty[] props, String key) {
-    for (int i = 0; i < props.length; i++) {
-      ServiceProperty property = props[i];
-      if (property.name.equals(key)) {
-        return property.value;
-      }
-    }
-    return null;
-  }
-
-  /**
    * Converte uma cadeia para uma representação textual.
    * 
    * @param chain a cadeia
    * @return uma representação textual da mesma.
    */
   static public String chain2str(CallerChain chain) {
-    StringBuffer buffer = new StringBuffer();
+    StringBuilder buffer = new StringBuilder();
     for (LoginInfo loginInfo : chain.originators()) {
       buffer.append(loginInfo.entity);
       buffer.append("->");
@@ -116,9 +98,9 @@ public class LibUtils {
     /** o orb */
     private ORB orb;
     /** lista de conexões a serem liberadas */
-    private List<Connection> conns = new ArrayList<Connection>();
+    private List<Connection> conns = new ArrayList<>();
     /** lista de ofertas a serem liberadas */
-    private List<ServiceOffer> offers = new ArrayList<ServiceOffer>();
+    private List<RemoteOffer> offers = new ArrayList<>();
 
     /**
      * Construtor
@@ -132,7 +114,7 @@ public class LibUtils {
     @Override
     public void run() {
 
-      for (ServiceOffer offer : this.offers) {
+      for (RemoteOffer offer : this.offers) {
         try {
           offer.remove();
         }
@@ -167,7 +149,7 @@ public class LibUtils {
      * 
      * @param offer a oferta
      */
-    public void addOffer(ServiceOffer offer) {
+    public void addOffer(RemoteOffer offer) {
       this.offers.add(offer);
     }
 
@@ -186,10 +168,10 @@ public class LibUtils {
    * @return ofertas encontradas na busca.
    * @throws ServiceFailure
    */
-  public static List<ServiceOfferDesc> findOffer(OfferRegistry offers,
-    ServiceProperty[] search, int count, int tries, int interval)
-    throws ServiceFailure {
-    List<ServiceOfferDesc> found = new ArrayList<ServiceOfferDesc>();
+  public static List<RemoteOffer> findOffer(OfferRegistry offers,
+    ArrayListMultimap<String, String> search, int count, int tries,
+    int interval) throws ServiceFailure {
+    List<RemoteOffer> found = new ArrayList<>();
     for (int i = 0; i < tries; i++) {
       found.clear();
       try {
@@ -198,16 +180,15 @@ public class LibUtils {
       catch (InterruptedException e1) {
         // continue...
       }
-      ServiceOfferDesc[] services = offers.findServices(search);
-      if (services.length > 0) {
-        for (ServiceOfferDesc offerDesc : services) {
+      List<RemoteOffer> services = offers.findServices(search);
+      if (services.size() > 0) {
+        for (RemoteOffer offer : services) {
           try {
-            if (!offerDesc.service_ref._non_existent()) {
-              found.add(offerDesc);
+            if (!offer.service_ref()._non_existent()) {
+              found.add(offer);
             }
           }
-          catch (Exception e) {
-            continue;
+          catch (Exception ignored) {
           }
         }
       }
@@ -215,12 +196,10 @@ public class LibUtils {
         return found;
       }
     }
-    StringBuffer buffer = new StringBuffer();
-    for (ServiceOfferDesc desc : found) {
-      String name =
-        LibUtils.findProperty(desc.properties, "openbus.offer.entity");
-      String login =
-        LibUtils.findProperty(desc.properties, "openbus.offer.login");
+    StringBuilder buffer = new StringBuilder();
+    for (RemoteOffer offer : found) {
+      String name = offer.properties(false).get("openbus.offer.entity").get(0);
+      String login = offer.properties(false).get("openbus.offer.login").get(0);
       buffer.append(String.format("\n - %s (%s)", name, login));
     }
     String msg =

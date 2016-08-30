@@ -14,12 +14,6 @@
     <url>http://www.tecgraf.puc-rio.br</url>
   </organization>
 
-  <scm>
-    <url>${scm.baseurl}/sdk/java/trunk</url>
-    <connection>scm:svn:${scm.baseurl}/sdk/java/trunk</connection>
-    <developerConnection>scm:svn:${scm.baseurl}/sdk/java/trunk</developerConnection>
-  </scm>
-
   <properties>
     <!-- versions -->
     <java.version>1.8</java.version>
@@ -38,8 +32,14 @@
     <project.build.sourceEncoding>ISO-8859-1</project.build.sourceEncoding>
     <nexus.url>http://maven.tecgraf.puc-rio.br:8081/nexus/content</nexus.url>
     <site.url>${nexus.url}/sites/site/openbus</site.url>
-    <scm.baseurl>https://subversion.tecgraf.puc-rio.br/engdist/openbus</scm.baseurl>
+    <scm.baseurl>https://git.tecgraf.puc-rio.br/openbus/openbus-sdk-java</scm.baseurl>
   </properties>
+
+  <scm>
+    <connection>scm:git:${scm.baseurl}.git</connection>
+    <developerConnection>scm:git:${scm.baseurl}.git</developerConnection>
+    <url>${scm.baseurl}</url>
+  </scm>
 
   <distributionManagement>
     <repository>
@@ -228,14 +228,6 @@
       <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
       <timezone>-3</timezone>
     </developer>
-    <developer>
-      <id>vgpinheiro</id>
-      <name>Vinicius Gama Pinheiro</name>
-      <email>vgpinheiro@tecgraf.puc-rio.br</email>
-      <organization>Tecgraf/PUC-Rio</organization>
-      <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
-      <timezone>-3</timezone>
-    </developer>
   </developers>
 
   <contributors>
@@ -281,6 +273,9 @@
     </contributor>
     <contributor>
       <name>Tadeu Martins Chamuinho Bastos</name>
+    </contributor>
+    <contributor>
+      <name>Vinicius Gama Pinheiro</name>
     </contributor>
     <contributor>
       <name>Todos os membros da lista de usuários</name>
