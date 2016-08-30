@@ -184,7 +184,7 @@ public class LibUtils {
       if (services.size() > 0) {
         for (RemoteOffer offer : services) {
           try {
-            if (!offer.service_ref()._non_existent()) {
+            if (!offer.service()._non_existent()) {
               found.add(offer);
             }
           }

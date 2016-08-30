@@ -54,7 +54,7 @@ public class Forwarding {
       LibUtils.findOffer(offers, messengerProps, 1, 10, 1);
 
     Messenger messenger =
-      MessengerHelper.narrow(services.get(0).service_ref()
+      MessengerHelper.narrow(services.get(0).service()
         .getFacet(MessengerHelper.id()));
 
     ForwarderImpl forwarderServant = new ForwarderImpl(context);

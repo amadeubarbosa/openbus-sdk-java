@@ -171,7 +171,7 @@ public final class GreetingsClient {
         for (Period period : Period.values()) {
           String name = "Good" + period.name();
           org.omg.CORBA.Object greetingObj =
-            offer.service_ref().getFacetByName(name);
+            offer.service().getFacetByName(name);
           if (greetingObj == null) {
             System.out.println("o serviço encontrado não provê a faceta "
               + name);

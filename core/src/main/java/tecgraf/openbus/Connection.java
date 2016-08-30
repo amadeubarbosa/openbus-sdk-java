@@ -5,12 +5,10 @@ import java.security.interfaces.RSAPrivateKey;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 
-import org.omg.PortableInterceptor.Current;
 import org.omg.PortableServer.POA;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.*;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
-import tecgraf.openbus.exception.InvalidEncodedStream;
 import tecgraf.openbus.exception.InvalidLoginProcess;
 import tecgraf.openbus.exception.WrongBus;
 

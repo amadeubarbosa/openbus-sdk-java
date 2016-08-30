@@ -63,7 +63,7 @@ public class Client {
         logger.fine(String
           .format("found offer from %s on bus %s", offer.properties(false)
             .get("openbus.offer.entity"), conn.busid()));
-        org.omg.CORBA.Object obj = offer.service_ref().getFacet(HelloHelper.id
+        org.omg.CORBA.Object obj = offer.service().getFacet(HelloHelper.id
           ());
         Hello hello = HelloHelper.narrow(obj);
         String expected = String.format("Hello %s@%s!", login, conn.busid());

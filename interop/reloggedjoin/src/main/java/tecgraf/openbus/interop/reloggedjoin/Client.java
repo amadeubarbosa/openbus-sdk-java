@@ -66,7 +66,7 @@ public final class Client {
     for (RemoteOffer offer : services) {
       String found = offer.properties(false).get("openbus.offer.entity").get(0);
       logger.fine("Entidade encontrada: " + found);
-      org.omg.CORBA.Object helloObj = offer.service_ref().getFacetByName
+      org.omg.CORBA.Object helloObj = offer.service().getFacetByName
         ("Hello");
       if (helloObj == null) {
         logger.fine("Não foi possível encontrar uma faceta com esse nome.");

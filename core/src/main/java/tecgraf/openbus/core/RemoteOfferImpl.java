@@ -31,7 +31,7 @@ class RemoteOfferImpl implements RemoteOffer {
     // .owner(), evito fazer uma chamada remota
     this.owner = OfferRegistryImpl.getOwnerFromOffer(offer);
     this.properties = convertPropertiesToHashMap(offer.properties);
-    this.conn = registry.conn();
+    this.conn = registry.connection();
     this.context = this.conn.context();
   }
 
@@ -41,7 +41,7 @@ class RemoteOfferImpl implements RemoteOffer {
   }
 
   @Override
-  public IComponent service_ref() {
+  public IComponent service() {
     synchronized (lock) {
       return offer != null ? offer.service_ref : null;
     }

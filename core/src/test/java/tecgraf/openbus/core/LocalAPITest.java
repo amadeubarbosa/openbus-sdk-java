@@ -3,10 +3,6 @@ package tecgraf.openbus.core;
 import java.io.IOException;
 import java.util.*;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-
 import com.google.common.collect.ArrayListMultimap;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -22,6 +18,7 @@ import scs.core.IComponent;
 import scs.core.IMetaInterfaceHelper;
 import scs.core.exception.SCSException;
 import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.core.v2_1.OctetSeqHolder;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.UnauthorizedOperation;
 import tecgraf.openbus.core.v2_1.services.access_control.*;
@@ -36,6 +33,8 @@ import tecgraf.openbus.util.Builder;
 import tecgraf.openbus.utils.Configs;
 import tecgraf.openbus.utils.Utils;
 
+import static org.junit.Assert.*;
+
 public class LocalAPITest {
 
   //private static String host;
@@ -43,6 +42,8 @@ public class LocalAPITest {
   private static String ref;
   private static String entity;
   private static byte[] password;
+  private static String admin;
+  private static byte[] adminPsw;
   private static String domain;
 
   @BeforeClass
@@ -55,9 +56,11 @@ public class LocalAPITest {
     entity = configs.user;
     password = configs.password;
     domain = configs.domain;
+    admin = configs.admin;
+    adminPsw = configs.admpsw;
   }
 
-  private Connection loginByPassword() throws ServantNotActive,
+  private Connection loginByPassword(boolean beAdmin) throws ServantNotActive,
     WrongPolicy, InvalidName, AdapterInactive, WrongEncoding, AlreadyLoggedIn, ServiceFailure, UnknownDomain, TooManyAttempts, AccessDenied, IOException {
     ORB orb = ORBInitializer.initORB();
     OpenBusContext context =
@@ -65,7 +68,11 @@ public class LocalAPITest {
     Connection localConn = context.connectByReference(orb.string_to_object(new String(Utils.readFile(ref))));
     context.onCallDispatch((context1, busid, loginId, object_id, operation)
       -> localConn);
-    localConn.loginByPassword(entity, password, domain);
+    if (beAdmin) {
+      localConn.loginByPassword(admin, adminPsw, domain);
+    } else {
+      localConn.loginByPassword(entity, password, domain);
+    }
     return localConn;
   }
 
@@ -73,7 +80,7 @@ public class LocalAPITest {
     InvalidName, AdapterInactive, SCSException, ServantNotActive,
     UnauthorizedFacets, WrongPolicy, InvalidService, InvalidProperties,
     ServiceFailure {
-    ComponentContext component = Builder.buildComponent(offers.conn().context()
+    ComponentContext component = Builder.buildComponent(offers.connection().context()
       .orb());
     ArrayListMultimap<String, String> properties = ArrayListMultimap.create();
     properties.put("offer.domain", "testing");
@@ -84,8 +91,8 @@ public class LocalAPITest {
   public void loginObserverTest() throws WrongPolicy, AdapterInactive,
     AlreadyLoggedIn, ServiceFailure, AccessDenied, ServantNotActive,
     TooManyAttempts, UnknownDomain, WrongEncoding, InvalidName, InvalidLogins, InterruptedException, IOException {
-    Connection conn = loginByPassword();
-    Connection conn2 = loginByPassword();
+    Connection conn = loginByPassword(false);
+    Connection conn2 = loginByPassword(false);
     LoginRegistry logins = conn.loginRegistry();
     final LoginSubscription sub;
     final IdEqualityChecker ids = new IdEqualityChecker();
@@ -130,11 +137,37 @@ public class LocalAPITest {
     ServantNotActive, AdapterInactive, InvalidService, SCSException,
     UnauthorizedFacets, InvalidProperties, ServiceFailure,
     UnauthorizedOperation, InterruptedException, TooManyAttempts, AlreadyLoggedIn, AccessDenied, WrongEncoding, UnknownDomain, IOException {
-    Connection conn = loginByPassword();
+    Connection conn = loginByPassword(false);
     LocalOffer offer = buildAndRegister(conn.offerRegistry());
     RemoteOffer remote = offer.remoteOffer(1000, 0);
     remote.remove();
     conn.logout();
+  }
+
+  @Test
+  public void allLoginsTest() throws IOException, WrongPolicy,
+    AdapterInactive, AlreadyLoggedIn, ServiceFailure, AccessDenied,
+    ServantNotActive, TooManyAttempts, UnknownDomain, WrongEncoding,
+    InvalidName, UnauthorizedOperation {
+    Connection conn = loginByPassword(true);
+    LoginRegistry loginRegistry = conn.loginRegistry();
+    List<LoginInfo> logins = loginRegistry.allLogins();
+    assertNotNull(logins);
+    assertTrue(logins.size() > 0);
+  }
+
+  @Test
+  public void loginInfoTest() throws IOException, WrongPolicy,
+    AdapterInactive, AlreadyLoggedIn, ServiceFailure, AccessDenied,
+    ServantNotActive, TooManyAttempts, UnknownDomain, WrongEncoding,
+    InvalidName, UnauthorizedOperation, InvalidLogins {
+    Connection conn = loginByPassword(false);
+    LoginRegistry loginRegistry = conn.loginRegistry();
+    OctetSeqHolder pubKey = new OctetSeqHolder();
+    LoginInfo login = loginRegistry.loginInfo(conn.login().id, pubKey);
+    assertNotNull(login);
+    assertEquals(conn.login().id, login.id);
+    assertEquals(conn.login().entity, login.entity);
   }
 
   @Test
@@ -143,7 +176,7 @@ public class LocalAPITest {
     InvalidProperties, ServiceFailure, InterruptedException, TooManyAttempts,
     AlreadyLoggedIn, AccessDenied, WrongEncoding, UnknownDomain,
     UnauthorizedOperation, IOException {
-    Connection conn = loginByPassword();
+    Connection conn = loginByPassword(false);
     OfferRegistry offers = conn.offerRegistry();
     LocalOffer anOffer = buildAndRegister(offers);
     anOffer.remoteOffer(1000, 0);
@@ -156,7 +189,7 @@ public class LocalAPITest {
     // conexão corrente para a chamada getFacet abaixo
     conn.context().setCurrentConnection(conn);
     for (RemoteOffer offer : foundServices) {
-      IComponent ic = offer.service_ref();
+      IComponent ic = offer.service();
       try {
         IMetaInterfaceHelper.narrow(ic.getFacet(IMetaInterfaceHelper.id()));
         foundOne = true;
@@ -173,7 +206,7 @@ public class LocalAPITest {
       TooManyAttempts, UnknownDomain, WrongEncoding, InvalidName,
       InvalidService, SCSException, UnauthorizedFacets, InvalidProperties,
       InterruptedException, IOException {
-      Connection conn = loginByPassword();
+      Connection conn = loginByPassword(false);
       OfferRegistry offers = conn.offerRegistry();
       ArrayListMultimap<String, String> properties = ArrayListMultimap.create();
       properties.put("offer.domain", "testing");
@@ -203,7 +236,7 @@ public class LocalAPITest {
       TooManyAttempts, UnknownDomain, WrongEncoding, InvalidName,
       InvalidService, SCSException, UnauthorizedFacets, InvalidProperties,
       InterruptedException, UnauthorizedOperation, IOException {
-      Connection conn = loginByPassword();
+      Connection conn = loginByPassword(false);
       OfferRegistry offers = conn.offerRegistry();
       LocalOffer anOffer = buildAndRegister(offers);
       final RemoteOffer remote = anOffer.remoteOffer(3000, 0);

@@ -69,7 +69,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
   }
 
   @Override
-  public Connection conn() {
+  public Connection connection() {
     return conn;
   }
 

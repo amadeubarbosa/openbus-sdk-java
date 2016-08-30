@@ -248,7 +248,7 @@ public final class MultiplexingClient {
           try {
             context.setCurrentConnection(conn);
             org.omg.CORBA.Object timerObj =
-              offer.service_ref().getFacet(TimerHelper.id());
+              offer.service().getFacet(TimerHelper.id());
             if (timerObj == null) {
               System.out
                 .println("o serviço encontrado não provê a faceta ofertada");

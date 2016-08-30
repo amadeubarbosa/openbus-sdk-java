@@ -80,7 +80,7 @@ class OfferRegistryImpl implements OfferRegistry {
   }
 
   @Override
-  public Connection conn() {
+  public Connection connection() {
     return conn;
   }
 

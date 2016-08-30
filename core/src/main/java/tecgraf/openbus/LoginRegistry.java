@@ -21,7 +21,7 @@ public interface LoginRegistry {
    * Fornece a conexão utilizada para as chamadas remotas desse registro.
    * @return A conexão.
    */
-  Connection conn();
+  Connection connection();
 
   /**
    * Obtém uma lista de todos os logins ativos no barramento. Essa operação

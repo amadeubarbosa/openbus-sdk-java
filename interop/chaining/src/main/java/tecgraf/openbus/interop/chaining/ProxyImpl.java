@@ -57,7 +57,7 @@ public class ProxyImpl extends HelloProxyPOA {
 
     for (RemoteOffer offer : descs) {
       org.omg.CORBA.Object helloObj =
-        offer.service_ref().getFacet(HelloHelper.id());
+        offer.service().getFacet(HelloHelper.id());
       if (helloObj == null) {
         continue;
       }

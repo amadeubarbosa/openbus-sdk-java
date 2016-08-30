@@ -51,7 +51,7 @@ public final class Client {
 
     for (RemoteOffer offer : services) {
       String found = offer.properties(false).get("openbus.offer.entity").get(0);
-      org.omg.CORBA.Object helloObj = offer.service_ref().getFacetByName
+      org.omg.CORBA.Object helloObj = offer.service().getFacetByName
         ("Hello");
       if (helloObj == null) {
         continue;

@@ -6,11 +6,7 @@ import org.omg.CORBA.ORB;
 import org.omg.PortableInterceptor.Current;
 
 import org.omg.PortableServer.POA;
-import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
-import tecgraf.openbus.core.v2_1.services.access_control.InvalidToken;
-import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
-import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.exception.InvalidEncodedStream;
 import tecgraf.openbus.exception.InvalidPropertyValue;
 
@@ -77,7 +73,7 @@ public interface OpenBusContext {
    * barramento. Essa callback deve devolver a conexão a ser utilizada para para
    * receber a chamada. A conexão utilizada para receber a chamada será a única
    * conexão através do qual novas chamadas aninhadas à chamada recebida poderão
-   * ser feitas (veja a operação {@link Connection#joinChain}).
+   * ser feitas (veja a operação {@link OpenBusContext#joinChain}).
    * <p>
    * Se o objeto de callback for definido como <code>null</code> ou devolver
    * <code>null</code>, a conexão padrão é utilizada para receber achamada, caso

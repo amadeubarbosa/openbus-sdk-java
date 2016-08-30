@@ -148,7 +148,7 @@ public final class CallChainClient {
     for (RemoteOffer offer : offers) {
       try {
         org.omg.CORBA.Object msgObj =
-          offer.service_ref().getFacet(MessengerHelper.id());
+          offer.service().getFacet(MessengerHelper.id());
         if (msgObj == null) {
           System.out
             .println("o serviço encontrado não provê a faceta ofertada");

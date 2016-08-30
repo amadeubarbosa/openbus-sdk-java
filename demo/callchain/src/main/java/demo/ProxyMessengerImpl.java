@@ -36,7 +36,7 @@ public class ProxyMessengerImpl extends MessengerPOA {
     for (RemoteOffer offer : this.offers) {
       boolean failed = true;
       try {
-        Object facet = offer.service_ref().getFacet(MessengerHelper.id());
+        Object facet = offer.service().getFacet(MessengerHelper.id());
         Messenger messenger = MessengerHelper.narrow(facet);
         messenger.showMessage(message);
         failed = false;

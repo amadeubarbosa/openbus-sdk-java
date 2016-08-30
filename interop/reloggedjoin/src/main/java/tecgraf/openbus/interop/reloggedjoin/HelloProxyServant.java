@@ -66,7 +66,7 @@ public final class HelloProxyServant extends HelloPOA {
         .get(0);
       logger.fine("serviço da entidade encontrado: " + found);
       org.omg.CORBA.Object helloObj =
-        offer.service_ref().getFacetByName("Hello");
+        offer.service().getFacetByName("Hello");
       Hello hello = HelloHelper.narrow(helloObj);
       return hello.sayHello();
     }

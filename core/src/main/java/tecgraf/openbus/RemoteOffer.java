@@ -28,7 +28,7 @@ public interface RemoteOffer {
    *
    * @return A referência.
    */
-  IComponent service_ref();
+  IComponent service();
 
   /**
    * Fornece o mapa de propriedades associadas à oferta remota. O mapa pode

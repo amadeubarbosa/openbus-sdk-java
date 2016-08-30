@@ -2,8 +2,6 @@ package tecgraf.openbus;
 
 import com.google.common.collect.ArrayListMultimap;
 
-import java.util.Map;
-
 /**
  * Representa uma inscrição de um observador de registro de oferta de serviço.
  * Essa inscrição será mantida no barramento pelo registro de ofertas do qual se

@@ -19,7 +19,7 @@ public interface OfferRegistry {
    * Fornece a conexão utilizada para as chamadas remotas desse registro.
    * @return A conexão.
    */
-  Connection conn();
+  Connection connection();
 
   /**
    * Solicita que seja registrado um serviço, representado por um componente

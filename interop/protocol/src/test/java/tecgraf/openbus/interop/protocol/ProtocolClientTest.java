@@ -96,8 +96,8 @@ public final class ProtocolClientTest {
     if (offers.size() > 0) {
       for (RemoteOffer offer : offers) {
         try {
-          if (!offer.service_ref()._non_existent()) {
-            IComponent scs = offer.service_ref();
+          if (!offer.service()._non_existent()) {
+            IComponent scs = offer.service();
             Object facet = scs.getFacet(ServerHelper.id());
             if (facet != null) {
               return ServerHelper.narrow(facet);

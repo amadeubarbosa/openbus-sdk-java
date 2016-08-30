@@ -27,5 +27,4 @@ public interface SharedAuthSecret {
    * ser mais utilizado.
    */
   void cancel();
-
-};
+}

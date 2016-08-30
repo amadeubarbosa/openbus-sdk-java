@@ -226,7 +226,7 @@ public final class DedicatedClockClient {
       for (RemoteOffer offer : services) {
         try {
           org.omg.CORBA.Object helloObj =
-            offer.service_ref().getFacet(ClockHelper.id());
+            offer.service().getFacet(ClockHelper.id());
           if (helloObj == null) {
             System.out
               .println("o serviço encontrado não provê a faceta ofertada");

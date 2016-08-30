@@ -65,7 +65,7 @@ public final class Client {
 
     for (RemoteOffer offer : services) {
       org.omg.CORBA.Object msgObj =
-        offer.service_ref().getFacet(HelloProxyHelper.id());
+        offer.service().getFacet(HelloProxyHelper.id());
       if (msgObj == null) {
         continue;
       }

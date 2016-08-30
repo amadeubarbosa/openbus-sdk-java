@@ -71,15 +71,15 @@ public class Client {
         get("openbus.component.interface");
       for (String contract : contracts) {
         if (contract.equals(ForwarderHelper.id())) {
-          Object facet = offer.service_ref().getFacet(ForwarderHelper.id());
+          Object facet = offer.service().getFacet(ForwarderHelper.id());
           forwarder = ForwarderHelper.narrow(facet);
         }
         else if (contract.equals(MessengerHelper.id())) {
-          Object facet = offer.service_ref().getFacet(MessengerHelper.id());
+          Object facet = offer.service().getFacet(MessengerHelper.id());
           messenger = MessengerHelper.narrow(facet);
         }
         else if (contract.equals(BroadcasterHelper.id())) {
-          Object facet = offer.service_ref().getFacet(BroadcasterHelper.id());
+          Object facet = offer.service().getFacet(BroadcasterHelper.id());
           broadcaster = BroadcasterHelper.narrow(facet);
         }
       }
