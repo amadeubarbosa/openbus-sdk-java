@@ -31,31 +31,15 @@ public interface RemoteOffer {
   IComponent service();
 
   /**
-   * Fornece o mapa de propriedades associadas à oferta remota. O mapa pode
-   * ser atualizado caso o parâmetro update seja verdadeiro. Nesse caso, será
-   * realizada uma chamada remota bloqueante ao barramento. Caso contrário, o
-   * mapa corresponderá às propriedades obtidas na última atualização.
+   * Fornece o mapa de propriedades associadas à oferta remota. Realiza uma
+   * chamada remota bloqueante ao barramento.
    *
    * Alterações às propriedades também podem ser acompanhadas através de
    * observadores de ofertas.
    *
-   * @param update Indica se uma chamada remota ao barramento deve ser
-   *               realizada para a atualização do mapa de propriedades.
    * @return O mapa de propriedades.
    */
-  ArrayListMultimap<String, String> properties(boolean update);
-
-  /**
-   * Altera o mapa local de propriedades associadas à oferta. O mapa da
-   * oferta remota no barramento não é atualizado, e portanto não são
-   * realizadas chamadas remotas. Este método é útil para quando se recebe uma
-   * notificação de atualização através de um observador e se deseja
-   * atualizar objetos RemoteOffer diferentes mas referentes à mesma oferta no
-   * barramento.
-   *
-   * @param properties As novas propriedades para a oferta local.
-   */
-  void propertiesLocal(ArrayListMultimap<String, String> properties);
+  ArrayListMultimap<String, String> properties();
 
   /**
    * Altera o mapa de propriedades associadas à oferta remota. Realiza uma
@@ -70,7 +54,7 @@ public interface RemoteOffer {
    * @throws ServiceFailure Caso o registro de ofertas reporte alguma falha ao
    * realizar a operação.
    */
-  void propertiesRemote(ArrayListMultimap<String, String> properties) throws
+  void properties(ArrayListMultimap<String, String> properties) throws
     UnauthorizedOperation, InvalidProperties, ServiceFailure;
 
   /**

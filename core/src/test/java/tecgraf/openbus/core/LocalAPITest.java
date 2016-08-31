@@ -245,19 +245,21 @@ public class LocalAPITest {
       OfferObserver observer = new OfferObserver() {
         @Override
         public void propertiesChanged(RemoteOffer offer) {
-          assertTrue(Boolean.parseBoolean(offer.properties(false).get(
+          RemoteOfferImpl offerImpl = (RemoteOfferImpl)offer;
+          RemoteOfferImpl remoteImpl = (RemoteOfferImpl)remote;
+          assertTrue(Boolean.parseBoolean(offerImpl.properties(false).get(
             "offer.altered").get(0)));
           // testa props locais se foram atualizadas
-          assertTrue(remote.properties(false).entries().containsAll(offer
-            .properties(false).entries()));
+          assertTrue(remoteImpl.properties(false).entries().containsAll
+            (offerImpl.properties(false).entries()));
           // atualiza props locais manualmente
           ArrayListMultimap<String, String> updatedProps = ArrayListMultimap
-            .create(remote.properties(false));
-          remote.propertiesLocal(updatedProps);
-          assertTrue(remote.properties(false).entries().containsAll(offer
-            .properties(false).entries()));
+            .create(remoteImpl.properties(false));
+          remoteImpl.updateProperties(updatedProps);
+          assertTrue(remoteImpl.properties(false).entries().containsAll
+            (offerImpl.properties(false).entries()));
           // testa props locais atualizadas de acordo com o estado do barramento
-          assertTrue(remote.properties(true).entries().containsAll(offer
+          assertTrue(remoteImpl.properties(true).entries().containsAll(offerImpl
             .properties(false).entries()));
           // seta informação de offer id para checagem posterior
           ids.id1 = OfferRegistryImpl.getOfferIdFromProperties((
@@ -276,7 +278,7 @@ public class LocalAPITest {
       ArrayListMultimap<String, String> properties = ArrayListMultimap.create();
       properties.put("offer.domain", "testing");
       properties.put("offer.altered", "true");
-      remote.propertiesRemote(properties);
+      remote.properties(properties);
       Thread.sleep(1000);
       ids.id2 = OfferRegistryImpl.getOfferIdFromProperties((
         (RemoteOfferImpl)remote).offer());

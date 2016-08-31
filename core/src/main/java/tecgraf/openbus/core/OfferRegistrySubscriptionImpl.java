@@ -4,8 +4,6 @@ import com.google.common.collect.ArrayListMultimap;
 import tecgraf.openbus.OfferRegistryObserver;
 import tecgraf.openbus.OfferRegistrySubscription;
 
-import java.util.Map;
-
 /**
  * Representação local de uma inscrição de observação de registro de oferta
  *

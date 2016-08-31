@@ -48,35 +48,12 @@ class RemoteOfferImpl implements RemoteOffer {
   }
 
   @Override
-  public ArrayListMultimap<String, String> properties(boolean update) {
-    if (update) {
-      ServiceOfferDesc offer = offer();
-      if (offer != null) {
-        Connection prev = context.getCurrentConnection();
-        try {
-          context.setCurrentConnection(conn);
-          ServiceProperty[] props = offer.ref.properties();
-          synchronized (lock) {
-            properties = convertPropertiesToHashMap(props);
-            return properties;
-          }
-        } finally {
-          context.setCurrentConnection(prev);
-        }
-      }
-    }
-    synchronized (lock) {
-      return properties;
-    }
+  public ArrayListMultimap<String, String> properties() {
+    return properties(true);
   }
 
   @Override
-  public void propertiesLocal(ArrayListMultimap<String, String> properties) {
-    updateProperties(properties);
-  }
-
-  @Override
-  public void propertiesRemote(ArrayListMultimap<String, String> properties)
+  public void properties(ArrayListMultimap<String, String> properties)
     throws UnauthorizedOperation, InvalidProperties, ServiceFailure {
     ServiceOfferDesc offerDesc = offer();
     if (offerDesc == null || offerDesc.ref == null) {
@@ -118,6 +95,28 @@ class RemoteOfferImpl implements RemoteOffer {
   public OfferSubscription subscribeObserver(OfferObserver observer) throws
     ServantNotActive, WrongPolicy {
     return registry.subscribeToOffer(this, observer);
+  }
+
+  protected ArrayListMultimap<String, String> properties(boolean update) {
+    if (update) {
+      ServiceOfferDesc offer = offer();
+      if (offer != null) {
+        Connection prev = context.getCurrentConnection();
+        try {
+          context.setCurrentConnection(conn);
+          ServiceProperty[] props = offer.ref.properties();
+          synchronized (lock) {
+            properties = convertPropertiesToHashMap(props);
+            return properties;
+          }
+        } finally {
+          context.setCurrentConnection(prev);
+        }
+      }
+    }
+    synchronized (lock) {
+      return properties;
+    }
   }
 
   protected ServiceOfferDesc offer() {

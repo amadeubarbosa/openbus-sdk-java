@@ -189,23 +189,25 @@ public class MassiveConnectionTest {
         OfferObserver offerObserver = new OfferObserver() {
           @Override
           public void propertiesChanged(RemoteOffer offer) {
-            assertTrue(Boolean.parseBoolean(offer.properties(false).get(
+            RemoteOfferImpl offerImpl = (RemoteOfferImpl)offer;
+            RemoteOfferImpl remoteConn2Impl = (RemoteOfferImpl)remoteConn2;
+            assertTrue(Boolean.parseBoolean(offerImpl.properties(false).get(
               "offer.altered").get(0)));
             // testa props locais se foram atualizadas
-            assertTrue(remoteConn2.properties(false).entries().containsAll
-              (offer.properties(false).entries()));
+            assertTrue(remoteConn2Impl.properties(false).entries().containsAll
+              (offerImpl.properties(false).entries()));
             // atualiza props locais manualmente
             ArrayListMultimap<String, String> updatedProps =
-              ArrayListMultimap.create(remoteConn2.properties(false));
-            remoteConn2.propertiesLocal(updatedProps);
-            assertTrue(remoteConn2.properties(false).entries().containsAll(offer
-              .properties(false).entries()));
+              ArrayListMultimap.create(remoteConn2Impl.properties(false));
+            remoteConn2Impl.updateProperties(updatedProps);
+            assertTrue(remoteConn2Impl.properties(false).entries().containsAll
+              (offerImpl.properties(false).entries()));
             // testa props locais atualizadas de acordo com o estado do barramento
-            assertTrue(remoteConn2.properties(true).entries().containsAll(offer
-              .properties(false).entries()));
+            assertTrue(remoteConn2Impl.properties(true).entries().containsAll
+              (offerImpl.properties(false).entries()));
             // seta informação de offer id para checagem posterior
-            ids3.id1 = OfferRegistryImpl.getOfferIdFromProperties((
-              (RemoteOfferImpl)offer).offer());
+            ids3.id1 = OfferRegistryImpl.getOfferIdFromProperties(offerImpl
+              .offer());
             tempMutex.release();
           }
 
@@ -223,7 +225,7 @@ public class MassiveConnectionTest {
         Thread.sleep(sleepTime);
 
         props.put("offer.altered", "true");
-        remoteConn1.propertiesRemote(props);
+        remoteConn1.properties(props);
         mutex.acquire();
         ids3.id2 = OfferRegistryImpl.getOfferIdFromProperties((
           (RemoteOfferImpl)remoteConn1).offer());

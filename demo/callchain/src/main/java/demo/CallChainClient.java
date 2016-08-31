@@ -146,7 +146,9 @@ public final class CallChainClient {
 
     // analisa as ofertas encontradas
     for (RemoteOffer offer : offers) {
+      String offerRole = null;
       try {
+        offerRole = offer.properties().get("offer.role").get(0);
         org.omg.CORBA.Object msgObj =
           offer.service().getFacet(MessengerHelper.id());
         if (msgObj == null) {
@@ -161,13 +163,11 @@ public final class CallChainClient {
       // Demo
       catch (Unavailable e) {
         System.err.println(String.format(
-          "serviço com papel '%s' esta indisponível", offer.properties(false)
-            .get("offer.role")));
+          "serviço com papel '%s' esta indisponível", offerRole));
       }
       catch (Unauthorized e) {
         System.err.println(String.format(
-          "serviço com papel '%s' não autorizou a chamada", offer.properties
-            (false).get("offer.role")));
+          "serviço com papel '%s' não autorizou a chamada", offerRole));
       }
       // Serviço
       catch (TRANSIENT e) {

@@ -52,7 +52,7 @@ enum OpenBusProperty {
    * @param key nome da propriedade.
    * @param value valor padrão.
    */
-  private OpenBusProperty(String key, String value) {
+  OpenBusProperty(String key, String value) {
     this.key = key;
     this.defaultValue = value;
   }

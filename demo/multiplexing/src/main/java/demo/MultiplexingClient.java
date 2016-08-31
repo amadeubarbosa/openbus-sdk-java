@@ -338,7 +338,7 @@ public final class MultiplexingClient {
 
   public static class CallbackImpl extends CallbackPOA {
 
-    private RemoteOffer offer;
+    private String timerId;
     private String loginId;
     private OpenBusContext context;
 
@@ -346,14 +346,12 @@ public final class MultiplexingClient {
       RemoteOffer offer) {
       this.context = context;
       this.loginId = loginId;
-      this.offer = offer;
+      this.timerId = offer.properties().get("openbus.offer.login").get(0);
     }
 
     @Override
     public void notifyTrigger() {
       CallerChain chain = context.getCallerChain();
-      String timerId = offer.properties(false).get("openbus.offer.login").get
-        (0);
       if (chain.caller().id.equals(timerId)) {
         System.out.println("notificação do timer esperado recebida!");
         if (chain.originators().length > 1
