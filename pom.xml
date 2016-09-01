@@ -33,6 +33,18 @@
     <nexus.url>http://maven.tecgraf.puc-rio.br:8081/nexus/content</nexus.url>
     <site.url>${nexus.url}/sites/site/openbus</site.url>
     <scm.baseurl>https://git.tecgraf.puc-rio.br/openbus/openbus-sdk-java</scm.baseurl>
+    <v2_1.idlpath>D:\\tecgraf\\idl-links_2_1\\v2_1</v2_1.idlpath>
+    <v2_0.idlpath>D:\\tecgraf\\idl-links_2_1\\v2_0</v2_0.idlpath>
+    <scs.idlpath>D:\\tecgraf\\idl-links_2_1\\scs</scs.idlpath>
+    <openbus-sdk-idl-demo-callchain.idlpath>D:\\tecgraf\\openbus\\sdk\\idl\\demo\\callchain\\tags\\1_0</openbus-sdk-idl-demo-callchain.idlpath>
+    <openbus-sdk-idl-demo-clock.idlpath>D:\\tecgraf\\openbus\\sdk\\idl\\demo\\clock\\tags\\1_0</openbus-sdk-idl-demo-clock.idlpath>
+    <openbus-sdk-idl-demo-greetings.idlpath>D:\\tecgraf\\openbus\\sdk\\idl\\demo\\greetings\\tags\\1_0</openbus-sdk-idl-demo-greetings.idlpath>
+    <openbus-sdk-idl-demo-hello.idlpath>D:\\tecgraf\\openbus\\sdk\\idl\\demo\\hello\\tags\\1_0</openbus-sdk-idl-demo-hello.idlpath>
+    <openbus-sdk-idl-demo-multiplexing.idlpath>D:\\tecgraf\\openbus\\sdk\\idl\\demo\\multiplexing\\tags\\1_0</openbus-sdk-idl-demo-multiplexing.idlpath>
+    <openbus-sdk-idl-interop-basic.idlpath>D:\\tecgraf\\openbus\\sdk\\idl\\interop\\hello\\tags\\1_0</openbus-sdk-idl-interop-basic.idlpath>
+    <openbus-sdk-idl-interop-chaining.idlpath>D:\\tecgraf\\openbus\\sdk\\idl\\interop\\chaining\\tags\\1_0</openbus-sdk-idl-interop-chaining.idlpath>
+    <openbus-sdk-idl-interop-delegation.idlpath>D:\\tecgraf\\openbus\\sdk\\idl\\interop\\delegation\\tags\\1_0</openbus-sdk-idl-interop-delegation.idlpath>
+    <openbus-sdk-idl-interop-protocol.idlpath>D:\\tecgraf\\openbus\\sdk\\idl\\interop\\protocol\\tags\\1_0</openbus-sdk-idl-interop-protocol.idlpath>
   </properties>
 
   <scm>

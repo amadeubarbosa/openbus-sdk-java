@@ -1,26 +1,19 @@
-package tecgraf.openbus.retry;
+package tecgraf.openbus.core;
 
 import org.omg.CORBA.COMM_FAILURE;
 import org.omg.CORBA.OBJECT_NOT_EXIST;
 import org.omg.CORBA.SystemException;
+import tecgraf.openbus.retry.RetryContext;
 
 import java.util.concurrent.TimeUnit;
 
-public class LocalRetryContext extends RetryContext {
-
-  /**
-   * Construtor
-   */
-  public LocalRetryContext() {
-    super();
-  }
-
+class OpenBusRetryContext extends RetryContext {
   /**
    * Construtor
    *
    * @param delay tempo de espera entre tentativas
    */
-  public LocalRetryContext(long delay, TimeUnit unit) {
+  public OpenBusRetryContext(long delay, TimeUnit unit) {
     super(delay, unit);
   }
 

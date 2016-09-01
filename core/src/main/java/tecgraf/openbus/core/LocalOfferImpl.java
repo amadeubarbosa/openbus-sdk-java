@@ -1,24 +1,25 @@
 package tecgraf.openbus.core;
 
-import org.omg.CORBA.CompletionStatus;
-import org.omg.CORBA.NO_PERMISSION;
+import org.omg.CORBA.SystemException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scs.core.IComponent;
-import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_1.services.ServiceFailure;
+import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidProperties;
+import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidService;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.*;
 import tecgraf.openbus.RemoteOffer;
+import tecgraf.openbus.core.v2_1.services.offer_registry.UnauthorizedFacets;
+import tecgraf.openbus.exception.OpenBusInternalException;
 
-class LocalOfferImpl implements LocalOffer {
+import java.util.concurrent.TimeoutException;
+
+class LocalOfferImpl extends BusResource implements LocalOffer {
   public final IComponent service;
   public final ServiceProperty[] props;
   private final OfferRegistryImpl registry;
-  private RemoteOfferImpl remote;
-  private boolean loggedOut;
-  // Não vale a pena usar ReentrantLock pois só tenho uma condição; E não
-  // posso usar Monitor por causa do teste de loggedOut.
-  private final Object lock = new Object();
+  private RemoteOfferImpl remote = null;
   private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
   protected LocalOfferImpl(OfferRegistryImpl registry, IComponent service,
@@ -29,27 +30,20 @@ class LocalOfferImpl implements LocalOffer {
   }
 
   @Override
-  public RemoteOffer remoteOffer() {
-    synchronized (lock) {
-      // O while é necessário para retestar remote após o wait, antes de
-      // retornar, devido à possibilidade de sinais espúrios.
-      while (remote == null) {
-        checkLoggedOut();
-        try {
-          lock.wait();
-        } catch (InterruptedException e) {
-          logInterruptError(e);
-          Thread.currentThread().interrupt();
-          return null;
-        }
+  public RemoteOffer remoteOffer() throws ServiceFailure, InvalidService,
+    InvalidProperties, UnauthorizedFacets {
+    while (true) {
+      try {
+        return remoteOffer(Integer.MAX_VALUE);
+      } catch (TimeoutException ignored) {
       }
-      return remote;
     }
   }
 
   @Override
-  public RemoteOffer remoteOffer(long timeoutmillis, int nanos) {
-    if (timeoutmillis < 0) {
+  public RemoteOffer remoteOffer(long timeoutMillis) throws ServiceFailure,
+    InvalidService, InvalidProperties, UnauthorizedFacets, TimeoutException {
+    if (timeoutMillis < 0) {
       throw new IllegalArgumentException("O timeout deve ser positivo.");
     }
     synchronized (lock) {
@@ -57,17 +51,44 @@ class LocalOfferImpl implements LocalOffer {
       // retornar, devido à possibilidade de sinais espúrios. A contagem de
       // tempo abaixo pode ser altamente inacurada devido a preempções, mas o
       // parâmetro se refere ao tempo total passado, então não há problema.
-      while (remote == null && timeoutmillis > 0) {
+      // OBS: timeoutMillis não pode ser 0, senão wait aguardará
+      // indefinidamente.
+      while (remote == null && lastError == null && timeoutMillis >= 0) {
         long initial = System.currentTimeMillis();
+        if (cancelled) {
+          return null;
+        }
         checkLoggedOut();
         try {
-          lock.wait(timeoutmillis, nanos);
+          if (timeoutMillis > 0) {
+            lock.wait(timeoutMillis);
+          }
         } catch (InterruptedException e) {
-          logInterruptError(e);
+          logInterruptError(logger, e);
           Thread.currentThread().interrupt();
           return null;
         }
-        timeoutmillis -= System.currentTimeMillis() - initial;
+        timeoutMillis -= System.currentTimeMillis() - initial;
+      }
+      if (cancelled) {
+        return null;
+      }
+      if (remote == null) {
+        if (lastError == null) {
+          throw new TimeoutException("Não foi possível registrar/obter a oferta" +
+            " remota no tempo especificado.");
+        } else {
+          try {
+            throw lastError;
+          } catch (ServiceFailure | InvalidService | InvalidProperties |
+            UnauthorizedFacets | SystemException e) {
+            throw e;
+          } catch (Throwable e) {
+            throw new OpenBusInternalException("Exceção inesperada ao " +
+              "tentar registrar uma oferta. Por favor contacte o " +
+              "administrador do sistema e informe-o sobre este erro.", e);
+          }
+        }
       }
       return remote;
     }
@@ -88,16 +109,23 @@ class LocalOfferImpl implements LocalOffer {
   protected void remote(RemoteOfferImpl remote) {
     synchronized (lock) {
       this.remote = remote;
+      this.lastError = null;
       this.loggedOut = false;
       lock.notifyAll();
     }
   }
 
-  protected void loggedOut() {
+  protected void error(Exception error) {
     synchronized (lock) {
       this.remote = null;
-      this.loggedOut = true;
-      lock.notifyAll();
+      super.error(error);
+    }
+  }
+
+  protected void loggedOut() {
+    synchronized (lock) {
+      super.loggedOut();
+      removeOffer();
     }
   }
 
@@ -107,19 +135,9 @@ class LocalOfferImpl implements LocalOffer {
         remote.removed();
         remote = null;
       }
+      lastError = null;
+      cancelled = true;
+      lock.notifyAll();
     }
-  }
-
-  private void checkLoggedOut() {
-    synchronized (lock) {
-      if (loggedOut) {
-        throw new NO_PERMISSION(NoLoginCode.value, CompletionStatus
-          .COMPLETED_NO);
-      }
-    }
-  }
-
-  private void logInterruptError(Exception e) {
-    logger.error("Interrupção recebida ao aguardar por uma oferta remota.", e);
   }
 }

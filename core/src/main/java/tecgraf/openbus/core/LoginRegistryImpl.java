@@ -717,8 +717,12 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
       context.setCurrentConnection(conn);
       LoginObserverSubscription sub = registry.subscribeObserver(observer);
       if (watchedLogins != null) {
+        String[] logins;
+        synchronized (lock) {
+          logins = convertLoginCollectionToIdArray(watchedLogins);
+        }
         try {
-          sub.watchLogins(convertLoginCollectionToIdArray(watchedLogins));
+          sub.watchLogins(logins);
         } catch (final InvalidLogins e) {
           synchronized (lock) {
             List<LoginSubscriptionImpl> subs = subs();
