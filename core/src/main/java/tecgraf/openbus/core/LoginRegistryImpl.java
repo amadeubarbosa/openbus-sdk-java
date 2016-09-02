@@ -59,7 +59,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
   private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
   protected LoginRegistryImpl(OpenBusContextImpl context, ConnectionImpl conn,
-                              POA poa, RetryTaskPool pool, long interval, TimeUnit unit) {
+    POA poa, RetryTaskPool pool, long interval, TimeUnit unit) {
     this.context = context;
     this.conn = conn;
     this.poa = poa;
@@ -155,9 +155,10 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
   }
 
   @Override
-  public LoginSubscription subscribeObserver(LoginObserver callback) throws ServantNotActive, WrongPolicy {
-    tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry
-    registry = registry();
+  public LoginSubscription subscribeObserver(LoginObserver callback) throws
+    ServantNotActive, WrongPolicy {
+    tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry registry
+      = registry();
     if (registry == null) {
       return null;
     }
@@ -171,9 +172,11 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
           return null;
         }
         subs.add(ret);
-        if (subs.size() == 1) {
-          this.observer = LoginObserverHelper.narrow(poa.servant_to_reference
-            (this));
+        if (sub == null) {
+          if (observer == null) {
+            this.observer = LoginObserverHelper.narrow(poa
+              .servant_to_reference(this));
+          }
           ReLoginTask task = new ReLoginTask(registry, observer, null);
           futureSub = pool.doTask(task, new RetryContext(retryDelay,
             delayUnit));
@@ -181,8 +184,8 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
               FutureCallback<LoginObserverSubscription>() {
                 @Override
                 public void onFailure(Throwable ex) {
-                  // so deve entrar aqui se a aplicação escolheu fazer um logout, ou se
-                  // pararam as retentativas do RetryTask.
+                  // so deve entrar aqui se a aplicação escolheu fazer um
+                  // logout, ou se pararam as retentativas do RetryTask.
                   logger.error("Erro ao inserir o observador de logins no " +
                     "barramento.", ex);
                   lock.notifyAll();
@@ -410,14 +413,17 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
             return;
           }
           LoginSubRemovalTask task = new LoginSubRemovalTask(sub);
-          futureRemove = pool.doTask(task, new RetryContext(retryDelay,
+          futureRemove = pool.doTask(task, new OpenBusRetryContext(retryDelay,
             delayUnit));
           Futures.addCallback(futureRemove, new
               FutureCallback<Void>() {
                 @Override
                 public void onFailure(Throwable ex) {
-                  // so deve entrar aqui se a aplicação escolheu fazer um logout, ou se
-                  // pararam as retentativas do RetryTask.
+                  // so deve entrar aqui se a aplicação escolheu fazer um
+                  // logout, ou se pararam as retentativas do RetryTask. Como
+                  // o tipo de retentativas é o OpenBusRetryContext, se essa
+                  // chamada receber uma UserException, COMM_FAILURE ou
+                  // OBJECT_NOT_EXIST, desistirá e chegará aqui.
                   logger.error("Erro ao remover o observador de logins do " +
                     "barramento.", ex);
                 }
@@ -612,15 +618,23 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     synchronized (lock) {
       while (sub == null) {
         if (futureReLogin == null) {
-          if (futureSub.isCancelled()) {
-            //situação de logout
-            throw new NO_PERMISSION(NoLoginCode.value, CompletionStatus
-              .COMPLETED_NO);
-          } else if (futureSub.isDone()) {
+          if (futureSub != null) {
+            if (futureSub.isCancelled()) {
+              //situação de logout
+              throw new NO_PERMISSION(NoLoginCode.value, CompletionStatus
+                .COMPLETED_NO);
+            } else if (futureSub.isDone()) {
+              // não há relogin e a tarefa de subscrição terminou
+              // corretamente mas manteve sub null, então a subscrição foi
+              // removida do servidor
+              throw new OBJECT_NOT_EXIST("A subscrição foi removida do " +
+                "barramento por uma ação diferente de um logout ou relogin.");
+            }
+          } else {
             // não há relogin nem tarefa de subscrição em andamento, então
             // a subscrição foi removida do servidor
             throw new OBJECT_NOT_EXIST("A subscrição foi removida do " +
-              "barramento por uma ação diferente de um logout.");
+              "barramento por uma ação diferente de um logout ou relogin.");
           }
         }
         try {
@@ -716,42 +730,51 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     public LoginObserverSubscription call() throws ServiceFailure {
       context.setCurrentConnection(conn);
       LoginObserverSubscription sub = registry.subscribeObserver(observer);
-      if (watchedLogins != null) {
-        String[] logins;
-        synchronized (lock) {
-          logins = convertLoginCollectionToIdArray(watchedLogins);
-        }
-        try {
-          sub.watchLogins(logins);
-        } catch (final InvalidLogins e) {
-          synchronized (lock) {
-            List<LoginSubscriptionImpl> subs = subs();
-            if (subs != null) {
-              for (final LoginSubscriptionImpl loginSubscription : subs) {
-                // arrisco criar várias threads para não compartilhar subs
-                Thread t = new Thread(() -> {
-                  loginSubscription.nonExistentLogins(e.loginIds);
-                });
-                t.start();
+      // as chamadas remotas abaixo precisam ser feitas dentro do bloco
+      // synchronized, para não arriscar de perder algum pedido de watch
+      // login do usuário. Em caso de erro, a tarefa deixará estourar para
+      // que o mutex seja liberado antes de uma nova tentativa.
+      synchronized (lock) {
+        if (watchedLogins != null) {
+          try {
+            sub.watchLogins(convertLoginCollectionToIdArray(watchedLogins));
+          } catch (final InvalidLogins e) {
+            synchronized (lock) {
+              List<LoginSubscriptionImpl> subs = subs();
+              if (subs != null) {
+                for (final LoginSubscriptionImpl loginSubscription : subs) {
+                  // arrisco criar várias threads para não compartilhar subs
+                  Thread t = new Thread(() -> {
+                    loginSubscription.nonExistentLogins(e.loginIds);
+                  });
+                  t.start();
+                }
               }
             }
+            logger.warn("Alguns logins não puderam ser re-observados pois saíram " +
+              "do barramento.", e);
+            //TODO dúvida: atualmente com o catch abaixo, se um administrador
+            // remover o meu observador, o mesmo não será mais cadastrado e a
+            // API lançará OBJECT_NOT_EXIST para o usuário. O mesmo terá de
+            // fazer logout e login para cadastrar novamente. Uma outra opção
+            // seria deixar o erro estourar (como faço nos outros erros), o
+            // que levaria a refazer o login automaticamente e refazer os
+            // observadores. Qual o comportamento mais correto?
+          } catch (OBJECT_NOT_EXIST e) {
+            // significa que minha subscrição não existe mais. Caso isto tenha
+            // ocorrido por perda de login um novo relogin será feito e tratará
+            // do problema novamente. Caso a sub tenha sido removida por um
+            // admin, a sub local será nula e se a aplicação tentar obtê-la vai
+            // receber uma exceção OBJECT_NOT_EXIST lançada pelo método sub().
+            sub = null;
+          } catch (Exception e) {
+            // caso outro erro ocorra, tento como best-effort remover a
+            // subscrição e deixo a tarefa toda ser repetida.
+            try {
+              sub.remove();
+            } catch (Exception ignored) {}
+            throw e;
           }
-          logger.warn("Alguns logins não puderam ser re-observados pois saíram " +
-            "do barramento.", e);
-        } catch (OBJECT_NOT_EXIST e) {
-          // significa que minha subscrição não existe mais. Caso isto tenha
-          // ocorrido por perda de login um novo relogin será feito e tratará
-          // do problema novamente. Caso a sub tenha sido removida por um
-          // admin, a sub local será nula e se a aplicação tentar obtê-la vai
-          // receber uma exceção OBJECT_NOT_EXIST lançada pelo método sub().
-          sub = null;
-        } catch (Exception e) {
-          // caso outro erro ocorra, tento como best-effort remover a
-          // subscrição e deixo a tarefa toda ser repetida.
-          try {
-            sub.remove();
-          } catch (Exception ignored) {}
-          throw e;
         }
       }
       return sub;

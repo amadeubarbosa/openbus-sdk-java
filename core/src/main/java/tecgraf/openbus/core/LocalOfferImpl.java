@@ -55,7 +55,7 @@ class LocalOfferImpl extends BusResource implements LocalOffer {
       // indefinidamente.
       while (remote == null && lastError == null && timeoutMillis >= 0) {
         long initial = System.currentTimeMillis();
-        if (cancelled) {
+        if (cancelled || loggedOut) {
           return null;
         }
         checkLoggedOut();
@@ -70,13 +70,13 @@ class LocalOfferImpl extends BusResource implements LocalOffer {
         }
         timeoutMillis -= System.currentTimeMillis() - initial;
       }
-      if (cancelled) {
+      if (cancelled || loggedOut) {
         return null;
       }
       if (remote == null) {
         if (lastError == null) {
-          throw new TimeoutException("Não foi possível registrar/obter a oferta" +
-            " remota no tempo especificado.");
+          throw new TimeoutException("Não foi possível obter a oferta remota " +
+            "no tempo especificado.");
         } else {
           try {
             throw lastError;
@@ -96,6 +96,7 @@ class LocalOfferImpl extends BusResource implements LocalOffer {
 
   @Override
   public void remove() {
+    setCancelled();
     // o pedido de cancelamento tem que ser feito fora do bloco synchronized
     // para evitar deadlocks. Assim se a tarefa estiver a ponto de fazer um
     // set remote, ela poderá fazê-lo pois conseguirá adquirir o lock.
@@ -104,15 +105,6 @@ class LocalOfferImpl extends BusResource implements LocalOffer {
     // barramento é feita pelo método previamente chamado cancelRegisterTask do
     // registry.
     removeOffer();
-  }
-
-  protected void remote(RemoteOfferImpl remote) {
-    synchronized (lock) {
-      this.remote = remote;
-      this.lastError = null;
-      this.loggedOut = false;
-      lock.notifyAll();
-    }
   }
 
   protected void error(Exception error) {
@@ -129,6 +121,15 @@ class LocalOfferImpl extends BusResource implements LocalOffer {
     }
   }
 
+  protected void remote(RemoteOfferImpl remote) {
+    synchronized (lock) {
+      this.remote = remote;
+      this.lastError = null;
+      this.loggedOut = false;
+      lock.notifyAll();
+    }
+  }
+
   protected void removeOffer() {
     synchronized (lock) {
       if (remote != null) {
@@ -136,7 +137,6 @@ class LocalOfferImpl extends BusResource implements LocalOffer {
         remote = null;
       }
       lastError = null;
-      cancelled = true;
       lock.notifyAll();
     }
   }

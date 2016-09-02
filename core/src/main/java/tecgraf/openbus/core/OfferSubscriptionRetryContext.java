@@ -4,23 +4,23 @@ import tecgraf.openbus.retry.RetryContext;
 
 import java.util.concurrent.TimeUnit;
 
-class OfferRegistryRetryContext extends RetryContext {
-  private final LocalOfferImpl offer;
+class OfferSubscriptionRetryContext extends RetryContext {
+  private final OfferSubscriptionImpl sub;
 
   /**
    * Construtor
    *
    * @param delay tempo de espera entre tentativas
    */
-  public OfferRegistryRetryContext(long delay, TimeUnit unit, LocalOfferImpl
-    offer) {
+  public OfferSubscriptionRetryContext(long delay, TimeUnit unit,
+    OfferSubscriptionImpl sub) {
     super(delay, unit);
-    this.offer = offer;
+    this.sub = sub;
   }
 
   @Override
   public void setLastException(Exception ex) {
     super.setLastException(ex);
-    offer.error(ex);
+    sub.error(ex);
   }
 }

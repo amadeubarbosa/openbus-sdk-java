@@ -1,6 +1,7 @@
 package tecgraf.openbus.retry;
 
-import org.omg.CORBA.OBJECT_NOT_EXIST;
+import org.omg.CORBA.NO_PERMISSION;
+import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 
 import java.util.concurrent.TimeUnit;
 
@@ -76,20 +77,26 @@ public class RetryContext {
   }
 
   /**
-   * Informa se é permitido uma nova execução da tarefa.
-   * <p>
-   * Por padrão sempre é permitida uma nova execução, a não ser que o objeto
-   * não exista mais no servidor. Este método deve ser sobreescrito caso
-   * deseje-se implementar algum tipo de limitador. Por exemplo:
-   * <li>número máximo de tentativas
-   * <li>última exceção indica um erro irrecuperável.
-   * </p>
+   * Informa se é permitida uma nova execução da tarefa.
+   * Sempre é permitida uma nova execução, a não ser que o erro seja um
+   * NO_PERMISSION{NoLogin}, que só ocorrerá caso o usuário tenha feito um
+   * logout explícito ou não tenha feito login.
    *
    * @return <code>true</code> caso seja permitido uma nova tentativa, e <code>
    *         false</code> caso contrário.
    */
   public boolean shouldRetry() {
-    return !(getLastException() instanceof OBJECT_NOT_EXIST);
+    //TODO implementar configuração do usuário sobre número máximo de
+    // retentativas. Pode-se seguir um approach similar ao da pcall onde se
+    // define um número de retentativas diferente para cada caso (inacessível
+    // ou quebrado).
+    Exception last = getLastException();
+    if (last instanceof NO_PERMISSION) {
+      if (((NO_PERMISSION) last).minor == NoLoginCode.value) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
@@ -107,5 +114,4 @@ public class RetryContext {
   protected void setLastException(Exception ex) {
     this.lastException = ex;
   }
-
 }

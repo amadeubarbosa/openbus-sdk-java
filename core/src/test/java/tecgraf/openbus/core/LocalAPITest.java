@@ -2,6 +2,7 @@ package tecgraf.openbus.core;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.TimeoutException;
 
 import com.google.common.collect.ArrayListMultimap;
 import org.junit.BeforeClass;
@@ -136,10 +137,12 @@ public class LocalAPITest {
   public void registerTest() throws WrongPolicy, InvalidName,
     ServantNotActive, AdapterInactive, InvalidService, SCSException,
     UnauthorizedFacets, InvalidProperties, ServiceFailure,
-    UnauthorizedOperation, InterruptedException, TooManyAttempts, AlreadyLoggedIn, AccessDenied, WrongEncoding, UnknownDomain, IOException {
+    UnauthorizedOperation, InterruptedException, TooManyAttempts,
+    AlreadyLoggedIn, AccessDenied, WrongEncoding, UnknownDomain, IOException,
+    TimeoutException {
     Connection conn = loginByPassword(false);
     LocalOffer offer = buildAndRegister(conn.offerRegistry());
-    RemoteOffer remote = offer.remoteOffer(1000, 0);
+    RemoteOffer remote = offer.remoteOffer(10000);
     remote.remove();
     conn.logout();
   }
@@ -175,11 +178,11 @@ public class LocalAPITest {
     AdapterInactive, InvalidService, SCSException, UnauthorizedFacets,
     InvalidProperties, ServiceFailure, InterruptedException, TooManyAttempts,
     AlreadyLoggedIn, AccessDenied, WrongEncoding, UnknownDomain,
-    UnauthorizedOperation, IOException {
+    UnauthorizedOperation, IOException, TimeoutException {
     Connection conn = loginByPassword(false);
     OfferRegistry offers = conn.offerRegistry();
     LocalOffer anOffer = buildAndRegister(offers);
-    anOffer.remoteOffer(1000, 0);
+    anOffer.remoteOffer(10000);
 
     ArrayListMultimap<String, String> findProps = ArrayListMultimap.create();
     findProps.put("offer.domain", "testing");
@@ -205,7 +208,7 @@ public class LocalAPITest {
       AlreadyLoggedIn, ServiceFailure, AccessDenied, ServantNotActive,
       TooManyAttempts, UnknownDomain, WrongEncoding, InvalidName,
       InvalidService, SCSException, UnauthorizedFacets, InvalidProperties,
-      InterruptedException, IOException {
+      InterruptedException, IOException, TimeoutException {
       Connection conn = loginByPassword(false);
       OfferRegistry offers = conn.offerRegistry();
       ArrayListMultimap<String, String> properties = ArrayListMultimap.create();
@@ -216,11 +219,12 @@ public class LocalAPITest {
         .getOfferIdFromProperties(((RemoteOfferImpl)offer).offer());
       OfferRegistrySubscription sub = offers.subscribeObserver(observer,
         properties);
+      assertTrue(sub.subscribed(10000));
       assertSame(observer, sub.observer());
       assertTrue(sub.properties().equals(properties));
 
       LocalOffer anOffer = buildAndRegister(offers);
-      RemoteOffer remote = anOffer.remoteOffer(1000, 0);
+      RemoteOffer remote = anOffer.remoteOffer(1000);
       ids.id2 = OfferRegistryImpl.getOfferIdFromProperties((
         (RemoteOfferImpl)remote).offer());
       Thread.sleep(1000);
@@ -235,11 +239,12 @@ public class LocalAPITest {
       AlreadyLoggedIn, ServiceFailure, AccessDenied, ServantNotActive,
       TooManyAttempts, UnknownDomain, WrongEncoding, InvalidName,
       InvalidService, SCSException, UnauthorizedFacets, InvalidProperties,
-      InterruptedException, UnauthorizedOperation, IOException {
+      InterruptedException, UnauthorizedOperation, IOException,
+      TimeoutException {
       Connection conn = loginByPassword(false);
       OfferRegistry offers = conn.offerRegistry();
       LocalOffer anOffer = buildAndRegister(offers);
-      final RemoteOffer remote = anOffer.remoteOffer(3000, 0);
+      final RemoteOffer remote = anOffer.remoteOffer(10000);
       final IdEqualityChecker ids = new
         IdEqualityChecker();
       OfferObserver observer = new OfferObserver() {
@@ -273,6 +278,7 @@ public class LocalAPITest {
         }
       };
       OfferSubscription sub = remote.subscribeObserver(observer);
+      assertTrue(sub.subscribed(10000));
       assertSame(observer, sub.observer());
 
       ArrayListMultimap<String, String> properties = ArrayListMultimap.create();
@@ -290,6 +296,142 @@ public class LocalAPITest {
       sub.remove();
       conn.logout();
     }
+
+  @Test
+  public void onInvalidLoginCallbackTest() throws Exception {
+    Connection conn1 = loginByPassword(false);
+    assertNotNull(conn1);
+    Connection conn2 = loginByPassword(false);
+    assertNotNull(conn2);
+
+    // registra oferta na conn1
+    OfferRegistry offers1 = conn1.offerRegistry();
+    ComponentContext component1 = Builder.buildComponent(offers1.connection()
+      .context().orb());
+    ArrayListMultimap<String, String> properties1 = ArrayListMultimap.create();
+    properties1.put("offer.domain", "testing");
+    properties1.put("time", "" + System.currentTimeMillis());
+    LocalOffer localOffer1 = offers1.registerService(component1.getIComponent(),
+      properties1);
+    localOffer1.remoteOffer(10000);
+
+    // registra oferta na conn2
+    OfferRegistry offers2 = conn2.offerRegistry();
+    ComponentContext component2 = Builder.buildComponent(offers2.connection()
+      .context().orb());
+    ArrayListMultimap<String, String> properties2 = ArrayListMultimap.create();
+    properties2.put("offer.domain", "testing");
+    properties2.put("time", "" + System.currentTimeMillis());
+    LocalOffer localOffer2 = offers2.registerService(component2.getIComponent(),
+      properties2);
+    RemoteOffer remote2 = localOffer2.remoteOffer(10000);
+
+    // cadastra observador da oferta1 na conn2
+    RemoteOffer remoteFromOffer2 = conn1.offerRegistry().findServices
+      (properties2).get(0);
+    final IdEqualityChecker ids1 = new IdEqualityChecker();
+    // vai comparar o id encontrado da oferta2 com o id que tiver as
+    // propriedades alteradas
+    OfferObserver observer1 = new OfferObserver() {
+      @Override
+      public void propertiesChanged(RemoteOffer offer) {
+        RemoteOfferImpl offerImpl = (RemoteOfferImpl)offer;
+        RemoteOfferImpl remoteImpl = null;
+        try {
+          remoteImpl = (RemoteOfferImpl)localOffer2.remoteOffer(10000);
+        } catch (Exception e) {
+          e.printStackTrace();
+          fail("Erro ao obter a oferta remota.");
+        }
+        assertTrue(Boolean.parseBoolean(offerImpl.properties(false).get(
+          "offer.altered").get(0)));
+        // testa props locais desatualizadas
+        assertFalse(remoteImpl.properties(false).entries().containsAll
+          (offerImpl.properties(false).entries()));
+        // atualiza props locais manualmente
+        ArrayListMultimap<String, String> updatedProps = ArrayListMultimap
+          .create(offerImpl.properties(false));
+        remoteImpl.updateProperties(updatedProps);
+        assertTrue(remoteImpl.properties(false).entries().containsAll
+          (offerImpl.properties(false).entries()));
+        // testa props locais atualizadas de acordo com o estado do barramento
+        assertTrue(remoteImpl.properties(true).entries().containsAll(offerImpl
+          .properties(false).entries()));
+        // seta informação de offer id para checagem posterior
+        ids1.id1 = OfferRegistryImpl.getOfferIdFromProperties((
+          (RemoteOfferImpl)offer).offer());
+      }
+
+      @Override
+      public void removed(RemoteOffer offer) {
+      }
+    };
+    OfferSubscription sub1 = remoteFromOffer2.subscribeObserver
+      (observer1);
+    assertTrue(sub1.subscribed(10000));
+    assertSame(observer1, sub1.observer());
+
+    // cadastra observador da oferta1 na conn2
+    RemoteOffer remoteFromOffer1 = conn2.offerRegistry().findServices
+      (properties1).get(0);
+    final IdEqualityChecker ids2 = new IdEqualityChecker();
+    // vai comparar o id encontrado da oferta1 com o id que for removido
+    ids2.id1 = OfferRegistryImpl.getOfferIdFromProperties((
+      (RemoteOfferImpl)remoteFromOffer1).offer());
+    OfferObserver observer2 = new OfferObserver() {
+      @Override
+      public void propertiesChanged(RemoteOffer offer) {
+      }
+
+      @Override
+      public void removed(RemoteOffer offer) {
+        ids2.id2 = OfferRegistryImpl.getOfferIdFromProperties((
+          (RemoteOfferImpl)offer).offer());
+      }
+    };
+    OfferSubscription sub2 = remoteFromOffer1.subscribeObserver
+      (observer2);
+    assertTrue(sub2.subscribed(10000));
+    assertSame(observer2, sub2.observer());
+
+    // inutiliza o login da conn1
+    String id = conn1.login().id;
+    Connection adminconn = loginByPassword(true);
+    adminconn.loginRegistry().invalidateLogin(id);
+    int validity = adminconn.loginRegistry().loginValidity(id);
+    assertTrue(validity <= 0);
+    adminconn.logout();
+
+    // observer2 tem que ter recebido a notificação de remoção da oferta
+    Thread.sleep(2000);
+    assertTrue(ids2.check());
+    // alem disso, observador tem que ter sido removido
+    assertFalse(sub2.subscribed(10000));
+
+    // refaz login da conn1
+    conn1.loginRegistry().entityLogins(entity);
+    validity = conn1.loginRegistry().loginValidity(conn1.login().id);
+    assertTrue(validity > 0);
+
+    // oferta e observador têm que estar de volta
+    RemoteOffer newRemote1 = localOffer1.remoteOffer(10000);
+    assertNotNull(newRemote1);
+    assertTrue(sub1.subscribed(20000));
+
+    // altera propriedades da conn2
+    ArrayListMultimap<String, String> properties = ArrayListMultimap.create();
+    properties.put("offer.domain", "testing");
+    properties.put("time", "" + System.currentTimeMillis());
+    properties.put("offer.altered", "true");
+    remote2.properties(properties);
+    Thread.sleep(2000);
+    ids1.id2 = OfferRegistryImpl.getOfferIdFromProperties((
+      (RemoteOfferImpl)remoteFromOffer2).offer());
+    assertTrue(ids1.check());
+
+    conn1.logout();
+    conn2.logout();
+  }
 
   private class IdEqualityChecker {
     public String id1;

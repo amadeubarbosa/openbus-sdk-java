@@ -379,13 +379,13 @@ public final class ConnectionTest {
       // conn1
       LocalOffer local = conn1.offerRegistry().registerService(comp1
         .getIComponent(), props);
-      local.remoteOffer(1000, 0);
+      local.remoteOffer(10000);
       context.onCallDispatch((context1, busid, loginId, object_id, operation)
         -> conn2);
       // conn2
       LocalOffer local2 = conn2.offerRegistry().registerService(comp1
         .getIComponent(), props);
-      local2.remoteOffer(1000, 0);
+      local2.remoteOffer(10000);
 
       props.clear();
       props.put("offer.domain", "testing");

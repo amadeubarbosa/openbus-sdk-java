@@ -72,7 +72,7 @@ public class MassiveConnectionTest {
     private OpenBusContext context;
     private String entity;
     private AtomicBoolean failed;
-    private long remoteSleepTime = THREAD_POOL_SIZE * 1000;
+    private long remoteSleepTime = THREAD_POOL_SIZE * 10000;
     private long sleepTime = THREAD_POOL_SIZE * 2 / 3 * 1000;
     private long logoutSleepTime = 1000;
 
@@ -98,7 +98,7 @@ public class MassiveConnectionTest {
         props.put("time", "" + System.currentTimeMillis());
         LocalOffer local = conn.offerRegistry().registerService(component
           .getIComponent(), props);
-        assertNotNull(local.remoteOffer(remoteSleepTime, 0));
+        assertNotNull(local.remoteOffer(remoteSleepTime));
         List<RemoteOffer> services = conn.offerRegistry().findServices(props);
         if (services.size() != 1) {
           failed.set(true);
@@ -163,13 +163,14 @@ public class MassiveConnectionTest {
           .subscribeObserver(regObserver, props);
         // aguarda ocorrer a subscrição
         Thread.sleep(sleepTime);
+        assertTrue(regSub.subscribed(10000));
         assertSame(regObserver, regSub.observer());
         assertTrue(regSub.properties().equals(props));
 
         local = conn.offerRegistry().registerService(component
           .getIComponent(), props);
 
-        RemoteOffer remote = local.remoteOffer(remoteSleepTime, 0);
+        RemoteOffer remote = local.remoteOffer(remoteSleepTime);
         ids2.id2 = OfferRegistryImpl.getOfferIdFromProperties((
           (RemoteOfferImpl)remote).offer());
         mutex.acquire();
@@ -178,7 +179,7 @@ public class MassiveConnectionTest {
 
         // offer observer
         conn2.loginByPassword(entity, entity.getBytes(), domain);
-        RemoteOffer remoteConn1 = local.remoteOffer(remoteSleepTime, 0);
+        RemoteOffer remoteConn1 = local.remoteOffer(remoteSleepTime);
         assertNotNull(remoteConn1);
         final Connection tempConn2 = conn2;
         context.onCallDispatch((openBusContext, s, s1, bytes, s2) -> tempConn2);
@@ -220,6 +221,7 @@ public class MassiveConnectionTest {
         };
         OfferSubscription offerSub = remoteConn2.subscribeObserver
           (offerObserver);
+        assertTrue(offerSub.subscribed(10000));
         assertSame(offerObserver, offerSub.observer());
         //aguarda ocorrer a subscrição
         Thread.sleep(sleepTime);

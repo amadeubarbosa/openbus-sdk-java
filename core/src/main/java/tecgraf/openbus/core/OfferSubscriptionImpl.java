@@ -16,7 +16,7 @@ import java.util.concurrent.TimeoutException;
 class OfferSubscriptionImpl extends BusResource implements OfferSubscription {
   final OfferObserverImpl observer;
   final tecgraf.openbus.core.v2_1.services.offer_registry.OfferObserver proxy;
-  final ServiceOfferDesc offerDesc;
+  ServiceOfferDesc offerDesc;
   private OfferObserverSubscription sub = null;
   private final OfferRegistryImpl registry;
   private final RemoteOfferImpl offer;
@@ -57,7 +57,7 @@ class OfferSubscriptionImpl extends BusResource implements OfferSubscription {
       // indefinidamente.
       while (sub == null && lastError == null && timeoutMillis >= 0) {
         long initial = System.currentTimeMillis();
-        if (cancelled) {
+        if (cancelled || loggedOut) {
           return false;
         }
         checkLoggedOut();
@@ -72,13 +72,13 @@ class OfferSubscriptionImpl extends BusResource implements OfferSubscription {
         }
         timeoutMillis -= System.currentTimeMillis() - initial;
       }
-      if (cancelled) {
+      if (cancelled || loggedOut) {
         return false;
       }
       if (sub == null) {
         if (lastError == null) {
-          throw new TimeoutException("Não foi possível registrar/obter a oferta" +
-            " remota no tempo especificado.");
+          throw new TimeoutException("Não foi possível verificar a subscrição" +
+            " à oferta no tempo especificado.");
         } else {
           try {
             throw lastError;
@@ -98,7 +98,14 @@ class OfferSubscriptionImpl extends BusResource implements OfferSubscription {
 
   @Override
   public void remove() {
+    setCancelled();
+    // o pedido de cancelamento tem que ser feito fora do bloco synchronized
+    // para evitar deadlocks. Assim se a tarefa estiver a ponto de fazer um
+    // set sub, ela poderá fazê-lo pois conseguirá adquirir o lock.
     registry.removeOfferSubscription(this);
+    // a chamada abaixo apenas remove as referências locais. A remoção do
+    // barramento é feita pelo método previamente chamado
+    // removeOfferSubscription do registry.
     removeSub();
   }
 
@@ -112,12 +119,33 @@ class OfferSubscriptionImpl extends BusResource implements OfferSubscription {
     return offer;
   }
 
+  protected void error(Exception error) {
+    synchronized (lock) {
+      this.sub = null;
+      super.error(error);
+    }
+  }
+
+  protected void loggedOut() {
+    synchronized (lock) {
+      super.loggedOut();
+      removeSub();
+    }
+  }
+
   protected void sub(OfferObserverSubscription sub) {
     synchronized (lock) {
       this.sub = sub;
       this.lastError = null;
+      this.offerDesc = sub.offer().describe();
       this.loggedOut = false;
       lock.notifyAll();
+    }
+  }
+
+  protected OfferObserverSubscription sub() {
+    synchronized (lock) {
+      return sub;
     }
   }
 
@@ -125,7 +153,7 @@ class OfferSubscriptionImpl extends BusResource implements OfferSubscription {
     synchronized (lock) {
       sub = null;
       lastError = null;
-      cancelled = true;
+      offerDesc = null;
       lock.notifyAll();
     }
   }

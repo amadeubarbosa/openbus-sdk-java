@@ -198,8 +198,9 @@ public class LibUtils {
     }
     StringBuilder buffer = new StringBuilder();
     for (RemoteOffer offer : found) {
-      String name = offer.properties(false).get("openbus.offer.entity").get(0);
-      String login = offer.properties(false).get("openbus.offer.login").get(0);
+      ArrayListMultimap<String, String> props = offer.properties();
+      String name = props.get("openbus.offer.entity").get(0);
+      String login = props.get("openbus.offer.login").get(0);
       buffer.append(String.format("\n - %s (%s)", name, login));
     }
     String msg =

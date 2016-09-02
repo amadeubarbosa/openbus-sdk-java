@@ -24,20 +24,12 @@ import tecgraf.openbus.OfferObserver;
 import tecgraf.openbus.OfferRegistry;
 import tecgraf.openbus.OfferRegistryObserver;
 import tecgraf.openbus.offers.ServiceProperties;
+import tecgraf.openbus.retry.RetryContext;
 import tecgraf.openbus.retry.RetryTaskPool;
 
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-// TODO pensar numa forma de oferecer ao usuário funcionalidades dos
-// LocalRetryContexts (na classe de login tb) para que possam consultar os objetos
-// futuros e seus erros. Outra possibilidade interessante seria permitir que
-// o usuário fornecesse a política do shouldRetry. Talvez os eventos de
-// sucesso/falha de registro já sejam suficientes só com logs.
-
-//TODO otimizar a concorrência utilizando vários locks se possível, nessa e
-// em outras classes (possivelmente usando a guava Striped).
 
 // Não basta ser um OfferRegistryObserver pois preciso ter vários
 // observadores, não apenas um como no caso do login, pois não há
@@ -197,6 +189,10 @@ class OfferRegistryImpl implements OfferRegistry {
               }
             },
             pool.pool());
+          // preciso aguardar a finalização
+          try {
+            future.get();
+          } catch (Exception ignored) {}
         }
       } else {
         // um registro já havia sido feito ou não havia sido disparado ainda
@@ -283,6 +279,10 @@ class OfferRegistryImpl implements OfferRegistry {
               }
             },
             pool.pool());
+          // preciso aguardar a finalização
+          try {
+            future.get();
+          } catch (Exception ignored) {}
         }
       } else {
         // uma subscrição já havia sido feita ou não havia sido disparada ainda
@@ -299,8 +299,7 @@ class OfferRegistryImpl implements OfferRegistry {
           } catch (InterruptedException | ExecutionException ignored) {}
         }
         if (sub == null) {
-          sub = (OfferRegistryObserverSubscription) registrySubs.get
-            (localSub);
+          sub = localSub.sub();
         }
         if (sub != null) {
           ListenableFuture<Void> futureRemoval = pool.doTask(new
@@ -402,6 +401,10 @@ class OfferRegistryImpl implements OfferRegistry {
                 }
               },
             pool.pool());
+          // preciso aguardar a finalização
+          try {
+            future.get();
+          } catch (Exception ignored) {}
         }
       } else {
         // uma subscrição já havia sido feita ou não havia sido disparada ainda
@@ -418,7 +421,7 @@ class OfferRegistryImpl implements OfferRegistry {
           } catch (InterruptedException | ExecutionException ignored) {}
         }
         if (sub == null) {
-          sub = (OfferObserverSubscription) offerSubs.get(localSub);
+          sub = localSub.sub();
         }
         if (sub != null) {
           ListenableFuture<Void> futureRemoval = pool.doTask(new
@@ -468,15 +471,10 @@ class OfferRegistryImpl implements OfferRegistry {
         ()) {
         String receivedId = offer.properties(false).get(ServiceProperties.ID)
           .get(0);
-        OfferSubscriptionImpl context = entry.getKey();
-        String iterId = getOfferIdFromProperties(context.offerDesc);
+        OfferSubscriptionImpl sub = entry.getKey();
+        String iterId = getOfferIdFromProperties(sub.offerDesc);
         if (receivedId.equals(iterId)) {
-          clearOfferSubscription(context);
-          ListenableFuture<OfferObserverSubscription> future = entry.getValue();
-          if (future != null) {
-            future.cancel(false);
-          }
-          offerSubs.remove(context);
+          clearOfferSubscription(sub);
         }
       }
     }
@@ -650,7 +648,7 @@ class OfferRegistryImpl implements OfferRegistry {
       // 1) lançar assincronamente uma retrytask para refazer registros e
       // observadores de registros e de ofertas
       futureReLogin = future = pool.doTask(new ReLoginTask(context
-        .getOfferRegistry()), new InfiniteRetryContext(retryDelay, delayUnit));
+        .getOfferRegistry()), new RetryContext(retryDelay, delayUnit));
     }
     // 2) ressincronizar fora da região crítica, para dar chance a outros
     // relogins de cancelarem essa tarefa.
@@ -754,7 +752,8 @@ class OfferRegistryImpl implements OfferRegistry {
         (registry, localSub.proxy, convertMapToProperties(localSub.properties
           ()));
       ListenableFuture<OfferRegistryObserverSubscription> futureRegistrySub =
-        pool.doTask(task, new InfiniteRetryContext(retryDelay, delayUnit));
+        pool.doTask(task, new OfferRegistrySubscriptionRetryContext
+          (retryDelay, delayUnit, localSub));
       registrySubs.put(localSub, futureRegistrySub);
       Futures.addCallback(futureRegistrySub, new
           FutureCallback<OfferRegistryObserverSubscription>() {
@@ -766,7 +765,7 @@ class OfferRegistryImpl implements OfferRegistry {
               // retenta infinitamente, só vai chegar aqui se a subscrição for
               // cancelada pelo usuário.
               synchronized (lock) {
-                registrySubs.remove(localSub);
+                localSub.remove();
               }
               logger.error("Erro ao inserir um observador de registro de " +
                 "oferta no barramento.", ex);
@@ -793,10 +792,14 @@ class OfferRegistryImpl implements OfferRegistry {
       ListenableFuture<OfferObserverSubscription>> offerSubs, final
   OfferSubscriptionImpl localSub) {
     synchronized (lock) {
+      if (localSub.offerDesc == null) {
+        return false;
+      }
       OfferSubscriptionTask task = new OfferSubscriptionTask(localSub.offerDesc
         .ref, localSub.proxy);
       ListenableFuture<OfferObserverSubscription> futureOfferSub =
-        pool.doTask(task, new InfiniteRetryContext(retryDelay, delayUnit));
+        pool.doTask(task, new OfferSubscriptionRetryContext(retryDelay,
+          delayUnit, localSub));
       offerSubs.put(localSub, futureOfferSub);
       Futures.addCallback(futureOfferSub, new
           FutureCallback<OfferObserverSubscription>() {
@@ -808,7 +811,7 @@ class OfferRegistryImpl implements OfferRegistry {
               // retenta infinitamente, só vai chegar aqui se a subscrição for
               // cancelada pelo usuário.
               synchronized (lock) {
-                offerSubs.remove(localSub);
+                localSub.remove();
               }
               logger.error("Erro ao inserir um observador de oferta no " +
                 "barramento", ex);
@@ -1104,32 +1107,22 @@ class OfferRegistryImpl implements OfferRegistry {
         for (Map.Entry<LocalOfferImpl, ListenableFuture<RemoteOfferImpl>> entry
           : maintainedOffers.entrySet()) {
           LocalOfferImpl offer = entry.getKey();
+          offer.removeOffer();
           ListenableFuture<RemoteOfferImpl> future = entry.getValue();
-          RemoteOffer remote = null;
-          try {
-            remote = offer.remoteOffer(0);
-          } catch (Exception ignored) {}
-          if (remote == null) {
-            if (future == null || future.isCancelled()) {
-              doRegisterTask(registry, offer);
-            }
+          if (future == null || future.isCancelled()) {
+            doRegisterTask(registry, offer);
           }
         }
         for (Map.Entry<OfferRegistrySubscriptionImpl,
           ListenableFuture<OfferRegistryObserverSubscription>> entry :
           registrySubs.entrySet()) {
           OfferRegistrySubscriptionImpl localSub = entry.getKey();
+          localSub.removeSub();
           ListenableFuture<OfferRegistryObserverSubscription> future = entry
             .getValue();
-          boolean subscribed = false;
-          try {
-            subscribed = localSub.subscribed(0);
-          } catch (Exception ignored){}
-          if (!subscribed) {
-            if (future == null || future.isCancelled()) {
-              doSubscribeToRegistryTask(OfferRegistryImpl.this.context
-                .getOfferRegistry(), localSub);
-            }
+          if (future == null || future.isCancelled()) {
+            doSubscribeToRegistryTask(OfferRegistryImpl.this.context
+              .getOfferRegistry(), localSub);
           }
         }
         for (Map.Entry<OfferSubscriptionImpl,
@@ -1137,13 +1130,11 @@ class OfferRegistryImpl implements OfferRegistry {
           .entrySet()) {
           OfferSubscriptionImpl localSub = entry.getKey();
           ListenableFuture<OfferObserverSubscription> future = entry.getValue();
-          boolean subscribed = false;
-          try {
-            subscribed = localSub.subscribed(0);
-          } catch (Exception ignored){}
-          if (!subscribed) {
-            if (future == null || future.isCancelled()) {
-              doSubscribeToOfferTask(offerSubs, localSub);
+          if (future == null || future.isCancelled()) {
+            if (!doSubscribeToOfferTask(offerSubs, localSub)) {
+              // a oferta não existe mais, então removemos a manutenção do
+              // observador
+              localSub.remove();
             }
           }
         }

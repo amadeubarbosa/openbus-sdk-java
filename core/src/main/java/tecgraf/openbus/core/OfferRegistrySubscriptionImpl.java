@@ -62,7 +62,7 @@ class OfferRegistrySubscriptionImpl extends BusResource implements
       // indefinidamente.
       while (sub == null && lastError == null && timeoutMillis >= 0) {
         long initial = System.currentTimeMillis();
-        if (cancelled) {
+        if (cancelled || loggedOut) {
           return false;
         }
         checkLoggedOut();
@@ -77,13 +77,13 @@ class OfferRegistrySubscriptionImpl extends BusResource implements
         }
         timeoutMillis -= System.currentTimeMillis() - initial;
       }
-      if (cancelled) {
+      if (cancelled || loggedOut) {
         return false;
       }
       if (sub == null) {
         if (lastError == null) {
-          throw new TimeoutException("Não foi possível registrar/obter a oferta" +
-            " remota no tempo especificado.");
+          throw new TimeoutException("Não foi possível verificar a subscrição" +
+            " ao registro de oferta no tempo especificado.");
         } else {
           try {
             throw lastError;
@@ -108,13 +108,34 @@ class OfferRegistrySubscriptionImpl extends BusResource implements
 
   @Override
   public void remove() {
+    setCancelled();
+    // o pedido de cancelamento tem que ser feito fora do bloco synchronized
+    // para evitar deadlocks. Assim se a tarefa estiver a ponto de fazer um
+    // set sub, ela poderá fazê-lo pois conseguirá adquirir o lock.
     registry.removeRegistrySubscription(this);
+    // a chamada abaixo apenas remove as referências locais. A remoção do
+    // barramento é feita pelo método previamente chamado
+    // removeRegistrySubscription do registry.
     removeSub();
   }
 
   @Override
   public OfferRegistryObserver observer() {
     return observer.observer;
+  }
+
+  protected void error(Exception error) {
+    synchronized (lock) {
+      this.sub = null;
+      super.error(error);
+    }
+  }
+
+  protected void loggedOut() {
+    synchronized (lock) {
+      super.loggedOut();
+      removeSub();
+    }
   }
 
   protected void sub(OfferRegistryObserverSubscription sub) {
@@ -126,11 +147,16 @@ class OfferRegistrySubscriptionImpl extends BusResource implements
     }
   }
 
+  protected OfferRegistryObserverSubscription sub() {
+    synchronized (lock) {
+      return sub;
+    }
+  }
+
   protected void removeSub() {
     synchronized (lock) {
       sub = null;
       lastError = null;
-      cancelled = true;
       lock.notifyAll();
     }
   }

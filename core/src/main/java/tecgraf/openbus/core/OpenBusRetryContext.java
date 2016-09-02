@@ -20,20 +20,18 @@ class OpenBusRetryContext extends RetryContext {
   /**
    * Informa se é permitida uma nova execução da tarefa.
    * Sempre é permitida uma nova execução, a não ser que o objeto
-   * não exista mais no servidor ou o último erro seja um COMM_FAILURE ou uma
-   * exceção da aplicação.
+   * não exista mais no servidor, o erro seja um COMM_FAILURE, uma exceção da
+   * aplicação ou um NO_PERMISSION{NoLogin}, que só ocorrerá caso o usuário
+   * tenha feito um logout explícito ou não tenha feito login.
    *
    * @return <code>true</code> caso seja permitido uma nova tentativa, e <code>
    *         false</code> caso contrário.
    */
   @Override
   public boolean shouldRetry() {
-    //TODO implementar configuração do usuário sobre número máximo de
-    // retentativas. Pode-se seguir um approach similar ao da pcall onde se
-    // define um número de retentativas diferente para cada caso (inacessível
-    // ou quebrado).
     Exception last = getLastException();
-    return last instanceof SystemException && !(last instanceof
+    boolean noLogin = super.shouldRetry();
+    return !noLogin && last instanceof SystemException && !(last instanceof
       OBJECT_NOT_EXIST) && !(last instanceof COMM_FAILURE);
   }
 }
