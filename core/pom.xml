@@ -36,7 +36,7 @@
             <configuration>
               <target name="Copying 2.1 IDL files" unless="skip.copy-idls">
                 <copy todir="${project.basedir}/idl/" >
-                  <fileset dir="${v2_1.idlpath}" includes="*.idl"/>
+                  <fileset dir="${v2_1.idlpath}/src" includes="*.idl"/> 
                 </copy>
               </target>
             </configuration>
@@ -74,8 +74,8 @@
             <configuration>
               <sourceDirectory>${project.basedir}/idl</sourceDirectory>
               <includeDirs>
-                <includeDir>${v2_0.idlpath}</includeDir>
-                <includeDir>${scs.idlpath}</includeDir>
+                <includeDir>${v2_0.idlpath}/src</includeDir>
+                <includeDir>${scs.idlpath}/src</includeDir>
               </includeDirs>
             </configuration>
           </execution>
