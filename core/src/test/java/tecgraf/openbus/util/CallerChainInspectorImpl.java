@@ -18,7 +18,7 @@ class CallerChainInspectorImpl extends CallerChainInspectorPOA {
   /**
    * O Contexto.
    */
-  private OpenBusContext context;
+  private final OpenBusContext context;
 
   /**
    * Construtor.

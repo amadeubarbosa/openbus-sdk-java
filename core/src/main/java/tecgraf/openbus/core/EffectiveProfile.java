@@ -14,7 +14,7 @@ class EffectiveProfile {
   /**
    * Informação do profiler
    */
-  private byte[] profile_data;
+  private final byte[] profile_data;
 
   /**
    * Construtor.

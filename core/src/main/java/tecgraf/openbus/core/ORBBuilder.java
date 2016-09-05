@@ -11,9 +11,9 @@ import org.omg.CORBA.ORB;
  */
 final class ORBBuilder {
   /** Argumentos de linha de comando */
-  private String[] args;
+  private final String[] args;
   /** Propriedades */
-  private Properties props;
+  private final Properties props;
 
   /**
    * Construtor.

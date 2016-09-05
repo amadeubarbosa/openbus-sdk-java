@@ -93,7 +93,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
   /** Identificador do slot de interceptação ignorada */
   private final int IGNORE_THREAD_SLOT_ID;
   /** Identificador de slot de flag sobre callback OnInvalidLogin */
-  private int SKIP_INVLOGIN_SLOT_ID;
+  private final int SKIP_INVLOGIN_SLOT_ID;
 
   /** Mapa de conexão por Requester */
   private final Map<Integer, Connection> connectedById;

@@ -1,8 +1,6 @@
 package tecgraf.openbus.core;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 import tecgraf.openbus.core.v2_1.OctetSeqHolder;
@@ -20,11 +18,11 @@ class LoginCache {
   /**
    * O mapa da cache de logins.
    */
-  private Map<String, LoginEntry> logins;
+  private final Map<String, LoginEntry> logins;
   /**
    * A conexão ao qual o cache esta associado.
    */
-  private ConnectionImpl conn;
+  private final ConnectionImpl conn;
 
   /**
    * Construtor.
@@ -35,7 +33,7 @@ class LoginCache {
   LoginCache(ConnectionImpl conn, int cacheSize) {
     this.conn = conn;
     this.logins =
-      Collections.synchronizedMap(new LRUCache<String, LoginEntry>(cacheSize));
+      Collections.synchronizedMap(new LRUCache<>(cacheSize));
   }
 
   /**
@@ -60,8 +58,6 @@ class LoginCache {
       }
     }
 
-    List<String> ids = new ArrayList<String>();
-    ids.add(loginId);
     time = System.currentTimeMillis();
     int validity = conn.logins().getLoginValidity(loginId);
     synchronized (this.logins) {

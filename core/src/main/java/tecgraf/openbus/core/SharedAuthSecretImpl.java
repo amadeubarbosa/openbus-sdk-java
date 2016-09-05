@@ -20,7 +20,7 @@ class SharedAuthSecretImpl implements SharedAuthSecret {
   /** O segredo */
   final private byte[] secret;
   /** Contexto associado */
-  private OpenBusContextImpl context;
+  private final OpenBusContextImpl context;
 
   /**
    * Construtor.

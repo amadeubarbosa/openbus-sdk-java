@@ -19,18 +19,18 @@ class RetryTask<T> {
     .getName());
 
   /** Serviço de execução de tarefas. */
-  private ListeningScheduledExecutorService pool;
+  private final ListeningScheduledExecutorService pool;
   /** A tarefa a ser executada */
-  private Callable<T> task;
+  private final Callable<T> task;
   /** Objeto futuro associado a esta tarefa e retornado ao usuário. Só é
    * setado quando result termina, para que possam ser feitas retentativas */
-  private SettableFuture<T> future;
+  private final SettableFuture<T> future;
   /** Objeto futuro que realiza o trabalho em si */
   private ListenableFuture<T> result;
   /** Contexto de execução desta tarefa */
-  private RetryContext context;
+  private final RetryContext context;
   /** Callback de pós execução de uma tarefa */
-  private FutureCallback<T> callback;
+  private final FutureCallback<T> callback;
 
   /**
    * Construtor

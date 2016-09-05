@@ -73,9 +73,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     .getLogger(ClientRequestInterceptorImpl.class.getName());
 
   /** Mapa interno do interceptador que associa a conexão ao requestId */
-  private Map<Integer, ConnectionImpl> uniqueId2Conn;
+  private final Map<Integer, ConnectionImpl> uniqueId2Conn;
   /** Mapa interno do interceptador que associa o loginId ao requestId */
-  private Map<Integer, String> uniqueId2LoginId;
+  private final Map<Integer, String> uniqueId2LoginId;
 
   /**
    * Construtor.

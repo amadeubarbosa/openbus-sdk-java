@@ -406,8 +406,8 @@ public final class ConnectionTest {
   }
 
   private class TestLoginCallback implements LoginCallback {
-    private Connection conn;
-    private boolean fake;
+    private final Connection conn;
+    private final boolean fake;
 
     public TestLoginCallback(Connection conn, boolean fake) {
       this.conn = conn;

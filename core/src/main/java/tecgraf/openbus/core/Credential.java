@@ -28,17 +28,17 @@ import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 class Credential {
 
   /** Identificador de barramento */
-  public java.lang.String bus;
+  public final java.lang.String bus;
   /** Identificador de login do caller */
-  public java.lang.String login;
+  public final java.lang.String login;
   /** Identificador da sessão */
-  public int session;
+  public final int session;
   /** Ticket */
-  public int ticket;
+  public final int ticket;
   /** Hash da credencial */
-  public byte[] hash;
+  public final byte[] hash;
   /** Cadeia */
-  public Chain chain;
+  public final Chain chain;
   /**
    * Indicador se representa uma credencial legada ou não. Quando
    * <code>null</code> significa que esta é uma credencial nula para iniciar o

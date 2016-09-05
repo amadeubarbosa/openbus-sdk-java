@@ -8,9 +8,9 @@ package tecgraf.openbus.exception;
 public final class InvalidPropertyValue extends OpenBusException {
 
   /** Nome da propriedade */
-  private String prop;
+  private final String prop;
   /** Valor inválido atribuído */
-  private String value;
+  private final String value;
 
   /**
    * Construtor.

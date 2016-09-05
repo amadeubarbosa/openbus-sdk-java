@@ -11,11 +11,11 @@ import tecgraf.openbus.core.v2_1.services.legacy_support.LegacyConverter;
 class LegacySupport {
 
   /** Controle de acesso legado */
-  private AccessControl access;
+  private final AccessControl access;
   //  private LoginRegistry logins;
   //  private OfferRegistry offers;
   /** Conversor legado */
-  private LegacyConverter converter;
+  private final LegacyConverter converter;
 
   /**
    * Construtor do suporte legado 2.0

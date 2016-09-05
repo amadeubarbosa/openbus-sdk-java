@@ -58,9 +58,9 @@ final class ConnectionImpl implements Connection {
    para evitar contenções. */
   private final POA poa;
   /** Gerente da conexão. */
-  private OpenBusContextImpl context;
+  private final OpenBusContextImpl context;
   /** Informações sobre o barramento ao qual a conexão pertence */
-  private BusInfo bus;
+  private final BusInfo bus;
   /** Registro de logins local */
   private final LoginRegistryImpl loginRegistry;
   /** Registro de ofertas local */

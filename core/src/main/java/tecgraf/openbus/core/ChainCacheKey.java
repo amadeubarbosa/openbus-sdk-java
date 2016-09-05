@@ -12,15 +12,15 @@ class ChainCacheKey {
   /**
    * Se necessita de cadeia legada
    */
-  private boolean legacy;
+  private final boolean legacy;
   /**
    * Entidade do alvo da requisição
    */
-  private String callee;
+  private final String callee;
   /**
    * A assinatura da cadeia com a qual esta joined
    */
-  private byte[] signature;
+  private final byte[] signature;
 
   /**
    * Construtor.

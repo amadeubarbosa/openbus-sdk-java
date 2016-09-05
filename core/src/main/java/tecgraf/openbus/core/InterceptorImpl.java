@@ -55,9 +55,9 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
     new SignedCallChain(NULL_ENCRYPTED_BLOCK, new byte[0]);
 
   /** Nome */
-  private String name;
+  private final String name;
   /** Mediador */
-  private ORBMediator mediator;
+  private final ORBMediator mediator;
 
   /**
    * Construtor.

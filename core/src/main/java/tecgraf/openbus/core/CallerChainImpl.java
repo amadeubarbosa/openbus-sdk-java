@@ -24,7 +24,7 @@ final class CallerChainImpl implements CallerChain {
   /**
    * A cadeia
    */
-  private Chain chain;
+  private final Chain chain;
 
   /**
    * Construtor

@@ -14,17 +14,17 @@ final class ORBMediator extends LocalObject {
   public static final String INITIAL_REFERENCE_ID = "openbus.ORBMediator";
 
   /** Fábrica de codificadores. */
-  private Codec codec;
+  private final Codec codec;
   /** Identificador do slot da cadeia assinada */
   private final int SIGNED_CHAIN_SLOT_ID;
   /** Identificador do slot de joined chain */
   private final int JOINED_CHAIN_SLOT_ID;
   /** Identificador de slot do identificador do request */
-  private int REQUEST_ID_SLOT_ID;
+  private final int REQUEST_ID_SLOT_ID;
   /** o ORB */
   private ORB orb;
   /** o multiplexador */
-  private OpenBusContextImpl connections;
+  private final OpenBusContextImpl connections;
 
   /** Contador gerador de IDs únicos */
   private int counter = 0;

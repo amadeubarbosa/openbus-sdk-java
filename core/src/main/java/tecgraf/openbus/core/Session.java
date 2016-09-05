@@ -27,7 +27,7 @@ abstract class Session {
    * @param session identificador da sessão
    * @param secret o segredo.
    */
-  public Session(int session, byte[] secret) {
+  Session(int session, byte[] secret) {
     this.session = session;
     this.secret = secret;
   }
@@ -59,7 +59,7 @@ abstract class Session {
     /**
      * Histórico dos tickets.
      */
-    private TicketsHistory ticket;
+    private final TicketsHistory ticket;
     /**
      * Originador da comunicação.
      */
@@ -109,7 +109,7 @@ abstract class Session {
     /**
      * Valor do último ticket utilizado
      */
-    private AtomicInteger ticket;
+    private final AtomicInteger ticket;
     /**
      * Entidade do alvo da comunicação.
      */

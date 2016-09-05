@@ -18,7 +18,6 @@ import scs.core.ComponentContext;
 import scs.core.IComponent;
 import scs.core.IMetaInterfaceHelper;
 import scs.core.exception.SCSException;
-import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.core.v2_1.OctetSeqHolder;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.UnauthorizedOperation;
@@ -61,8 +60,9 @@ public class LocalAPITest {
     adminPsw = configs.admpsw;
   }
 
-  private Connection loginByPassword(boolean beAdmin) throws ServantNotActive,
-    WrongPolicy, InvalidName, AdapterInactive, WrongEncoding, AlreadyLoggedIn, ServiceFailure, UnknownDomain, TooManyAttempts, AccessDenied, IOException {
+  private Connection loginByPassword(boolean beAdmin) throws InvalidName,
+    AdapterInactive, WrongEncoding, AlreadyLoggedIn, ServiceFailure,
+    UnknownDomain, TooManyAttempts, AccessDenied, IOException {
     ORB orb = ORBInitializer.initORB();
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
@@ -78,9 +78,7 @@ public class LocalAPITest {
   }
 
   private LocalOffer buildAndRegister(OfferRegistry offers) throws
-    InvalidName, AdapterInactive, SCSException, ServantNotActive,
-    UnauthorizedFacets, WrongPolicy, InvalidService, InvalidProperties,
-    ServiceFailure {
+    InvalidName, AdapterInactive, SCSException {
     ComponentContext component = Builder.buildComponent(offers.connection().context()
       .ORB());
     ArrayListMultimap<String, String> properties = ArrayListMultimap.create();

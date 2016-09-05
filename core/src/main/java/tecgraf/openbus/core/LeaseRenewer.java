@@ -31,7 +31,7 @@ final class LeaseRenewer {
   /**
    * A tarefa responsável por renovar um <i>lease</i>.
    */
-  private RenewerTask renewer;
+  private final RenewerTask renewer;
   /**
    * A thread de renovação.
    */
@@ -101,12 +101,12 @@ final class LeaseRenewer {
      * Cria uma tarefa para renovar um <i>lease</i>.
      * 
      * @param conn a conexão.
-     * @param defaultLease
+     * @param defaultLease o tempo de <i>lease</i> padrão.
      */
     RenewerTask(Connection conn, int defaultLease) {
       this.mustContinue = true;
       this.isSleeping = false;
-      this.weakConn = new WeakReference<Connection>(conn);
+      this.weakConn = new WeakReference<>(conn);
       this.defaultLease = defaultLease;
     }
 

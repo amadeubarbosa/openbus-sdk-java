@@ -2,7 +2,6 @@ package tecgraf.openbus.retry;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
@@ -19,7 +18,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 public class RetryTaskPool {
 
   /** Tamanho padrão do pool de threads. */
-  private static int DEFAULT_POOL_SIZE = 4;
+  private static final int DEFAULT_POOL_SIZE = 4;
 
   /** Executor de tarefas agendáveis */
   private final ListeningScheduledExecutorService pool;

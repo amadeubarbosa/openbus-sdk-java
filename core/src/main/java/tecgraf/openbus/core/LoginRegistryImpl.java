@@ -12,18 +12,28 @@ import org.omg.PortableServer.POAPackage.ServantNotActive;
 import org.omg.PortableServer.POAPackage.WrongPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tecgraf.openbus.Connection;
+import tecgraf.openbus.LoginSubscription;
 import tecgraf.openbus.core.v2_1.OctetSeqHolder;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.UnauthorizedOperation;
-import tecgraf.openbus.core.v2_1.services.access_control.*;
-import tecgraf.openbus.*;
-import tecgraf.openbus.Connection;
 import tecgraf.openbus.LoginObserver;
 import tecgraf.openbus.LoginRegistry;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidLogins;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginObserverHelper;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginObserverPOA;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginObserverSubscription;
+import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.retry.RetryContext;
 import tecgraf.openbus.retry.RetryTaskPool;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -695,7 +705,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
   }
 
   private class LoginSubRemovalTask implements Callable<Void> {
-    private LoginObserverSubscription sub;
+    private final LoginObserverSubscription sub;
 
     public LoginSubRemovalTask(LoginObserverSubscription sub) {
       this.sub = sub;
@@ -712,8 +722,8 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
   }
 
   private class ReLoginTask implements Callable<LoginObserverSubscription> {
-    private tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry
-      registry;
+    private final tecgraf.openbus.core.v2_1.services.access_control
+      .LoginRegistry registry;
     private final tecgraf.openbus.core.v2_1.services.access_control
       .LoginObserver observer;
     private final Set<LoginInfo> watchedLogins;

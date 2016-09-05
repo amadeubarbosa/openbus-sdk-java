@@ -30,7 +30,7 @@ public class MassiveConnectionTest {
   private static ORB orb;
   private static OpenBusContext context;
   private static final int LOOP_SIZE = 20;
-  private static int THREAD_POOL_SIZE = 8;
+  private static final int THREAD_POOL_SIZE = 8;
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
@@ -69,12 +69,12 @@ public class MassiveConnectionTest {
 
   private class ConnectThread implements Runnable {
 
-    private OpenBusContext context;
-    private String entity;
-    private AtomicBoolean failed;
-    private long remoteSleepTime = THREAD_POOL_SIZE * 10000;
-    private long sleepTime = THREAD_POOL_SIZE * 2 / 3 * 1000;
-    private long logoutSleepTime = 1000;
+    private final OpenBusContext context;
+    private final String entity;
+    private final AtomicBoolean failed;
+    private final long remoteSleepTime = THREAD_POOL_SIZE * 10000;
+    private final long sleepTime = THREAD_POOL_SIZE * 2 / 3 * 1000;
+    private final long logoutSleepTime = 1000;
 
     public ConnectThread(OpenBusContext multiplexer, int id, AtomicBoolean
       failed) {
