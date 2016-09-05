@@ -29,7 +29,7 @@ public final class HelloImpl extends HelloPOA {
    */
   @Override
   public void sayHello() {
-    CallerChain callerChain = context.getCallerChain();
+    CallerChain callerChain = context.callerChain();
     LoginInfo caller = callerChain.caller();
     String hello = String.format("Hello %s!", caller.entity);
     System.out.println(hello);

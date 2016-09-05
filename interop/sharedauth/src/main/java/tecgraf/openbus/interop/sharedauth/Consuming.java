@@ -29,7 +29,7 @@ public class Consuming {
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     Connection connection = context.connectByReference(busref);
-    context.setDefaultConnection(connection);
+    context.defaultConnection(connection);
 
     connection.loginByCallback(() -> {
       try {

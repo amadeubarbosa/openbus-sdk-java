@@ -79,7 +79,7 @@ public final class CallChainClient {
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     // conectando ao barramento.
     Connection connection = context.connectByAddress(host, port);
-    context.setDefaultConnection(connection);
+    context.defaultConnection(connection);
 
     List<RemoteOffer> offers;
     try {
@@ -199,7 +199,7 @@ public final class CallChainClient {
     }
 
     // Faz o logout
-    context.getCurrentConnection().logout();
+    context.currentConnection().logout();
   }
 
 }

@@ -59,13 +59,13 @@ class RemoteOfferImpl implements RemoteOffer {
     if (offerDesc == null || offerDesc.ref == null) {
       throw new OBJECT_NOT_EXIST("A oferta foi removida do barramento.");
     }
-    Connection prev = context.getCurrentConnection();
+    Connection prev = context.currentConnection();
     try {
-      context.setCurrentConnection(conn);
+      context.currentConnection(conn);
       offerDesc.ref.setProperties(OfferRegistryImpl.convertMapToProperties
         (properties));
     } finally {
-      context.setCurrentConnection(prev);
+      context.currentConnection(prev);
     }
     updateProperties(properties);
   }
@@ -80,13 +80,13 @@ class RemoteOfferImpl implements RemoteOffer {
     if (offer == null) {
       return;
     }
-    Connection prev = context.getCurrentConnection();
+    Connection prev = context.currentConnection();
     try {
-      context.setCurrentConnection(conn);
+      context.currentConnection(conn);
       offer.remove();
     } catch (OBJECT_NOT_EXIST ignored) {
     } finally {
-      context.setCurrentConnection(prev);
+      context.currentConnection(prev);
     }
     removed();
   }
@@ -101,16 +101,16 @@ class RemoteOfferImpl implements RemoteOffer {
     if (update) {
       ServiceOfferDesc offer = offer();
       if (offer != null) {
-        Connection prev = context.getCurrentConnection();
+        Connection prev = context.currentConnection();
         try {
-          context.setCurrentConnection(conn);
+          context.currentConnection(conn);
           ServiceProperty[] props = offer.ref.properties();
           synchronized (lock) {
             properties = convertPropertiesToHashMap(props);
             return properties;
           }
         } finally {
-          context.setCurrentConnection(prev);
+          context.currentConnection(prev);
         }
       }
     }

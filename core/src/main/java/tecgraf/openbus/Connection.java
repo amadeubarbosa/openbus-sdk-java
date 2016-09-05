@@ -7,7 +7,15 @@ import org.omg.CORBA.ORB;
 
 import org.omg.PortableServer.POA;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
-import tecgraf.openbus.core.v2_1.services.access_control.*;
+import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidToken;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
+import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
+import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
+import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
+import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.exception.InvalidLoginProcess;
 import tecgraf.openbus.exception.WrongBus;
@@ -43,14 +51,14 @@ public interface Connection {
    * 
    * @return o ORB
    */
-  org.omg.CORBA.ORB orb();
+  org.omg.CORBA.ORB ORB();
 
   /**
    * Recupera o POA associado a essa conexão.
    *
    * @return o POA
    */
-  POA poa();
+  POA POA();
 
   /**
    * Recupera contexto do OpenBus associado a essa conexão.
@@ -217,7 +225,7 @@ public interface Connection {
    * <p>
    * Cria uma nova cadeia de chamadas para a entidade especificada, onde o dono
    * da cadeia é esta conexão e utiliza-se a cadeia atual
-   * ({@link OpenBusContext#getJoinedChain()}) como a cadeia que se deseja dar
+   * ({@link OpenBusContext#joinedChain()}) como a cadeia que se deseja dar
    * seguimento
    * ao encadeamento. É permitido especificar qualquer nome de entidade,
    * tendo ela um login ativo no momento ou não. A cadeia resultante só

@@ -77,24 +77,24 @@ public final class OpenBusContextTest {
 
   @Before
   public void afterEachTest() {
-    context.setCurrentConnection(null);
-    context.setDefaultConnection(null);
+    context.currentConnection(null);
+    context.defaultConnection(null);
     context.onCallDispatch(null);
     context.exitChain();
   }
 
   @Test
   public void ORBTest() {
-    assertNotNull(context.orb());
+    assertNotNull(context.ORB());
   }
 
   @Test
   public void TwoORBsDefaultConnectionTest() throws InvalidName {
     Connection conn = context.connectByReference(busref);
-    assertNull(context.getDefaultConnection());
-    context.setDefaultConnection(conn);
-    assertNotNull(context.getDefaultConnection());
-    assertSame(conn, context.getDefaultConnection());
+    assertNull(context.defaultConnection());
+    context.defaultConnection(conn);
+    assertNotNull(context.defaultConnection());
+    assertSame(conn, context.defaultConnection());
 
     ORB orb2 = ORBInitializer.initORB(null, orbprops);
     assertNotSame(orb, orb2);
@@ -102,21 +102,21 @@ public final class OpenBusContextTest {
     OpenBusContext context2 =
       (OpenBusContext) orb2.resolve_initial_references("OpenBusContext");
     Connection conn2 = context2.connectByReference(busref);
-    assertNull(context2.getDefaultConnection());
+    assertNull(context2.defaultConnection());
     try {
-      context2.setDefaultConnection(conn2);
-      assertNotNull(context2.getDefaultConnection());
-      assertSame(conn2, context2.getDefaultConnection());
+      context2.defaultConnection(conn2);
+      assertNotNull(context2.defaultConnection());
+      assertSame(conn2, context2.defaultConnection());
     }
     finally {
-      context2.setDefaultConnection(null);
+      context2.defaultConnection(null);
     }
   }
 
   @Test
   public void TwoORBsJoinChainTest() throws InvalidTypeForEncoding,
     UnknownEncoding, InvalidName, AccessDenied, AlreadyLoggedIn, ServiceFailure {
-    assertNull(context.getJoinedChain());
+    assertNull(context.joinedChain());
     String busid = "mock";
     String target = "target";
     LoginInfo caller = new LoginInfo("a", "b");
@@ -128,7 +128,7 @@ public final class OpenBusContextTest {
 
     OpenBusContext context2 =
       (OpenBusContext) orb2.resolve_initial_references("OpenBusContext");
-    assertNull(context2.getJoinedChain());
+    assertNull(context2.joinedChain());
     context.exitChain();
   }
 
@@ -237,22 +237,22 @@ public final class OpenBusContextTest {
 
   @Test
   public void defaultConnectionTest() throws Exception {
-    context.setDefaultConnection(null);
+    context.defaultConnection(null);
     final Connection conn = context.connectByReference(busref);
     conn.loginByPassword(entity, password, domain);
-    assertNull(context.getDefaultConnection());
-    context.setCurrentConnection(conn);
-    assertNull(context.getDefaultConnection());
-    context.setCurrentConnection(null);
-    context.setDefaultConnection(conn);
-    assertSame(context.getDefaultConnection(), conn);
+    assertNull(context.defaultConnection());
+    context.currentConnection(conn);
+    assertNull(context.defaultConnection());
+    context.currentConnection(null);
+    context.defaultConnection(conn);
+    assertSame(context.defaultConnection(), conn);
     context.onCallDispatch((context1, busid, loginId, object_id, operation)
       -> conn);
-    assertSame(context.getDefaultConnection(), conn);
+    assertSame(context.defaultConnection(), conn);
     context.onCallDispatch(null);
     assertTrue(conn.logout());
-    assertSame(context.getDefaultConnection(), conn);
-    context.setDefaultConnection(null);
+    assertSame(context.defaultConnection(), conn);
+    context.defaultConnection(null);
   }
 
   @Test
@@ -261,23 +261,23 @@ public final class OpenBusContextTest {
 
     final Connection conn = context.connectByReference(busref);
     conn.loginByPassword(entity, password, domain);
-    assertNull(context.getCurrentConnection());
-    context.setDefaultConnection(conn);
+    assertNull(context.currentConnection());
+    context.defaultConnection(conn);
     context.onCallDispatch((context1, busid, loginId, object_id, operation)
       -> conn);
-    assertSame(context.getCurrentConnection(), conn);
-    context.setCurrentConnection(conn);
-    assertSame(context.getCurrentConnection(), conn);
-    context.setDefaultConnection(null);
+    assertSame(context.currentConnection(), conn);
+    context.currentConnection(conn);
+    assertSame(context.currentConnection(), conn);
+    context.defaultConnection(null);
     context.onCallDispatch(null);
     assertTrue(conn.logout());
-    assertSame(context.getCurrentConnection(), conn);
-    Connection previous = context.setCurrentConnection(null);
+    assertSame(context.currentConnection(), conn);
+    Connection previous = context.currentConnection(null);
     assertSame(previous, conn);
 
     // tentativa de chamada sem current connection setado nem default connection
     conn.loginByPassword(entity, password, domain);
-    assertNull(context.getCurrentConnection());
+    assertNull(context.currentConnection());
     boolean failed = false;
     ServiceProperty[] props = {new ServiceProperty("a", "b")};
     try {
@@ -296,7 +296,7 @@ public final class OpenBusContextTest {
     }
     assertTrue(failed);
     // tentativa com current connection setado
-    previous = context.setCurrentConnection(conn);
+    previous = context.currentConnection(conn);
     assertNull(previous);
     try {
       context.getOfferRegistry().findServices(props);
@@ -306,7 +306,7 @@ public final class OpenBusContextTest {
         " Exceção recebida: " + e);
     }
     finally {
-      previous = context.setCurrentConnection(null);
+      previous = context.currentConnection(null);
     }
     assertSame(previous, conn);
   }
@@ -315,23 +315,23 @@ public final class OpenBusContextTest {
   public void requesterTest() throws Exception {
     final Connection conn = context.connectByReference(busref);
     conn.loginByPassword(entity, password, domain);
-    assertNull(context.getCurrentConnection());
-    context.setDefaultConnection(conn);
+    assertNull(context.currentConnection());
+    context.defaultConnection(conn);
     context.onCallDispatch((context1, busid, loginId, object_id, operation)
       -> conn);
-    assertNotNull(context.getCurrentConnection());
-    assertSame(context.getCurrentConnection(), context.getDefaultConnection());
-    context.setCurrentConnection(conn);
-    assertSame(context.getCurrentConnection(), conn);
-    context.setDefaultConnection(null);
+    assertNotNull(context.currentConnection());
+    assertSame(context.currentConnection(), context.defaultConnection());
+    context.currentConnection(conn);
+    assertSame(context.currentConnection(), conn);
+    context.defaultConnection(null);
     context.onCallDispatch(null);
     assertTrue(conn.logout());
-    assertSame(context.getCurrentConnection(), conn);
-    context.setCurrentConnection(null);
+    assertSame(context.currentConnection(), conn);
+    context.currentConnection(null);
 
     // tentativa de chamada sem conexão request setada
     conn.loginByPassword(entity, password, domain);
-    assertNull(context.getCurrentConnection());
+    assertNull(context.currentConnection());
     boolean failed = false;
     ServiceProperty[] props =
       new ServiceProperty[] { new ServiceProperty("a", "b") };
@@ -351,7 +351,7 @@ public final class OpenBusContextTest {
     }
     assertTrue(failed);
     // tentativa com conexão de request setada
-    context.setCurrentConnection(conn);
+    context.currentConnection(conn);
     try {
       context.getOfferRegistry().findServices(props);
     }
@@ -364,7 +364,7 @@ public final class OpenBusContextTest {
   @Test
   public void callerChainTest() throws Exception {
     Connection conn = context.connectByReference(busref);
-    assertNull(context.getCallerChain());
+    assertNull(context.callerChain());
     // atualmente os testes de interoperabilidade ja cobrem esses testes
   }
 
@@ -372,7 +372,7 @@ public final class OpenBusContextTest {
   public void getCallerChainInDispatchTest() throws Exception {
     Connection conn = context.connectByReference(busref);
     conn.loginByPassword(entity, password, domain);
-    context.setDefaultConnection(conn);
+    context.defaultConnection(conn);
     ComponentContext component = Builder.buildTestCallerChainComponent(context);
     ServiceProperty[] props =
       new ServiceProperty[] { new ServiceProperty("offer.domain",
@@ -385,7 +385,7 @@ public final class OpenBusContextTest {
     assertEquals(1, services.length);
     assertNotNull(services[0]);
     offer.remove();
-    context.setDefaultConnection(null);
+    context.defaultConnection(null);
     conn.logout();
   }
 
@@ -393,7 +393,7 @@ public final class OpenBusContextTest {
   public void getConnectionInDispatchTest() throws Exception {
     Connection conn = context.connectByReference(busref);
     conn.loginByPassword(entity, password, domain);
-    context.setDefaultConnection(conn);
+    context.defaultConnection(conn);
     ComponentContext component = Builder.buildTestConnectionComponent(context);
     ServiceProperty[] props =
       new ServiceProperty[] { new ServiceProperty("offer.domain",
@@ -406,7 +406,7 @@ public final class OpenBusContextTest {
     assertEquals(1, services.length);
     assertNotNull(services[0]);
     offer.remove();
-    context.setDefaultConnection(null);
+    context.defaultConnection(null);
     conn.logout();
   }
 
@@ -414,7 +414,7 @@ public final class OpenBusContextTest {
   public void getConnectionInDispatch2Test() throws Exception {
     final Connection conn = context.connectByReference(busref);
     conn.loginByPassword(entity, password, domain);
-    context.setCurrentConnection(conn);
+    context.currentConnection(conn);
     context.onCallDispatch((context1, busid, loginId, object_id, operation)
       -> conn);
     ComponentContext component = Builder.buildTestConnectionComponent(context);
@@ -429,7 +429,7 @@ public final class OpenBusContextTest {
     assertEquals(1, services.length);
     assertNotNull(services[0]);
     offer.remove();
-    context.setCurrentConnection(null);
+    context.currentConnection(null);
     conn.logout();
   }
 
@@ -437,10 +437,10 @@ public final class OpenBusContextTest {
   public void joinChainTest() throws InvalidTypeForEncoding, UnknownEncoding,
     InvalidName {
     Connection conn = context.connectByReference(busref);
-    assertNull(context.getJoinedChain());
-    // adiciona a chain da getCallerChain
+    assertNull(context.joinedChain());
+    // adiciona a chain da callerChain
     context.joinChain(null);
-    assertNull(context.getJoinedChain());
+    assertNull(context.joinedChain());
 
     String busid = "mock";
     String target = "target";
@@ -449,9 +449,9 @@ public final class OpenBusContextTest {
 
     context.joinChain(buildFakeCallChain(busid, target, caller, originators));
 
-    CallerChain callerChain = context.getJoinedChain();
+    CallerChain callerChain = context.joinedChain();
     assertNotNull(callerChain);
-    assertEquals(busid, callerChain.busid());
+    assertEquals(busid, callerChain.busId());
     assertEquals(target, callerChain.target());
     assertEquals("a", callerChain.caller().id);
     assertEquals("b", callerChain.caller().entity);
@@ -462,14 +462,14 @@ public final class OpenBusContextTest {
   public void exitChainTest() throws InvalidTypeForEncoding, UnknownEncoding,
     InvalidName {
     Connection conn = context.connectByReference(busref);
-    assertNull(context.getJoinedChain());
+    assertNull(context.joinedChain());
     context.exitChain();
-    assertNull(context.getJoinedChain());
+    assertNull(context.joinedChain());
     context.joinChain(buildFakeCallChain("mock", "target", new LoginInfo("a",
       "b"), new LoginInfo[0]));
-    assertNotNull(context.getJoinedChain());
+    assertNotNull(context.joinedChain());
     context.exitChain();
-    assertNull(context.getJoinedChain());
+    assertNull(context.joinedChain());
   }
 
   @Test
@@ -489,7 +489,7 @@ public final class OpenBusContextTest {
     try {
       CallerChain imported = conn1.importChain(token.getBytes(), domain);
       String unknown = "<unknown>";
-      assertEquals(conn1.busid(), imported.busid());
+      assertEquals(conn1.busid(), imported.busId());
       assertEquals(actor1, imported.target());
       assertNotEquals(unknown, imported.caller().id);
       assertEquals(caller, imported.caller().entity);
@@ -606,7 +606,7 @@ public final class OpenBusContextTest {
     context.joinChain(chain1For2);
     CallerChain chain1_2For3 = conn2.makeChainFor(conn3.login().entity);
 
-    context.setCurrentConnection(conn);
+    context.currentConnection(conn);
     context.exitChain();
     ComponentContext component =
       Builder.buildTestCallerChainInspectorComponent(context);
@@ -614,7 +614,7 @@ public final class OpenBusContextTest {
       context.getOfferRegistry().registerService(component.getIComponent(),
         new ServiceProperty[0]);
 
-    context.setCurrentConnection(conn3);
+    context.currentConnection(conn3);
     Object object =
       offer.service_ref().getFacet(CallerChainInspectorHelper.id());
     CallerChainInspector inspector = CallerChainInspectorHelper.narrow(object);
@@ -677,8 +677,8 @@ public final class OpenBusContextTest {
 
     byte[] encodeChain = context.encodeChain(chain1For2);
     CallerChain decodedChain = context.decodeChain(encodeChain);
-    assertEquals(conn1.busid(), decodedChain.busid());
-    assertEquals(conn2.busid(), decodedChain.busid());
+    assertEquals(conn1.busid(), decodedChain.busId());
+    assertEquals(conn2.busid(), decodedChain.busId());
     assertEquals(actor2, decodedChain.target());
     assertEquals(actor1, decodedChain.caller().entity);
     assertEquals(login1, decodedChain.caller().id);
@@ -689,9 +689,9 @@ public final class OpenBusContextTest {
     encodeChain = context.encodeChain(chain1_2For3);
     decodedChain = context.decodeChain(encodeChain);
 
-    assertEquals(conn1.busid(), decodedChain.busid());
-    assertEquals(conn2.busid(), decodedChain.busid());
-    assertEquals(conn3.busid(), decodedChain.busid());
+    assertEquals(conn1.busid(), decodedChain.busId());
+    assertEquals(conn2.busid(), decodedChain.busId());
+    assertEquals(conn3.busid(), decodedChain.busId());
     assertEquals(actor3, decodedChain.target());
     assertEquals(actor2, decodedChain.caller().entity);
     assertEquals(login2, decodedChain.caller().id);
@@ -736,7 +736,7 @@ public final class OpenBusContextTest {
     Connection conn = context.connectByReference(busref);
     conn.loginByPassword(entity, password, domain);
     try {
-      context.setCurrentConnection(conn);
+      context.currentConnection(conn);
       SharedAuthSecret secret = conn.startSharedAuth();
       byte[] data = context.encodeSharedAuth(secret);
       Connection conn2 = context.connectByReference(busref);
@@ -747,7 +747,7 @@ public final class OpenBusContextTest {
       assertEquals(conn.login().entity, conn2.login().entity);
     }
     finally {
-      context.setCurrentConnection(null);
+      context.currentConnection(null);
     }
   }
 
@@ -757,7 +757,7 @@ public final class OpenBusContextTest {
     conn.loginByPassword(entity, password, domain);
     SharedAuthSecret secret = null;
     try {
-      context.setCurrentConnection(conn);
+      context.currentConnection(conn);
       secret = conn.startSharedAuth();
       byte[] data = context.encodeSharedAuth(secret);
       context.decodeChain(data);
@@ -767,7 +767,7 @@ public final class OpenBusContextTest {
         secret.cancel();
       }
       conn.logout();
-      context.setCurrentConnection(null);
+      context.currentConnection(null);
     }
   }
 
@@ -776,7 +776,7 @@ public final class OpenBusContextTest {
     Connection conn = context.connectByReference(busref);
     conn.loginByPassword(entity, password, domain);
     try {
-      context.setCurrentConnection(conn);
+      context.currentConnection(conn);
       SharedAuthSecret secret = conn.startSharedAuth();
       byte[] data = context.encodeSharedAuth(secret);
       SharedAuthSecretImpl secret2 =
@@ -788,7 +788,7 @@ public final class OpenBusContextTest {
       conn.logout();
     }
     finally {
-      context.setCurrentConnection(null);
+      context.currentConnection(null);
     }
   }
 

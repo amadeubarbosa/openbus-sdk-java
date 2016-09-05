@@ -86,9 +86,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
   ClientRequestInterceptorImpl(String name, ORBMediator mediator) {
     super(name, mediator);
     this.uniqueId2Conn =
-      Collections.synchronizedMap(new HashMap<Integer, ConnectionImpl>());
+      Collections.synchronizedMap(new HashMap<>());
     this.uniqueId2LoginId =
-      Collections.synchronizedMap(new HashMap<Integer, String>());
+      Collections.synchronizedMap(new HashMap<>());
   }
 
   /**
@@ -189,10 +189,6 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     }
   }
 
-  private void saveRequestsInformation() {
-
-  }
-
   /**
    * Gera uma credencial para a chamada.
    * 
@@ -291,7 +287,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       }
       catch (InvalidLogins e) {
         Map<EffectiveProfile, String> cache = conn.cache.entities;
-        List<EffectiveProfile> toRemove = new ArrayList<EffectiveProfile>();
+        List<EffectiveProfile> toRemove = new ArrayList<>();
         for (Entry<EffectiveProfile, String> entry : cache.entrySet()) {
           if (target.equals(entry.getValue())) {
             toRemove.add(entry.getKey());
@@ -425,7 +421,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
    */
   @Override
   public void receive_exception(ClientRequestInfo ri) throws ForwardRequest {
-    Integer uniqueId = null;
+    Integer uniqueId;
     try {
       logger.finest(String.format("Exception: %s Request: %s", ri
         .received_exception_id(), ri.operation()));
@@ -586,11 +582,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         context_data = context.context_data;
       }
       catch (BAD_PARAM e) {
-        if (e.minor == 26) {
-          // request's service context does not contain an entry
-          // for that ID.
-        }
-        else {
+        // (if 26) request's service context does not contain an entry
+        // for that ID.
+        if (e.minor != 26) {
           throw e;
         }
       }
@@ -608,11 +602,9 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
           context_data = context.context_data;
         }
         catch (BAD_PARAM e) {
-          if (e.minor == 26) {
-            // request's service context does not contain an entry
-            // for that ID.
-          }
-          else {
+          // (if 26) request's service context does not contain an entry
+          // for that ID.
+          if (e.minor != 26) {
             throw e;
           }
         }
@@ -631,12 +623,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         }
       }
     }
-    catch (FormatMismatch e) {
-      String message = "Falha inesperada ao obter o CredentialReset";
-      logger.log(Level.SEVERE, message, e);
-      throw new INTERNAL(message);
-    }
-    catch (TypeMismatch e) {
+    catch (FormatMismatch | TypeMismatch e) {
       String message = "Falha inesperada ao obter o CredentialReset";
       logger.log(Level.SEVERE, message, e);
       throw new INTERNAL(message);
@@ -714,7 +701,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
         return connection;
       }
     }
-    Connection connection = context.getDefaultConnection();
+    Connection connection = context.defaultConnection();
     if (connection != null) {
       return connection;
     }

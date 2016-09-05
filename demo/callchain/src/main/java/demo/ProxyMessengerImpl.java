@@ -29,7 +29,7 @@ public class ProxyMessengerImpl extends MessengerPOA {
 
   @Override
   public void showMessage(String message) throws Unavailable, Unauthorized {
-    CallerChain chain = context.getCallerChain();
+    CallerChain chain = context.callerChain();
     System.out.println(String.format("repassando mensagem de %s", Utils
       .chain2str(chain)));
     context.joinChain(chain);

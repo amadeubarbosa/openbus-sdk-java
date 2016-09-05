@@ -43,7 +43,7 @@ public class Client {
       OpenBusContext context =
         (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
       Connection conn = context.connectByReference(bus);
-      context.setDefaultConnection(conn);
+      context.defaultConnection(conn);
       String login = "interop_multiplexing_java_client";
       conn.loginByPassword(login, login.getBytes(), domain);
 
@@ -61,7 +61,7 @@ public class Client {
         LibUtils.findOffer(conn.offerRegistry(), props, nOffers, 10, 1);
       for (RemoteOffer offer : services) {
         logger.fine(String
-          .format("found offer from %s on bus %s", offer.properties(false)
+          .format("found offer from %s on bus %s", offer.properties()
             .get("openbus.offer.entity"), conn.busid()));
         org.omg.CORBA.Object obj = offer.service().getFacet(HelloHelper.id
           ());

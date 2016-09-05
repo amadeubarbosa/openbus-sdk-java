@@ -24,7 +24,7 @@ public class MessengerImpl extends MessengerPOA {
 
   @Override
   public void post(String to, String message) {
-    CallerChain chain = context.getCallerChain();
+    CallerChain chain = context.callerChain();
     String from = LibUtils.chain2str(chain);
     synchronized (inboxOf) {
       List<PostDesc> list = this.inboxOf.get(to);
@@ -38,7 +38,7 @@ public class MessengerImpl extends MessengerPOA {
 
   @Override
   public PostDesc[] receivePosts() {
-    CallerChain chain = context.getCallerChain();
+    CallerChain chain = context.callerChain();
     LoginInfo caller = chain.caller();
     LoginInfo[] originators = chain.originators();
     String owner = caller.entity;

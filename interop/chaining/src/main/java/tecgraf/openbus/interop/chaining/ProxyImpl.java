@@ -46,7 +46,7 @@ public class ProxyImpl extends HelloProxyPOA {
     props.put("openbus.component.name", "RestrictedHello");
     List<RemoteOffer> descs;
     try {
-      OfferRegistry offers = context.getCurrentConnection().offerRegistry();
+      OfferRegistry offers = context.currentConnection().offerRegistry();
       descs = LibUtils.findOffer(offers, props, 1, 10, 1);
     }
     catch (ServiceFailure e) {

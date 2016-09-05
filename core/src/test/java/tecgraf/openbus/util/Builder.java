@@ -36,7 +36,7 @@ public class Builder {
   public static ComponentContext buildTestCallerChainComponent(
     final OpenBusContext context) throws AdapterInactive, InvalidName,
     SCSException {
-    ComponentContext component = buildComponent(context.orb());
+    ComponentContext component = buildComponent(context.ORB());
     component.updateFacet("IComponent", new IComponentServant(component) {
       /**
        * Método vai lançar uma exceção caso não consiga recuperar uma cadeia
@@ -45,14 +45,14 @@ public class Builder {
        */
       @Override
       public Object getFacetByName(String arg0) {
-        Connection connection = context.getCurrentConnection();
-        CallerChain chain = context.getCallerChain();
+        Connection connection = context.currentConnection();
+        CallerChain chain = context.callerChain();
         if (chain == null) {
           throw new IllegalStateException(
             "CallerChain nunca deveria ser nulo dentro de um método de despacho.");
         }
         // verificando dados da cadeia
-        if (!connection.busid().equals(chain.busid())) {
+        if (!connection.busid().equals(chain.busId())) {
           throw new IllegalStateException(
             "Informação de busId da cadeia não é coerente com conexão que atende a requisição.");
         }
@@ -85,7 +85,7 @@ public class Builder {
   public static ComponentContext buildTestConnectionComponent(
     final OpenBusContext context) throws AdapterInactive, InvalidName,
     SCSException {
-    ComponentContext component = buildComponent(context.orb());
+    ComponentContext component = buildComponent(context.ORB());
     component.updateFacet("IComponent", new IComponentServant(component) {
       /**
        * Método vai lançar uma exceção caso não consiga recuperar uma conexão. O
@@ -94,7 +94,7 @@ public class Builder {
        */
       @Override
       public Object getFacetByName(String arg0) {
-        Connection connection = context.getCurrentConnection();
+        Connection connection = context.currentConnection();
         if (connection == null) {
           throw new IllegalStateException(
             "CurrentConnection nunca deveria ser nulo dentro de um método de despacho.");
@@ -118,7 +118,7 @@ public class Builder {
   public static ComponentContext buildTestCallerChainInspectorComponent(
     final OpenBusContext context) throws AdapterInactive, InvalidName,
     SCSException {
-    ComponentContext component = buildComponent(context.orb());
+    ComponentContext component = buildComponent(context.ORB());
     component.addFacet("CallerChainInspector", CallerChainInspectorHelper.id(),
       new CallerChainInspectorImpl(context));
     return component;

@@ -118,7 +118,7 @@ public final class DedicatedClockClient {
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     // conectando ao barramento.
     Connection connection = context.connectByAddress(host, port);
-    context.setDefaultConnection(connection);
+    context.defaultConnection(connection);
 
     // autentica-se no barramento
     boolean failed;
@@ -266,7 +266,7 @@ public final class DedicatedClockClient {
     } while (timestamp == null && retry());
 
     // Faz o logout
-    context.getCurrentConnection().logout();
+    context.currentConnection().logout();
 
     if (timestamp != null) {
       Date date = new Date(timestamp);

@@ -1,6 +1,7 @@
 package demo;
 
 import java.security.interfaces.RSAPrivateKey;
+import java.util.concurrent.TimeoutException;
 
 import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.COMM_FAILURE;
@@ -24,6 +25,9 @@ import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
+import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidProperties;
+import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidService;
+import tecgraf.openbus.core.v2_1.services.offer_registry.UnauthorizedFacets;
 import tecgraf.openbus.demo.util.Usage;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.security.Cryptography;
@@ -52,7 +56,8 @@ public final class DedicatedClockServer {
    * @throws ServiceFailure
    */
   public static void main(String[] args) throws InvalidName, AdapterInactive,
-    SCSException, AlreadyLoggedIn, ServiceFailure {
+    SCSException, AlreadyLoggedIn, ServiceFailure, InvalidService,
+    TimeoutException, UnauthorizedFacets, InvalidProperties {
     // verificando parametros de entrada
     if (args.length < 4) {
       String params = "[interval]";
@@ -124,7 +129,7 @@ public final class DedicatedClockServer {
 
     // criando o serviço a ser ofertado
     // - ativando o POA
-    POA poa = context.poa();
+    POA poa = context.POA();
     // - construindo o componente
     ComponentId id =
       new ComponentId("Clock", (byte) 1, (byte) 0, (byte) 0, "java");
@@ -133,7 +138,7 @@ public final class DedicatedClockServer {
 
     // conectando ao barramento.
     Connection conn = context.connectByAddress(host, port);
-    context.setDefaultConnection(conn);
+    context.defaultConnection(conn);
 
     // autentica-se no barramento
     boolean failed;
@@ -202,7 +207,7 @@ public final class DedicatedClockServer {
     serviceProperties.put("offer.domain", "Demo Dedicated Clock");
     LocalOffer localOffer = conn.offerRegistry().registerService(
       component.getIComponent(), serviceProperties);
-    RemoteOffer myOffer = localOffer.remoteOffer(60000, 0);
+    RemoteOffer myOffer = localOffer.remoteOffer(60000);
     if (myOffer == null) {
       localOffer.remove();
       System.exit(1);

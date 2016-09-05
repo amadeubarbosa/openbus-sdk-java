@@ -30,7 +30,7 @@ public final class HelloServant extends HelloPOA {
   @Override
   public String sayHello() {
     try {
-      CallerChain callerChain = context.getCallerChain();
+      CallerChain callerChain = context.callerChain();
       LoginInfo caller = callerChain.caller();
       return String.format("Hello %s!", caller.entity);
     }

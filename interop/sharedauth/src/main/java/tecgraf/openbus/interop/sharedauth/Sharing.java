@@ -40,7 +40,7 @@ public final class Sharing {
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     Connection connection = context.connectByReference(busref);
-    context.setDefaultConnection(connection);
+    context.defaultConnection(connection);
 
     connection.loginByPassword(entity, entity.getBytes(Cryptography.CHARSET),
       domain);

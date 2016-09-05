@@ -4,6 +4,7 @@ import java.security.interfaces.RSAPrivateKey;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.concurrent.TimeoutException;
 
 import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.COMM_FAILURE;
@@ -26,6 +27,10 @@ import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
+import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidProperties;
+import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidService;
+import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
+import tecgraf.openbus.core.v2_1.services.offer_registry.UnauthorizedFacets;
 import tecgraf.openbus.demo.util.Usage;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.security.Cryptography;
@@ -131,7 +136,7 @@ public final class MultiplexingServer {
       return null;
     });
 
-    POA poa = context.poa();
+    POA poa = context.POA();
 
     for (int i = 0; i < 3; i++) {
       // criando o serviço a ser ofertado
@@ -142,7 +147,7 @@ public final class MultiplexingServer {
       component.addFacet("Timer", TimerHelper.id(), timer);
       // conectando ao barramento.
       Connection conn = context.connectByAddress(host, port);
-      context.setCurrentConnection(conn);
+      context.currentConnection(conn);
 
       // preenche o mapa utilizado pela callback onCallDispatch
       map.put(Arrays.toString(poa.servant_to_id(timer)), conn);
@@ -151,6 +156,7 @@ public final class MultiplexingServer {
 
       // autentica-se no barramento
       boolean failed = true;
+      int timeout = 60000;
       try {
         conn.loginByPrivateKey(entity, privateKey);
         // registrando serviço no barramento
@@ -159,7 +165,7 @@ public final class MultiplexingServer {
         serviceProperties.put("offer.domain", "Demo Multiplexing");
         LocalOffer localOffer = conn.offerRegistry().registerService
           (component.getIComponent(), serviceProperties);
-        RemoteOffer myOffer = localOffer.remoteOffer(60000, 0);
+        RemoteOffer myOffer = localOffer.remoteOffer(timeout);
         if (myOffer == null) {
           localOffer.remove();
         } else {
@@ -182,6 +188,38 @@ public final class MultiplexingServer {
         System.err
           .println("incompatibilidade na codifição de informação para o barramento");
       }
+      // register
+      catch (UnauthorizedFacets e) {
+        StringBuilder interfaces = new StringBuilder();
+        for (String facet : e.facets) {
+          interfaces.append("\n  - ");
+          interfaces.append(facet);
+        }
+        System.err
+          .println(String
+            .format(
+              "a entidade '%s' não foi autorizada pelo administrador do barramento a ofertar os serviços: %s",
+              entity, interfaces.toString()));
+      }
+      catch (InvalidService e) {
+        System.err
+          .println("o serviço ofertado apresentou alguma falha durante o registro.");
+      }
+      catch (InvalidProperties e) {
+        StringBuilder props = new StringBuilder();
+        for (ServiceProperty prop : e.properties) {
+          props.append("\n  - ");
+          props.append(String.format("name = %s, value = %s", prop.name,
+            prop.value));
+        }
+        System.err.println(String.format(
+          "tentativa de registrar serviço com propriedades inválidas: %s", props
+            .toString()));
+      }
+      catch (TimeoutException e) {
+        System.err.println("O serviço não foi registrado em " + timeout +
+          " milisegundos.");
+      }
       // bus core
       catch (ServiceFailure e) {
         System.err.println(String.format(
@@ -203,7 +241,7 @@ public final class MultiplexingServer {
       }
       finally {
         if (failed) {
-          context.getCurrentConnection().logout();
+          context.currentConnection().logout();
         }
       }
     }

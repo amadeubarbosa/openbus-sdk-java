@@ -99,9 +99,9 @@ class OfferRegistryImpl implements OfferRegistry {
     if (registry == null) {
       return new ArrayList<>();
     }
-    Connection prev = context.getCurrentConnection();
+    Connection prev = context.currentConnection();
     try {
-      context.setCurrentConnection(conn);
+      context.currentConnection(conn);
       ServiceOfferDesc[] descs = registry.findServices(convertMapToProperties
         (properties));
       List<RemoteOffer> offers = new ArrayList<>(descs.length);
@@ -110,20 +110,20 @@ class OfferRegistryImpl implements OfferRegistry {
       }
       return offers;
     } finally {
-      context.setCurrentConnection(prev);
+      context.currentConnection(prev);
     }
   }
 
   @Override
-  public List<RemoteOffer> getAllServices() throws ServiceFailure {
+  public List<RemoteOffer> allServices() throws ServiceFailure {
     tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry registry
       = registry();
     if (registry == null) {
       return new ArrayList<>();
     }
-    Connection prev = context.getCurrentConnection();
+    Connection prev = context.currentConnection();
     try {
-      context.setCurrentConnection(conn);
+      context.currentConnection(conn);
       ServiceOfferDesc[] descs = registry.getAllServices();
       List<RemoteOffer> offers = new ArrayList<>(descs.length);
       for (ServiceOfferDesc desc : descs) {
@@ -131,7 +131,7 @@ class OfferRegistryImpl implements OfferRegistry {
       }
       return offers;
     } finally {
-      context.setCurrentConnection(prev);
+      context.currentConnection(prev);
     }
   }
 
@@ -496,9 +496,9 @@ class OfferRegistryImpl implements OfferRegistry {
 
   private void onLogin() {
     synchronized (lock) {
-      Connection prev = context.getCurrentConnection();
+      Connection prev = context.currentConnection();
       try {
-        context.setCurrentConnection(conn);
+        context.currentConnection(conn);
         registry = context.getOfferRegistry();
         if (maintainedOffers == null) {
           maintainedOffers = new HashMap<>();
@@ -510,7 +510,7 @@ class OfferRegistryImpl implements OfferRegistry {
           offerSubs = new HashMap<>();
         }
       } finally {
-        context.setCurrentConnection(prev);
+        context.currentConnection(prev);
       }
     }
   }
@@ -519,9 +519,9 @@ class OfferRegistryImpl implements OfferRegistry {
     synchronized (lock) {
       clearLoginState();
 
-      Connection prev = context.getCurrentConnection();
+      Connection prev = context.currentConnection();
       try {
-        context.setCurrentConnection(conn);
+        context.currentConnection(conn);
         if (this.maintainedOffers != null) {
           for (LocalOfferImpl offer : maintainedOffers.keySet()) {
             offer.loggedOut();
@@ -551,7 +551,7 @@ class OfferRegistryImpl implements OfferRegistry {
 
         this.lock.notifyAll();
       } finally {
-        context.setCurrentConnection(prev);
+        context.currentConnection(prev);
       }
     }
   }
@@ -675,15 +675,15 @@ class OfferRegistryImpl implements OfferRegistry {
   }
 
   private void clearOfferSubscription(OfferSubscriptionImpl localSub) {
-    Connection prev = this.context.getCurrentConnection();
+    Connection prev = this.context.currentConnection();
     try {
-      this.context.setCurrentConnection(conn);
+      this.context.currentConnection(conn);
       // best effort
       try {
         localSub.remove();
       } catch (Exception ignored) {}
     } finally {
-      this.context.setCurrentConnection(prev);
+      this.context.currentConnection(prev);
     }
   }
 
@@ -988,7 +988,7 @@ class OfferRegistryImpl implements OfferRegistry {
     @Override
     public RemoteOfferImpl call() throws ServiceFailure, InvalidService,
       InvalidProperties, UnauthorizedFacets {
-      context.setCurrentConnection(conn);
+      context.currentConnection(conn);
       ServiceOfferDesc offer = registry.registerService(local.service,
         local.props).describe();
       return new RemoteOfferImpl(OfferRegistryImpl.this, offer);
@@ -1005,7 +1005,7 @@ class OfferRegistryImpl implements OfferRegistry {
     @Override
     public Void call() throws ServiceFailure, UnauthorizedOperation {
       try {
-        context.setCurrentConnection(conn);
+        context.currentConnection(conn);
         remote.remove();
       } catch (OBJECT_NOT_EXIST ignored) {}
       return null;
@@ -1022,7 +1022,7 @@ class OfferRegistryImpl implements OfferRegistry {
     @Override
     public Void call() throws ServiceFailure, UnauthorizedOperation {
       try {
-        context.setCurrentConnection(conn);
+        context.currentConnection(conn);
         sub.remove();
       } catch (OBJECT_NOT_EXIST ignored) {}
       return null;
@@ -1039,7 +1039,7 @@ class OfferRegistryImpl implements OfferRegistry {
     @Override
     public Void call() throws ServiceFailure, UnauthorizedOperation {
       try {
-        context.setCurrentConnection(conn);
+        context.currentConnection(conn);
         sub.remove();
       } catch (OBJECT_NOT_EXIST ignored) {}
       return null;
@@ -1065,7 +1065,7 @@ class OfferRegistryImpl implements OfferRegistry {
 
     @Override
     public OfferRegistryObserverSubscription call() throws ServiceFailure {
-      context.setCurrentConnection(conn);
+      context.currentConnection(conn);
       return registry.subscribeObserver(observer, properties);
     }
   }
@@ -1085,7 +1085,7 @@ class OfferRegistryImpl implements OfferRegistry {
     @Override
     public OfferObserverSubscription call() throws ServiceFailure {
       try {
-        context.setCurrentConnection(conn);
+        context.currentConnection(conn);
         return offer.subscribeObserver(observer);
       } catch (OBJECT_NOT_EXIST ignored) {}
       return null;
@@ -1102,7 +1102,7 @@ class OfferRegistryImpl implements OfferRegistry {
     }
     @Override
     public Void call() throws Exception {
-      context.setCurrentConnection(conn);
+      context.currentConnection(conn);
       synchronized (lock) {
         for (Map.Entry<LocalOfferImpl, ListenableFuture<RemoteOfferImpl>> entry
           : maintainedOffers.entrySet()) {

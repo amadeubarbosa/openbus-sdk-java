@@ -69,10 +69,10 @@ public class Server {
     // create service SCS component
     ComponentId id =
       new ComponentId("Hello", (byte) 1, (byte) 0, (byte) 0, "java");
-    POA poa1 = context1.poa();
+    POA poa1 = context1.POA();
     ComponentContext component1 = new ComponentContext(orb1, poa1, id);
     component1.addFacet("Hello", HelloHelper.id(), new HelloServant(context1));
-    POA poa2 = context2.poa();
+    POA poa2 = context2.POA();
     ComponentContext component2 = new ComponentContext(orb2, poa2, id);
     component2.addFacet("Hello", HelloHelper.id(), new HelloServant(context2));
 

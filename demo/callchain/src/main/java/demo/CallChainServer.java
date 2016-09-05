@@ -1,6 +1,7 @@
 package demo;
 
 import java.security.interfaces.RSAPrivateKey;
+import java.util.concurrent.TimeoutException;
 
 import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.COMM_FAILURE;
@@ -24,6 +25,10 @@ import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
+import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidProperties;
+import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidService;
+import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
+import tecgraf.openbus.core.v2_1.services.offer_registry.UnauthorizedFacets;
 import tecgraf.openbus.demo.util.Usage;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.security.Cryptography;
@@ -97,7 +102,7 @@ public class CallChainServer {
 
     // criando o serviço a ser ofertado
     // - ativando o POA
-    POA poa = context.poa();
+    POA poa = context.POA();
     // - construindo o componente
     ComponentId id =
       new ComponentId("Messenger", (byte) 1, (byte) 0, (byte) 0, "java");
@@ -107,11 +112,12 @@ public class CallChainServer {
 
     // conectando ao barramento.
     Connection conn = context.connectByAddress(host, port);
-    context.setDefaultConnection(conn);
+    context.defaultConnection(conn);
 
     // autentica-se no barramento
-    LocalOffer localOffer = null;
+    LocalOffer localOffer;
     boolean failed = true;
+    int timeout = 60000;
     try {
       conn.loginByPrivateKey(entity, privateKey);
       // registrando serviço no barramento
@@ -121,7 +127,7 @@ public class CallChainServer {
       serviceProperties.put("offer.domain", "Demo Call Chain");
       localOffer = conn.offerRegistry().registerService(component
         .getIComponent(), serviceProperties);
-      RemoteOffer myOffer = localOffer.remoteOffer(60000, 0);
+      RemoteOffer myOffer = localOffer.remoteOffer(timeout);
       if (myOffer != null) {
         failed = false;
       } else {
@@ -141,6 +147,38 @@ public class CallChainServer {
     catch (WrongEncoding e) {
       System.err
         .println("incompatibilidade na codifição de informação para o barramento");
+    }
+    // register
+    catch (UnauthorizedFacets e) {
+      StringBuilder interfaces = new StringBuilder();
+      for (String facet : e.facets) {
+        interfaces.append("\n  - ");
+        interfaces.append(facet);
+      }
+      System.err
+        .println(String
+          .format(
+            "a entidade '%s' não foi autorizada pelo administrador do barramento a ofertar os serviços: %s",
+            entity, interfaces.toString()));
+    }
+    catch (InvalidService e) {
+      System.err
+        .println("o serviço ofertado apresentou alguma falha durante o registro.");
+    }
+    catch (InvalidProperties e) {
+      StringBuilder props = new StringBuilder();
+      for (ServiceProperty prop : e.properties) {
+        props.append("\n  - ");
+        props.append(String.format("name = %s, value = %s", prop.name,
+          prop.value));
+      }
+      System.err.println(String.format(
+        "tentativa de registrar serviço com propriedades inválidas: %s", props
+          .toString()));
+    }
+    catch (TimeoutException e) {
+      System.err.println("O serviço não foi registrado em " + timeout +
+        " milisegundos.");
     }
     // bus core
     catch (ServiceFailure e) {
@@ -164,7 +202,7 @@ public class CallChainServer {
     finally {
       if (failed) {
         try {
-          context.getCurrentConnection().logout();
+          context.currentConnection().logout();
         }
         // bus core
         catch (ServiceFailure e) {

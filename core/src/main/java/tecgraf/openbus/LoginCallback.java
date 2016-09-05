@@ -13,5 +13,5 @@ public interface LoginCallback {
    *
    * @return Dados válidos para uma autenticação.
    */
-  AuthArgs login();
+  AuthArgs authenticationArguments();
 }

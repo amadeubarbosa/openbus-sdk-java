@@ -49,12 +49,12 @@ public final class Server {
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     Connection conn = context.connectByReference(busref);
-    context.setDefaultConnection(conn);
+    context.defaultConnection(conn);
     conn.loginByPrivateKey(entity, privateKey);
 
     shutdown.addConnetion(conn);
 
-    POA poa = context.poa();
+    POA poa = context.POA();
     ComponentId id =
       new ComponentId("RestrictedHello", (byte) 1, (byte) 0, (byte) 0, "java");
     ComponentContext component = new ComponentContext(orb, poa, id);
@@ -66,7 +66,7 @@ public final class Server {
     OfferRegistry registry = conn.offerRegistry();
     LocalOffer localOffer =
       registry.registerService(component.getIComponent(), serviceProperties);
-    RemoteOffer myOffer = localOffer.remoteOffer(60000, 0);
+    RemoteOffer myOffer = localOffer.remoteOffer(60000);
     if (myOffer != null) {
       shutdown.addOffer(myOffer);
     } else {

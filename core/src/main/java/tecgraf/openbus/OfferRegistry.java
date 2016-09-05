@@ -80,7 +80,7 @@ public interface OfferRegistry {
    * @throws ServiceFailure Caso o registro de ofertas reporte alguma falha ao
    * realizar a operação.
    */
-  List<RemoteOffer> getAllServices() throws ServiceFailure;
+  List<RemoteOffer> allServices() throws ServiceFailure;
 
   /**
    * Solicita que seja cadastrado um observador interessado em receber

@@ -21,7 +21,7 @@ public class ForwarderImpl extends ForwarderPOA {
 
   @Override
   public void setForward(String to) {
-    CallerChain chain = context.getCallerChain();
+    CallerChain chain = context.callerChain();
     LoginInfo caller = chain.caller();
     String user = caller.entity;
     this.forwardsOf.put(user, new ForwardInfo(chain, to));
@@ -29,14 +29,14 @@ public class ForwarderImpl extends ForwarderPOA {
 
   @Override
   public void cancelForward(String to) {
-    LoginInfo caller = context.getCallerChain().caller();
+    LoginInfo caller = context.callerChain().caller();
     String user = caller.entity;
     this.forwardsOf.remove(user);
   }
 
   @Override
   public String getForward() throws NoForward {
-    LoginInfo caller = context.getCallerChain().caller();
+    LoginInfo caller = context.callerChain().caller();
     String user = caller.entity;
     ForwardInfo forward = this.forwardsOf.get(user);
     if (forward == null) {

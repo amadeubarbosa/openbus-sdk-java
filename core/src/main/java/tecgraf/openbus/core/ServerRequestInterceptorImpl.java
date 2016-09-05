@@ -84,7 +84,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * @return a credencial.
    */
   private Credential retrieveCredential(ServerRequestInfo ri) {
-    byte[] encodedCredential = null;
+    byte[] encodedCredential;
     try {
       ServiceContext requestServiceContext =
         ri.get_request_service_context(CredentialContextId.value);
@@ -104,12 +104,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           throw e;
       }
     }
-    catch (TypeMismatch e) {
-      String message = "Falha inesperada ao decodificar a credencial";
-      logger.log(Level.SEVERE, message, e);
-      throw new INTERNAL(message);
-    }
-    catch (FormatMismatch e) {
+    catch (TypeMismatch | FormatMismatch e) {
       String message = "Falha inesperada ao decodificar a credencial";
       logger.log(Level.SEVERE, message, e);
       throw new INTERNAL(message);
@@ -138,12 +133,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
           throw e;
       }
     }
-    catch (TypeMismatch e) {
-      String message = "Falha inesperada ao decodificar a credencial";
-      logger.log(Level.SEVERE, message, e);
-      throw new INTERNAL(message);
-    }
-    catch (FormatMismatch e) {
+    catch (TypeMismatch | FormatMismatch e) {
       String message = "Falha inesperada ao decodificar a credencial";
       logger.log(Level.SEVERE, message, e);
       throw new INTERNAL(message);
@@ -172,12 +162,12 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       ConnectionImpl conn =
         getConnForDispatch(context, busId, loginId, object_id, operation);
       if (busId.equals(conn.busid())) {
-        context.setCurrentConnection(conn);
+        context.currentConnection(conn);
         if (validateLogin(conn, loginId, ri)) {
           OctetSeqHolder pubkey = new OctetSeqHolder();
           String entity = getLoginInfo(conn, loginId, pubkey, ri);
           if (validateCredential(credential, ri, conn)) {
-            if (validateChain(credential, pubkey, conn)) {
+            if (validateChain(credential, null, conn)) {
               saveRequestInformations(credential, conn, ri);
               String msg =
                 "Recebendo chamada pelo barramento: login (%s) entidade (%s) operação (%s) requestId (%d)";
@@ -230,7 +220,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       // Talvez essa operação nao deveria ser necessaria, 
       // pois o PICurrent deveria acabar junto com a thread de interceptação.
       // CHECK possível bug! Esta operação modifica o valor setado no ri e PICurrent
-      //context.setCurrentConnection(null);
+      //context.currentConnection(null);
       logger.finest(String.format("[out] receive_request: %s", operation));
     }
   }
@@ -264,7 +254,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       //TODO caso callback gere um erro, busco a conexao default ou NO_PERMISSION?
     }
     if (conn == null) {
-      conn = (ConnectionImpl) context.getDefaultConnection();
+      conn = (ConnectionImpl) context.defaultConnection();
     }
     if (conn == null || conn.login() == null || !conn.busid().equals(busId)) {
       throw new NO_PERMISSION(UnknownBusCode.value,
@@ -447,23 +437,26 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
   }
 
   /**
-   * Valida a cadeia da credencial.
+   * Valida a cadeia de uma credencial.
    * 
    * @param credential a credencial
-   * @param pubkey a chave pública da entidade
+   * @param pubKey a chave pública da entidade. Caso seja null, a assinatura
+   *               será validada com a chave pública do barramento.
    * @param conn a conexão em uso.
    * @return <code>true</code> caso a cadeia seja válida, ou <code>false</code>
    *         caso contrário.
    */
-  private boolean validateChain(Credential credential, OctetSeqHolder pubkey,
+  private boolean validateChain(Credential credential, RSAPublicKey pubKey,
     ConnectionImpl conn) {
     Cryptography crypto = Cryptography.getInstance();
-    RSAPublicKey busPubKey = conn.getBusPublicKey();
+    if (pubKey == null) {
+      pubKey = conn.getBusPublicKey();
+    }
     if (credential.chain != null) {
       try {
         Chain chain = credential.decodeChain(codec());
         boolean verified =
-          crypto.verifySignature(busPubKey, chain.encoded(), chain.signature());
+          crypto.verifySignature(pubKey, chain.encoded(), chain.signature());
         if (verified && (chain.bus.equals(credential.bus))
           && (chain.target.equals(conn.login().entity))
           && (chain.caller.id.equals(credential.login))) {

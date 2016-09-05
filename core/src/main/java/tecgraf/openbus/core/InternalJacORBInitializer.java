@@ -81,7 +81,7 @@ public final class InternalJacORBInitializer extends LocalObject implements
     try {
       OpenBusContextImpl context = (OpenBusContextImpl) info
         .resolve_initial_references("OpenBusContext");
-      context.setPOA(null);
+      context.POA(null);
     } catch (InvalidName e) {
       String message = "Falha inesperada ao registrar o POA no multiplexador";
       logger.log(Level.SEVERE, message, e);

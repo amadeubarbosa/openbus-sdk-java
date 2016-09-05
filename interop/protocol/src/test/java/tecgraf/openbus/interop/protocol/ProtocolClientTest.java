@@ -68,7 +68,7 @@ public final class ProtocolClientTest {
   @Before
   public void beforeEachTest() throws Exception {
     conn.loginByPassword(entity, password, domain);
-    context.setDefaultConnection(conn);
+    context.defaultConnection(conn);
     server = findServer();
   }
 
@@ -80,7 +80,7 @@ public final class ProtocolClientTest {
     catch (ServiceFailure e) {
       // do nothing
     }
-    context.setDefaultConnection(null);
+    context.defaultConnection(null);
   }
 
   @AfterClass

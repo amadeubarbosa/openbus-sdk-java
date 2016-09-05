@@ -48,21 +48,21 @@ public interface OpenBusContext {
    * 
    * @return o ORB
    */
-  org.omg.CORBA.ORB orb();
+  org.omg.CORBA.ORB ORB();
 
   /**
    * Recupera o POA associado ao ConnectionManager.
    *
    * @return o ORB
    */
-  POA poa();
+  POA POA();
 
   /**
    * Configura o POA que o ConnectionManager esta associado.
    *
    * @param poa o POA.
    */
-  void setPOA(POA poa);
+  void POA(POA poa);
 
   /**
    * Callback a ser chamada para determinar a conexão a ser utilizada para
@@ -233,7 +233,7 @@ public interface OpenBusContext {
    * <p>
    * Define uma conexão a ser utilizada em chamadas sempre que não houver uma
    * conexão específica definida no contexto atual, como é feito através da
-   * operação {@link OpenBusContext#setCurrentConnection(Connection)
+   * operação {@link OpenBusContext#currentConnection(Connection)
    * setRequester}. Quando <code>conn</code> é <code>null</code> nenhuma conexão
    * fica definida como a conexão padrão.
    *
@@ -246,20 +246,20 @@ public interface OpenBusContext {
    *         <code>null</code> se não havia conexão padrão definida
    *         anteriormente.
    */
-  Connection setDefaultConnection(Connection conn);
+  Connection defaultConnection(Connection conn);
 
   /**
    * Devolve a conexão padrão a ser usada nas chamadas de stubs do usuário.
    * <p>
-   * Veja operação {@link OpenBusContext#setDefaultConnection
-   * setDefaultConnection}.
+   * Veja operação {@link OpenBusContext#defaultConnection
+   * defaultConnection}.
    *
    * A conexão padrão não afeta chamadas feitas pela API do SDK, apenas
    * chamadas feitas por stubs criados pelo usuário.
    *
    * @return Conexão definida como conexão padrão.
    */
-  Connection getDefaultConnection();
+  Connection defaultConnection();
 
   /**
    * Define a conexão associada ao contexto corrente, a ser usada nas
@@ -268,8 +268,8 @@ public interface OpenBusContext {
    * Define a conexão a ser utilizada em todas as chamadas feitas no contexto
    * atual. Quando <code>conn</code> é <code>null</code> o contexto passa a
    * ficar sem nenhuma conexão associada, a não ser que haja uma conexão
-   * padrão definida através da operação {@link #setDefaultConnection
-   * setDefaultConnection}.
+   * padrão definida através da operação {@link #defaultConnection
+   * defaultConnection}.
    *
    * A conexão padrão não afeta chamadas feitas pela API do SDK, apenas
    * chamadas feitas por stubs criados pelo usuário.
@@ -279,15 +279,15 @@ public interface OpenBusContext {
    * @return Conexão definida como a conexão corrente anteriormente, ou null se
    *         não havia conexão definida ateriormente.
    */
-  Connection setCurrentConnection(Connection conn);
+  Connection currentConnection(Connection conn);
 
   /**
    * Devolve a conexão associada ao contexto corrente, a ser usada nas
    * chamadas de stubs do usuário.
    * <p>
    * Devolve a conexão associada ao contexto corrente, que pode ter sido
-   * definida usando a operação {@link OpenBusContext#setCurrentConnection} ou
-   * {@link OpenBusContext#setDefaultConnection}.
+   * definida usando a operação {@link OpenBusContext#currentConnection} ou
+   * {@link OpenBusContext#defaultConnection}.
    *
    * A conexão padrão não afeta chamadas feitas pela API do SDK, apenas
    * chamadas feitas por stubs criados pelo usuário.
@@ -295,7 +295,7 @@ public interface OpenBusContext {
    * @return Conexão associada ao contexto corrente, ou <code>null</code> caso
    *         não haja nenhuma conexão associada.
    */
-  Connection getCurrentConnection();
+  Connection currentConnection();
 
   /**
    * Devolve a cadeia de chamadas à qual a execução corrente pertence.
@@ -305,7 +305,7 @@ public interface OpenBusContext {
    *
    * @return Cadeia da chamada em execução.
    */
-  CallerChain getCallerChain();
+  CallerChain callerChain();
 
   /**
    * Associa uma cadeia de chamadas ao contexto corrente.
@@ -319,10 +319,10 @@ public interface OpenBusContext {
   void joinChain(CallerChain chain);
 
   /**
-   * Associa a cadeia de chamadas obtida em {@link #getCallerChain()} ao
+   * Associa a cadeia de chamadas obtida em {@link #callerChain()} ao
    * contexto corrente.
    * <p>
-   * Associa a cadeia de chamadas obtida em {@link #getCallerChain()} ao
+   * Associa a cadeia de chamadas obtida em {@link #callerChain()} ao
    * contexto corrente (e.g. definido pelo {@link Current}), de forma que todas
    * as chamadas remotas seguintes neste mesmo contexto sejam feitas como parte
    * dessa cadeia de chamadas.
@@ -353,7 +353,7 @@ public interface OpenBusContext {
    * @return Cadeia de chamadas associada ao contexto corrente ou
    *         <code>null</code> .
    */
-  CallerChain getJoinedChain();
+  CallerChain joinedChain();
 
   /**
    * Codifica uma cadeia de chamadas ({@link CallerChain}) para um stream de

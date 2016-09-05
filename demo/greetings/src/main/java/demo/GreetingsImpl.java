@@ -62,7 +62,7 @@ public class GreetingsImpl extends GreetingsPOA {
    */
   @Override
   public String sayGreetings() {
-    String caller = context.getCallerChain().caller().entity;
+    String caller = context.callerChain().caller().entity;
     switch (language) {
       case English:
         return englishGreetings(caller);

@@ -100,7 +100,7 @@ public final class GreetingsClient {
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     // conectando ao barramento.
     Connection conn = context.connectByAddress(host, port);
-    context.setDefaultConnection(conn);
+    context.defaultConnection(conn);
 
     List<RemoteOffer> services;
     try {
@@ -210,6 +210,6 @@ public final class GreetingsClient {
     }
 
     // Faz o logout
-    context.getCurrentConnection().logout();
+    context.currentConnection().logout();
   }
 }

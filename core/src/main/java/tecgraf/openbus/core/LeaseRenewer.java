@@ -133,9 +133,9 @@ final class LeaseRenewer {
         int lease = -1;
         try {
           context =
-            (OpenBusContextImpl) conn.orb().resolve_initial_references(
+            (OpenBusContextImpl) conn.ORB().resolve_initial_references(
               "OpenBusContext");
-          context.setCurrentConnection(conn);
+          context.currentConnection(conn);
           AccessControl access = ((ConnectionImpl) conn).access();
           if (access != null) {
             lease = access.renew();
@@ -155,7 +155,7 @@ final class LeaseRenewer {
         }
         finally {
           if (context != null) {
-            context.setCurrentConnection(null);
+            context.currentConnection(null);
           }
         }
 

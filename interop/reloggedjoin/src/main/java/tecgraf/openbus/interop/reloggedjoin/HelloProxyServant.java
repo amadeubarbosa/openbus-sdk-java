@@ -49,10 +49,10 @@ public final class HelloProxyServant extends HelloPOA {
   @Override
   public String sayHello() {
     try {
-      Connection conn = context.getCurrentConnection();
+      Connection conn = context.currentConnection();
       conn.logout();
       conn.loginByPrivateKey(entity, privateKey);
-      CallerChain callerChain = context.getCallerChain();
+      CallerChain callerChain = context.callerChain();
       String entity = callerChain.caller().entity;
       logger.fine("Chamada recebida de: " + entity);
 
@@ -62,8 +62,7 @@ public final class HelloProxyServant extends HelloPOA {
       List<RemoteOffer> services =
         LibUtils.findOffer(conn.offerRegistry(), properties, 1, 10, 1);
       RemoteOffer offer = services.get(0);
-      String found = offer.properties(false).get("openbus.offer.entity")
-        .get(0);
+      String found = offer.properties().get("openbus.offer.entity").get(0);
       logger.fine("serviço da entidade encontrado: " + found);
       org.omg.CORBA.Object helloObj =
         offer.service().getFacetByName("Hello");

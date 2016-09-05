@@ -108,7 +108,7 @@ public final class GreetingsServer {
     // recuperando o gerente de contexto de chamadas a barramentos 
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
-    POA poa = context.poa();
+    POA poa = context.POA();
 
     // criando o serviço a ser ofertado
     // - construindo os componentes
@@ -127,7 +127,7 @@ public final class GreetingsServer {
 
     // conectando ao barramento.
     Connection conn = context.connectByAddress(host, port);
-    context.setDefaultConnection(conn);
+    context.defaultConnection(conn);
 
     // autentica-se no barramento
     boolean failed = true;
@@ -180,7 +180,7 @@ public final class GreetingsServer {
     }
     finally {
       if (failed) {
-        context.getCurrentConnection().logout();
+        context.currentConnection().logout();
         System.exit(1);
       }
     }

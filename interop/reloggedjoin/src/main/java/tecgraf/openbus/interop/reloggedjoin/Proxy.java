@@ -12,8 +12,6 @@ import scs.core.ComponentContext;
 import scs.core.ComponentId;
 import tecgraf.openbus.*;
 import tecgraf.openbus.core.ORBInitializer;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
-import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
 import tecgraf.openbus.interop.simple.HelloHelper;
 import tecgraf.openbus.security.Cryptography;
 import tecgraf.openbus.utils.Configs;
@@ -53,7 +51,7 @@ public final class Proxy {
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     Connection conn = context.connectByReference(busref);
-    context.setDefaultConnection(conn);
+    context.defaultConnection(conn);
     conn.loginByPrivateKey(entity, privateKey);
     shutdown.addConnetion(conn);
 
@@ -72,7 +70,7 @@ public final class Proxy {
     OfferRegistry registry = conn.offerRegistry();
     LocalOffer localOffer =
       registry.registerService(component.getIComponent(), serviceProperties);
-    RemoteOffer myOffer = localOffer.remoteOffer(60000, 0);
+    RemoteOffer myOffer = localOffer.remoteOffer(60000);
     if (myOffer != null) {
       shutdown.addOffer(myOffer);
     } else {

@@ -31,14 +31,14 @@ public class BroadcasterImpl extends BroadcasterPOA {
 
   @Override
   public void subscribe() {
-    LoginInfo caller = context.getCallerChain().caller();
+    LoginInfo caller = context.callerChain().caller();
     String user = caller.entity;
     subscribers.add(user);
   }
 
   @Override
   public void unsubscribe() {
-    LoginInfo caller = context.getCallerChain().caller();
+    LoginInfo caller = context.callerChain().caller();
     String user = caller.entity;
     subscribers.remove(user);
   }

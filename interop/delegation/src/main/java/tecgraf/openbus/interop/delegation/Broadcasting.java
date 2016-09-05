@@ -40,7 +40,7 @@ public class Broadcasting {
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     Connection conn = context.connectByReference(busref);
-    context.setDefaultConnection(conn);
+    context.defaultConnection(conn);
     conn.loginByPrivateKey(entity, privateKey);
     shutdown.addConnetion(conn);
 
@@ -55,7 +55,7 @@ public class Broadcasting {
       MessengerHelper.narrow(services.get(0).service()
         .getFacet(MessengerHelper.id()));
 
-    POA poa = context.poa();
+    POA poa = context.POA();
     ComponentContext component =
       new ComponentContext(orb, poa, new ComponentId("Broadcaster", (byte) 1,
         (byte) 0, (byte) 0, "java"));
@@ -70,7 +70,7 @@ public class Broadcasting {
     OfferRegistry registry = conn.offerRegistry();
     LocalOffer localOffer =
       registry.registerService(ic, serviceProperties);
-    RemoteOffer myOffer = localOffer.remoteOffer(60000, 0);
+    RemoteOffer myOffer = localOffer.remoteOffer(60000);
     if (myOffer != null) {
       shutdown.addOffer(myOffer);
     } else {

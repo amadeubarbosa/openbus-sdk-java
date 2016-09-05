@@ -25,7 +25,7 @@ public class HelloImpl extends HelloPOA {
 
   @Override
   public String sayHello() {
-    CallerChain chain = context.getCallerChain();
+    CallerChain chain = context.callerChain();
     if (this.pattern.matcher(chain.caller().entity).matches()) {
       logger.fine(String.format("aceitando requisição de %s", LibUtils
         .chain2str(chain)));

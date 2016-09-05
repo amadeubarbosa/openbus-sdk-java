@@ -108,7 +108,7 @@ public final class IndependentClockClient {
 
     // conectando ao barramento.
     Connection connection = context.connectByAddress(host, port);
-    context.setDefaultConnection(connection);
+    context.defaultConnection(connection);
     boolean failed;
     do {
       failed = true;
@@ -251,7 +251,7 @@ public final class IndependentClockClient {
           }
         }
         try {
-          context.getCurrentConnection().logout();
+          context.currentConnection().logout();
         }
         // bus core
         catch (ServiceFailure e) {
@@ -306,7 +306,7 @@ public final class IndependentClockClient {
         ArrayListMultimap<String, String> properties = ArrayListMultimap
           .create();
         properties.put("offer.domain", "Demo Independent Clock");
-        services = context.getCurrentConnection().offerRegistry()
+        services = context.currentConnection().offerRegistry()
           .findServices(properties);
         failed = false;
       }

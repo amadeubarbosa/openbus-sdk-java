@@ -38,11 +38,11 @@ public class Messaging {
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     Connection conn = context.connectByReference(busref);
-    context.setDefaultConnection(conn);
+    context.defaultConnection(conn);
     conn.loginByPrivateKey(entity, privateKey);
     shutdown.addConnetion(conn);
 
-    POA poa1 = context.poa();
+    POA poa1 = context.POA();
     ComponentContext ctx =
       new ComponentContext(orb, poa1, new ComponentId("Messenger", (byte) 1,
         (byte) 0, (byte) 0, "java"));
@@ -56,7 +56,7 @@ public class Messaging {
     OfferRegistry registry = conn.offerRegistry();
     LocalOffer localOffer =
       registry.registerService(ic, serviceProperties);
-    RemoteOffer myOffer = localOffer.remoteOffer(60000, 0);
+    RemoteOffer myOffer = localOffer.remoteOffer(60000);
     if (myOffer != null) {
       shutdown.addOffer(myOffer);
     } else {

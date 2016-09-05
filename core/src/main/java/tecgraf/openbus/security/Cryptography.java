@@ -251,8 +251,7 @@ public final class Cryptography {
    */
   public RSAPrivateKey readKeyFromFile(String privateKeyFileName)
     throws IOException, InvalidKeySpecException, CryptographyException {
-    FileInputStream fis = new FileInputStream(privateKeyFileName);
-    try {
+    try (FileInputStream fis = new FileInputStream(privateKeyFileName)) {
       FileChannel channel = fis.getChannel();
       ByteBuffer buffer = ByteBuffer.allocate((int) channel.size());
       int size = channel.read(buffer);
@@ -260,9 +259,6 @@ public final class Cryptography {
         throw new IOException("Não foi possível ler todo o arquivo.");
       }
       return readKeyFromBytes(buffer.array());
-    }
-    finally {
-      fis.close();
     }
   }
 
@@ -280,8 +276,7 @@ public final class Cryptography {
     try {
       KeyFactory kf = KeyFactory.getInstance(KEY_FACTORY);
       synchronized (kf) {
-        RSAPrivateKey privKey = (RSAPrivateKey) kf.generatePrivate(encodedKey);
-        return privKey;
+        return (RSAPrivateKey) kf.generatePrivate(encodedKey);
       }
     }
     catch (NoSuchAlgorithmException e) {
@@ -308,8 +303,7 @@ public final class Cryptography {
         RSAPublicKey pubKey =
           (RSAPublicKey) kf.generatePublic(new RSAPublicKeySpec(privKey
             .getModulus(), privKey.getPublicExponent()));
-        KeyPair keyPair = new KeyPair(pubKey, privKey);
-        return keyPair;
+        return new KeyPair(pubKey, privKey);
       }
     }
     catch (NoSuchAlgorithmException e) {

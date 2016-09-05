@@ -55,7 +55,7 @@ public class Client {
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     Connection conn = context.connectByReference(busref);
     conn.loginByPassword(entity, entity.getBytes(), domain);
-    context.setDefaultConnection(conn);
+    context.defaultConnection(conn);
 
     ArrayListMultimap<String, String> serviceProperties = ArrayListMultimap
       .create();
@@ -67,8 +67,8 @@ public class Client {
     Messenger messenger = null;
     Broadcaster broadcaster = null;
     for (RemoteOffer offer : offers) {
-      List<String> contracts = offer.properties(false).
-        get("openbus.component.interface");
+      List<String> contracts = offer.properties().get("openbus.component" +
+        ".interface");
       for (String contract : contracts) {
         if (contract.equals(ForwarderHelper.id())) {
           Object facet = offer.service().getFacet(ForwarderHelper.id());

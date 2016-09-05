@@ -41,9 +41,9 @@ final class BusInfo {
   private OfferRegistry offerRegistry;
 
   /** Lock para cotrole de concorrência no acesso ao registro de logins */
-  private Object lockLogin = new Object();
+  private final Object lockLogin = new Object();
   /** Lock para cotrole de concorrência no acesso ao registro de ofertas */
-  private Object lockOffer = new Object();
+  private final Object lockOffer = new Object();
 
   /**
    * Construtor.
@@ -91,7 +91,7 @@ final class BusInfo {
   /**
    * Atualiza a informação de identificador e chave do barramento.
    */
-  void retrieveBusIdAndKey() {
+  private void retrieveBusIdAndKey() {
     this.id = this.accessControl.busid();
     try {
       X509Certificate certificate =

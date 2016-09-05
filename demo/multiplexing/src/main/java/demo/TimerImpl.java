@@ -23,8 +23,8 @@ public class TimerImpl extends TimerPOA {
   @Override
   public void newTrigger(double timeout, final Callback cb) {
     final long time = (long) timeout;
-    final CallerChain chain = context.getCallerChain();
-    final Connection conn = context.getCurrentConnection();
+    final CallerChain chain = context.callerChain();
+    final Connection conn = context.currentConnection();
     final String entity = conn.login().entity;
     new Thread() {
       @Override
@@ -35,7 +35,7 @@ public class TimerImpl extends TimerPOA {
         catch (InterruptedException e) {
           // do nothing
         }
-        context.setCurrentConnection(conn);
+        context.currentConnection(conn);
         context.joinChain(chain);
         try {
           System.out.println(String.format("timer %s notifying with login %s",

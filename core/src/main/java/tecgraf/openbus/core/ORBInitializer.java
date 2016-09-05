@@ -187,7 +187,7 @@ public class ORBInitializer {
     mediator.setORB(orb);
     OpenBusContextImpl context = ORBUtils.getOpenBusContext(orb);
     context.setORB(orb);
-    context.setPOA(null);
+    context.POA(null);
     return orb;
   }
 

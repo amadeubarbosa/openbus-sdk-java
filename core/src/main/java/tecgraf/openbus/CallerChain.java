@@ -21,7 +21,7 @@ public interface CallerChain {
    * 
    * @return Identificador do barramento.
    */
-  String busid();
+  String busId();
 
   /**
    * Recupera entidade para o qual a chamada estava destinada. Só é possível

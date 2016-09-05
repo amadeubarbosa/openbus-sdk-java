@@ -111,13 +111,13 @@ public final class MultiplexingClient {
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
 
     // obtendo o RootPOA
-    final POA poa = context.poa();
+    final POA poa = context.POA();
 
     List<RemoteOffer> services;
     try {
       // conecta-se ao barramento
       Connection conn = newLogin(context);
-      context.setDefaultConnection(conn);
+      context.defaultConnection(conn);
       // busca por serviço
       ArrayListMultimap<String, String> properties = ArrayListMultimap
         .create();
@@ -246,7 +246,7 @@ public final class MultiplexingClient {
 
           boolean failed = true;
           try {
-            context.setCurrentConnection(conn);
+            context.currentConnection(conn);
             org.omg.CORBA.Object timerObj =
               offer.service().getFacet(TimerHelper.id());
             if (timerObj == null) {
@@ -351,7 +351,7 @@ public final class MultiplexingClient {
 
     @Override
     public void notifyTrigger() {
-      CallerChain chain = context.getCallerChain();
+      CallerChain chain = context.callerChain();
       if (chain.caller().id.equals(timerId)) {
         System.out.println("notificação do timer esperado recebida!");
         if (chain.originators().length > 1
@@ -369,7 +369,7 @@ public final class MultiplexingClient {
       System.out.println("decrementing pending = " + pend);
       if (pend == 0) {
         try {
-          context.getDefaultConnection().logout();
+          context.defaultConnection().logout();
         }
         // bus core
         catch (ServiceFailure e) {

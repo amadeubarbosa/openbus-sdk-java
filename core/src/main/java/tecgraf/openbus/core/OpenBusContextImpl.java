@@ -135,7 +135,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * {@inheritDoc}
    */
   @Override
-  public ORB orb() {
+  public ORB ORB() {
     return this.orb;
   }
 
@@ -143,7 +143,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * {@inheritDoc}
    */
   @Override
-  public POA poa() {
+  public POA POA() {
     return this.poa;
   }
 
@@ -151,7 +151,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * {@inheritDoc}
    */
   @Override
-  public void setPOA(POA poa) {
+  public void POA(POA poa) {
     if (poa != null) {
       this.poa = poa;
       return;
@@ -267,7 +267,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * {@inheritDoc}
    */
   @Override
-  public Connection setDefaultConnection(Connection conn) {
+  public Connection defaultConnection(Connection conn) {
     Connection old;
     this.writeLock.lock();
     try {
@@ -284,7 +284,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * {@inheritDoc}
    */
   @Override
-  public Connection getDefaultConnection() {
+  public Connection defaultConnection() {
     this.readLock.lock();
     try {
       return this.defaultConn;
@@ -298,7 +298,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * {@inheritDoc}
    */
   @Override
-  public Connection setCurrentConnection(Connection conn) {
+  public Connection currentConnection(Connection conn) {
     Current current = ORBUtils.getPICurrent(orb);
     try {
       // tenta reaproveitar o id
@@ -334,7 +334,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * {@inheritDoc}
    */
   @Override
-  public Connection getCurrentConnection() {
+  public Connection currentConnection() {
     Connection connection = null;
     Current current = ORBUtils.getPICurrent(orb);
     Any any;
@@ -353,7 +353,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     }
 
     if (connection == null) {
-      connection = getDefaultConnection();
+      connection = defaultConnection();
     }
     return connection;
   }
@@ -362,7 +362,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * {@inheritDoc}
    */
   @Override
-  public CallerChain getCallerChain() {
+  public CallerChain callerChain() {
     Current current = ORBUtils.getPICurrent(orb);
     ORBMediator mediator = ORBUtils.getMediator(orb);
     try {
@@ -400,7 +400,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    */
   @Override
   public void joinChain(CallerChain chain) {
-    chain = (chain != null) ? chain : getCallerChain();
+    chain = (chain != null) ? chain : callerChain();
     if (chain != null) {
       try {
         Current current = ORBUtils.getPICurrent(orb);
@@ -443,7 +443,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * {@inheritDoc}
    */
   @Override
-  public CallerChain getJoinedChain() {
+  public CallerChain joinedChain() {
     try {
       Current current = ORBUtils.getPICurrent(orb);
       ORBMediator mediator = ORBUtils.getMediator(orb);
@@ -467,7 +467,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
   }
 
   CallerChain makeChainFor(String entity) throws ServiceFailure {
-    ConnectionImpl conn = (ConnectionImpl) getCurrentConnection();
+    ConnectionImpl conn = (ConnectionImpl) currentConnection();
     SignedData signed = conn.access().signChainFor(entity);
     try {
       ORBMediator mediator = ORBUtils.getMediator(orb);
@@ -492,7 +492,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     throws InvalidToken, UnknownDomain, WrongEncoding, ServiceFailure {
     ORBMediator mediator = ORBUtils.getMediator(orb);
     Codec codec = mediator.getCodec();
-    ConnectionImpl conn = (ConnectionImpl) getCurrentConnection();
+    ConnectionImpl conn = (ConnectionImpl) currentConnection();
     RSAPublicKey buskey = conn.getBusPublicKey();
     if (buskey == null) {
       throw new NO_PERMISSION(NoLoginCode.value, CompletionStatus.COMPLETED_NO);
@@ -504,7 +504,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       CallChain chain = CallChainHelper.extract(anyChain);
       SignedCallChain legacy = null;
       if (conn.legacy() && conn.legacySupport().converter() != null) {
-        CallerChain joined = getJoinedChain();
+        CallerChain joined = joinedChain();
         try {
           joinChain(new CallerChainImpl(chain, signed));
           legacy = conn.legacySupport().converter().convertSignedChain();
@@ -550,7 +550,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       if (internal.signedLegacy != null) {
         anyChain = orb.create_any();
         tecgraf.openbus.core.v2_0.data_export.ExportedCallChainHelper
-          .insert(anyChain, new ExportedCallChain(chain.busid(),
+          .insert(anyChain, new ExportedCallChain(chain.busId(),
             internal.signedLegacy));
         byte[] encodedChain = codec.encode_value(anyChain);
         list.add(new VersionedData(CurrentVersion.value, encodedChain));
@@ -921,7 +921,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * @return o serviço de registro de logins.
    */
   LoginRegistry getLoginRegistry() {
-    ConnectionImpl conn = (ConnectionImpl) getCurrentConnection();
+    ConnectionImpl conn = (ConnectionImpl) currentConnection();
     if (conn == null || conn.login() == null) {
       throw new NO_PERMISSION(NoLoginCode.value, CompletionStatus.COMPLETED_NO);
     }
@@ -935,7 +935,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * @return o serviço de registro de ofertas.
    */
   OfferRegistry getOfferRegistry() {
-    ConnectionImpl conn = (ConnectionImpl) getCurrentConnection();
+    ConnectionImpl conn = (ConnectionImpl) currentConnection();
     if (conn == null || conn.login() == null) {
       throw new NO_PERMISSION(NoLoginCode.value, CompletionStatus.COMPLETED_NO);
     }

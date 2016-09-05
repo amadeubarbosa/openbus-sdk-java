@@ -72,8 +72,8 @@ public final class ConnectionTest {
 
   @After
   public void afterEachTest() {
-    context.setCurrentConnection(null);
-    context.setDefaultConnection(null);
+    context.currentConnection(null);
+    context.defaultConnection(null);
     context.onCallDispatch(null);
     context.exitChain();
   }
@@ -81,8 +81,8 @@ public final class ConnectionTest {
   @Test
   public void orbTest() throws Exception {
     Connection conn = context.connectByReference(busref);
-    assertNotNull(conn.orb());
-    assertEquals(orb, context.orb());
+    assertNotNull(conn.ORB());
+    assertEquals(orb, context.ORB());
   }
 
   @Test
@@ -415,7 +415,7 @@ public final class ConnectionTest {
     }
 
     @Override
-    public AuthArgs login() {
+    public AuthArgs authenticationArguments() {
       SharedAuthSecret secret;
       try {
         secret = conn.startSharedAuth();

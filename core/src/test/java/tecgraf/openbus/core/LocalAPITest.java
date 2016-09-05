@@ -82,7 +82,7 @@ public class LocalAPITest {
     UnauthorizedFacets, WrongPolicy, InvalidService, InvalidProperties,
     ServiceFailure {
     ComponentContext component = Builder.buildComponent(offers.connection().context()
-      .orb());
+      .ORB());
     ArrayListMultimap<String, String> properties = ArrayListMultimap.create();
     properties.put("offer.domain", "testing");
     return offers.registerService(component.getIComponent(), properties);
@@ -190,7 +190,7 @@ public class LocalAPITest {
     assertTrue(foundServices.size() >= 1);
     boolean foundOne = false;
     // conexão corrente para a chamada getFacet abaixo
-    conn.context().setCurrentConnection(conn);
+    conn.context().currentConnection(conn);
     for (RemoteOffer offer : foundServices) {
       IComponent ic = offer.service();
       try {
@@ -307,7 +307,7 @@ public class LocalAPITest {
     // registra oferta na conn1
     OfferRegistry offers1 = conn1.offerRegistry();
     ComponentContext component1 = Builder.buildComponent(offers1.connection()
-      .context().orb());
+      .context().ORB());
     ArrayListMultimap<String, String> properties1 = ArrayListMultimap.create();
     properties1.put("offer.domain", "testing");
     properties1.put("time", "" + System.currentTimeMillis());
@@ -318,7 +318,7 @@ public class LocalAPITest {
     // registra oferta na conn2
     OfferRegistry offers2 = conn2.offerRegistry();
     ComponentContext component2 = Builder.buildComponent(offers2.connection()
-      .context().orb());
+      .context().ORB());
     ArrayListMultimap<String, String> properties2 = ArrayListMultimap.create();
     properties2.put("offer.domain", "testing");
     properties2.put("time", "" + System.currentTimeMillis());

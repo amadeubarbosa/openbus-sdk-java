@@ -31,7 +31,7 @@ public final class HelloServerServant extends HelloPOA {
   @Override
   public String sayHello() {
     try {
-      CallerChain callerChain = context.getCallerChain();
+      CallerChain callerChain = context.callerChain();
       String entity = callerChain.caller().entity;
       LoginInfo[] originators = callerChain.originators();
       if (originators.length > 0) {

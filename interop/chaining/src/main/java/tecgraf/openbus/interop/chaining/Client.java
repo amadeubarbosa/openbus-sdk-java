@@ -54,7 +54,7 @@ public final class Client {
     OpenBusContext context =
       (OpenBusContext) orb.resolve_initial_references("OpenBusContext");
     Connection connection = context.connectByReference(busref);
-    context.setDefaultConnection(connection);
+    context.defaultConnection(connection);
 
     connection.loginByPassword(entity, entity.getBytes(), domain);
     ArrayListMultimap<String, String> props = ArrayListMultimap.create();
@@ -69,8 +69,8 @@ public final class Client {
       if (msgObj == null) {
         continue;
       }
-      String destination = offer.properties(false).get(
-        "openbus.offer.entity").get(0);
+      String destination = offer.properties().get("openbus.offer.entity").get
+        (0);
       CallerChain chain = connection.makeChainFor(destination);
       byte[] encodedChain = context.encodeChain(chain);
       HelloProxy proxy = HelloProxyHelper.narrow(msgObj);
@@ -79,6 +79,6 @@ public final class Client {
       String expected = "Hello " + entity + "!";
       assert expected.equals(sayHello) : sayHello;
     }
-    context.getCurrentConnection().logout();
+    context.currentConnection().logout();
   }
 }

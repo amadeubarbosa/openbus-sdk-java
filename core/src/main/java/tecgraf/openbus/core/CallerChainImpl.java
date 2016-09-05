@@ -68,7 +68,7 @@ final class CallerChainImpl implements CallerChain {
    * {@inheritDoc}
    */
   @Override
-  public String busid() {
+  public String busId() {
     return chain.bus;
   }
 

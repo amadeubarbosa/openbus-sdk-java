@@ -13,7 +13,7 @@ import test.CallerChainInspectorPOA;
  * 
  * @author Tecgraf
  */
-public class CallerChainInspectorImpl extends CallerChainInspectorPOA {
+class CallerChainInspectorImpl extends CallerChainInspectorPOA {
 
   /**
    * O Contexto.
@@ -34,8 +34,8 @@ public class CallerChainInspectorImpl extends CallerChainInspectorPOA {
    */
   @Override
   public String[] listCallers() {
-    CallerChain chain = context.getCallerChain();
-    LinkedList<String> list = new LinkedList<String>();
+    CallerChain chain = context.callerChain();
+    LinkedList<String> list = new LinkedList<>();
     for (LoginInfo info : chain.originators()) {
       list.add(info.entity);
     }
@@ -48,8 +48,8 @@ public class CallerChainInspectorImpl extends CallerChainInspectorPOA {
    */
   @Override
   public String[] listCallerLogins() {
-    CallerChain chain = context.getCallerChain();
-    LinkedList<String> list = new LinkedList<String>();
+    CallerChain chain = context.callerChain();
+    LinkedList<String> list = new LinkedList<>();
     for (LoginInfo info : chain.originators()) {
       list.add(info.id);
     }

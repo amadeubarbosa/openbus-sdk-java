@@ -32,14 +32,14 @@ public final class HelloImpl extends HelloPOA {
    */
   @Override
   public void sayHello() {
-    ORB orb = context.orb();
+    ORB orb = context.ORB();
     // recupera informação incluída no contexto
     ContextInspector inspector = ContextInspector.getContextInspector(orb);
     String data = inspector.getContextInformation();
     System.out.println(String.format(
       "Recebi a seguinte informação pelo contexto: '%s'", data));
     // trata a requisição
-    CallerChain callerChain = context.getCallerChain();
+    CallerChain callerChain = context.callerChain();
     LoginInfo caller = callerChain.caller();
     String hello = String.format("Hello %s!", caller.entity);
     System.out.println(hello);

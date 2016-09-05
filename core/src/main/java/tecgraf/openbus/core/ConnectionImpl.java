@@ -247,7 +247,7 @@ final class ConnectionImpl implements Connection {
    * {@inheritDoc}
    */
   @Override
-  public ORB orb() {
+  public ORB ORB() {
     return this.orb;
   }
 
@@ -255,7 +255,7 @@ final class ConnectionImpl implements Connection {
    * {@inheritDoc}
    */
   @Override
-  public POA poa() {
+  public POA POA() {
     return this.poa;
   }
 
@@ -483,9 +483,9 @@ final class ConnectionImpl implements Connection {
     byte[] secret = null;
     tecgraf.openbus.core.v2_0.services.access_control.LoginProcess legacyProcess =
       null;
-    Connection previousConnection = context.getCurrentConnection();
+    Connection previousConnection = context.currentConnection();
     try {
-      context.setCurrentConnection(this);
+      context.currentConnection(this);
       process = this.access().startLoginBySharedAuth(challenge);
       secret = crypto.decrypt(challenge.value, this.privateKey);
       if (legacy() && legacySupport().converter() != null) {
@@ -506,7 +506,7 @@ final class ConnectionImpl implements Connection {
         "Erro ao descriptografar segredo com chave privada.", e);
     }
     finally {
-      context.setCurrentConnection(previousConnection);
+      context.currentConnection(previousConnection);
     }
     return new SharedAuthSecretImpl(busid(), process, legacyProcess, secret,
       context);
@@ -599,7 +599,7 @@ final class ConnectionImpl implements Connection {
     AlreadyLoggedIn, WrongBus, InvalidLoginProcess, AccessDenied,
     TooManyAttempts, UnknownDomain, WrongEncoding, MissingCertificate,
     ServiceFailure {
-    AuthArgs args = cb.login();
+    AuthArgs args = cb.authenticationArguments();
     switch (args.mode) {
       case AuthByPassword:
         loginByPasswordPvt(args.entity, args.password, args.domain, cb,
@@ -682,12 +682,12 @@ final class ConnectionImpl implements Connection {
    */
   @Override
   public CallerChain makeChainFor(String entity) throws ServiceFailure {
-    Connection prev = context.getCurrentConnection();
+    Connection prev = context.currentConnection();
     try {
-      context.setCurrentConnection(this);
+      context.currentConnection(this);
       return context.makeChainFor(entity);
     } finally {
-      context.setCurrentConnection(prev);
+      context.currentConnection(prev);
     }
   }
 
@@ -697,12 +697,12 @@ final class ConnectionImpl implements Connection {
   @Override
   public CallerChain importChain(byte[] token, String domain)
     throws InvalidToken, UnknownDomain, WrongEncoding, ServiceFailure {
-    Connection prev = context.getCurrentConnection();
+    Connection prev = context.currentConnection();
     try {
-      context.setCurrentConnection(this);
+      context.currentConnection(this);
       return context.importChain(token, domain);
     } finally {
-      context.setCurrentConnection(prev);
+      context.currentConnection(prev);
     }
   }
 
@@ -801,11 +801,11 @@ final class ConnectionImpl implements Connection {
       this.writeLock().unlock();
     }
 
-    Connection previousConnection = context.getCurrentConnection();
-    CallerChain previousChain = context.getJoinedChain();
+    Connection previousConnection = context.currentConnection();
+    CallerChain previousChain = context.joinedChain();
     try {
       context.exitChain();
-      context.setCurrentConnection(this);
+      context.currentConnection(this);
       context.ignoreInvLogin();
       this.access().logout();
     }
@@ -828,7 +828,7 @@ final class ConnectionImpl implements Connection {
       return false;
     }
     finally {
-      context.setCurrentConnection(previousConnection);
+      context.currentConnection(previousConnection);
       context.joinChain(previousChain);
       context.unignoreInvLogin();
       localLogout(false);
@@ -920,7 +920,7 @@ final class ConnectionImpl implements Connection {
    * 
    * @return bus
    */
-  BusInfo getBus() {
+  private BusInfo getBus() {
     return bus;
   }
 
@@ -1079,7 +1079,7 @@ final class ConnectionImpl implements Connection {
     /**
      * Limpa as caches.
      */
-    protected void clear() {
+    void clear() {
       this.entities.clear();
       this.cltSessions.clear();
       this.chains.clear();
