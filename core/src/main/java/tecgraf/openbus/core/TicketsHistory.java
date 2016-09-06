@@ -97,8 +97,8 @@ class TicketsHistory {
    * Verifica se o ticket é válido e marca com utilizado caso seja válido.
    * 
    * @param id o ticket a ser utilizado.
-   * @return <code>true</code> caso o ticket era válido e foi marcado, e
-   *         <code>false</code> caso o ticket não fosse válido.
+   * @return {@code true} caso o ticket era válido e foi marcado, e
+   *         {@code false} caso o ticket não fosse válido.
    */
   synchronized public boolean check(int id) {
     if (id < this.base) {

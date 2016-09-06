@@ -41,6 +41,7 @@ import test.CallerChainInspectorHelper;
 
 import static org.junit.Assert.*;
 
+@SuppressWarnings("javadoc")
 public final class OpenBusContextTest {
   private static ORB orb;
   private static OpenBusContextImpl context;

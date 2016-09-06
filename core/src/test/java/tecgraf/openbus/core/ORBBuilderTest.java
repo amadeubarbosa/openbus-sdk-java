@@ -4,6 +4,7 @@ import java.util.Properties;
 
 import org.junit.Test;
 
+@SuppressWarnings("javadoc")
 public final class ORBBuilderTest {
   @Test
   public void create() {

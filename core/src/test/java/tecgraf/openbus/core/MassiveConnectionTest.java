@@ -23,6 +23,7 @@ import tecgraf.openbus.util.Builder;
 import tecgraf.openbus.utils.Configs;
 import tecgraf.openbus.utils.Utils;
 
+@SuppressWarnings("javadoc")
 public class MassiveConnectionTest {
 
   private static Object busref;
@@ -57,7 +58,7 @@ public class MassiveConnectionTest {
     }
     threadPool.shutdown();
     try {
-      if (!threadPool.awaitTermination(LOOP_SIZE / 2, TimeUnit.MINUTES)) {
+      if (!threadPool.awaitTermination(LOOP_SIZE / 4, TimeUnit.MINUTES)) {
         failed.set(true);
       }
     }

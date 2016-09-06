@@ -73,7 +73,7 @@ class OfferRegistryImpl implements OfferRegistry {
   }
 
   @Override
-  public LocalOffer registerService(IComponent service_ref,
+  public LocalOffer registerService(IComponent service,
     ArrayListMultimap<String, String> properties) {
     tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry registry
       = registry();
@@ -81,7 +81,7 @@ class OfferRegistryImpl implements OfferRegistry {
       return null;
     }
     // criar a oferta local
-    final LocalOfferImpl localOffer = new LocalOfferImpl(this, service_ref,
+    final LocalOfferImpl localOffer = new LocalOfferImpl(this, service,
       convertMapToProperties(properties));
     // disparar a tarefa de registro
     if (!doRegisterTask(registry, localOffer)) {

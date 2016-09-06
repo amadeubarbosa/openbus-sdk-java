@@ -40,7 +40,7 @@ class LoginCache {
    * Realiza a validação do Login.
    * 
    * @param loginId o login.
-   * @return <code>true</code> caso o login seja válido, e <code>false</code>
+   * @return {@code true} caso o login seja válido, e {@code false}
    *         caso contrário.
    * @throws ServiceFailure
    */

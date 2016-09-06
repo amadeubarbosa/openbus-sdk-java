@@ -8,8 +8,9 @@ import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 
 /**
  * Representa uma inscrição de um observador de logins. Essa inscrição será
- * mantida no barramento pelo registro de logins do qual se originou, até que
- * a aplicação remova-a ou realize um logout proposital.
+ * mantida no barramento pelo registro de logins do qual se originou,
+ * utilizando a conexão que o originou, até que a aplicação remova-a ou
+ * realize um logout proposital.
  *
  * Esta inscrição permite a configuração do conjunto logins observáveis, onde os
  * possíveis eventos gerados são definidos pela interface {@link LoginObserver}.
@@ -19,7 +20,7 @@ import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 public interface LoginSubscription {
 
   /**
-   * Recupera a referência para o observador inscrito pela aplicação.
+   * Fornece o observador inscrito pela aplicação.
    * 
    * @return o observador.
    */
@@ -34,11 +35,11 @@ public interface LoginSubscription {
    * Essa operação incorre em uma chamada remota ao barramento e é bloqueante.
    *
    * Essa operação pode bloquear enquanto não houver um login ativo. Caso seja
-   * interrompida, retornará <code>false</code> e se manterá interrompida.
+   * interrompida, retornará {@code false} e se manterá interrompida.
    *
    * @param loginId Identificador do login a ser observado.
-   * @return <code>True</code> caso o loginId especificado seja válido,
-   * <code>false</code> caso contrário.
+   * @return {@code True} caso o loginId especificado seja válido,
+   * {@code false} caso contrário.
    * @throws ServiceFailure Caso haja algum problema inesperado ao executar a
    * ação no barramento.
    */
@@ -73,7 +74,7 @@ public interface LoginSubscription {
    * interrompida, retornará e se manterá interrompida.
    *
    * @param loginIds Uma sequência de identificadores de logins a serem
-   *        observadas.
+   *        observados.
    * @throws InvalidLogins Caso um ou mais logins pertencentes à sequência
    * fornecida estejam inválidos no barramento. A exceção conterá os logins
    * definidos como inválidos.
@@ -100,7 +101,7 @@ public interface LoginSubscription {
   void forgetLogins(List<String> loginIds) throws ServiceFailure;
 
   /**
-   * Obtém a lista local dos logins observados por esse observador.
+   * Obtém a lista dos logins observados por esse observador.
    *
    * Essa operação incorre em uma chamada remota ao barramento e é bloqueante.
    *

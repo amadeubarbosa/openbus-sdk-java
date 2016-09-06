@@ -24,8 +24,8 @@ class OpenBusRetryContext extends RetryContext {
    * aplicação ou um NO_PERMISSION{NoLogin}, que só ocorrerá caso o usuário
    * tenha feito um logout explícito ou não tenha feito login.
    *
-   * @return <code>true</code> caso seja permitido uma nova tentativa, e <code>
-   *         false</code> caso contrário.
+   * @return {@code true} caso seja permitido uma nova tentativa, e {@code
+   *         false} caso contrário.
    */
   @Override
   public boolean shouldRetry() {

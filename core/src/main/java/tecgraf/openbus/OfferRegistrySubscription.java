@@ -8,7 +8,8 @@ import java.util.concurrent.TimeoutException;
 /**
  * Representa uma inscrição de um observador de registro de oferta de serviço.
  * Essa inscrição será mantida no barramento pelo registro de ofertas do qual se
- * originou, até que a aplicação remova-a ou realize um logout proposital.
+ * originou, utilizando a conexão que o originou, até que a aplicação
+ * remova-a ou realize um logout proposital.
  *
  * Os possíveis eventos gerados são definidos pela interface
  * {@link OfferRegistryObserver}.
@@ -49,6 +50,8 @@ public interface OfferRegistrySubscription {
    * essas condições sejam cumpridas ou o tempo se esgote. Caso seja
    * interrompida, retornará false e se manterá interrompida.
    *
+   * @param timeoutMillis O tempo máximo a aguardar pela subscrição do
+   *                      observador de registro de oferta, em milisegundos.
    * @throws ServiceFailure Caso haja algum erro inesperado no barramento ao
    * realizar a subscrição.
    * @throws TimeoutException O tempo especificado se esgotou antes de a
@@ -60,17 +63,17 @@ public interface OfferRegistrySubscription {
     TimeoutException;
 
   /**
-   * Recupera a referência para o observador inscrito pela aplicação.
+   * Fornece a referência para o observador inscrito pela aplicação.
    * 
-   * @return o observador.
+   * @return O observador.
    */
   OfferRegistryObserver observer();
 
   /**
-   * Recupera a lista de propriedades de oferta nas quais o observador está
+   * Fornece a lista de propriedades de oferta nas quais o observador está
    * interessado.
    * 
-   * @return a lista de propriedades.
+   * @return A lista de propriedades.
    */
   ArrayListMultimap<String, String> properties();
 
@@ -82,7 +85,7 @@ public interface OfferRegistrySubscription {
    * interrompida, retornará e se manterá interrompida.
    *
    * Após a execução deste método, os métodos {@link #subscribed()} e
-   * {@link #subscribed(long)} retornarão <code>NULL</code>.
+   * {@link #subscribed(long)} retornarão {@code false}.
    */
   void remove();
 }

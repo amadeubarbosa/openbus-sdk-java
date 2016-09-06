@@ -131,25 +131,16 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     this.SKIP_INVLOGIN_SLOT_ID = invLoginSlotId;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public ORB ORB() {
     return this.orb;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public POA POA() {
     return this.poa;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void POA(POA poa) {
     if (poa != null) {
@@ -169,9 +160,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public Connection connectByAddress(String host, int port) {
     Connection conn;
@@ -185,9 +173,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     return conn;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public Connection connectByAddress(String host, int port, Properties props)
     throws InvalidPropertyValue {
@@ -208,9 +193,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     return connectByReference(obj, props);
   }
 
-  /**
-   * {@inheritDoc}
-   */
   public Connection connectByReference(org.omg.CORBA.Object reference) {
     Connection conn;
     try {
@@ -223,9 +205,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     return conn;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   public Connection connectByReference(org.omg.CORBA.Object reference,
     Properties props) throws InvalidPropertyValue {
     if (reference == null) {
@@ -235,18 +214,12 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     return new ConnectionImpl(reference, this, orb, poa, props);
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   @Deprecated
   public Connection createConnection(String host, int port) {
     return connectByAddress(host, port);
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   @Deprecated
   public Connection createConnection(String host, int port, Properties props)
@@ -263,16 +236,13 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     return this.CURRENT_CONNECTION_SLOT_ID;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
-  public Connection defaultConnection(Connection conn) {
+  public Connection defaultConnection(Connection connection) {
     Connection old;
     this.writeLock.lock();
     try {
       old = this.defaultConn;
-      this.defaultConn = conn;
+      this.defaultConn = connection;
     }
     finally {
       this.writeLock.unlock();
@@ -280,9 +250,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     return old;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public Connection defaultConnection() {
     this.readLock.lock();
@@ -294,11 +261,8 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
-  public Connection currentConnection(Connection conn) {
+  public Connection currentConnection(Connection connection) {
     Current current = ORBUtils.getPICurrent(orb);
     try {
       // tenta reaproveitar o id
@@ -306,14 +270,14 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       int id;
       if (currentId.type().kind().value() != TCKind._tk_null) {
         id = currentId.extract_long();
-        if (conn == null) {
+        if (connection == null) {
           // insere any com valor null no current e remove conexão do mapa
           current.set_slot(CURRENT_CONNECTION_SLOT_ID, this.orb.create_any());
           return setConnectionById(id, null);
         }
       }
       else {
-        if (conn == null) {
+        if (connection == null) {
           return null;
         }
         id = ORBUtils.getMediator(this.orb).getUniqueId();
@@ -321,7 +285,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
         newId.insert_long(id);
         current.set_slot(CURRENT_CONNECTION_SLOT_ID, newId);
       }
-      return setConnectionById(id, conn);
+      return setConnectionById(id, connection);
     }
     catch (InvalidSlot e) {
       String message = "Falha inesperada ao acessar o slot da thread corrente";
@@ -330,9 +294,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public Connection currentConnection() {
     Connection connection = null;
@@ -358,9 +319,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     return connection;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public CallerChain callerChain() {
     Current current = ORBUtils.getPICurrent(orb);
@@ -387,17 +345,11 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void joinChain() throws OpenBusInternalException {
     joinChain(null);
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void joinChain(CallerChain chain) {
     chain = (chain != null) ? chain : callerChain();
@@ -421,9 +373,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void exitChain() {
     try {
@@ -439,9 +388,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public CallerChain joinedChain() {
     try {
@@ -527,9 +473,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
 
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public byte[] encodeChain(CallerChain chain) {
     if (chain == null) {
@@ -566,9 +509,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public CallerChain decodeChain(byte[] encoded) throws InvalidEncodedStream {
     ORBMediator mediator = ORBUtils.getMediator(orb);
@@ -626,9 +566,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public byte[] encodeSharedAuth(SharedAuthSecret secret) {
     if (secret == null) {
@@ -665,9 +602,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public SharedAuthSecret decodeSharedAuth(byte[] encoded)
     throws InvalidEncodedStream {
@@ -898,17 +832,11 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     return SKIP_INVLOGIN_SLOT_ID;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void onCallDispatch(CallDispatchCallback callback) {
     this.dispatchCallback = callback;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public CallDispatchCallback onCallDispatch() {
     return this.dispatchCallback;

@@ -5,7 +5,7 @@ import java.security.interfaces.RSAPrivateKey;
 import tecgraf.openbus.SharedAuthSecret;
 
 /**
- * Informações de autenticação de entidades.
+ * Informações de autenticação de uma entidade.
  *
  * @author Tecgraf
  */
@@ -13,8 +13,6 @@ public class AuthArgs {
 
   /**
    * Enumeração dos tipos de autenticação suportados.
-   *
-   * @author Tecgraf
    */
   enum AuthMode {
     /** Autenticação por senha */
@@ -43,6 +41,7 @@ public class AuthArgs {
    *
    * @param entity Identificador da entidade a ser autenticada.
    * @param password Senha de autenticação da entidade no barramento.
+   * @param domain Identificador do domínio de autenticação.
    */
   public AuthArgs(String entity, byte[] password, String domain) {
     if (entity == null || password == null || domain == null) {

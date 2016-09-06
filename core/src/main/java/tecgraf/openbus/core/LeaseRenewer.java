@@ -110,9 +110,6 @@ final class LeaseRenewer {
       this.defaultLease = defaultLease;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void run() {
       long t = defaultLease * 1000;
@@ -191,8 +188,8 @@ final class LeaseRenewer {
     /**
      * Verifica se a thread está dormindo no loop de renovação de credencial.
      * 
-     * @return <code>true</code> se a thread estiver dormindo, e
-     *         <code>false</code> caso contrário.
+     * @return {@code true} se a thread estiver dormindo, e
+     *         {@code false} caso contrário.
      */
     public boolean isSleeping() {
       return this.isSleeping;

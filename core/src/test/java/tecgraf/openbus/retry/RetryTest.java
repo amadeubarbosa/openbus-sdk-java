@@ -8,6 +8,7 @@ import org.junit.Test;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+@SuppressWarnings("javadoc")
 public class RetryTest {
 
   private final RetryTaskPool taskPool = new RetryTaskPool(20);

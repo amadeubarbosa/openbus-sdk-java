@@ -9,8 +9,9 @@ import java.util.concurrent.TimeoutException;
 
 /**
  * Representa uma oferta gerada por este processo. Essa oferta será mantida no
- * barramento pelo registro de ofertas do qual se originou, até que a
- * aplicação remova-a ou realize um logout proposital.
+ * barramento pelo registro de ofertas do qual se originou, utilizando a
+ * conexão que o originou, até que a aplicação remova-a ou realize um logout
+ * proposital.
  *
  * @author Tecgraf
  */
@@ -27,7 +28,7 @@ public interface LocalOffer {
    * Caso a oferta não esteja registrada no barramento no momento da
    * chamada ou não haja um login válido, a chamada ficará bloqueada até que
    * essas condições sejam cumpridas. Caso seja interrompida, retornará
-   * <code>NULL</code> e se manterá interrompida.
+   * {@code null} e se manterá interrompida.
    *
    * @throws ServiceFailure Caso haja algum erro inesperado no barramento ao
    * registrar a oferta.
@@ -38,7 +39,7 @@ public interface LocalOffer {
    * @throws UnauthorizedFacets O componente que implementa o serviço
    * apresenta facetas com interfaces que não estão autorizadas para a
    * entidade realizando o registro da oferta de serviço.
-   * @return A oferta remota, ou <code>NULL</code> caso o registro tenha sido
+   * @return A oferta remota, ou {@code null} caso o registro tenha sido
    * removido.
    */
   RemoteOffer remoteOffer() throws ServiceFailure, InvalidService,
@@ -56,12 +57,10 @@ public interface LocalOffer {
    * Caso a oferta não esteja registrada no barramento no momento da
    * chamada ou não haja um login válido, a chamada ficará bloqueada até que
    * essas condições sejam cumpridas ou o tempo se esgote. Caso seja
-   * interrompida, retornará <code>NULL</code> e se manterá interrompida.
+   * interrompida, retornará {@code null} e se manterá interrompida.
    *
    * @param timeoutMillis O tempo máximo a aguardar pelo registro da oferta
-   *                      remota, em milisegundos. O valor 0 neste parâmetro
-   *                      e no parâmetro nanos faz com que a thread aguarde
-   *                      eternamente, como na assinatura sem parâmetros.
+   *                      remota, em milisegundos.
    * @throws ServiceFailure Caso haja algum erro inesperado no barramento ao
    * registrar a oferta.
    * @throws InvalidService O componente SCS fornecido não é válido, por não
@@ -73,7 +72,7 @@ public interface LocalOffer {
    * entidade realizando o registro da oferta de serviço.
    * @throws TimeoutException O tempo especificado se esgotou antes de a
    * oferta ser registrada.
-   * @return A oferta remota, ou <code>NULL</code> caso o registro tenha sido
+   * @return A oferta remota, ou {@code null} caso o registro tenha sido
    * removido.
    */
   RemoteOffer remoteOffer(long timeoutMillis) throws ServiceFailure,
@@ -84,8 +83,11 @@ public interface LocalOffer {
    * esteja registrada no momento da chamada, ela será removida do barramento
    * em uma outra thread.
    *
+   * Essa operação pode bloquear enquanto não houver um login ativo. Caso seja
+   * interrompida, retornará e se manterá interrompida.
+   *
    * Após a execução deste método, os métodos {@link #remoteOffer()} e
-   * {@link #remoteOffer(long)} retornarão <code>NULL</code>.
+   * {@link #remoteOffer(long)} retornarão {@code null}.
    */
   void remove();
 }

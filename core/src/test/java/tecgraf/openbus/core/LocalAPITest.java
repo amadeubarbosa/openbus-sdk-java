@@ -35,6 +35,7 @@ import tecgraf.openbus.utils.Utils;
 
 import static org.junit.Assert.*;
 
+@SuppressWarnings("javadoc")
 public class LocalAPITest {
 
   //private static String host;

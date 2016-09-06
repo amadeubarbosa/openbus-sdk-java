@@ -10,7 +10,10 @@ import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidProperties;
 
 /**
- * Representação de uma oferta registrada no barramento.
+ * Representação de uma oferta registrada no barramento. O objeto JAVA
+ * RemoteOffer é apenas uma representação local da oferta e não deve ser
+ * utilizado para identificá-la. Para tal, utilize o identificador da oferta
+ * presente em suas propriedades.
  *
  * @author Tecgraf
  */
@@ -51,7 +54,7 @@ public interface RemoteOffer {
    * alteração.
    * @throws InvalidProperties Caso as propriedades contenham entradas
    * inválidas.
-   * @throws ServiceFailure Caso o registro de ofertas reporte alguma falha ao
+   * @throws ServiceFailure Caso o barramento reporte alguma falha inesperada ao
    * realizar a operação.
    */
   void properties(ArrayListMultimap<String, String> properties) throws
@@ -62,9 +65,11 @@ public interface RemoteOffer {
    * da oferta ou por um usuário administrador. Essa operação realiza uma
    * chamada remota e é bloqueante.
    *
-   * @throws ServiceFailure Caso o registro de ofertas reporte alguma falha ao
+   * @throws ServiceFailure Caso o barramento reporte alguma falha inesperada ao
    * realizar a operação.
-   * @throws UnauthorizedOperation
+   * @throws UnauthorizedOperation Caso o login não tenha permissão para
+   * realizar esta alteração. Apenas o login que registrou a oferta e logins
+   * com poderes administrativos podem remover uma oferta.
    */
   void remove() throws ServiceFailure, UnauthorizedOperation;
 
@@ -81,11 +86,11 @@ public interface RemoteOffer {
    * momento do cadastro real do observador no barramento.
    *
    * Essa operação pode bloquear enquanto não houver um login ativo. Caso seja
-   * interrompida, retornará <code>NULL</code> e se manterá interrompida.
+   * interrompida, retornará {@code null} e se manterá interrompida.
    *
-   * @param observer o observador a ser cadastrado.
+   * @param observer O observador a ser cadastrado.
    * @return A solicitação de cadastro do observador. Caso a oferta já não
-   * exista mais no barramento, será retornado <code>NULL</code>.
+   * exista mais no barramento, será retornado {@code null}.
    * @throws ServantNotActive Caso não seja possível ativar no POA fornecido
    * pela conexão um objeto CORBA que é criado para atender às notificações
    * do barramento.

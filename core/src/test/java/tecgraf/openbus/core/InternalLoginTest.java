@@ -14,6 +14,7 @@ import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
 import tecgraf.openbus.utils.Configs;
 import tecgraf.openbus.utils.Utils;
 
+@SuppressWarnings("javadoc")
 public class InternalLoginTest {
 
   private static String host;

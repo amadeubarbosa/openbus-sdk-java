@@ -93,10 +93,10 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
 
   /**
    * Verifica se o booleando do slot está configurado.
-   * 
+   *
    * @param ri informação da requisição
    * @param slotId identificador do slot
-   * @return <code>true</code> se o slot esta ativado, e <code>false</code> caso
+   * @return {@code true} se o slot esta ativado, e {@code false} caso
    *         contrário.
    */
   private boolean checkSlotIdFlag(ClientRequestInfo ri, int slotId) {
@@ -113,9 +113,6 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void send_request(ClientRequestInfo ri) {
     String operation = ri.operation();
@@ -393,17 +390,11 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     return chain;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void send_poll(ClientRequestInfo ri) {
     logger.finest(String.format("[inout] send_pool: %s", ri.operation()));
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void receive_reply(ClientRequestInfo ri) {
     String operation = ri.operation();
@@ -416,9 +407,6 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     logger.finest(String.format("[out] receive_reply: %s", operation));
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void receive_exception(ClientRequestInfo ri) throws ForwardRequest {
     Integer uniqueId;
@@ -708,9 +696,6 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
     throw new NO_PERMISSION(NoLoginCode.value, CompletionStatus.COMPLETED_NO);
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void receive_other(ClientRequestInfo ri) {
     logger.finest(String.format("[inout] receive_other: %s", ri.operation()));

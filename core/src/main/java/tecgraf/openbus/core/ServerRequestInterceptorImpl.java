@@ -68,9 +68,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     super(name, mediator);
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void receive_request_service_contexts(ServerRequestInfo ri)
     throws ForwardRequest {
@@ -145,9 +142,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       CompletionStatus.COMPLETED_NO);
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void receive_request(ServerRequestInfo ri) {
     String operation = ri.operation();
@@ -308,7 +302,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * @param conn conexão em uso
    * @param loginId identificador do login
    * @param ri informações da requisição
-   * @return <code>true</code> caso o login seja válido, ou <code>false</code>
+   * @return {@code true} caso o login seja válido, ou {@code false}
    *         caso contrário.
    */
   private boolean validateLogin(ConnectionImpl conn, String loginId,
@@ -400,8 +394,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * @param credential a credencial
    * @param ri informação do request.
    * @param conn a conexão em uso.
-   * @return <code>true</code> caso a credencial seja válida, ou
-   *         <code>false</code> caso contrário.
+   * @return {@code true} caso a credencial seja válida, ou {@code false}
+   * caso contrário.
    */
   private boolean validateCredential(Credential credential,
     ServerRequestInfo ri, ConnectionImpl conn) {
@@ -443,8 +437,8 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
    * @param pubKey a chave pública da entidade. Caso seja null, a assinatura
    *               será validada com a chave pública do barramento.
    * @param conn a conexão em uso.
-   * @return <code>true</code> caso a cadeia seja válida, ou <code>false</code>
-   *         caso contrário.
+   * @return {@code true} caso a cadeia seja válida, ou {@code false} caso
+   * contrário.
    */
   private boolean validateChain(Credential credential, RSAPublicKey pubKey,
     ConnectionImpl conn) {
@@ -531,9 +525,6 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     setCurrentConnection(ri, conn);
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void send_reply(ServerRequestInfo ri) {
     String operation = ri.operation();
@@ -554,16 +545,10 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     logger.fine(String.format(msg, operation, ri.request_id()));
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void send_exception(ServerRequestInfo ri) {
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void send_other(ServerRequestInfo ri) {
   }

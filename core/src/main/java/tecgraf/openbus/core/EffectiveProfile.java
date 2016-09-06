@@ -25,9 +25,6 @@ class EffectiveProfile {
     this.profile_data = effective_profile.profile_data;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public boolean equals(Object obj) {
     if (obj instanceof EffectiveProfile) {
@@ -37,17 +34,11 @@ class EffectiveProfile {
     return false;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public int hashCode() {
     return Arrays.hashCode(this.profile_data);
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public String toString() {
     return new String(this.profile_data);

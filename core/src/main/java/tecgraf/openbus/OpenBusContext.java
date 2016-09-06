@@ -15,27 +15,28 @@ import tecgraf.openbus.exception.InvalidPropertyValue;
  * informações que identificam essas chamadas em barramentos OpenBus.
  * <p>
  * O contexto de uma chamada pode ser definido pela linha de execução atual do
- * programa em que executa uma chamada, o que pode ser a thread em execução ou
- * mais comumente o {@link Current} do padrão CORBA. As informações acessíveis
- * através do {@link OpenBusContext} se referem basicamente à identificação da
- * origem das chamadas, ou seja, nome das entidades que autenticaram os acessos
- * ao barramento que originaram as chamadas.
+ * programa em que executa uma chamada, o que pode ser a <i>thread</i> em
+ * execução ou mais comumente o {@link Current} do padrão CORBA. As
+ * informações acessíveis através do {@link OpenBusContext} se referem
+ * basicamente à identificação da origem das chamadas, ou seja, o nome das
+ * entidades que autenticaram os acessos ao barramento que originaram as
+ * chamadas.
  * <p>
- * A identifcação de chamadas no barramento é controlada através do
- * OpenBusContext através da manipulação de duas abstrações representadas pelas
- * seguintes interfaces:
+ * A identificação de chamadas no barramento é controlada no OpenBusContext
+ * através da manipulação de duas abstrações representadas pelas seguintes
+ * interfaces:
  * <ul>
- * <li> {@link Connection}: Representa um acesso ao barramento, que é usado tanto
- * para fazer chamadas como para receber chamadas através do barramento. Para
- * tanto a conexão precisa estar autenticada, ou seja, logada. Cada chamada
- * feita através do ORB é enviada com as informações do login da conexão
+ * <li> {@link Connection}: Representa um acesso ao barramento, que é usado
+ * tanto para fazer chamadas como para receber chamadas através do barramento
+ * . Para tal a conexão precisa estar autenticada, ou seja, ter um login. Cada
+ * chamada feita através do ORB é enviada com as informações do login da conexão
  * associada ao contexto em que a chamada foi realizada. Cada chamada recebida
- * também deve vir através de uma conexão logada, que deve ser o mesmo login com
- * que chamadas aninhadas a essa chamada original devem ser feitas.
- * <li> {@link CallChain}: Representa a identicação de todos os acessos ao
+ * também deve vir através de uma conexão com login, que deve ser o mesmo login
+ * com que chamadas aninhadas a essa chamada original devem ser feitas.
+ * <li> {@link CallChain}: Representa a identificação de todos os acessos ao
  * barramento que originaram uma chamada recebida. Sempre que uma chamada é
- * recebida e executada, é possível obter um CallChain através do qual é
- * possível inspecionar as informações de acesso que originaram a chamada
+ * recebida e executada, é possível obter uma cadeia de chamadas através da
+ * qual é possível inspecionar as informações de acesso que originaram a chamada
  * recebida.
  * </ul>
  * 
@@ -44,96 +45,89 @@ import tecgraf.openbus.exception.InvalidPropertyValue;
 public interface OpenBusContext {
 
   /**
-   * Recupera o ORB associado ao ConnectionManager.
+   * Fornece o ORB associado ao OpenBusContext.
    * 
-   * @return o ORB
+   * @return O ORB.
    */
   org.omg.CORBA.ORB ORB();
 
   /**
-   * Recupera o POA associado ao ConnectionManager.
+   * Fornece o POA associado ao OpenBusContext. Inicialmente o contexto
+   * utiliza o RootPOA, mas é possível alterar o POA através do método
+   * {@link POA(POA)}.
    *
-   * @return o ORB
+   * @return O POA a ser utilizado ao criar conexões.
    */
   POA POA();
 
   /**
-   * Configura o POA que o ConnectionManager esta associado.
+   * Configura o POA que o OpenBusContext utilizará ao criar conexões.
    *
-   * @param poa o POA.
+   * @param poa O POA a ser utilizado.
    */
   void POA(POA poa);
 
   /**
-   * Callback a ser chamada para determinar a conexão a ser utilizada para
+   * <i>Callback</> a ser chamada para determinar a conexão a ser utilizada para
    * receber cada chamada.
    * <p>
-   * Esse atributo é utilizado para definir um objeto que implementa uma
-   * interface de callback a ser chamada sempre que a conexão receber uma do
-   * barramento. Essa callback deve devolver a conexão a ser utilizada para para
-   * receber a chamada. A conexão utilizada para receber a chamada será a única
-   * conexão através do qual novas chamadas aninhadas à chamada recebida poderão
-   * ser feitas (veja a operação {@link OpenBusContext#joinChain}).
+   * Essa callback deve fornecer a conexão a ser utilizada para para receber
+   * uma chamada. Essa conexão será a única conexão através da qual novas
+   * chamadas aninhadas à chamada recebida poderão ser feitas (veja a
+   * operação {@link #joinChain}).
    * <p>
-   * Se o objeto de callback for definido como <code>null</code> ou devolver
-   * <code>null</code>, a conexão padrão é utilizada para receber achamada, caso
-   * esta esteja definida.
-   * <p>
-   * Caso esse atributo seja <code>null</code>, nenhum objeto de callback é
-   * chamado na ocorrência desse evento e ???
-   * 
-   * @param callback Objeto que implementa a interface de callback a ser chamada
-   *        ou <code>null</code> caso nenhum objeto deva ser chamado na
-   *        ocorrência desse evento.
+   * Se a <i>callback</i> estiver definida como {@code null} e houver uma
+   * conexão padrão definida, a conexão padrão será utilizada para receber a
+   * chamada. Caso ambos sejam {@code null}, a chamada não poderá ser
+   * atendida e retornará um erro para o cliente remoto.
+   *
+   * @param callback Objeto que implementa a interface de <i>callback</i> ou
+   * {@code null} para remover o objeto atual.
    */
   void onCallDispatch(CallDispatchCallback callback);
 
   /**
-   * Recupera a callback a ser chamada sempre que a conexão receber uma do
-   * barramento.
+   * Fornece a callback configurada para receber chamadas.
    * 
-   * @return a callback ou <code>null</code> caso ela não exista.
+   * @return A callback ou {@code null} caso ela não exista.
    */
   CallDispatchCallback onCallDispatch();
 
   /**
-   * Cria uma conexão para um barramento indicado por um endereço de rede.
-   * <p>
-   * Cria uma conexão para um barramento. O barramento é indicado por um nome ou
+   * Cria uma conexão para um barramento. O barramento é definido por um nome ou
    * endereço de rede e um número de porta, onde os serviços núcleo daquele
    * barramento estão executando.
+   *
+   * Esta chamada não implica em chamadas remotas, apenas realiza a
+   * configuração necessária para acessar um barramento e realizar
+   * autenticações.
    * 
    * @param host Endereço ou nome de rede onde os serviços núcleo do barramento
    *        estão executando.
    * @param port Porta onde os serviços núcleo do barramento estão executando.
    * 
-   * @return Conexão criada.
+   * @return A conexão criada.
    */
   Connection connectByAddress(String host, int port);
 
   /**
-   * Cria uma conexão para um barramento indicado por um endereço de rede.
-   * <p>
-   * Cria uma conexão para um barramento. O barramento é indicado por um nome ou
+   * Cria uma conexão para um barramento. O barramento é definido por um nome ou
    * endereço de rede e um número de porta, onde os serviços núcleo daquele
    * barramento estão executando.
-   * 
+   *
+   * Esta chamada não implica em chamadas remotas, apenas realiza a
+   * configuração necessária para acessar um barramento e realizar
+   * autenticações.
+   *
    * @param host Endereço ou nome de rede onde os serviços núcleo do barramento
    *        estão executando.
    * @param port Porta onde os serviços núcleo do barramento estão executando.
    * @param props Lista opcional de propriedades que definem algumas
    *        configurações sobre a forma que as chamadas realizadas ou validadas
-   *        com essa conexão são feitas. A seguir são listadas as propriedades
-   *        válidas:
-   *        <ul>
-   *        <li>access.key: chave de acesso a ser utiliza internamente para a
-   *        geração de credenciais que identificam as chamadas através do
-   *        barramento. A chave deve ser uma chave privada RSA de 2048 bits (256
-   *        bytes). Quando essa propriedade não é fornecida, uma chave de acesso
-   *        é gerada automaticamente.
-   *        </ul>
+   *        com essa conexão são feitas. As propriedades válidas estão
+   *        definidas em {@link tecgraf.openbus.core.OpenBusProperty}.
    * 
-   * @return Conexão criada.
+   * @return A conexão criada.
    * 
    * @throws InvalidPropertyValue O valor de uma propriedade não é válido.
    */
@@ -141,45 +135,42 @@ public interface OpenBusContext {
     throws InvalidPropertyValue;
 
   /**
-   * Cria uma conexão para um barramento indicado por um endereço de rede.
-   * <p>
-   * Cria uma conexão para um barramento. O barramento é indicado por uma
+   * Cria uma conexão para um barramento. O barramento é definido por uma
    * referência CORBA a um componente SCS que representa os serviços núcleo do
    * barramento. Essa função deve ser utilizada ao invés da
-   * {@link OpenBusContext#connectByAddress} para permitir o uso de SSL nas
+   * {@link #connectByAddress} para permitir o uso de SSL nas
    * comunicações com o núcleo do barramento.
-   * 
+   *
+   * Esta chamada não implica em chamadas remotas, apenas realiza a
+   * configuração necessária para acessar um barramento e realizar
+   * autenticações.
+   *
    * @param reference Referência CORBA a um componente SCS que representa os
    *        serviços núcleo do barramento.
    * 
-   * @return Conexão criada.
+   * @return A conexão criada.
    */
   Connection connectByReference(org.omg.CORBA.Object reference);
 
   /**
-   * Cria uma conexão para um barramento indicado por um endereço de rede.
-   * <p>
-   * Cria uma conexão para um barramento. O barramento é indicado por uma
+   * Cria uma conexão para um barramento. O barramento é definido por uma
    * referência CORBA a um componente SCS que representa os serviços núcleo do
    * barramento. Essa função deve ser utilizada ao invés da
-   * {@link OpenBusContext#connectByAddress} para permitir o uso de SSL nas
+   * {@link #connectByAddress} para permitir o uso de SSL nas
    * comunicações com o núcleo do barramento.
-   * 
+   *
+   * Esta chamada não implica em chamadas remotas, apenas realiza a
+   * configuração necessária para acessar um barramento e realizar
+   * autenticações.
+   *
    * @param reference Referência CORBA a um componente SCS que representa os
    *        serviços núcleo do barramento.
    * @param props Lista opcional de propriedades que definem algumas
    *        configurações sobre a forma que as chamadas realizadas ou validadas
-   *        com essa conexão são feitas. A seguir são listadas as propriedades
-   *        válidas:
-   *        <ul>
-   *        <li>access.key: chave de acesso a ser utiliza internamente para a
-   *        geração de credenciais que identificam as chamadas através do
-   *        barramento. A chave deve ser uma chave privada RSA de 2048 bits (256
-   *        bytes). Quando essa propriedade não é fornecida, uma chave de acesso
-   *        é gerada automaticamente.
-   *        </ul>
+   *        com essa conexão são feitas. As propriedades válidas estão
+   *        definidas em {@link tecgraf.openbus.core.OpenBusProperty}.
    * 
-   * @return Conexão criada.
+   * @return A conexão criada.
    * 
    * @throws InvalidPropertyValue O valor de uma propriedade não é válido.
    */
@@ -187,40 +178,41 @@ public interface OpenBusContext {
     throws InvalidPropertyValue;
 
   /**
-   * Cria uma conexão para um barramento. O barramento é indicado por um nome ou
+   * Cria uma conexão para um barramento. O barramento é definido por um nome ou
    * endereço de rede e um número de porta, onde os serviços núcleo daquele
    * barramento estão executando.
-   * 
+   *
+   * Esta chamada não implica em chamadas remotas, apenas realiza a
+   * configuração necessária para acessar um barramento e realizar
+   * autenticações.
+   *
    * @param host Endereço ou nome de rede onde os serviços núcleo do barramento
    *        estão executando.
    * @param port Porta onde os serviços núcleo do barramento estão executando.
    * 
-   * @return Conexão criada.
+   * @return A conexão criada.
    */
   @Deprecated
   Connection createConnection(String host, int port);
 
   /**
-   * Cria uma conexão para um barramento. O barramento é indicado por um nome ou
+   * Cria uma conexão para um barramento. O barramento é definido por um nome ou
    * endereço de rede e um número de porta, onde os serviços núcleo daquele
    * barramento estão executando.
-   * 
+   *
+   * Esta chamada não implica em chamadas remotas, apenas realiza a
+   * configuração necessária para acessar um barramento e realizar
+   * autenticações.
+   *
    * @param host Endereço ou nome de rede onde os serviços núcleo do barramento
    *        estão executando.
    * @param port Porta onde os serviços núcleo do barramento estão executando.
    * @param props Lista opcional de propriedades que definem algumas
    *        configurações sobre a forma que as chamadas realizadas ou validadas
-   *        com essa conexão são feitas. A seguir são listadas as propriedades
-   *        válidas:
-   *        <ul>
-   *        <li>access.key: chave de acesso a ser utiliza internamente para a
-   *        geração de credenciais que identificam as chamadas através do
-   *        barramento. A chave deve ser uma chave privada RSA de 2048 bits (256
-   *        bytes). Quando essa propriedade não é fornecida, uma chave de acesso
-   *        é gerada automaticamente.
-   *        </ul>
+   *        com essa conexão são feitas. As propriedades válidas estão
+   *        definidas em {@link tecgraf.openbus.core.OpenBusProperty}.
    * 
-   * @return Conexão criada.
+   * @return A conexão criada.
    * 
    * @throws InvalidPropertyValue O valor de uma propriedade não é válido.
    */
@@ -229,99 +221,81 @@ public interface OpenBusContext {
     throws InvalidPropertyValue;
 
   /**
-   * Define a conexão padrão a ser usada nas chamadas de stubs do usuário.
-   * <p>
-   * Define uma conexão a ser utilizada em chamadas sempre que não houver uma
-   * conexão específica definida no contexto atual, como é feito através da
-   * operação {@link OpenBusContext#currentConnection(Connection)
-   * setRequester}. Quando <code>conn</code> é <code>null</code> nenhuma conexão
-   * fica definida como a conexão padrão.
+   * Define a conexão padrão a ser utilizada em chamadas sempre que não houver
+   * uma conexão específica definida no contexto atual, como é feito através das
+   * operações {@link #currentConnection(Connection)} e
+   * {@link #onCallDispatch(CallDispatchCallback)}.
    *
-   * A conexão padrão não afeta chamadas feitas pela API do SDK, apenas
-   * chamadas feitas por stubs criados pelo usuário.
+   * A conexão padrão não afeta chamadas feitas por recursos de uma conexão.
    * 
-   * @param conn Conexão a ser definida como conexão padrão.
+   * @param connection A conexão a ser definida como conexão padrão.
    * 
-   * @return Conexão definida como conexão padrão anteriormente, ou
-   *         <code>null</code> se não havia conexão padrão definida
-   *         anteriormente.
+   * @return A conexão definida como conexão padrão anteriormente, ou
+   *         {@code null} se não havia conexão padrão definida.
    */
-  Connection defaultConnection(Connection conn);
+  Connection defaultConnection(Connection connection);
 
   /**
-   * Devolve a conexão padrão a ser usada nas chamadas de stubs do usuário.
-   * <p>
-   * Veja operação {@link OpenBusContext#defaultConnection
-   * defaultConnection}.
+   * Fornece a conexão padrão a ser usada nas chamadas. Veja operação
+   * {@link #defaultConnection defaultConnection}.
    *
-   * A conexão padrão não afeta chamadas feitas pela API do SDK, apenas
-   * chamadas feitas por stubs criados pelo usuário.
+   * A conexão padrão não afeta chamadas feitas por recursos de uma conexão.
    *
-   * @return Conexão definida como conexão padrão.
+   * @return A conexão definida como conexão padrão.
    */
   Connection defaultConnection();
 
   /**
-   * Define a conexão associada ao contexto corrente, a ser usada nas
-   * chamadas de stubs do usuário.
-   * <p>
    * Define a conexão a ser utilizada em todas as chamadas feitas no contexto
-   * atual. Quando <code>conn</code> é <code>null</code> o contexto passa a
-   * ficar sem nenhuma conexão associada, a não ser que haja uma conexão
-   * padrão definida através da operação {@link #defaultConnection
-   * defaultConnection}.
+   * atual.
    *
-   * A conexão padrão não afeta chamadas feitas pela API do SDK, apenas
-   * chamadas feitas por stubs criados pelo usuário.
+   * Se a conexão corrente estiver definida como {@code null} e houver uma
+   * conexão padrão definida, a conexão padrão será utilizada para realizar
+   * chamadas. Caso ambas sejam {@code null}, chamadas não poderão ser
+   * realizadas e um erro será lançado para a aplicação.
    *
-   * @param conn Conexão a ser associada ao contexto corrente.
+   * A conexão corrente não afeta chamadas feitas por recursos de uma conexão.
+   *
+   * @param connection A conexão a ser associada ao contexto corrente.
    * 
-   * @return Conexão definida como a conexão corrente anteriormente, ou null se
-   *         não havia conexão definida ateriormente.
+   * @return A conexão definida como a conexão corrente anteriormente, ou
+   * {@code null} se não havia conexão definida.
    */
-  Connection currentConnection(Connection conn);
+  Connection currentConnection(Connection connection);
 
   /**
-   * Devolve a conexão associada ao contexto corrente, a ser usada nas
-   * chamadas de stubs do usuário.
-   * <p>
-   * Devolve a conexão associada ao contexto corrente, que pode ter sido
-   * definida usando a operação {@link OpenBusContext#currentConnection} ou
-   * {@link OpenBusContext#defaultConnection}.
+   * Fornece a conexão associada ao contexto corrente e que será utilizada em
+   * chamadas. Ela pode ter sido definida pela operação
+   * {@link #currentConnection(Connection)} ou
+   * {@link #defaultConnection(Connection)}.
    *
-   * A conexão padrão não afeta chamadas feitas pela API do SDK, apenas
-   * chamadas feitas por stubs criados pelo usuário.
+   * A conexão padrão não afeta chamadas feitas por recursos de uma conexão.
    *
-   * @return Conexão associada ao contexto corrente, ou <code>null</code> caso
+   * @return A conexão associada ao contexto corrente, ou {@code null} caso
    *         não haja nenhuma conexão associada.
    */
   Connection currentConnection();
 
   /**
-   * Devolve a cadeia de chamadas à qual a execução corrente pertence.
+   * Fornece a cadeia de chamadas à qual a execução corrente pertence.
    * <p>
    * Essa operação devolve um objeto que representa a cadeia de chamadas do
    * barramento que esta chamada faz parte.
    *
-   * @return Cadeia da chamada em execução.
+   * @return A cadeia da chamada em execução.
    */
   CallerChain callerChain();
 
   /**
-   * Associa uma cadeia de chamadas ao contexto corrente.
-   * <p>
    * Associa uma cadeia de chamadas ao contexto corrente (e.g. definido pelo
    * {@link Current}), de forma que todas as chamadas remotas seguintes neste
    * mesmo contexto sejam feitas como parte dessa cadeia de chamadas.
    *
-   * @param chain Cadeia de chamadas a ser associada ao contexto corrente.
+   * @param chain A cadeia de chamadas a ser associada ao contexto corrente.
    */
   void joinChain(CallerChain chain);
 
   /**
-   * Associa a cadeia de chamadas obtida em {@link #callerChain()} ao
-   * contexto corrente.
-   * <p>
    * Associa a cadeia de chamadas obtida em {@link #callerChain()} ao
    * contexto corrente (e.g. definido pelo {@link Current}), de forma que todas
    * as chamadas remotas seguintes neste mesmo contexto sejam feitas como parte
@@ -330,9 +304,6 @@ public interface OpenBusContext {
   void joinChain();
 
   /**
-   * Faz com que nenhuma cadeia de chamadas esteja associada ao contexto
-   * corrente.
-   * <p>
    * Remove a associação da cadeia de chamadas ao contexto corrente (e.g.
    * definido pelo {@link Current}), fazendo com que todas as chamadas seguintes
    * feitas neste mesmo contexto deixem de fazer parte da cadeia de chamadas
@@ -342,68 +313,52 @@ public interface OpenBusContext {
   void exitChain();
 
   /**
-   * Devolve a cadeia de chamadas associada ao contexto corrente.
-   * <p>
-   * Devolve um objeto que representa a cadeia de chamadas associada ao contexto
-   * corrente (e.g. definido pelo {@link Current}) nesta conexão. A cadeia de
-   * chamadas informada foi associada previamente pela operação
+   * Fornece a cadeia de chamadas associada ao contexto corrente (e.g.
+   * definido pelo {@link Current}). A cadeia de chamadas informada foi
+   * associada previamente pela operação
    * {@link #joinChain(CallerChain) joinChain}. Caso o contexto corrente não
-   * tenha nenhuma cadeia associada, essa operação devolve <code>null</code>.
+   * tenha nenhuma cadeia associada, essa operação retornará {@code null}.
    *
-   * @return Cadeia de chamadas associada ao contexto corrente ou
-   *         <code>null</code> .
+   * @return A cadeia de chamadas associada ao contexto corrente ou {@code
+   * null} .
    */
   CallerChain joinedChain();
 
   /**
-   * Codifica uma cadeia de chamadas ({@link CallerChain}) para um stream de
-   * bytes.
-   * <p>
-   * Codifica uma cadeia de chamadas em um stream de bytes para permitir a
-   * persistência ou transferência da informação.
+   * Codifica uma cadeia de chamadas para permitir a persistência ou
+   * transferência da informação.
    *
-   * @param chain a cadeia a ser codificada.
-   * @return a cadeia codificada em um stream de bytes.
+   * @param chain A cadeia a ser codificada.
+   * @return A cadeia codificada.
    */
   byte[] encodeChain(CallerChain chain);
 
   /**
-   * Decodifica um stream de bytes de uma cadeia para o formato
-   * {@link CallerChain}.
-   * <p>
-   * Decodifica um stream de bytes de uma cadeia para o formato
-   * {@link CallerChain}.
+   * Decodifica uma cadeia para o formato {@link CallerChain}.
    *
-   * @param encoded o stream de bytes que representam a cadeia
-   * @return a cadeia de chamadas no formato {@link CallerChain}.
-   * @throws InvalidEncodedStream Caso a stream de bytes não seja do formato
-   *         esperado.
+   * @param encoded Os bytes que representam a cadeia.
+   * @return A cadeia de chamadas no formato {@link CallerChain}.
+   * @throws InvalidEncodedStream Caso a cadeia não esteja no formato esperado.
    */
   CallerChain decodeChain(byte[] encoded) throws InvalidEncodedStream;
 
   /**
-   * \brief Codifica um segredo de autenticação compartilhada (
-   * {@link SharedAuthSecret}) para um stream de bytes.
+   * Codifica um segredo de autenticação compartilhada para permitir a
+   * persistência ou transferência da informação.
    *
-   * Codifica um segredo de autenticação compartilhada em um stream de bytes
-   * para permitir a persistência ou transferência da informação.
-   *
-   * @param secret Segredo de autenticação compartilhada a ser codificado.
-   * @return Cadeia codificada em um stream de bytes.
+   * @param secret O segredo de autenticação compartilhada a ser codificado.
+   * @return O segredo codificado.
    */
   byte[] encodeSharedAuth(SharedAuthSecret secret);
 
   /**
-   * Decodifica um segredo de autenticação compartilhada (
-   * {@link SharedAuthSecret}) a partir de um stream de bytes.
-   * <p>
-   * Decodifica um segredo de autenticação compartilhada a partir de um stream
-   * de bytes.
+   * Decodifica um segredo de autenticação compartilhada para o formato
+   * ({@link SharedAuthSecret}).
    *
-   * @param encoded Stream de bytes contendo a codificação do segredo.
-   * @return Segredo de autenticação compartilhada decodificado.
-   * @throws InvalidEncodedStream Caso a stream de bytes não seja do formato
-   *         esperado.
+   * @param encoded Os bytes que representam o segredo.
+   * @return O segredo de autenticação compartilhada decodificado.
+   * @throws InvalidEncodedStream Caso o segredo não esteja no formato
+   * esperado.
    */
   SharedAuthSecret decodeSharedAuth(byte[] encoded) throws InvalidEncodedStream;
 }

@@ -70,9 +70,6 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
     this.mediator = mediator;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public String name() {
     return this.name;
@@ -114,9 +111,6 @@ abstract class InterceptorImpl extends LocalObject implements Interceptor {
     return mediator.getContext();
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void destroy() {
   }

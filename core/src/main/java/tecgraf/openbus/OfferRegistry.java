@@ -10,7 +10,9 @@ import scs.core.IComponent;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 
 /**
- * Interface local do registro de ofertas.
+ * Interface local do registro de ofertas. Responsável por fornecer
+ * métodos associados a ofertas de serviços e por manter ofertas e
+ * observadores (de registro de oferta ou de oferta) da aplicação.
  *
  * @author Tecgraf
  */
@@ -22,8 +24,8 @@ public interface OfferRegistry {
   Connection connection();
 
   /**
-   * Solicita que seja registrado um serviço, representado por um componente
-   * ({@link IComponent}), no barramento. A oferta local retornada representa
+   * Solicita que seja registrado um serviço representado por um componente
+   * ({@link IComponent}) no barramento. A oferta local retornada representa
    * essa solicitação, que será mantida pelo registro de ofertas local até
    * que haja um logout explícito ou que a oferta seja removida pela aplicação.
    *
@@ -33,15 +35,15 @@ public interface OfferRegistry {
    * registro real da oferta no barramento.
    *
    * Essa operação pode bloquear enquanto não houver um login ativo. Caso seja
-   * interrompida, retornará <code>NULL</code> e se manterá interrompida.
+   * interrompida, retornará {@code null} e se manterá interrompida.
    *
-   * @param service_ref o serviço a ser publicado.
-   * @param properties as propriedades a serem associados à publicação do
+   * @param service O serviço a ser publicado.
+   * @param properties as propriedades a serem associadas à publicação do
    *        serviço.
    * @return Uma representação local da oferta que será mantida publicada no
    * barramento.
    */
-  LocalOffer registerService(IComponent service_ref, ArrayListMultimap<String,
+  LocalOffer registerService(IComponent service, ArrayListMultimap<String,
     String> properties);
 
   /**
@@ -50,7 +52,8 @@ public interface OfferRegistry {
    * oferta será incluída no resultado dessa operação. As propriedades
    * utilizadas nas buscas podem ser as fornecidas no momento do registro da
    * oferta de serviço, assim como as geradas automaticamente pelo registro
-   * de ofertas de serviços do barramento.
+   * de ofertas de serviços do barramento
+   * ({@link tecgraf.openbus.offers.ServiceProperties}).
    *
    * Essa operação realiza uma chamada remota e é bloqueante.
    *
@@ -62,7 +65,7 @@ public interface OfferRegistry {
    * 
    * @return Uma lista com as ofertas de serviço encontradas.
    *
-   * @throws ServiceFailure Caso o registro de ofertas reporte alguma falha ao
+   * @throws ServiceFailure Caso o barramento reporte alguma falha inesperada ao
    * realizar a operação.
    */
   List<RemoteOffer> findServices(ArrayListMultimap<String, String> properties)
@@ -77,7 +80,7 @@ public interface OfferRegistry {
    *
    * @return Uma lista com as ofertas de serviço registradas no barramento no
    * momento da requisição.
-   * @throws ServiceFailure Caso o registro de ofertas reporte alguma falha ao
+   * @throws ServiceFailure Caso o barramento reporte alguma falha inesperada ao
    * realizar a operação.
    */
   List<RemoteOffer> allServices() throws ServiceFailure;
@@ -98,7 +101,7 @@ public interface OfferRegistry {
    * cadastro real do observador no barramento.
    *
    * Essa operação pode bloquear enquanto não houver um login ativo. Caso seja
-   * interrompida, retornará <code>NULL</code> e se manterá interrompida.
+   * interrompida, retornará {@code null} e se manterá interrompida.
    *
    * @param observer O observador.
    * @param properties Propriedades que as ofertas de serviços registradas devem

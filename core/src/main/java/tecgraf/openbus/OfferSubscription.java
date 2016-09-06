@@ -7,7 +7,8 @@ import java.util.concurrent.TimeoutException;
 /**
  * Representa uma inscrição de um observador de oferta de serviço. Essa
  * inscrição será mantida no barramento pelo registro de ofertas do qual se
- * originou, até que a aplicação remova-a ou realize um logout proposital.
+ * originou, utilizando a conexão que o originou, até que a aplicação
+ * remova-a ou realize um logout proposital.
  *
  * Os possíveis eventos gerados são definidos pela interface
  * {@link OfferObserver}.
@@ -48,6 +49,8 @@ public interface OfferSubscription {
    * essas condições sejam cumpridas ou o tempo se esgote. Caso seja
    * interrompida, retornará false e se manterá interrompida.
    *
+   * @param timeoutMillis O tempo máximo a aguardar pela subscrição do
+   *                      observador de oferta, em milisegundos.
    * @throws ServiceFailure Caso haja algum erro inesperado no barramento ao
    * realizar a subscrição.
    * @throws TimeoutException O tempo especificado se esgotou antes de a
@@ -59,14 +62,14 @@ public interface OfferSubscription {
     TimeoutException;
 
   /**
-   * Recupera a referência para o observador inscrito pela aplicação.
+   * Fornece o observador inscrito pela aplicação.
    * 
-   * @return o observador.
+   * @return O observador.
    */
   OfferObserver observer();
 
   /**
-   * Recupera a referência para a oferta observada.
+   * Fornece a referência para a oferta observada.
    * 
    * @return Uma referência para a oferta remota.
    */
@@ -78,6 +81,9 @@ public interface OfferSubscription {
    *
    * Essa operação pode bloquear enquanto não houver um login ativo. Caso seja
    * interrompida, retornará e se manterá interrompida.
+   *
+   * Após a execução deste método, os métodos {@link #subscribed()} e
+   * {@link #subscribed(long)} retornarão {@code false}.
    */
   void remove();
 }

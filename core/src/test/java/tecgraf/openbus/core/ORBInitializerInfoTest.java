@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 import org.omg.PortableInterceptor.ORBInitializer;
 
+@SuppressWarnings("javadoc")
 public final class ORBInitializerInfoTest {
   @Test(expected = NullPointerException.class)
   public void createWithNullInitializer() {

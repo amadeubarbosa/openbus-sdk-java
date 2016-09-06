@@ -3,8 +3,7 @@ package tecgraf.openbus;
 import tecgraf.openbus.core.AuthArgs;
 
 /**
- * Interface que define um método para a obtenção dos dados de autenticação
- * necessários.
+ * Interface para a obtenção de dados de autenticação.
  */
 public interface LoginCallback {
   /**

@@ -243,33 +243,21 @@ final class ConnectionImpl implements Connection {
     this.internalLogin = new InternalLogin(this);
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public ORB ORB() {
     return this.orb;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public POA POA() {
     return this.poa;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public OpenBusContext context() {
     return this.context;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public String busid() {
     return getBus().getId();
@@ -314,13 +302,10 @@ final class ConnectionImpl implements Connection {
     this.bus.basicBusInitialization();
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void loginByPassword(final String login, final byte[] password, final String
     domain) throws AccessDenied, AlreadyLoggedIn, TooManyAttempts,
-    UnknownDomain, WrongEncoding, ServiceFailure {
+    UnknownDomain, ServiceFailure {
     try {
       loginByCallback(() -> new AuthArgs(login, password, domain));
     } catch (WrongBus | InvalidLoginProcess e) {
@@ -335,7 +320,7 @@ final class ConnectionImpl implements Connection {
   private void loginByPasswordPvt(String entity, byte[] password, String
     domain, LoginCallback cb, boolean relogin)
     throws AccessDenied, AlreadyLoggedIn, TooManyAttempts, UnknownDomain,
-    WrongEncoding, ServiceFailure {
+    ServiceFailure {
     checkLoggedIn();
     LoginInfo newLogin;
     try {
@@ -355,6 +340,9 @@ final class ConnectionImpl implements Connection {
       throw new OpenBusInternalException(
         "Falha no protocolo OpenBus: A chave de acesso gerada não foi aceita. Mensagem="
           + e.message);
+    } catch (WrongEncoding e) {
+      throw new OpenBusInternalException("Erro de codificação através da " +
+        "chave pública do barramento.", e);
     }
     finally {
       this.context.unignoreThread();
@@ -400,14 +388,9 @@ final class ConnectionImpl implements Connection {
 
   }
 
-  /**
-   * {@inheritDoc}
-   * 
-   */
   @Override
   public void loginByPrivateKey(final String entity, final RSAPrivateKey key) throws
-    AlreadyLoggedIn, AccessDenied, MissingCertificate, WrongEncoding,
-    ServiceFailure {
+    AlreadyLoggedIn, AccessDenied, MissingCertificate, ServiceFailure {
     try {
       loginByCallback(() -> new AuthArgs(entity, key));
     } catch (WrongBus | InvalidLoginProcess e) {
@@ -421,8 +404,7 @@ final class ConnectionImpl implements Connection {
 
   private void loginByPrivateKeyPvt(String entity, RSAPrivateKey privateKey,
                                     LoginCallback cb, boolean relogin)
-    throws AlreadyLoggedIn, MissingCertificate, AccessDenied, WrongEncoding,
-    ServiceFailure {
+    throws AlreadyLoggedIn, MissingCertificate, AccessDenied, ServiceFailure {
     checkLoggedIn();
     this.context.ignoreThread();
     initBusReferencesBeforeLogin();
@@ -452,6 +434,9 @@ final class ConnectionImpl implements Connection {
       throw new OpenBusInternalException(
         "Falha no protocolo OpenBus: A chave de acesso gerada não foi aceita. Mensagem="
           + e.message);
+    } catch (WrongEncoding e) {
+      throw new OpenBusInternalException("Erro de codificação através da " +
+        "chave pública do barramento.", e);
     }
     finally {
       this.context.unignoreThread();
@@ -463,19 +448,13 @@ final class ConnectionImpl implements Connection {
           busid(), newLogin.id, newLogin.entity));
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void loginByCallback(LoginCallback cb) throws AlreadyLoggedIn,
     WrongBus, InvalidLoginProcess, AccessDenied, TooManyAttempts,
-    UnknownDomain, WrongEncoding, MissingCertificate, ServiceFailure {
+    UnknownDomain, MissingCertificate, ServiceFailure {
     loginByCallback(cb, false);
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public SharedAuthSecret startSharedAuth() throws ServiceFailure {
     EncryptedBlockHolder challenge = new EncryptedBlockHolder();
@@ -597,8 +576,7 @@ final class ConnectionImpl implements Connection {
 
   private void loginByCallback(LoginCallback cb, boolean relogin) throws
     AlreadyLoggedIn, WrongBus, InvalidLoginProcess, AccessDenied,
-    TooManyAttempts, UnknownDomain, WrongEncoding, MissingCertificate,
-    ServiceFailure {
+    TooManyAttempts, UnknownDomain, MissingCertificate, ServiceFailure {
     AuthArgs args = cb.authenticationArguments();
     switch (args.mode) {
       case AuthByPassword:
@@ -659,27 +637,16 @@ final class ConnectionImpl implements Connection {
     logger.info("Login refeito.");
   }
 
-  /**
-   * {@inheritDoc}
-   *
-   */
   @Override
   public tecgraf.openbus.LoginRegistry loginRegistry() {
     return loginRegistry;
   }
 
-  /**
-   * {@inheritDoc}
-   *
-   */
   @Override
   public tecgraf.openbus.OfferRegistry offerRegistry() {
     return offerRegistry;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public CallerChain makeChainFor(String entity) throws ServiceFailure {
     Connection prev = context.currentConnection();
@@ -691,9 +658,6 @@ final class ConnectionImpl implements Connection {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public CallerChain importChain(byte[] token, String domain)
     throws InvalidToken, UnknownDomain, WrongEncoding, ServiceFailure {
@@ -729,9 +693,6 @@ final class ConnectionImpl implements Connection {
     this.renewer = null;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public LoginInfo login() {
     return this.internalLogin.login();
@@ -779,9 +740,6 @@ final class ConnectionImpl implements Connection {
     fireRenewerThread(validity);
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public boolean logout() throws ServiceFailure {
     LoginInfo login;
@@ -838,8 +796,8 @@ final class ConnectionImpl implements Connection {
 
   /**
    * Realiza o logout localmente. Se o parâmetro "invalidated" for
-   * <code>true</code> seta o estado da conexão para INVÁLIDO, se for
-   * <code>false</code> seta o estado para DESLOGADO.
+   * {@code true} seta o estado da conexão para INVÁLIDO, se for
+   * {@code false} seta o estado para DESLOGADO.
    * 
    * @param invalidated indica se o login está inválido
    */
@@ -899,7 +857,7 @@ final class ConnectionImpl implements Connection {
    * <p>
    * Mesmo que a conexão tenha sido configurada para permitir o suporte legado
    * 
-   * @return <code>true</code> caso o suporte esteja ativo, e <code>false</code>
+   * @return {@code true} caso o suporte esteja ativo, e {@code false}
    *         caso contrário.
    */
   public boolean legacy() {
@@ -968,9 +926,6 @@ final class ConnectionImpl implements Connection {
     return this.cache.CACHE_SIZE + 1;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public boolean equals(Object obj) {
     ConnectionImpl other;
@@ -981,17 +936,11 @@ final class ConnectionImpl implements Connection {
     return false;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public int hashCode() {
     return this.connId.hashCode();
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public String toString() {
     return this.connId;

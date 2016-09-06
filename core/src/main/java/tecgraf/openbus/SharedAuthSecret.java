@@ -14,17 +14,17 @@ package tecgraf.openbus;
 public interface SharedAuthSecret {
 
   /**
-   * Recupear o idenficiador do barramento em que o segredo pode ser utilizado.
+   * Fornece o identificador do barramento em que o segredo pode ser utilizado.
    * 
-   * @return o identificador.
+   * @return O identificador.
    */
   String busid();
 
   /**
    * Método que cancela o segredo, tornando-o inutilizável.
    * <p>
-   * Cancela o segredo caso esse ainda esteja ativo, de forma que ele não poderá
-   * ser mais utilizado.
+   * Cancela o segredo caso ainda esteja ativo, de forma que não poderá mais
+   * ser utilizado.
    */
   void cancel();
 }

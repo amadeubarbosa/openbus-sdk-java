@@ -28,9 +28,6 @@ class LRUCache<k, v> extends LinkedHashMap<k, v> {
     this.MAX_SIZE = size;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   protected boolean removeEldestEntry(java.util.Map.Entry<k, v> eldest) {
     return super.size() > MAX_SIZE;

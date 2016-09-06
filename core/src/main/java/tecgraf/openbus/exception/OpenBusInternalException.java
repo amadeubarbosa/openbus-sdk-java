@@ -13,8 +13,8 @@ public final class OpenBusInternalException extends IllegalStateException {
   /**
    * Construtor.
    * 
-   * @param message mensagem.
-   * @param cause causa.
+   * @param message Mensagem.
+   * @param cause Causa.
    */
   public OpenBusInternalException(String message, Throwable cause) {
     super(message, cause);
@@ -25,7 +25,7 @@ public final class OpenBusInternalException extends IllegalStateException {
   /**
    * Construtor.
    * 
-   * @param message mensagem
+   * @param message Mensagem.
    */
   public OpenBusInternalException(String message) {
     super(message);

@@ -35,9 +35,6 @@ class ChainCacheKey {
     this.legacy = legacy;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public boolean equals(Object obj) {
     if (obj == null) {
@@ -54,9 +51,6 @@ class ChainCacheKey {
       other.legacy).append(signature, signature).isEquals();
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public int hashCode() {
     return new HashCodeBuilder().append(callee).append(legacy)

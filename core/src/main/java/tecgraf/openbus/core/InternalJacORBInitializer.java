@@ -17,8 +17,8 @@ import org.omg.PortableInterceptor.ORBInitInfoPackage.DuplicateName;
 import org.omg.PortableInterceptor.ORBInitInfoPackage.InvalidName;
 
 /**
- * Classe internar para inicialização o {@link ORB} do JacORB.
- * <p>
+ * Classe interna para inicialização do {@link ORB} do JacORB.
+ *
  * Esta classe não deveria ser visível fora deste pacote, mas o JacORB obriga
  * que ela seja pública.
  * 
@@ -34,9 +34,6 @@ public final class InternalJacORBInitializer extends LocalObject implements
   /** Minor da versão do codificador. */
   private static final byte ENCODING_CDR_ENCAPS_MINOR_VERSION = 2;
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void pre_init(ORBInitInfo info) {
     Codec codec = this.createCodec(info);
@@ -73,9 +70,6 @@ public final class InternalJacORBInitializer extends LocalObject implements
     this.addServerInterceptors(info, mediator);
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void post_init(ORBInitInfo info) {
     try {

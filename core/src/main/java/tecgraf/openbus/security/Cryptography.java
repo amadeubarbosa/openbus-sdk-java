@@ -32,13 +32,13 @@ import javax.crypto.Cipher;
 import tecgraf.openbus.exception.CryptographyException;
 
 /**
- * Classe de utilitária de criptografia.
+ * Classe utilitária de criptografia.
  * 
  * @author Tecgraf
  */
 public final class Cryptography {
   /**
-   * Tipo de certficado
+   * Tipo de certificado
    */
   private static final String CERT_FACTORY = "X.509";
   /**
@@ -54,10 +54,10 @@ public final class Cryptography {
    */
   public static final String CIPHER_ALGORITHM = "RSA/ECB/PKCS1PADDING";
   /**
-   * Tamanho da cahve de criptografia.
+   * Tamanho da chave de criptografia.
    * <p>
-   * todo dado criptografado resulta em um array de tamanho múltiplo do tamanho
-   * da chave.
+   * Qualquer dado criptografado resulta em um array de tamanho múltiplo do
+   * tamanho da chave.
    */
   private static final int ENCRIPTION_KEY_SIZE = 256;
   /**
@@ -83,9 +83,9 @@ public final class Cryptography {
   }
 
   /**
-   * Recupera a instância (singleton) desta classe.
+   * Fornece a única instância (singleton) desta classe.
    * 
-   * @return a instância
+   * @return A instância.
    */
   public static synchronized Cryptography getInstance() {
     if (instance == null) {
@@ -95,12 +95,12 @@ public final class Cryptography {
   }
 
   /**
-   * Criptografa o dado com o certificado.
+   * Criptografa um dado através de um certificado.
    * 
    * @param data o dado a ser criptografado.
    * @param certificate o certificado
    * @return O dado criptografado.
-   * @throws CryptographyException
+   * @throws CryptographyException Caso algum erro ocorra na operação.
    */
   public byte[] encrypt(byte[] data, X509Certificate certificate)
     throws CryptographyException {
@@ -108,12 +108,13 @@ public final class Cryptography {
   }
 
   /**
-   * Criptografa o dado com a chave pública.
+   * Criptografa um dado através de uma chave pública.
    * 
    * @param data o dado a ser criptografado.
    * @param publicKey a chave pública.
    * @return O dado criptografado.
-   * @throws CryptographyException
+   * @throws CryptographyException Caso algum erro ocorra ao utilizar os
+   * algoritmos criptográficos.
    */
   public byte[] encrypt(byte[] data, RSAPublicKey publicKey)
     throws CryptographyException {
@@ -142,12 +143,13 @@ public final class Cryptography {
   }
 
   /**
-   * Descriptografa o dado com a chava privada.
+   * Decripta um dado através de uma chava privada.
    * 
    * @param data o dado criptografado.
    * @param privateKey a chave privada.
    * @return o dado descriptografado.
-   * @throws CryptographyException
+   * @throws CryptographyException Caso algum erro ocorra ao utilizar os
+   * algoritmos criptográficos.
    */
   public byte[] decrypt(byte[] data, RSAPrivateKey privateKey)
     throws CryptographyException {
@@ -164,11 +166,12 @@ public final class Cryptography {
   }
 
   /**
-   * Gera uma chave pública à partir da chave codificada em X.509
+   * Gera uma chave pública a partir de uma chave codificada em X.509.
    * 
-   * @param encodedKey chave codificada.
-   * @return A chave pública RSA
-   * @throws CryptographyException
+   * @param encodedKey A chave codificada.
+   * @return A chave pública RSA.
+   * @throws CryptographyException Caso algum erro ocorra ao utilizar os
+   * algoritmos criptográficos.
    */
   public RSAPublicKey generateRSAPublicKeyFromX509EncodedKey(byte[] encodedKey)
     throws CryptographyException {
@@ -188,7 +191,8 @@ public final class Cryptography {
    * Gera um par de chaves RSA.
    * 
    * @return o par de chaves.
-   * @throws CryptographyException
+   * @throws CryptographyException Caso algum erro ocorra ao utilizar os
+   * algoritmos criptográficos.
    */
   public KeyPair generateRSAKeyPair() throws CryptographyException {
     KeyPairGenerator keyPairGenerator;
@@ -206,11 +210,12 @@ public final class Cryptography {
   }
 
   /**
-   * Gera um hash do dado, utilizando o algoritmo SHA-256
+   * Gera um hash do dado, utilizando o algoritmo SHA-256.
    * 
-   * @param data o dado
-   * @return o hash do dado.
-   * @throws CryptographyException
+   * @param data O dado.
+   * @return O hash do dado.
+   * @throws CryptographyException Caso algum erro ocorra ao utilizar os
+   * algoritmos criptográficos.
    */
   public byte[] generateHash(byte[] data) throws CryptographyException {
     MessageDigest digest;
@@ -229,7 +234,8 @@ public final class Cryptography {
    * Obtém o algortimo de Hash.
    * 
    * @return o algoritmo.
-   * @throws CryptographyException
+   * @throws CryptographyException Caso algum erro ocorra ao utilizar os
+   * algoritmos criptográficos.
    */
   public MessageDigest getHashAlgorithm() throws CryptographyException {
     try {
@@ -241,13 +247,15 @@ public final class Cryptography {
   }
 
   /**
-   * Recupera a chave privada contida no arquivo fornecido.
+   * Fornece a chave privada contida no arquivo especificado.
    * 
-   * @param privateKeyFileName o path para o arquivo.
+   * @param privateKeyFileName O caminho para o arquivo.
    * @return A chave privada RSA.
-   * @throws IOException
-   * @throws InvalidKeySpecException
-   * @throws CryptographyException
+   * @throws IOException Caso algum erro ocorra ao acessar o arquivo da chave
+   * privada.
+   * @throws InvalidKeySpecException A chave privada é inválida.
+   * @throws CryptographyException Caso algum erro ocorra ao utilizar os
+   * algoritmos criptográficos.
    */
   public RSAPrivateKey readKeyFromFile(String privateKeyFileName)
     throws IOException, InvalidKeySpecException, CryptographyException {
@@ -263,12 +271,13 @@ public final class Cryptography {
   }
 
   /**
-   * Recupera a chave privada a partir de um array de bytes.
+   * Interpreta uma chave privada a partir de um array de bytes.
    * 
-   * @param privateKeyBytes bytes da chave privada
+   * @param privateKeyBytes Os bytes da chave privada.
    * @return A chave privada RSA.
-   * @throws InvalidKeySpecException
-   * @throws CryptographyException
+   * @throws InvalidKeySpecException A chave privada é inválida.
+   * @throws CryptographyException Caso algum erro ocorra ao utilizar os
+   * algoritmos criptográficos.
    */
   public RSAPrivateKey readKeyFromBytes(byte[] privateKeyBytes)
     throws InvalidKeySpecException, CryptographyException {
@@ -285,14 +294,14 @@ public final class Cryptography {
   }
 
   /**
-   * Recupera o par de chaves a partir de um array do path para uma chave
-   * privada.
+   * Fornece um par de chaves a partir de um caminho para uma chave privada.
    * 
-   * @param path bytes da chave privada
-   * @return A chave privada RSA.
-   * @throws InvalidKeySpecException
-   * @throws CryptographyException
-   * @throws IOException
+   * @param path Caminho para o arquivo da chave privada.
+   * @return O par de chaves RSA.
+   * @throws InvalidKeySpecException A chave privada é inválida.
+   * @throws CryptographyException Caso algum erro ocorra ao utilizar os
+   * algoritmos criptográficos.
+   * @throws IOException Caso algum erro ocorra ao acessar o arquivo das chaves.
    */
   public KeyPair readKeyPairFromFile(String path)
     throws InvalidKeySpecException, CryptographyException, IOException {
@@ -314,12 +323,13 @@ public final class Cryptography {
   /**
    * Verifica a assinatura de um dado.
    * 
-   * @param publicKey a chave publica a ser utilizada na verificação.
-   * @param rawData o dado supostamente assinado.
-   * @param signedData o dado assinado.
-   * @return <code>true</code> caso a assinatura é válida, e <code>false</code>
+   * @param publicKey A chave pública a ser utilizada na verificação.
+   * @param rawData O dado supostamente assinado.
+   * @param signedData O dado assinado.
+   * @return {@code True} caso a assinatura seja válida, e {@code false}
    *         caso contrário.
-   * @throws CryptographyException
+   * @throws CryptographyException Caso algum erro ocorra ao utilizar os
+   * algoritmos criptográficos.
    */
   public boolean verifySignature(RSAPublicKey publicKey, byte[] rawData,
     byte[] signedData) throws CryptographyException {
@@ -342,9 +352,11 @@ public final class Cryptography {
    * 
    * @param certificateFile O caminho para o arquivo de certificado.
    * 
-   * @return O certificado carregado.
-   * @throws CryptographyException
-   * @throws IOException
+   * @return O certificado lido.
+   * @throws CryptographyException Caso algum erro ocorra ao utilizar os
+   * algoritmos criptográficos.
+   * @throws IOException Caso algum erro ocorra ao acessar o arquivo do
+   * certificado.
    */
   public X509Certificate readX509Certificate(String certificateFile)
     throws CryptographyException, IOException {
@@ -352,13 +364,15 @@ public final class Cryptography {
   }
 
   /**
-   * Lê um certificado digital a partir de um stream de arquivo.
+   * Lê um certificado digital a partir de um fluxo de arquivo.
    * 
-   * @param inputStream arquivo de certificado.
+   * @param inputStream Fluxo do certificado.
    * 
-   * @return O certificado carregado.
-   * @throws CryptographyException
-   * @throws IOException
+   * @return O certificado lido.
+   * @throws CryptographyException Caso algum erro ocorra ao utilizar os
+   * algoritmos criptográficos.
+   * @throws IOException Caso algum erro ocorra ao acessar o arquivo de
+   * certificado.
    */
   public X509Certificate readX509Certificate(InputStream inputStream)
     throws CryptographyException, IOException {
@@ -375,13 +389,16 @@ public final class Cryptography {
   }
 
   /**
-   * Lê um certificado digital a partir de um stream de arquivo.
+   * Interpreta um certificado digital a partir de um <i>array</i> de
+   * <i>bytes</i>.
    * 
-   * @param encoded arquivo de certificado.
+   * @param encoded O certificado em <i>bytes</i>.
    * 
-   * @return O certificado carregado.
-   * @throws CryptographyException
-   * @throws IOException
+   * @return O certificado interpretado.
+   * @throws CryptographyException Caso algum erro ocorra ao utilizar os
+   * algoritmos criptográficos.
+   * @throws IOException Caso algum erro ocorra ao acessar o arquivo de
+   * certificado.
    */
   public X509Certificate readX509Certificate(byte[] encoded)
     throws CryptographyException, IOException {

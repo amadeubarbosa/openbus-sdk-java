@@ -27,7 +27,6 @@ import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
 import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
-import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.demo.util.Usage;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 
@@ -144,12 +143,6 @@ public final class MultiplexingClient {
       System.exit(1);
       return;
     }
-    catch (WrongEncoding e) {
-      System.err
-        .println("incompatibilidade na codifição de informação para o barramento");
-      System.exit(1);
-      return;
-    }
     // bus core
     catch (ServiceFailure e) {
       System.err.println(String.format(
@@ -212,11 +205,6 @@ public final class MultiplexingClient {
             // nunca deveria ser lançada, mas o Thread.run obriga a captura
             System.err
               .println("tentativa de autenticar uma conexão já autenticada");
-            return;
-          }
-          catch (WrongEncoding e) {
-            System.err
-              .println("incompatibilidade na codifição de informação para o barramento");
             return;
           }
           // bus core
@@ -328,7 +316,7 @@ public final class MultiplexingClient {
 
   private static Connection newLogin(OpenBusContext context)
     throws AccessDenied, AlreadyLoggedIn, ServiceFailure, TooManyAttempts,
-    UnknownDomain, WrongEncoding {
+    UnknownDomain {
     // conectando ao barramento.
     Connection connection = context.connectByAddress(host, port);
     // autentica-se no barramento

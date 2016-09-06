@@ -6,31 +6,35 @@ import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Classe que define política a ser adotada sobre {@link RetryTask}.
+ * Classe que define a política a ser adotada sobre tarefas
+ * repassadas a um {@link RetryTaskPool}.
  *
  * @author Tecgraf
  */
 public class RetryContext {
 
   /** Contador de retentativas */
-  private int count = 0;
+  private volatile int count = 0;
   /** Tempo de intervalo entre tentativas */
-  private long delay = 1;
+  private final long delay;
   /** Unidade do tempo de intervalo entre tentativas */
-  private TimeUnit delayUnit = TimeUnit.SECONDS;
+  private final TimeUnit delayUnit;
   /** Última exceção ocorrida entre as tentativas */
-  private Exception lastException = null;
+  private volatile Exception lastException = null;
 
   /**
-   * Construtor
+   * Construtor padrão que aguarda 1 segundo entre retentativas.
    */
   public RetryContext() {
+    delay = 1;
+    delayUnit = TimeUnit.SECONDS;
   }
 
   /**
-   * Construtor
+   * Construtor.
    * 
-   * @param delay tempo de espera entre tentativas
+   * @param delay Tempo de espera entre tentativas.
+   * @param unit Unidade do tempo entre tentativas.
    */
   public RetryContext(long delay, TimeUnit unit) {
     this.delay = delay;
@@ -38,52 +42,54 @@ public class RetryContext {
   }
 
   /**
-   * Recupera o número de retentativas já realizadas.
+   * Fornece o número de retentativas já realizadas.
    * 
-   * @return o número de retentativas.
+   * @return O número de retentativas.
    */
   public int getRetryCount() {
     return count;
   }
 
   /**
-   * O padrão é um intervalo fixo.
+   * Fornece o tempo a ser utilizado entre retentativas.
    * <p>
-   * Este método deve ser sobrescrito caso queira implementar cálculos de
-   * intervalos entre tentativas mais sofisticados.
+   * Este método deve ser sobrescrito caso deseje-se implementar cálculos
+   * mais sofisticados de intervalos entre tentativas.
    * 
-   * @return o tempo de intervalo a ser aplicado entre as tentativas.
+   * @return O tempo de intervalo a ser aplicado entre as tentativas.
    */
   public long getDelay() {
     return delay;
   }
 
   /**
-   * Recupera a unidade de tempo utilizada para o intervalo.
+   * Fornece a unidade de tempo utilizada para o intervalo.
    *
-   * @return a unidade de tempo do intervalo.
+   * @return A unidade de tempo do intervalo.
    */
   public TimeUnit getDelayUnit() {
     return delayUnit;
   }
 
   /**
-   * Recupera a última exceção ocorrida durante as tentativas.
+   * Fornece a última exceção ocorrida durante as tentativas.
    * 
-   * @return o último erro ocorrido.
+   * @return O último erro ocorrido.
    */
   public Exception getLastException() {
     return lastException;
   }
 
   /**
-   * Informa se é permitida uma nova execução da tarefa.
-   * Sempre é permitida uma nova execução, a não ser que o erro seja um
-   * NO_PERMISSION{NoLogin}, que só ocorrerá caso o usuário tenha feito um
-   * logout explícito ou não tenha feito login.
+   * Informa se é permitida uma nova execução da tarefa. Sempre é permitida
+   * uma nova execução, a não ser que o erro seja um NO_PERMISSION{NoLogin},
+   * que só ocorrerá caso o usuário tenha feito um logout explícito ou não
+   * tenha feito login.
    *
-   * @return <code>true</code> caso seja permitido uma nova tentativa, e <code>
-   *         false</code> caso contrário.
+   * Este método pode ser sobrescrito caso deseje-se uma lógica diferente.
+   *
+   * @return {@code True} caso seja permitida uma nova tentativa, e {@code
+   *         false} caso contrário.
    */
   public boolean shouldRetry() {
     //TODO implementar configuração do usuário sobre número máximo de

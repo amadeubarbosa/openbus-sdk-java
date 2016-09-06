@@ -8,10 +8,13 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
 /**
- * Mecanismo de execução de tarefas assíncronas através de um pool de threads.
- * Em caso de falha na execução de uma tarefa ({@link RetryTask}), a mesma
- * poderá ser novamente executada, de acordo com as regras associadas ao
- * seu contexto de execução ({@link RetryContext}).
+ * Mecanismo de execução de tarefas assíncronas através de um <i>pool</i> de
+ * <i>threads</i>. Em caso de falha na execução de uma tarefa, a mesma poderá
+ * ser novamente executada, de acordo com as regras associadas ao seu
+ * contexto de execução ({@link RetryContext}).
+ *
+ * As <i>threads</i> serão criadas como <i>daemon</i>, ou seja, morrerão caso
+ * não haja mais nenhuma <i>thread</> normal ativa.
  *
  * @author Tecgraf
  */
@@ -24,7 +27,7 @@ public class RetryTaskPool {
   private final ListeningScheduledExecutorService pool;
 
   /**
-   * Construtor.
+   * Construtor padrão que utiliza 4 threads.
    */
   public RetryTaskPool() {
     this(DEFAULT_POOL_SIZE);
@@ -33,11 +36,12 @@ public class RetryTaskPool {
   /**
    * Construtor.
    * 
-   * @param size número de threads alocáveis por este mecanismo.
+   * @param size Número de threads alocáveis a serem utilizadas pelo {@code
+   * pool}.
    */
   public RetryTaskPool(int size) {
-    /**
-     * Cria threads Daemon para serem utilizadas pelo pool
+    /*
+      Cria threads Daemon para serem utilizadas pelo pool
      */
     this.pool =
       MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(size,
@@ -52,9 +56,9 @@ public class RetryTaskPool {
    * Dispara uma tarefa que pode ser retentada em caso de falhas, de acordo com
    * as regras definidas no contexto.
    * 
-   * @param callable tarefa a ser executada
-   * @param context contexto associado a esta tarefa
-   * @return objeto futuro com o resultado desta execução.
+   * @param callable Tarefa a ser executada.
+   * @param context Contexto associado a esta tarefa.
+   * @return Objeto futuro com o resultado desta execução.
    */
   public <T> ListenableFuture<T> doTask(Callable<T> callable,
     RetryContext context) {
@@ -66,10 +70,10 @@ public class RetryTaskPool {
   /**
    * Dispara uma tarefa que pode ser retentada em caso de falhas, de acordo com
    * as regras definidas no contexto.
-   * 
-   * @param runnable tarefa a ser executada
-   * @param context contexto associado a esta tarefa
-   * @return objeto futuro com o resultado desta execução.
+   *
+   * @param runnable Tarefa a ser executada.
+   * @param context Contexto associado a esta tarefa.
+   * @return Objeto futuro com o resultado desta execução.
    */
   public ListenableFuture<Void> doTask(Runnable runnable, RetryContext context) {
     RetryTask<Void> retryTask =
@@ -78,6 +82,11 @@ public class RetryTaskPool {
     return retryTask.getFuture();
   }
 
+  /**
+   * Fornece o <i>pool</i> de <i>threads</i> utilizado.
+   *
+   * @return O <i>pool</i> de <i>threads</i>.
+   */
   public ListeningScheduledExecutorService pool() {
     return pool;
   }

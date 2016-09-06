@@ -21,6 +21,7 @@ import test.CallerChainInspectorHelper;
  * 
  * @author Tecgraf
  */
+@SuppressWarnings("javadoc")
 public class Builder {
 
   /**

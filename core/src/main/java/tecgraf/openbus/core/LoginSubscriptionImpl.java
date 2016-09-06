@@ -35,9 +35,6 @@ class LoginSubscriptionImpl implements LoginSubscription, LoginObserver {
     this.registry = registry;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public boolean watchLogin(String loginId) throws ServiceFailure {
     boolean ret = registry.watchLogin(loginId);
@@ -49,9 +46,6 @@ class LoginSubscriptionImpl implements LoginSubscription, LoginObserver {
     return ret;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void forgetLogin(String loginId) throws ServiceFailure {
     registry.forgetLogin(loginId);
@@ -60,9 +54,6 @@ class LoginSubscriptionImpl implements LoginSubscription, LoginObserver {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void watchLogins(List<String> loginIds) throws InvalidLogins,
     ServiceFailure {
@@ -72,9 +63,6 @@ class LoginSubscriptionImpl implements LoginSubscription, LoginObserver {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void forgetLogins(List<String> loginIds) throws ServiceFailure {
     registry.forgetLogins(loginIds);
@@ -83,9 +71,6 @@ class LoginSubscriptionImpl implements LoginSubscription, LoginObserver {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public List<LoginInfo> watchedLogins() {
     // watched é uma cópia não-compartilhada
@@ -104,9 +89,6 @@ class LoginSubscriptionImpl implements LoginSubscription, LoginObserver {
     return ret;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void remove() {
     synchronized (lock) {
@@ -115,9 +97,6 @@ class LoginSubscriptionImpl implements LoginSubscription, LoginObserver {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public LoginObserver observer() {
     synchronized (lock) {

@@ -64,33 +64,21 @@ final class CallerChainImpl implements CallerChain {
     this.chain.updateInfos(bus, chain);
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public String busId() {
     return chain.bus;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public String target() {
     return chain.target;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public LoginInfo[] originators() {
     return chain.originators;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public LoginInfo caller() {
     return chain.caller;

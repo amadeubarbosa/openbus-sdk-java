@@ -763,13 +763,16 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
             }
             logger.warn("Alguns logins não puderam ser re-observados pois saíram " +
               "do barramento.", e);
-            //TODO dúvida: atualmente com o catch abaixo, se um administrador
-            // remover o meu observador, o mesmo não será mais cadastrado e a
-            // API lançará OBJECT_NOT_EXIST para o usuário. O mesmo terá de
-            // fazer logout e login para cadastrar novamente. Uma outra opção
-            // seria deixar o erro estourar (como faço nos outros erros), o
-            // que levaria a refazer o login automaticamente e refazer os
-            // observadores. Qual o comportamento mais correto?
+            // atualmente com o catch de OBJECT_NOT_EXIST abaixo, se um
+            // administrador remover o meu observador, o mesmo não será mais
+            // cadastrado e a API lançará OBJECT_NOT_EXIST para o usuário. O
+            // mesmo terá de fazer logout e login para cadastrar novamente.
+            // Uma outra opção seria deixar o erro estourar (como faço nos
+            // outros erros), o que levaria a refazer o login automaticamente
+            // e refazer os observadores. O problema é que caso haja algo
+            // removendo o observador imediatamente após ser cadastrado (como
+            // uma regra) esse efeito levaria a um loop e o usuário não teria
+            // o login de volta nem teria como saber do erro.
           } catch (OBJECT_NOT_EXIST e) {
             // significa que minha subscrição não existe mais. Caso isto tenha
             // ocorrido por perda de login um novo relogin será feito e tratará

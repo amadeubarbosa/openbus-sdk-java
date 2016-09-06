@@ -43,17 +43,11 @@ class SharedAuthSecretImpl implements SharedAuthSecret {
     this.context = context;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public String busid() {
     return busid;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void cancel() {
     context.ignoreThread();

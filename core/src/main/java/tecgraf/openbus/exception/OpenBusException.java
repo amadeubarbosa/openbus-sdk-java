@@ -1,7 +1,7 @@
 package tecgraf.openbus.exception;
 
 /**
- * Categoria de exceção do OpenBus
+ * Define uma exceção do OpenBus.
  * 
  * @author Tecgraf
  */
@@ -10,7 +10,7 @@ public abstract class OpenBusException extends Exception {
   /**
    * Construtor.
    * 
-   * @param message mensagem de erro.
+   * @param message Mensagem de erro.
    */
   protected OpenBusException(String message) {
     super(message);
@@ -19,7 +19,7 @@ public abstract class OpenBusException extends Exception {
   /**
    * Construtor.
    * 
-   * @param cause exceção original.
+   * @param cause Exceção original.
    */
   protected OpenBusException(Throwable cause) {
     super(cause);
@@ -28,8 +28,8 @@ public abstract class OpenBusException extends Exception {
   /**
    * Construtor.
    * 
-   * @param message mensagem de erro.
-   * @param cause exceção original.
+   * @param message Mensagem de erro.
+   * @param cause Exceção original.
    */
   protected OpenBusException(String message, Throwable cause) {
     super(message, cause);

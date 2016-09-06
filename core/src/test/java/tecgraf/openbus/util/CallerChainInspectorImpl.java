@@ -29,9 +29,6 @@ class CallerChainInspectorImpl extends CallerChainInspectorPOA {
     this.context = context;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public String[] listCallers() {
     CallerChain chain = context.callerChain();
@@ -43,9 +40,6 @@ class CallerChainInspectorImpl extends CallerChainInspectorPOA {
     return list.toArray(new String[list.size()]);
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public String[] listCallerLogins() {
     CallerChain chain = context.callerChain();

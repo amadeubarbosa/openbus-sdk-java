@@ -41,7 +41,7 @@ class Credential {
   public final Chain chain;
   /**
    * Indicador se representa uma credencial legada ou não. Quando
-   * <code>null</code> significa que esta é uma credencial nula para iniciar o
+   * {@code null} significa que esta é uma credencial nula para iniciar o
    * handshake
    */
   public Boolean legacy = null;
@@ -284,7 +284,7 @@ class Credential {
     /**
      * Indicação se a cadeia é legada ou não.
      * 
-     * @return <code>true</code> caso seja legada, e <code>false</code> caso
+     * @return {@code true} caso seja legada, e {@code false} caso
      *         contrário.
      */
     boolean isLegacy() {

@@ -30,6 +30,7 @@ import tecgraf.openbus.util.Builder;
 import tecgraf.openbus.utils.Configs;
 import tecgraf.openbus.utils.Utils;
 
+@SuppressWarnings("javadoc")
 public final class ConnectionTest {
 
   //private static String host;

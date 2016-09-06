@@ -3,41 +3,44 @@ package tecgraf.openbus.core;
 import java.util.Properties;
 
 /**
- * Enumeração que define todas as possíveis propriedades do domínio da
- * biblioteca de acesso, com os seus valores padrões e um local único para
- * recuperar e verificar validade do valor atribuído às propriedades
+ * Define as possíveis propriedades do domínio da biblioteca de acesso, com
+ * os seus valores padrão.
  * 
  * @author Tecgraf
  */
 enum OpenBusProperty {
 
   /**
-   * Chave da propriedade que define se o suporte legado deve ser habilitado ou
-   * não. Os valores possíveis sÃo: <code>true</code> e <code>false</code>, onde
-   * o padrão é <code>false</code>
+   * Define se o suporte legado deve ser habilitado. Os valores possíveis
+   * são: {@code true} e {@code false}. O padrão é {@code false}.
    */
   LEGACY_DISABLE("legacy.disable", "false"),
   /**
-   * Chave da propriedade que define arquivo da chave privada a ser utilizada
-   * pela conexão.
+   * Arquivo de chave privada a ser utilizado pela conexão para realizar as
+   * chamadas do protocolo OpenBus. A chave deve ser uma chave privada RSA de
+   * 2048 bits (256 bytes). Quando essa propriedade não é fornecida, uma
+   * chave de acesso é gerada automaticamente.
    */
   ACCESS_KEY("access.key", null),
   /**
-   * Chave da propriedade que define tamanho de cada cache utilizada pela
-   * conexão.
+   * Tamanho das caches utilizadas pela conexão.
    */
   CACHE_SIZE("cache.size", "30"),
   /**
-   * Número de threads a serem utilizadas para chamadas assíncronas.
+   * Número de threads a serem utilizadas para chamadas assíncronas feitas
+   * pela biblioteca, como as de registro ou manutenção de recursos - ofertas
+   * e observadores.
    */
   THREAD_NUM("thread.number", "10"),
   /**
-   * Intervalo de tempo entre tentativas de chamadas remotas.
+   * Intervalo de tempo entre tentativas de chamadas remotas para a
+   * manutenção de recursos no barramento, como ofertas e observadores.
    */
   TIME_INTERVAL("time.interval", "1000"),
   /**
-   * Unidade de tempo do intervalo. Utilize "ns" para nanosegundos, "ms" para
-   * milisegundos, "s" para segundos e "m" para minutos.
+   * Unidade de tempo de {@code TIME_INTERVAL}. Utilize "ns" para nanosegundos,
+   * "ms" para milisegundos, "s" para segundos, "m" para minutos e "h" para
+   * horas.
    */
   TIME_UNIT("time.unit", "ms");
 
@@ -58,7 +61,7 @@ enum OpenBusProperty {
   }
 
   /**
-   * Recupera o nome da chave associado a esta propriedade.
+   * Fornece o nome da chave associada a esta propriedade.
    * 
    * @return o nome da chave.
    */
