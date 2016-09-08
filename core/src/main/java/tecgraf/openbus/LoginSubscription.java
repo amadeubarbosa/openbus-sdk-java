@@ -18,6 +18,11 @@ import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
  * @author Tecgraf
  */
 public interface LoginSubscription {
+  /**
+   * Fornece a conexão utilizada para as chamadas remotas dessa subscrição.
+   * @return A conexão.
+   */
+  Connection connection();
 
   /**
    * Fornece o observador inscrito pela aplicação.

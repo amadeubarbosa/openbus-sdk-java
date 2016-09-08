@@ -22,9 +22,8 @@ import tecgraf.openbus.security.Cryptography;
  * @author Tecgraf
  */
 final class BusInfo {
-
   /** Referência CORBA::Object do barramento */
-  private org.omg.CORBA.Object rawObject;
+  private final org.omg.CORBA.Object rawObject;
 
   /** Identificador do barramento */
   private String id;
@@ -40,10 +39,8 @@ final class BusInfo {
   /** Referência para o registro de ofertas do barramento */
   private OfferRegistry offerRegistry;
 
-  /** Lock para cotrole de concorrência no acesso ao registro de logins */
-  private final Object lockLogin = new Object();
-  /** Lock para cotrole de concorrência no acesso ao registro de ofertas */
-  private final Object lockOffer = new Object();
+  /** Lock para controle de concorrência no acesso ao barramento */
+  private final Object lock = new Object();
 
   /**
    * Construtor.
@@ -52,57 +49,48 @@ final class BusInfo {
    */
   BusInfo(org.omg.CORBA.Object obj) {
     this.rawObject = obj;
-    // TODO merge review
-    if (rawObject == null) {
-      throw new OpenBusInternalException(
-        "Referência inválida para o barramento.");
-    }
   }
 
   /**
    * Obtém as referências básicas para realizar o login com o barramento.
    */
   void basicBusInitialization() {
-    boolean existent = false;
-    try {
-      if (rawObject != null && !rawObject._non_existent()) {
-        existent = true;
+    IComponent ic;
+    synchronized (lock) {
+      ic = this.bus;
+    }
+
+    if (ic == null) {
+      ic = IComponentHelper.narrow(rawObject);
+      if (ic == null) {
+        throw new OBJECT_NOT_EXIST("Referência obtida não corresponde a um " +
+          "IComponent.");
       }
-    }
-    catch (OBJECT_NOT_EXIST e) {
-      existent = false;
-    }
-    if (!existent) {
-      throw new OpenBusInternalException("Barramento não esta acessível.");
-    }
+      org.omg.CORBA.Object obj = ic.getFacet(AccessControlHelper.id());
+      AccessControl ac = AccessControlHelper.narrow(obj);
+      String id = ac.busid();
+      X509Certificate certificate;
+      try {
+        certificate = Cryptography.getInstance().readX509Certificate(ac
+          .certificate());
+      }
+      catch (Exception e) {
+        throw new OpenBusInternalException("Erro ao obter a chave pública do " +
+          "barramento.", e);
+      }
+      obj = ic.getFacet(LoginRegistryHelper.id());
+      LoginRegistry login = LoginRegistryHelper.narrow(obj);
+      obj = ic.getFacet(OfferRegistryHelper.id());
+      OfferRegistry registry = OfferRegistryHelper.narrow(obj);
 
-    if (rawObject._is_a(IComponentHelper.id())) {
-      this.bus = IComponentHelper.narrow(rawObject);
-    }
-    if (this.bus == null) {
-      throw new OpenBusInternalException(
-        "Referência obtida não corresponde a um IComponent.");
-    }
-    org.omg.CORBA.Object obj = this.bus.getFacet(AccessControlHelper.id());
-    this.accessControl = AccessControlHelper.narrow(obj);
-    retrieveBusIdAndKey();
-  }
-
-  /**
-   * Atualiza a informação de identificador e chave do barramento.
-   */
-  private void retrieveBusIdAndKey() {
-    this.id = this.accessControl.busid();
-    try {
-      X509Certificate certificate =
-        Cryptography.getInstance().readX509Certificate(
-          this.accessControl.certificate());
-      this.publicKey = (RSAPublicKey) certificate.getPublicKey();
-
-    }
-    catch (Exception e) {
-      throw new OpenBusInternalException(
-        "Erro ao construir chave pública do barramento.", e);
+      synchronized (lock) {
+        this.bus = ic;
+        this.accessControl = ac;
+        this.id = id;
+        this.publicKey = (RSAPublicKey) certificate.getPublicKey();
+        this.loginRegistry = login;
+        this.offerRegistry = registry;
+      }
     }
   }
 
@@ -110,12 +98,14 @@ final class BusInfo {
    * Apaga a informação de identificador e chave do barramento.
    */
   void clearBusInfos() {
-    this.id = null;
-    this.publicKey = null;
-    this.bus = null;
-    this.accessControl = null;
-    this.loginRegistry = null;
-    this.offerRegistry = null;
+    synchronized (lock) {
+      this.id = null;
+      this.publicKey = null;
+      this.bus = null;
+      this.accessControl = null;
+      this.loginRegistry = null;
+      this.offerRegistry = null;
+    }
   }
 
   /**
@@ -124,7 +114,9 @@ final class BusInfo {
    * @return o identificador do barramento.
    */
   String getId() {
-    return id;
+    synchronized (lock) {
+      return id;
+    }
   }
 
   /**
@@ -133,7 +125,9 @@ final class BusInfo {
    * @return a chave pública do barramento.
    */
   RSAPublicKey getPublicKey() {
-    return publicKey;
+    synchronized (lock) {
+      return publicKey;
+    }
   }
 
   /**
@@ -142,7 +136,9 @@ final class BusInfo {
    * @return o controle de acesso do barramento.
    */
   AccessControl getAccessControl() {
-    return accessControl;
+    synchronized (lock) {
+      return accessControl;
+    }
   }
 
   /**
@@ -151,13 +147,9 @@ final class BusInfo {
    * @return o registro de login do barramento.
    */
   LoginRegistry getLoginRegistry() {
-    synchronized (lockLogin) {
-      if (loginRegistry == null) {
-        org.omg.CORBA.Object obj = bus.getFacet(LoginRegistryHelper.id());
-        loginRegistry = LoginRegistryHelper.narrow(obj);
-      }
+    synchronized (lock) {
+      return loginRegistry;
     }
-    return loginRegistry;
   }
 
   /**
@@ -166,13 +158,9 @@ final class BusInfo {
    * @return o registro de ofertas do barramento.
    */
   OfferRegistry getOfferRegistry() {
-    synchronized (lockOffer) {
-      if (offerRegistry == null) {
-        org.omg.CORBA.Object obj = bus.getFacet(OfferRegistryHelper.id());
-        offerRegistry = OfferRegistryHelper.narrow(obj);
-      }
+    synchronized (lock) {
+      return offerRegistry;
     }
-    return offerRegistry;
   }
 
   /**
@@ -181,7 +169,9 @@ final class BusInfo {
    * @return a faceta do componente.
    */
   IComponent getComponent() {
-    return bus;
+    synchronized (lock) {
+      return bus;
+    }
   }
 
 }

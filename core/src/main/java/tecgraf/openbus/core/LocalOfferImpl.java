@@ -29,6 +29,11 @@ class LocalOfferImpl extends BusResource implements LocalOffer {
   }
 
   @Override
+  public Connection connection() {
+    return registry.connection();
+  }
+
+  @Override
   public RemoteOffer remoteOffer() throws ServiceFailure, InvalidService,
     InvalidProperties, UnauthorizedFacets {
     while (true) {

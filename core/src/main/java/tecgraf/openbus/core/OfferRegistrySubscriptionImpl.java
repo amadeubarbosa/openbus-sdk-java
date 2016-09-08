@@ -4,6 +4,7 @@ import com.google.common.collect.ArrayListMultimap;
 import org.omg.CORBA.SystemException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tecgraf.openbus.Connection;
 import tecgraf.openbus.OfferRegistryObserver;
 import tecgraf.openbus.OfferRegistrySubscription;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
@@ -35,6 +36,11 @@ class OfferRegistrySubscriptionImpl extends BusResource implements
     this.observer = observer;
     this.proxy = proxy;
     this.properties = properties;
+  }
+
+  @Override
+  public Connection connection() {
+    return registry.connection();
   }
 
   @Override

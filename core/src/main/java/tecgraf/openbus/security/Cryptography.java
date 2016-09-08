@@ -397,8 +397,8 @@ public final class Cryptography {
    * @return O certificado interpretado.
    * @throws CryptographyException Caso algum erro ocorra ao utilizar os
    * algoritmos criptográficos.
-   * @throws IOException Caso algum erro ocorra ao acessar o arquivo de
-   * certificado.
+   * @throws IOException Caso algum erro ocorra ao acessar os bytes como um
+   * fluxo.
    */
   public X509Certificate readX509Certificate(byte[] encoded)
     throws CryptographyException, IOException {

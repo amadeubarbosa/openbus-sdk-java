@@ -26,6 +26,7 @@ import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
 import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.demo.util.Usage;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.exception.InvalidEncodedStream;
@@ -42,9 +43,6 @@ public class SharedAuthClient {
   /**
    * Função main.
    * 
-   * @throws ServiceFailure
-   * @throws InvalidName
-   * @throws AlreadyLoggedIn
    */
   public static void main(String[] args) throws ServiceFailure, InvalidName,
     AlreadyLoggedIn, TooManyAttempts, UnknownDomain, MissingCertificate {
@@ -147,6 +145,12 @@ public class SharedAuthClient {
     }
     catch (WrongBus e) {
       System.err.println("tentativa de uso de segredo de outro barramento");
+      System.exit(1);
+      return;
+    }
+    catch (WrongEncoding e) {
+      System.err
+        .println("incompatibilidade na codifição de informação para o barramento");
       System.exit(1);
       return;
     }

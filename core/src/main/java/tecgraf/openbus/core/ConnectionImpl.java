@@ -294,18 +294,10 @@ final class ConnectionImpl implements Connection {
     }
   }
 
-  /**
-   * Recupera apenas as referências do barramento necessárias para realizar o
-   * login.
-   */
-  private void initBusReferencesBeforeLogin() {
-    this.bus.basicBusInitialization();
-  }
-
   @Override
   public void loginByPassword(final String login, final byte[] password, final String
     domain) throws AccessDenied, AlreadyLoggedIn, TooManyAttempts,
-    UnknownDomain, ServiceFailure {
+    UnknownDomain, ServiceFailure, WrongEncoding {
     try {
       loginByCallback(() -> new AuthArgs(login, password, domain));
     } catch (WrongBus | InvalidLoginProcess e) {
@@ -320,12 +312,12 @@ final class ConnectionImpl implements Connection {
   private void loginByPasswordPvt(String entity, byte[] password, String
     domain, LoginCallback cb, boolean relogin)
     throws AccessDenied, AlreadyLoggedIn, TooManyAttempts, UnknownDomain,
-    ServiceFailure {
+    ServiceFailure, WrongEncoding {
     checkLoggedIn();
     LoginInfo newLogin;
     try {
       this.context.ignoreThread();
-      initBusReferencesBeforeLogin();
+      this.bus.basicBusInitialization();
 
       byte[] encryptedLoginAuthenticationInfo =
         this.generateEncryptedLoginAuthenticationInfo(password);
@@ -340,9 +332,6 @@ final class ConnectionImpl implements Connection {
       throw new OpenBusInternalException(
         "Falha no protocolo OpenBus: A chave de acesso gerada não foi aceita. Mensagem="
           + e.message);
-    } catch (WrongEncoding e) {
-      throw new OpenBusInternalException("Erro de codificação através da " +
-        "chave pública do barramento.", e);
     }
     finally {
       this.context.unignoreThread();
@@ -390,7 +379,8 @@ final class ConnectionImpl implements Connection {
 
   @Override
   public void loginByPrivateKey(final String entity, final RSAPrivateKey key) throws
-    AlreadyLoggedIn, AccessDenied, MissingCertificate, ServiceFailure {
+    AlreadyLoggedIn, AccessDenied, MissingCertificate, ServiceFailure,
+    WrongEncoding {
     try {
       loginByCallback(() -> new AuthArgs(entity, key));
     } catch (WrongBus | InvalidLoginProcess e) {
@@ -404,10 +394,11 @@ final class ConnectionImpl implements Connection {
 
   private void loginByPrivateKeyPvt(String entity, RSAPrivateKey privateKey,
                                     LoginCallback cb, boolean relogin)
-    throws AlreadyLoggedIn, MissingCertificate, AccessDenied, ServiceFailure {
+    throws AlreadyLoggedIn, MissingCertificate, AccessDenied, ServiceFailure,
+    WrongEncoding {
     checkLoggedIn();
     this.context.ignoreThread();
-    initBusReferencesBeforeLogin();
+    this.bus.basicBusInitialization();
     LoginProcess loginProcess = null;
     LoginInfo newLogin;
     try {
@@ -434,9 +425,6 @@ final class ConnectionImpl implements Connection {
       throw new OpenBusInternalException(
         "Falha no protocolo OpenBus: A chave de acesso gerada não foi aceita. Mensagem="
           + e.message);
-    } catch (WrongEncoding e) {
-      throw new OpenBusInternalException("Erro de codificação através da " +
-        "chave pública do barramento.", e);
     }
     finally {
       this.context.unignoreThread();
@@ -451,7 +439,7 @@ final class ConnectionImpl implements Connection {
   @Override
   public void loginByCallback(LoginCallback cb) throws AlreadyLoggedIn,
     WrongBus, InvalidLoginProcess, AccessDenied, TooManyAttempts,
-    UnknownDomain, MissingCertificate, ServiceFailure {
+    UnknownDomain, MissingCertificate, ServiceFailure, WrongEncoding {
     loginByCallback(cb, false);
   }
 
@@ -518,7 +506,7 @@ final class ConnectionImpl implements Connection {
     LoginInfo newLogin;
     try {
       this.context.ignoreThread();
-      initBusReferencesBeforeLogin();
+      this.bus.basicBusInitialization();
       if (this.busid().equals(secret.busid())) {
         SharedAuthSecretImpl sharedAuth = (SharedAuthSecretImpl) secret;
         byte[] encryptedLoginAuthenticationInfo =
@@ -576,7 +564,8 @@ final class ConnectionImpl implements Connection {
 
   private void loginByCallback(LoginCallback cb, boolean relogin) throws
     AlreadyLoggedIn, WrongBus, InvalidLoginProcess, AccessDenied,
-    TooManyAttempts, UnknownDomain, MissingCertificate, ServiceFailure {
+    TooManyAttempts, UnknownDomain, MissingCertificate, ServiceFailure,
+    WrongEncoding {
     AuthArgs args = cb.authenticationArguments();
     switch (args.mode) {
       case AuthByPassword:
@@ -726,6 +715,13 @@ final class ConnectionImpl implements Connection {
       checkLoggedIn();
       internalLogin.setLoggedIn(newLogin);
       this.cb = cb;
+      fireRenewerThread(validity);
+    }
+    finally {
+      writeLock().unlock();
+    }
+    readLock().lock();
+    try {
       if (relogin) {
         loginRegistry.fireEvent(LoginEvent.RELOGIN, newLogin);
         offerRegistry.fireEvent(LoginEvent.RELOGIN, newLogin);
@@ -733,11 +729,9 @@ final class ConnectionImpl implements Connection {
         loginRegistry.fireEvent(LoginEvent.LOGGED_IN, newLogin);
         offerRegistry.fireEvent(LoginEvent.LOGGED_IN, newLogin);
       }
+    } finally {
+      readLock().unlock();
     }
-    finally {
-      writeLock().unlock();
-    }
-    fireRenewerThread(validity);
   }
 
   @Override

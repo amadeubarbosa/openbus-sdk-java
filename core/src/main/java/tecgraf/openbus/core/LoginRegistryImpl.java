@@ -3,7 +3,6 @@ package tecgraf.openbus.core;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.Uninterruptibles;
 import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.OBJECT_NOT_EXIST;
@@ -29,14 +28,11 @@ import tecgraf.openbus.retry.RetryContext;
 import tecgraf.openbus.retry.RetryTaskPool;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -239,6 +235,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
       for (LoginSubscriptionImpl sub1 : subs) {
         try {
           sub1.observer().entityLogout(login);
+          sub1.forgetLogin(login.id);
         } catch (Exception e) {
           logger.error("Erro ao avisar um observador da aplicação de que o" +
             " login " + login.id + " da entidade " + login.entity + " foi " +
@@ -529,14 +526,12 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     // conexão do SDK, só há como ter duas chamadas concorrentes desse método
     // caso enquanto uma thread estiver esperando pela tarefa de subscrição
     // de observador, o login for novamente perdido e refeito por outra thread.
-    // Etapas:
-    ListenableFuture<LoginObserverSubscription> future;
     synchronized (lock) {
       // sem subscrições, não há nada a fazer.
       if (subs == null || subs.size() == 0) {
         return;
       }
-      // 0) testar se há um relogin em andamento. Se houver, cancelar pois
+      // testar se há um relogin em andamento. Se houver, cancelar pois
       // nesse caso houve perda de login enquanto a subscrição ainda estava
       // sendo feita. Isso é importante pois caso a subscrição já tenha sido
       // refeita, ela não valerá mais e as tarefas de watch nunca terminarão
@@ -561,45 +556,46 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
       }
       // refaço os passos de um login pois chamei clearstate.
       onLogin();
-      // 1) lançar assincronamente uma retrytask para refazer o observador e
+      // lançar assincronamente uma retrytask para refazer o observador e
       // watchs de logins
-      Set<LoginInfo> watchedLogins = new HashSet<>();
+      Set<String> watchedLogins = new HashSet<>();
       // insere todos os logins observados sem repetições
       for (LoginSubscriptionImpl sub : subs) {
-        watchedLogins.addAll(sub.watchedLogins());
+        watchedLogins.addAll(sub.loginsCopy());
       }
-      futureReLogin = future = pool.doTask(new ReLoginTask(registry, observer,
+      futureReLogin = pool.doTask(new ReLoginTask(registry, observer,
         watchedLogins), new RetryContext(retryDelay, delayUnit));
-    }
-    // 2) ressincronizar fora da região crítica, para dar chance a outros
-    // relogins de cancelarem essa tarefa.
-    LoginObserverSubscription sub;
-    try {
-      sub = Uninterruptibles.getUninterruptibly(future);
-    } catch (ExecutionException | CancellationException e) {
-      // Só entra aqui se a aplicação fez logout ou um outro relogin cancelou
-      // esse. Basta desistir que o SDK cuida do login atual depois.
-      logger.warn("Erro ao reinserir o observador de logins do " +
-        "barramento devido a um logout ou relogin. Esse erro provavelmente " +
-        "pode ser ignorado.", e);
-      synchronized (lock) {
-        lock.notifyAll();
-      }
-      return;
-    }
-    // 3) redefinir sub já com logins watched, nulificar futureReLogin e
-    // notificar quem estiver esperando.
-    synchronized (lock) {
-      if (futureReLogin != null && !futureReLogin.isCancelled()) {
-        // se a sub recebida for null é porque o objeto foi removido no
-        // barramento por perda de login antes que os watch pudessem ser
-        // concluídos.
-        if (sub != null) {
-          this.sub = sub;
+      Futures.addCallback(futureReLogin, new FutureCallback<LoginObserverSubscription>() {
+        @Override
+        public void onSuccess(LoginObserverSubscription result) {
+          // redefinir sub já com logins watched, nulificar futureReLogin e
+          // notificar quem estiver esperando.
+          synchronized (lock) {
+            if (futureReLogin != null && !futureReLogin.isCancelled()) {
+              // se a sub recebida for null é porque o objeto foi removido no
+              // barramento por perda de login antes que os watch pudessem ser
+              // concluídos.
+              if (result != null) {
+                sub = result;
+              }
+              futureReLogin = null;
+            }
+            lock.notifyAll();
+          }
         }
-        futureReLogin = null;
-      }
-      lock.notifyAll();
+
+        @Override
+        public void onFailure(Throwable t) {
+          // Só entra aqui se a aplicação fez logout ou um outro relogin cancelou
+          // esse. Basta desistir que o SDK cuida do login atual depois.
+          logger.warn("Erro ao reinserir o observador de logins do " +
+            "barramento devido a um logout ou relogin. Esse erro provavelmente " +
+            "pode ser ignorado.", t);
+          synchronized (lock) {
+            lock.notifyAll();
+          }
+        }
+      }, pool.pool());
     }
   }
 
@@ -693,17 +689,6 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     return ret;
   }
 
-  private static String[] convertLoginCollectionToIdArray(Collection<LoginInfo>
-                                                            logins) {
-    String[] ids = new String[logins.size()];
-    int i = 0;
-    for (LoginInfo login : logins) {
-      ids[i] = login.id;
-      i++;
-    }
-    return ids;
-  }
-
   private class LoginSubRemovalTask implements Callable<Void> {
     private final LoginObserverSubscription sub;
 
@@ -726,11 +711,11 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
       .LoginRegistry registry;
     private final tecgraf.openbus.core.v2_1.services.access_control
       .LoginObserver observer;
-    private final Set<LoginInfo> watchedLogins;
+    private final Set<String> watchedLogins;
 
     public ReLoginTask(tecgraf.openbus.core.v2_1.services.access_control
       .LoginRegistry registry, tecgraf.openbus.core.v2_1.services
-      .access_control.LoginObserver observer, Set<LoginInfo> watchedLogins) {
+      .access_control.LoginObserver observer, Set<String> watchedLogins) {
       this.registry = registry;
       this.observer = observer;
       this.watchedLogins = watchedLogins;
@@ -747,7 +732,8 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
       synchronized (lock) {
         if (watchedLogins != null) {
           try {
-            sub.watchLogins(convertLoginCollectionToIdArray(watchedLogins));
+            sub.watchLogins(watchedLogins.toArray(new String[watchedLogins
+              .size()]));
           } catch (final InvalidLogins e) {
             synchronized (lock) {
               List<LoginSubscriptionImpl> subs = subs();

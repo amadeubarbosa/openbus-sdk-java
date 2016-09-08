@@ -36,6 +36,11 @@ class RemoteOfferImpl implements RemoteOffer {
   }
 
   @Override
+  public Connection connection() {
+    return conn;
+  }
+
+  @Override
   public LoginInfo owner() {
     return owner;
   }

@@ -17,6 +17,12 @@ import java.util.concurrent.TimeoutException;
  */
 public interface LocalOffer {
   /**
+   * Fornece a conexão utilizada para as chamadas remotas dessa oferta.
+   * @return A conexão.
+   */
+  Connection connection();
+
+  /**
    * Fornece uma oferta remota relacionada ao pedido de registro que originou
    * este objeto. Caso algum erro esteja impedindo o registro, lançará a
    * exceção que corresponde ao último erro recebido.

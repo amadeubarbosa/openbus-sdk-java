@@ -57,6 +57,7 @@ class RetryTask<T> {
     this.pool = scheduler;
     this.task = callable;
     this.context = context;
+    this.context.future(this.future);
     this.callback = new FutureCallback<T>() {
       @Override
       public void onSuccess(T result) {

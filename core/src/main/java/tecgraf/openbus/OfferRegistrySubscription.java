@@ -18,6 +18,12 @@ import java.util.concurrent.TimeoutException;
  */
 public interface OfferRegistrySubscription {
   /**
+   * Fornece a conexão utilizada para as chamadas remotas dessa subscrição.
+   * @return A conexão.
+   */
+  Connection connection();
+
+  /**
    * Indica se a subscrição foi bem-sucedida ou não. Caso algum erro a esteja
    * impedindo, lançará a exceção que corresponde ao último erro recebido.
    *

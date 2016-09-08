@@ -3,6 +3,7 @@ package tecgraf.openbus.core;
 import java.util.ArrayList;
 import java.util.List;
 
+import tecgraf.openbus.Connection;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.InvalidLogins;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
@@ -98,6 +99,11 @@ class LoginSubscriptionImpl implements LoginSubscription, LoginObserver {
   }
 
   @Override
+  public Connection connection() {
+    return registry.connection();
+  }
+
+  @Override
   public LoginObserver observer() {
     synchronized (lock) {
       return observer;
@@ -122,5 +128,11 @@ class LoginSubscriptionImpl implements LoginSubscription, LoginObserver {
   @Override
   public void nonExistentLogins(String[] logins) {
     observer().nonExistentLogins(logins);
+  }
+
+  protected List<String> loginsCopy() {
+    synchronized (lock) {
+      return new ArrayList<>(logins);
+    }
   }
 }

@@ -106,10 +106,12 @@ public interface Connection {
    * @throws UnknownDomain O domínio de autenticação não é conhecido.
    * @throws ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu a autenticação da conexão.
+   * @throws WrongEncoding A autenticação falhou, pois a senha não foi
+   *            codificada corretamente com a chave pública do barramento.
    */
   void loginByPassword(String entity, byte[] password, String domain)
     throws AccessDenied, AlreadyLoggedIn, TooManyAttempts, UnknownDomain,
-    ServiceFailure;
+    ServiceFailure, WrongEncoding;
 
   /**
    * Efetua login de uma entidade usando autenticação por chave privada.
@@ -128,9 +130,12 @@ public interface Connection {
    *            registrado no barramento.
    * @throws ServiceFailure Ocorreu uma falha interna nos serviços do
    *            barramento que impediu a autenticação da conexão.
+   * @throws WrongEncoding A autenticação falhou, pois a resposta ao desafio
+   *            não foi codificada corretamente com a chave pública do
+   *            barramento.
    */
   void loginByPrivateKey(String entity, RSAPrivateKey privateKey)
-    throws AlreadyLoggedIn, AccessDenied, MissingCertificate, ServiceFailure;
+    throws AlreadyLoggedIn, AccessDenied, MissingCertificate, ServiceFailure, WrongEncoding;
 
   /**
    * Efetua login de uma entidade utilizando uma <i>callback</i> que retorne
@@ -164,10 +169,12 @@ public interface Connection {
    *         para este login. Como as informações de login são dadas pela
    *         callback, deve-se verificar se a callback está obtendo-as
    *         corretamente.
+   * @throws WrongEncoding A autenticação falhou, pois a resposta ao desafio
+   *         não foi codificada corretamente com a chave pública do barramento.
    */
   void loginByCallback(LoginCallback callback) throws AlreadyLoggedIn, WrongBus,
     InvalidLoginProcess, AccessDenied, TooManyAttempts, UnknownDomain,
-    MissingCertificate, ServiceFailure;
+    MissingCertificate, ServiceFailure, WrongEncoding;
 
   /**
    * Inicia o processo de login por autenticação compartilhada.

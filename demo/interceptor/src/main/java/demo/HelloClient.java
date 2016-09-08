@@ -18,6 +18,7 @@ import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownBusCode;
 import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
 import tecgraf.openbus.core.v2_1.services.access_control.UnverifiedLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.demo.util.Usage;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import demo.interceptor.ContextInspector;
@@ -109,6 +110,12 @@ public final class HelloClient {
     }
     catch (UnknownDomain e) {
       System.err.println("Tentativa de autenticação em domínio desconhecido.");
+      System.exit(1);
+      return;
+    }
+    catch (WrongEncoding e) {
+      System.err
+        .println("incompatibilidade na codifição de informação para o barramento");
       System.exit(1);
       return;
     }

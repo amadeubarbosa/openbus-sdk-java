@@ -4,7 +4,6 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.Uninterruptibles;
 import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.OBJECT_NOT_EXIST;
@@ -611,8 +610,6 @@ class OfferRegistryImpl implements OfferRegistry {
     // conexão do SDK, só há como ter duas chamadas concorrentes desse método
     // caso enquanto uma thread estiver esperando pela tarefa de subscrição
     // de observador, o login for novamente perdido e refeito por outra thread.
-    // Etapas:
-    ListenableFuture<Void> future;
     synchronized (lock) {
       // sem subscrições, não há nada a fazer.
       if ((maintainedOffers == null || maintainedOffers.size() == 0) &&
@@ -620,7 +617,7 @@ class OfferRegistryImpl implements OfferRegistry {
         null || offerSubs.size() == 0)) {
         return;
       }
-      // 0) testar se há um relogin em andamento. Se houver, cancelar pois
+      // testar se há um relogin em andamento. Se houver, cancelar pois
       // nesse caso houve perda de login enquanto a subscrição ainda estava
       // sendo feita. Isso é importante pois caso a subscrição já tenha sido
       // refeita, ela não valerá mais e as tarefas de watch nunca terminarão
@@ -645,32 +642,34 @@ class OfferRegistryImpl implements OfferRegistry {
       }
       // refaço os passos de um login pois chamei clearstate.
       onLogin();
-      // 1) lançar assincronamente uma retrytask para refazer registros e
+      // lançar assincronamente uma retrytask para refazer registros e
       // observadores de registros e de ofertas
-      futureReLogin = future = pool.doTask(new ReLoginTask(context
+      futureReLogin = pool.doTask(new ReLoginTask(context
         .getOfferRegistry()), new RetryContext(retryDelay, delayUnit));
-    }
-    // 2) ressincronizar fora da região crítica, para dar chance a outros
-    // relogins de cancelarem essa tarefa.
-    try {
-      Uninterruptibles.getUninterruptibly(future);
-    } catch (ExecutionException | CancellationException e) {
-      // Só entra aqui se a aplicação fez logout ou um outro relogin cancelou
-      // esse. Basta desistir que o SDK cuida do login atual depois.
-      logger.warn("Erro ao reinserir registros e observadores de oferta no " +
-        "barramento devido a um logout ou relogin. Esse erro provavelmente " +
-        "pode ser ignorado.", e);
-      synchronized (lock) {
-        lock.notifyAll();
-      }
-      return;
-    }
-    // 3) nulificar futureReLogin e notificar quem estiver esperando.
-    synchronized (lock) {
-      if (futureReLogin != null && !futureReLogin.isCancelled()) {
-        futureReLogin = null;
-      }
-      lock.notifyAll();
+      Futures.addCallback(futureReLogin, new FutureCallback<Void>() {
+        @Override
+        public void onSuccess(Void result) {
+          // nulificar futureReLogin e notificar quem estiver esperando.
+          synchronized (lock) {
+            if (futureReLogin != null && !futureReLogin.isCancelled()) {
+              futureReLogin = null;
+            }
+            lock.notifyAll();
+          }
+        }
+
+        @Override
+        public void onFailure(Throwable t) {
+          // Só entra aqui se a aplicação fez logout ou um outro relogin cancelou
+          // esse. Basta desistir que o SDK cuida do login atual depois.
+          logger.warn("Erro ao reinserir registros e observadores de oferta no " +
+            "barramento devido a um logout ou relogin. Esse erro provavelmente " +
+            "pode ser ignorado.", t);
+          synchronized (lock) {
+            lock.notifyAll();
+          }
+        }
+      }, pool.pool());
     }
   }
 

@@ -23,6 +23,7 @@ import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.demo.util.Usage;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
 import tecgraf.openbus.security.Cryptography;
@@ -152,6 +153,10 @@ public final class GreetingsServer {
     catch (MissingCertificate e) {
       System.err.println(String.format(
         "a entidade %s não possui um certificado registrado", entity));
+    }
+    catch (WrongEncoding e) {
+      System.err
+        .println("incompatibilidade na codifição de informação para o barramento");
     }
     // bus core
     catch (ServiceFailure e) {

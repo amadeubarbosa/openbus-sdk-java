@@ -3,6 +3,7 @@ package tecgraf.openbus.core;
 import org.omg.CORBA.SystemException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tecgraf.openbus.Connection;
 import tecgraf.openbus.OfferObserver;
 import tecgraf.openbus.OfferSubscription;
 import tecgraf.openbus.RemoteOffer;
@@ -30,6 +31,11 @@ class OfferSubscriptionImpl extends BusResource implements OfferSubscription {
     this.observer = observer;
     this.proxy = proxy;
     this.offerDesc = offerDesc;
+  }
+
+  @Override
+  public Connection connection() {
+    return registry.connection();
   }
 
   @Override

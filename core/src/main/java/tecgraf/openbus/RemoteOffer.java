@@ -19,6 +19,12 @@ import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidProperties;
  */
 public interface RemoteOffer {
   /**
+   * Fornece a conexão utilizada para as chamadas remotas dessa oferta.
+   * @return A conexão.
+   */
+  Connection connection();
+
+  /**
    * Fornece informações sobre o login que registrou esta oferta específica.
    * Não realiza chamadas remotas.
    *

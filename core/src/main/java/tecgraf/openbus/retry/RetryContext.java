@@ -3,6 +3,7 @@ package tecgraf.openbus.retry;
 import org.omg.CORBA.NO_PERMISSION;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -21,18 +22,19 @@ public class RetryContext {
   private final TimeUnit delayUnit;
   /** Última exceção ocorrida entre as tentativas */
   private volatile Exception lastException = null;
+  /** Objeto futuro para verificar cancelamentos */
+  private Future future;
 
   /**
    * Construtor padrão que aguarda 1 segundo entre retentativas.
    */
   public RetryContext() {
-    delay = 1;
-    delayUnit = TimeUnit.SECONDS;
+    this(1, TimeUnit.SECONDS);
   }
 
   /**
    * Construtor.
-   * 
+   *
    * @param delay Tempo de espera entre tentativas.
    * @param unit Unidade do tempo entre tentativas.
    */
@@ -96,6 +98,12 @@ public class RetryContext {
     // retentativas. Pode-se seguir um approach similar ao da pcall onde se
     // define um número de retentativas diferente para cada caso (inacessível
     // ou quebrado).
+    if (future == null) {
+      return false;
+    }
+    if (future.isCancelled() || future.isDone()) {
+      return false;
+    }
     Exception last = getLastException();
     if (last instanceof NO_PERMISSION) {
       if (((NO_PERMISSION) last).minor == NoLoginCode.value) {
@@ -119,5 +127,14 @@ public class RetryContext {
    */
   protected void setLastException(Exception ex) {
     this.lastException = ex;
+  }
+
+  /**
+   * Define o objeto futuro que representa a chamada sendo retentada.
+   *
+   * @param future Objeto futuro que representa a chamada sendo retentada.
+   */
+  void future(Future future) {
+    this.future = future;
   }
 }
