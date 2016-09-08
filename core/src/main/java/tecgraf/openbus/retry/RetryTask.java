@@ -1,10 +1,14 @@
 package tecgraf.openbus.retry;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningScheduledExecutorService;
+import com.google.common.util.concurrent.SettableFuture;
+
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
-
-import com.google.common.util.concurrent.*;
 
 /**
  * Classe que permite retentativas de execução em caso de falhas.
@@ -112,7 +116,7 @@ class RetryTask<T> {
    * @param t exceção ocorrida na última execução.
    */
   protected void handleException(Throwable t) {
-    context.setLastException((Exception) t);
+    context.setLastException(t);
     if (!future.isCancelled()) {
       if (context.shouldRetry()) {
         context.incrementRetrys();
@@ -135,7 +139,7 @@ class RetryTask<T> {
   private void retryWithDelay() {
     long delay = context.getDelay();
     TimeUnit unit = context.getDelayUnit();
-    Exception ex = context.getLastException();
+    Throwable ex = context.getLastException();
     logger.finest(String
       .format("Falha na tarefa. Uma nova tentativa será agendada " +
           "para ocorrer em %d %s. Última exceção: %s", delay, unit, ex));

@@ -19,7 +19,7 @@ class OfferRegistrySubscriptionRetryContext extends RetryContext {
   }
 
   @Override
-  public void setLastException(Exception ex) {
+  public void setLastException(Throwable ex) {
     super.setLastException(ex);
     sub.error(ex);
   }

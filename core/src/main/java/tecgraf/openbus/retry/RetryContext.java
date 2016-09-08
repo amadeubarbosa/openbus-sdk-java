@@ -21,7 +21,7 @@ public class RetryContext {
   /** Unidade do tempo de intervalo entre tentativas */
   private final TimeUnit delayUnit;
   /** Última exceção ocorrida entre as tentativas */
-  private volatile Exception lastException = null;
+  private volatile Throwable lastException = null;
   /** Objeto futuro para verificar cancelamentos */
   private Future future;
 
@@ -78,7 +78,7 @@ public class RetryContext {
    * 
    * @return O último erro ocorrido.
    */
-  public Exception getLastException() {
+  public Throwable getLastException() {
     return lastException;
   }
 
@@ -104,7 +104,7 @@ public class RetryContext {
     if (future.isCancelled() || future.isDone()) {
       return false;
     }
-    Exception last = getLastException();
+    Throwable last = getLastException();
     if (last instanceof NO_PERMISSION) {
       if (((NO_PERMISSION) last).minor == NoLoginCode.value) {
         return false;
@@ -125,7 +125,7 @@ public class RetryContext {
    * 
    * @param ex a exceção.
    */
-  protected void setLastException(Exception ex) {
+  protected void setLastException(Throwable ex) {
     this.lastException = ex;
   }
 

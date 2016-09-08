@@ -154,9 +154,9 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
       this.poa.the_POAManager().activate();
     } catch (InvalidName e) {
       throw new OpenBusInternalException(
-        "BUG: O ORB perdeu a referência para o RootPOA.", e);
+        "O ORB perdeu a referência para o RootPOA.", e);
     } catch (AdapterInactive e) {
-      throw new OpenBusInternalException("BUG: O RootPOA está inativo.", e);
+      throw new OpenBusInternalException("O RootPOA está inativo.", e);
     }
   }
 
@@ -168,7 +168,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     }
     catch (InvalidPropertyValue e) {
       throw new OpenBusInternalException(
-        "BUG: Este erro nunca deveria ocorrer.", e);
+        "Este erro nunca deveria ocorrer pois não existem propriedades.", e);
     }
     return conn;
   }
@@ -178,7 +178,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     throws InvalidPropertyValue {
     if ((host == null) || (host.isEmpty()) || (port < 0)) {
       throw new IllegalArgumentException(
-        "Os parametros host e/ou port não são validos");
+        "Os parametros host e/ou port não são válidos.");
     }
     org.omg.CORBA.Object obj;
     try {
@@ -200,7 +200,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     }
     catch (InvalidPropertyValue e) {
       throw new OpenBusInternalException(
-        "BUG: Este erro nunca deveria ocorrer.", e);
+        "Este erro nunca deveria ocorrer pois não existem propriedades.", e);
     }
     return conn;
   }

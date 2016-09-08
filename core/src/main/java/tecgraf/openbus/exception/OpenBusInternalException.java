@@ -4,12 +4,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Exceção interna do barramento.
+ * Exceção que representa uma condição imprevista na biblioteca de acesso,
+ * geralmente sem um tratamento óbvio.
  * 
  * @author Tecgraf
  */
 public final class OpenBusInternalException extends IllegalStateException {
-
   /**
    * Construtor.
    * 

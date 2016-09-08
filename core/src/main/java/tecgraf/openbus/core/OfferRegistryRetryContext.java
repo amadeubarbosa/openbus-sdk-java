@@ -19,7 +19,7 @@ class OfferRegistryRetryContext extends RetryContext {
   }
 
   @Override
-  public void setLastException(Exception ex) {
+  public void setLastException(Throwable ex) {
     super.setLastException(ex);
     offer.error(ex);
   }

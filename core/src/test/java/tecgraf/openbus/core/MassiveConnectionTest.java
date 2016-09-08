@@ -1,27 +1,40 @@
 package tecgraf.openbus.core;
 
-import static org.junit.Assert.*;
+import com.google.common.collect.ArrayListMultimap;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.omg.CORBA.ORB;
+import org.omg.CORBA.Object;
+import scs.core.ComponentContext;
+import tecgraf.openbus.Connection;
+import tecgraf.openbus.LocalOffer;
+import tecgraf.openbus.LoginRegistry;
+import tecgraf.openbus.LoginSubscription;
+import tecgraf.openbus.OfferObserver;
+import tecgraf.openbus.OfferRegistryObserver;
+import tecgraf.openbus.OfferRegistrySubscription;
+import tecgraf.openbus.OfferSubscription;
+import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.RemoteOffer;
+import tecgraf.openbus.core.v2_1.services.ServiceFailure;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
+import tecgraf.openbus.util.Builder;
+import tecgraf.openbus.utils.Configs;
+import tecgraf.openbus.utils.Utils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.google.common.collect.ArrayListMultimap;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.omg.CORBA.ORB;
-import org.omg.CORBA.Object;
-
-import scs.core.ComponentContext;
-import tecgraf.openbus.*;
-import tecgraf.openbus.core.v2_1.services.ServiceFailure;
-import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
-import tecgraf.openbus.util.Builder;
-import tecgraf.openbus.utils.Configs;
-import tecgraf.openbus.utils.Utils;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 @SuppressWarnings("javadoc")
 public class MassiveConnectionTest {

@@ -6,7 +6,7 @@ import org.slf4j.Logger;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
 
 abstract class BusResource {
-  protected Exception lastError = null;
+  protected Throwable lastError = null;
   protected boolean loggedOut;
   protected boolean cancelled = false;
   // Não vale a pena usar ReentrantLock pois só tenho uma condição; E não
@@ -15,7 +15,7 @@ abstract class BusResource {
 
   public abstract void remove();
 
-  protected void error(Exception error) {
+  protected void error(Throwable error) {
     synchronized (lock) {
       this.lastError = error;
       this.loggedOut = false;

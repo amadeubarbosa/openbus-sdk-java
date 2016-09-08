@@ -1,6 +1,5 @@
 package tecgraf.openbus.core;
 
-import org.omg.CORBA.SystemException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tecgraf.openbus.Connection;
@@ -88,7 +87,7 @@ class OfferSubscriptionImpl extends BusResource implements OfferSubscription {
         } else {
           try {
             throw lastError;
-          } catch (ServiceFailure | SystemException e) {
+          } catch (ServiceFailure | RuntimeException | Error e) {
             throw e;
           } catch (Throwable e) {
             throw new OpenBusInternalException("Exceção inesperada ao " +

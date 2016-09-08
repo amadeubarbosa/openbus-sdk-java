@@ -1,31 +1,38 @@
 package tecgraf.openbus.core;
 
-import java.security.interfaces.RSAPrivateKey;
-import java.util.Properties;
-
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.ORBPackage.InvalidName;
 import org.omg.CORBA.Object;
 import org.omg.CORBA.TRANSIENT;
-import org.omg.CORBA.ORBPackage.InvalidName;
 import org.omg.IOP.Codec;
 import org.omg.IOP.CodecFactory;
 import org.omg.IOP.CodecFactoryHelper;
-import org.omg.IOP.ENCODING_CDR_ENCAPS;
-import org.omg.IOP.Encoding;
 import org.omg.IOP.CodecFactoryPackage.UnknownEncoding;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
-
+import org.omg.IOP.ENCODING_CDR_ENCAPS;
+import org.omg.IOP.Encoding;
 import scs.core.ComponentContext;
-import tecgraf.openbus.*;
+import tecgraf.openbus.CallerChain;
+import tecgraf.openbus.Connection;
+import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.SharedAuthSecret;
 import tecgraf.openbus.core.v2_1.BusObjectKey;
 import tecgraf.openbus.core.v2_1.credential.SignedData;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
-import tecgraf.openbus.core.v2_1.services.access_control.*;
+import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
+import tecgraf.openbus.core.v2_1.services.access_control.CallChain;
+import tecgraf.openbus.core.v2_1.services.access_control.CallChainHelper;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidToken;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
+import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
+import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
+import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOffer;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
@@ -39,7 +46,18 @@ import tecgraf.openbus.utils.Utils;
 import test.CallerChainInspector;
 import test.CallerChainInspectorHelper;
 
-import static org.junit.Assert.*;
+import java.security.interfaces.RSAPrivateKey;
+import java.util.Properties;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 @SuppressWarnings("javadoc")
 public final class OpenBusContextTest {

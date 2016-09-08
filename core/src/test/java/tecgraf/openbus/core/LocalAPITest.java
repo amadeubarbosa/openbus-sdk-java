@@ -1,10 +1,5 @@
 package tecgraf.openbus.core;
 
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import com.google.common.collect.ArrayListMultimap;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -14,27 +9,53 @@ import org.omg.CORBA.TRANSIENT;
 import org.omg.PortableServer.POAManagerPackage.AdapterInactive;
 import org.omg.PortableServer.POAPackage.ServantNotActive;
 import org.omg.PortableServer.POAPackage.WrongPolicy;
-
 import scs.core.ComponentContext;
 import scs.core.IComponent;
 import scs.core.IMetaInterfaceHelper;
 import scs.core.exception.SCSException;
+import tecgraf.openbus.Connection;
+import tecgraf.openbus.LocalOffer;
+import tecgraf.openbus.LoginObserver;
+import tecgraf.openbus.LoginRegistry;
+import tecgraf.openbus.LoginSubscription;
+import tecgraf.openbus.OfferObserver;
+import tecgraf.openbus.OfferRegistry;
+import tecgraf.openbus.OfferRegistryObserver;
+import tecgraf.openbus.OfferRegistrySubscription;
+import tecgraf.openbus.OfferSubscription;
+import tecgraf.openbus.OpenBusContext;
+import tecgraf.openbus.RemoteOffer;
 import tecgraf.openbus.core.v2_1.OctetSeqHolder;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.UnauthorizedOperation;
-import tecgraf.openbus.core.v2_1.services.access_control.*;
+import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
+import tecgraf.openbus.core.v2_1.services.access_control.InvalidLogins;
+import tecgraf.openbus.core.v2_1.services.access_control.LoginInfo;
+import tecgraf.openbus.core.v2_1.services.access_control.TooManyAttempts;
+import tecgraf.openbus.core.v2_1.services.access_control.UnknownDomain;
+import tecgraf.openbus.core.v2_1.services.access_control.WrongEncoding;
 import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidProperties;
 import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidService;
 import tecgraf.openbus.core.v2_1.services.offer_registry.UnauthorizedFacets;
 import tecgraf.openbus.exception.AlreadyLoggedIn;
-import tecgraf.openbus.*;
-import tecgraf.openbus.LoginObserver;
-import tecgraf.openbus.LoginRegistry;
 import tecgraf.openbus.util.Builder;
 import tecgraf.openbus.utils.Configs;
 import tecgraf.openbus.utils.Utils;
 
-import static org.junit.Assert.*;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 @SuppressWarnings("javadoc")
 public class LocalAPITest {

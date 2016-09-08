@@ -1,15 +1,5 @@
 package tecgraf.openbus.core;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.security.interfaces.RSAPrivateKey;
-import java.util.List;
-
 import com.google.common.collect.ArrayListMultimap;
 import org.junit.After;
 import org.junit.BeforeClass;
@@ -17,9 +7,13 @@ import org.junit.Test;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.Object;
-
 import scs.core.ComponentContext;
-import tecgraf.openbus.*;
+import tecgraf.openbus.Connection;
+import tecgraf.openbus.LocalOffer;
+import tecgraf.openbus.LoginCallback;
+import tecgraf.openbus.OfferRegistry;
+import tecgraf.openbus.RemoteOffer;
+import tecgraf.openbus.SharedAuthSecret;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessDenied;
 import tecgraf.openbus.core.v2_1.services.access_control.MissingCertificate;
@@ -29,6 +23,16 @@ import tecgraf.openbus.security.Cryptography;
 import tecgraf.openbus.util.Builder;
 import tecgraf.openbus.utils.Configs;
 import tecgraf.openbus.utils.Utils;
+
+import java.security.interfaces.RSAPrivateKey;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 @SuppressWarnings("javadoc")
 public final class ConnectionTest {

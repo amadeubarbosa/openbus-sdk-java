@@ -1,5 +1,6 @@
 package tecgraf.openbus.core;
 
+import java.io.IOException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
 
@@ -7,13 +8,14 @@ import org.omg.CORBA.OBJECT_NOT_EXIST;
 
 import scs.core.IComponent;
 import scs.core.IComponentHelper;
+import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessControl;
 import tecgraf.openbus.core.v2_1.services.access_control.AccessControlHelper;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginRegistry;
 import tecgraf.openbus.core.v2_1.services.access_control.LoginRegistryHelper;
 import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistry;
 import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistryHelper;
-import tecgraf.openbus.exception.OpenBusInternalException;
+import tecgraf.openbus.exception.CryptographyException;
 import tecgraf.openbus.security.Cryptography;
 
 /**
@@ -54,7 +56,7 @@ final class BusInfo {
   /**
    * Obtém as referências básicas para realizar o login com o barramento.
    */
-  void basicBusInitialization() {
+  void basicBusInitialization() throws ServiceFailure {
     IComponent ic;
     synchronized (lock) {
       ic = this.bus;
@@ -74,9 +76,9 @@ final class BusInfo {
         certificate = Cryptography.getInstance().readX509Certificate(ac
           .certificate());
       }
-      catch (Exception e) {
-        throw new OpenBusInternalException("Erro ao obter a chave pública do " +
-          "barramento.", e);
+      catch (CryptographyException | IOException e) {
+        throw new ServiceFailure("Erro ao obter a chave pública do " +
+          "barramento: " + e.getMessage());
       }
       obj = ic.getFacet(LoginRegistryHelper.id());
       LoginRegistry login = LoginRegistryHelper.narrow(obj);

@@ -1,14 +1,15 @@
 package tecgraf.openbus.core;
 
-import org.omg.CORBA.SystemException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scs.core.IComponent;
+import tecgraf.openbus.Connection;
+import tecgraf.openbus.LocalOffer;
+import tecgraf.openbus.RemoteOffer;
 import tecgraf.openbus.core.v2_1.services.ServiceFailure;
 import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidProperties;
 import tecgraf.openbus.core.v2_1.services.offer_registry.InvalidService;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceProperty;
-import tecgraf.openbus.*;
 import tecgraf.openbus.core.v2_1.services.offer_registry.UnauthorizedFacets;
 import tecgraf.openbus.exception.OpenBusInternalException;
 
@@ -85,7 +86,7 @@ class LocalOfferImpl extends BusResource implements LocalOffer {
           try {
             throw lastError;
           } catch (ServiceFailure | InvalidService | InvalidProperties |
-            UnauthorizedFacets | SystemException e) {
+            UnauthorizedFacets | RuntimeException | Error e) {
             throw e;
           } catch (Throwable e) {
             throw new OpenBusInternalException("Exceção inesperada ao " +
@@ -111,7 +112,7 @@ class LocalOfferImpl extends BusResource implements LocalOffer {
     removeOffer();
   }
 
-  protected void error(Exception error) {
+  protected void error(Throwable error) {
     synchronized (lock) {
       this.remote = null;
       super.error(error);

@@ -29,7 +29,7 @@ class OpenBusRetryContext extends RetryContext {
    */
   @Override
   public boolean shouldRetry() {
-    Exception last = getLastException();
+    Throwable last = getLastException();
     boolean noLogin = super.shouldRetry();
     return !noLogin && last instanceof SystemException && !(last instanceof
       OBJECT_NOT_EXIST) && !(last instanceof COMM_FAILURE);
