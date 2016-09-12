@@ -26,6 +26,8 @@ import tecgraf.openbus.security.Cryptography;
 final class BusInfo {
   /** Referência CORBA::Object do barramento */
   private final org.omg.CORBA.Object rawObject;
+  /** Certificado do barramento vindo das propriedades */
+  private final X509Certificate busCert;
 
   /** Identificador do barramento */
   private String id;
@@ -48,9 +50,11 @@ final class BusInfo {
    * Construtor.
    * 
    * @param obj referência para o barramento.
+   * @param busCert certificado do barramento.
    */
-  BusInfo(org.omg.CORBA.Object obj) {
+  BusInfo(org.omg.CORBA.Object obj, X509Certificate busCert) {
     this.rawObject = obj;
+    this.busCert = busCert;
   }
 
   /**
@@ -63,7 +67,7 @@ final class BusInfo {
     }
 
     if (ic == null) {
-      ic = IComponentHelper.narrow(rawObject);
+      ic = IComponentHelper.narrow(this.rawObject);
       if (ic == null) {
         throw new OBJECT_NOT_EXIST("Referência obtida não corresponde a um " +
           "IComponent.");
@@ -71,14 +75,16 @@ final class BusInfo {
       org.omg.CORBA.Object obj = ic.getFacet(AccessControlHelper.id());
       AccessControl ac = AccessControlHelper.narrow(obj);
       String id = ac.busid();
-      X509Certificate certificate;
-      try {
-        certificate = Cryptography.getInstance().readX509Certificate(ac
-          .certificate());
-      }
-      catch (CryptographyException | IOException e) {
-        throw new ServiceFailure("Erro ao obter a chave pública do " +
-          "barramento: " + e.getMessage());
+      X509Certificate certificate = this.busCert;
+      if (certificate == null) {
+        try {
+            certificate = Cryptography.getInstance().readX509Certificate(ac
+              .certificate());
+        }
+        catch (CryptographyException | IOException e) {
+          throw new ServiceFailure("Erro ao obter a chave pública do " +
+            "barramento: " + e.getMessage());
+        }
       }
       obj = ic.getFacet(LoginRegistryHelper.id());
       LoginRegistry login = LoginRegistryHelper.narrow(obj);

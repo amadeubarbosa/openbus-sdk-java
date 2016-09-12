@@ -16,12 +16,19 @@ enum OpenBusProperty {
    */
   LEGACY_DISABLE("legacy.disable", "false"),
   /**
-   * Arquivo de chave privada a ser utilizado pela conexão para realizar as
-   * chamadas do protocolo OpenBus. A chave deve ser uma chave privada RSA de
-   * 2048 bits (256 bytes). Quando essa propriedade não é fornecida, uma
-   * chave de acesso é gerada automaticamente.
+   * Caminho para arquivo de chave privada a ser utilizado pela conexão para
+   * realizar as chamadas do protocolo OpenBus. A chave deve ser uma chave
+   * privada RSA de 2048 bits (256 bytes). Quando essa propriedade não é
+   * fornecida, uma chave de acesso é gerada automaticamente.
    */
   ACCESS_KEY("access.key", null),
+  /**
+   * Caminho para arquivo de certificado a ser utilizado pela conexão para
+   * acessar e verificar a identidade de um barramento OpenBus. O
+   * certificado deve ser do tipo X509. Quando essa propriedade não é
+   * fornecida, o certificado é obtido do barramento automaticamente.
+   */
+  BUS_CERTIFICATE("bus.certificate", null),
   /**
    * Tamanho das caches utilizadas pela conexão.
    */
@@ -38,7 +45,7 @@ enum OpenBusProperty {
    */
   TIME_INTERVAL("time.interval", "1000"),
   /**
-   * Unidade de tempo de {@code TIME_INTERVAL}. Utilize "ns" para nanosegundos,
+   * Unidade de tempo de {@link #TIME_INTERVAL}. Utilize "ns" para nanosegundos,
    * "ms" para milisegundos, "s" para segundos, "m" para minutos e "h" para
    * horas.
    */
@@ -80,13 +87,18 @@ enum OpenBusProperty {
     switch (this) {
       case LEGACY_DISABLE:
         return props.getProperty(this.key, this.defaultValue);
-
       case ACCESS_KEY:
         return props.getProperty(this.key);
-
       case CACHE_SIZE:
         return props.getProperty(this.key, this.defaultValue);
-
+      case BUS_CERTIFICATE:
+        return props.getProperty(this.key);
+      case THREAD_NUM:
+        return props.getProperty(this.key, this.defaultValue);
+      case TIME_INTERVAL:
+        return props.getProperty(this.key, this.defaultValue);
+      case TIME_UNIT:
+        return props.getProperty(this.key, this.defaultValue);
       default:
         return null;
     }

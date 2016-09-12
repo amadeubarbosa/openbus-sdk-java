@@ -50,6 +50,7 @@ import tecgraf.openbus.security.Cryptography;
 
 import java.io.IOException;
 import java.security.KeyPair;
+import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
@@ -140,10 +141,25 @@ final class ConnectionImpl implements Connection {
     this.orb = orb;
     this.poa = poa;
     this.context = context;
-    this.bus = new BusInfo(reference);
     if (props == null) {
       props = new Properties();
     }
+    String busCertPath = OpenBusProperty.BUS_CERTIFICATE.getProperty(props);
+    X509Certificate busCert = null;
+    if (busCertPath != null) {
+      try {
+        this.crypto = Cryptography.getInstance();
+        busCert = this.crypto.readX509Certificate(busCertPath);
+      } catch (IOException e) {
+        throw new InvalidPropertyValue(OpenBusProperty.BUS_CERTIFICATE.getKey(),
+          busCertPath, e);
+      } catch (CryptographyException e) {
+        throw new OpenBusInternalException("Erro inesperado ao carregar o " +
+          "certificado do barramento.", e);
+      }
+    }
+    this.bus = new BusInfo(reference, busCert);
+
     String threads = OpenBusProperty.THREAD_NUM.getProperty(props);
     int threadNum;
     if (threads == null) {
@@ -251,7 +267,7 @@ final class ConnectionImpl implements Connection {
           path, e);
       } catch (CryptographyException e) {
         throw new OpenBusInternalException(
-          "Erro inexperado ao carregar chave privada.", e);
+          "Erro inesperado ao carregar a chave privada.", e);
       }
     }
     else {
@@ -262,7 +278,7 @@ final class ConnectionImpl implements Connection {
       }
       catch (CryptographyException e) {
         throw new OpenBusInternalException(
-          "Erro inexperado na geração do par de chaves.", e);
+          "Erro inesperado na geração do par de chaves.", e);
       }
     }
     this.publicKey = (RSAPublicKey) keyPair.getPublic();
