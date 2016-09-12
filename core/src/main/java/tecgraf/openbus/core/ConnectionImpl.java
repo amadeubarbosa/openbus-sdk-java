@@ -286,7 +286,7 @@ final class ConnectionImpl implements Connection {
   }
 
   @Override
-  public String busid() {
+  public String busId() {
     return getBus().getId();
   }
 
@@ -336,7 +336,7 @@ final class ConnectionImpl implements Connection {
     }
   }
 
-  private void loginByPasswordPvt(String entity, byte[] password, String
+  private void loginByPassword(String entity, byte[] password, String
     domain, LoginCallback cb, boolean relogin)
     throws AccessDenied, AlreadyLoggedIn, TooManyAttempts, UnknownDomain,
     ServiceFailure, WrongEncoding {
@@ -366,8 +366,8 @@ final class ConnectionImpl implements Connection {
     logger
       .info(String
         .format(
-          "Login por senha efetuado com sucesso: busid (%s) login (%s) entidade (%s)",
-          busid(), newLogin.id, newLogin.entity));
+          "Login por senha efetuado com sucesso: busId (%s) login (%s) entidade (%s)",
+          busId(), newLogin.id, newLogin.entity));
   }
 
   /**
@@ -419,8 +419,8 @@ final class ConnectionImpl implements Connection {
     }
   }
 
-  private void loginByPrivateKeyPvt(String entity, RSAPrivateKey privateKey,
-                                    LoginCallback cb, boolean relogin)
+  private void loginByPrivateKey(String entity, RSAPrivateKey privateKey,
+                                 LoginCallback cb, boolean relogin)
     throws AlreadyLoggedIn, MissingCertificate, AccessDenied, ServiceFailure,
     WrongEncoding {
     checkLoggedIn();
@@ -459,8 +459,8 @@ final class ConnectionImpl implements Connection {
     logger
       .info(String
         .format(
-          "Login por certificado efetuada com sucesso: busid (%s) login (%s) entidade (%s)",
-          busid(), newLogin.id, newLogin.entity));
+          "Login por certificado efetuada com sucesso: busId (%s) login (%s) entidade (%s)",
+          busId(), newLogin.id, newLogin.entity));
   }
 
   @Override
@@ -502,7 +502,7 @@ final class ConnectionImpl implements Connection {
     finally {
       context.currentConnection(previousConnection);
     }
-    return new SharedAuthSecretImpl(busid(), process, legacyProcess, secret,
+    return new SharedAuthSecretImpl(busId(), process, legacyProcess, secret,
       context);
   }
 
@@ -534,7 +534,7 @@ final class ConnectionImpl implements Connection {
     try {
       this.context.ignoreThread();
       this.bus.basicBusInitialization();
-      if (this.busid().equals(secret.busid())) {
+      if (this.busId().equals(secret.busid())) {
         SharedAuthSecretImpl sharedAuth = (SharedAuthSecretImpl) secret;
         byte[] encryptedLoginAuthenticationInfo =
           this.generateEncryptedLoginAuthenticationInfo(sharedAuth.secret());
@@ -585,8 +585,8 @@ final class ConnectionImpl implements Connection {
     logger
       .info(String
         .format(
-          "Login por compatilhamento de autenticação efetuado com sucesso: busid (%s) login (%s) entidade (%s)",
-          busid(), newLogin.id, newLogin.entity));
+          "Login por compatilhamento de autenticação efetuado com sucesso: busId (%s) login (%s) entidade (%s)",
+          busId(), newLogin.id, newLogin.entity));
   }
 
   private void loginByCallback(LoginCallback cb, boolean relogin) throws
@@ -596,11 +596,10 @@ final class ConnectionImpl implements Connection {
     AuthArgs args = cb.authenticationArguments();
     switch (args.mode) {
       case AuthByPassword:
-        loginByPasswordPvt(args.entity, args.password, args.domain, cb,
-          relogin);
+        loginByPassword(args.entity, args.password, args.domain, cb, relogin);
         break;
       case AuthByPrivateKey:
-        loginByPrivateKeyPvt(args.entity, args.privkey, cb, relogin);
+        loginByPrivateKey(args.entity, args.privkey, cb, relogin);
         break;
       case AuthBySharedSecret:
         loginBySharedAuth(args.secret, cb, relogin);
@@ -794,7 +793,7 @@ final class ConnectionImpl implements Connection {
       if (e.minor != InvalidLoginCode.value) {
         logger.log(Level.WARNING, String.format(
           "Erro durante chamada remota de logout: "
-            + "busid (%s) login (%s) entidade (%s)", busid(), login.id,
+            + "busId (%s) login (%s) entidade (%s)", busId(), login.id,
           login.entity), e);
         return false;
       }
@@ -802,7 +801,7 @@ final class ConnectionImpl implements Connection {
     catch (SystemException e) {
       logger.log(Level.WARNING, String.format(
         "Erro durante chamada remota de logout: "
-          + "busid (%s) login (%s) entidade (%s)", busid(), login.id,
+          + "busId (%s) login (%s) entidade (%s)", busId(), login.id,
         login.entity), e);
       return false;
     }

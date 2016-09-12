@@ -62,11 +62,11 @@ public class Client {
       for (RemoteOffer offer : services) {
         logger.fine(String
           .format("found offer from %s on bus %s", offer.properties()
-            .get("openbus.offer.entity"), conn.busid()));
+            .get("openbus.offer.entity"), conn.busId()));
         org.omg.CORBA.Object obj = offer.service().getFacet(HelloHelper.id
           ());
         Hello hello = HelloHelper.narrow(obj);
-        String expected = String.format("Hello %s@%s!", login, conn.busid());
+        String expected = String.format("Hello %s@%s!", login, conn.busId());
         String sayHello = hello.sayHello();
         assert expected.equals(sayHello) : sayHello;
       }

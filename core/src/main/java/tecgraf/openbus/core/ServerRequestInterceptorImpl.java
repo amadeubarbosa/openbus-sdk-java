@@ -155,7 +155,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
       String loginId = credential.login;
       ConnectionImpl conn =
         getConnForDispatch(context, busId, loginId, object_id, operation);
-      if (busId.equals(conn.busid())) {
+      if (busId.equals(conn.busId())) {
         context.currentConnection(conn);
         if (validateLogin(conn, loginId, ri)) {
           OctetSeqHolder pubkey = new OctetSeqHolder();
@@ -250,7 +250,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     if (conn == null) {
       conn = (ConnectionImpl) context.defaultConnection();
     }
-    if (conn == null || conn.login() == null || !conn.busid().equals(busId)) {
+    if (conn == null || conn.login() == null || !conn.busId().equals(busId)) {
       throw new NO_PERMISSION(UnknownBusCode.value,
         CompletionStatus.COMPLETED_NO);
     }

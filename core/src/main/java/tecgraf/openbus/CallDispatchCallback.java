@@ -21,7 +21,7 @@ public interface CallDispatchCallback {
    * Método a ser chamado quando uma chamada é recebida. Esse método é
    * chamado para determinar a conexão a ser utilizada na validação de cada
    * chamada recebida. Se a conexão informada não estiver conectada ao mesmo
-   * barramento indicado pelo parâmetro 'busid', a chamada provavelmente será
+   * barramento indicado pelo parâmetro 'busId', a chamada provavelmente será
    * recusada com um {@link NO_PERMISSION}[{@link InvalidLoginCode}] pelo
    * fato do login provavelmente não ser válido no barramento da conexão.
    * Como resultado disso o cliente da chamada poderá indicar que o servidor

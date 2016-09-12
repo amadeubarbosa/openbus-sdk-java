@@ -508,7 +508,7 @@ public final class OpenBusContextTest {
     try {
       CallerChain imported = conn1.importChain(token.getBytes(), domain);
       String unknown = "<unknown>";
-      assertEquals(conn1.busid(), imported.busId());
+      assertEquals(conn1.busId(), imported.busId());
       assertEquals(actor1, imported.target());
       assertNotEquals(unknown, imported.caller().id);
       assertEquals(caller, imported.caller().entity);
@@ -696,8 +696,8 @@ public final class OpenBusContextTest {
 
     byte[] encodeChain = context.encodeChain(chain1For2);
     CallerChain decodedChain = context.decodeChain(encodeChain);
-    assertEquals(conn1.busid(), decodedChain.busId());
-    assertEquals(conn2.busid(), decodedChain.busId());
+    assertEquals(conn1.busId(), decodedChain.busId());
+    assertEquals(conn2.busId(), decodedChain.busId());
     assertEquals(actor2, decodedChain.target());
     assertEquals(actor1, decodedChain.caller().entity);
     assertEquals(login1, decodedChain.caller().id);
@@ -708,9 +708,9 @@ public final class OpenBusContextTest {
     encodeChain = context.encodeChain(chain1_2For3);
     decodedChain = context.decodeChain(encodeChain);
 
-    assertEquals(conn1.busid(), decodedChain.busId());
-    assertEquals(conn2.busid(), decodedChain.busId());
-    assertEquals(conn3.busid(), decodedChain.busId());
+    assertEquals(conn1.busId(), decodedChain.busId());
+    assertEquals(conn2.busId(), decodedChain.busId());
+    assertEquals(conn3.busId(), decodedChain.busId());
     assertEquals(actor3, decodedChain.target());
     assertEquals(actor2, decodedChain.caller().entity);
     assertEquals(login2, decodedChain.caller().id);

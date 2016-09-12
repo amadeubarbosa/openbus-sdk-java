@@ -110,12 +110,12 @@ public final class ConnectionTest {
   @Test
   public void busIdTest() throws Exception {
     Connection conn = context.connectByReference(busref);
-    assertNull(conn.busid());
+    assertNull(conn.busId());
     conn.loginByPassword(entity, entity.getBytes(), domain);
-    assertNotNull(conn.busid());
-    assertFalse(conn.busid().isEmpty());
+    assertNotNull(conn.busId());
+    assertFalse(conn.busId().isEmpty());
     assertTrue(conn.logout());
-    assertNull(conn.busid());
+    assertNull(conn.busId());
     assertNull(conn.login());
   }
 
@@ -316,7 +316,7 @@ public final class ConnectionTest {
     final Connection conn = context.connectByReference(busref);
     assertTrue(conn.logout());
     conn.loginByPassword(entity, password, domain);
-    final String busId = conn.busid();
+    final String busId = conn.busId();
     context.onCallDispatch((context1, busid, loginId, object_id, operation) -> {
       if (busId.equals(busid)) {
         return conn;
@@ -324,7 +324,7 @@ public final class ConnectionTest {
       return null;
     });
     assertTrue(conn.logout());
-    assertNull(conn.busid());
+    assertNull(conn.busId());
     assertNull(conn.login());
     boolean failed = false;
     try {
@@ -428,7 +428,7 @@ public final class ConnectionTest {
         return null;
       }
       if (fake) {
-        secret = new SharedAuthSecretImpl(conn.busid(), (
+        secret = new SharedAuthSecretImpl(conn.busId(), (
           (SharedAuthSecretImpl)secret).attempt(), null, new byte[0], context);
       }
       return new AuthArgs(secret);

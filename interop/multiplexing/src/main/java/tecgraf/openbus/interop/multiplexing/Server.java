@@ -60,7 +60,8 @@ public class Server {
 
     final Connection conn1AtBus1WithOrb1 =
       context1.connectByReference(bus1orb1);
-    Connection conn2AtBus1WithOrb1 = context1.connectByReference(bus1orb1);
+    final Connection conn2AtBus1WithOrb1 = context1.connectByReference
+      (bus1orb1);
     final Connection conn1AtBus2WithOrb1 =
       context1.connectByReference(bus2orb1);
     final Connection conn3AtBus1WithOrb2 =
@@ -87,8 +88,8 @@ public class Server {
     shutdown1.addConnetion(conn1AtBus2WithOrb1);
     shutdown2.addConnetion(conn3AtBus1WithOrb2);
 
-    final String busId1 = conn1AtBus1WithOrb1.busid();
-    final String busId2 = conn1AtBus2WithOrb1.busid();
+    final String busId1 = conn1AtBus1WithOrb1.busId();
+    final String busId2 = conn1AtBus2WithOrb1.busId();
     context1.onCallDispatch((context, busid, loginId, object_id, operation) -> {
       if (busId1.equals(busid)) {
         return conn1AtBus1WithOrb1;

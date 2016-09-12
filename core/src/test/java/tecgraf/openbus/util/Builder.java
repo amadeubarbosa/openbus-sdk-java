@@ -53,7 +53,7 @@ public class Builder {
             "CallerChain nunca deveria ser nulo dentro de um método de despacho.");
         }
         // verificando dados da cadeia
-        if (!connection.busid().equals(chain.busId())) {
+        if (!connection.busId().equals(chain.busId())) {
           throw new IllegalStateException(
             "Informação de busId da cadeia não é coerente com conexão que atende a requisição.");
         }

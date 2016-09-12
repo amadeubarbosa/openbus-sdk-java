@@ -198,7 +198,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
   private Credential generateCredential(ClientRequestInfo ri,
     ConnectionImpl conn, LoginInfoHolder holder) {
     String operation = ri.operation();
-    String bus = conn.busid();
+    String bus = conn.busId();
     EffectiveProfile ep = new EffectiveProfile(ri.effective_profile());
     String targetId = conn.cache.entities.get(ep);
     if (targetId != null) {
@@ -259,7 +259,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
             } while (!decodeSignedLegacyChain(chainFor).caller.id
               .equals(curr.id));
             chain = new Chain(chainFor);
-            chain.updateInfos(conn.busid(), decodeSignedLegacyChain(chainFor));
+            chain.updateInfos(conn.busId(), decodeSignedLegacyChain(chainFor));
             conn.cache.chains.put(key, chain);
           }
           else if (joined.isLegacy() && !conn.legacy()) {
@@ -303,7 +303,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
       catch (SystemException e) {
         String message =
           String
-            .format("Erro durante acesso ao barramento (%s).", conn.busid());
+            .format("Erro durante acesso ao barramento (%s).", conn.busId());
         logger.log(Level.SEVERE, message, e);
         throw new NO_PERMISSION(message, UnavailableBusCode.value,
           CompletionStatus.COMPLETED_NO);

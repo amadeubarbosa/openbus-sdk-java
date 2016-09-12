@@ -77,7 +77,7 @@ public interface Connection {
    * 
    * @return o identificador do barramento.
    */
-  String busid();
+  String busId();
 
   /**
    * Fornece as Informações do login dessa conexão ou {@code null} se a
