@@ -8,7 +8,7 @@ import java.util.Properties;
  * 
  * @author Tecgraf
  */
-enum OpenBusProperty {
+public enum OpenBusProperty {
 
   /**
    * Define se o suporte legado deve ser habilitado. Os valores possíveis
@@ -25,7 +25,7 @@ enum OpenBusProperty {
   /**
    * Caminho para arquivo de certificado a ser utilizado pela conexão para
    * acessar e verificar a identidade de um barramento OpenBus. O
-   * certificado deve ser do tipo X509. Quando essa propriedade não é
+   * certificado deve ser do padrão X509. Quando essa propriedade não é
    * fornecida, o certificado é obtido do barramento automaticamente.
    */
   BUS_CERTIFICATE("bus.certificate", null),
@@ -94,11 +94,11 @@ enum OpenBusProperty {
       case BUS_CERTIFICATE:
         return props.getProperty(this.key);
       case THREAD_NUMBER:
-        return props.getProperty(this.key);
+        return props.getProperty(this.key, this.defaultValue);
       case TIME_INTERVAL:
-        return props.getProperty(this.key);
+        return props.getProperty(this.key, this.defaultValue);
       case TIME_UNIT:
-        return props.getProperty(this.key);
+        return props.getProperty(this.key, this.defaultValue);
       default:
         return null;
     }

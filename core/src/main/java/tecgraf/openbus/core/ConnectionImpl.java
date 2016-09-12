@@ -162,30 +162,33 @@ final class ConnectionImpl implements Connection {
 
     String threads = OpenBusProperty.THREAD_NUMBER.getProperty(props);
     int threadNum;
-    if (threads == null) {
-      threadNum = 10;
-    } else {
+    try {
+      // nunca será null apesar do warning
       threadNum = Integer.parseInt(threads);
+      if (threadNum <= 0) {
+        throw new InvalidPropertyValue(OpenBusProperty.THREAD_NUMBER.getKey(),
+          threads);
+      }
     }
-    if (threadNum <= 0) {
+    catch (NumberFormatException e) {
       throw new InvalidPropertyValue(OpenBusProperty.THREAD_NUMBER.getKey(),
-        threads);
+        threads, e);
     }
     RetryTaskPool pool = new RetryTaskPool(threadNum);
     String interval = OpenBusProperty.TIME_INTERVAL.getProperty(props);
-    if (interval == null) {
-      this.interval = 1000;
-    } else {
+    try {
+      // nunca será null apesar do warning
       this.interval = Long.parseLong(interval);
+      if (this.interval < 0) {
+        throw new InvalidPropertyValue(OpenBusProperty.TIME_INTERVAL.getKey(),
+          interval);
+      }
     }
-    if (this.interval < 0) {
+    catch (NumberFormatException e) {
       throw new InvalidPropertyValue(OpenBusProperty.TIME_INTERVAL.getKey(),
-        interval);
+        interval, e);
     }
     String unit = OpenBusProperty.TIME_UNIT.getProperty(props);
-    if (unit == null) {
-      unit = "millis";
-    }
     this.unit = convertUnitPropertyToTimeUnit(unit);
 
     this.loginRegistry = new LoginRegistryImpl(context, this, poa, pool,
@@ -200,12 +203,8 @@ final class ConnectionImpl implements Connection {
     // verificando por valor de tamanho de cache
     String ssize = OpenBusProperty.CACHE_SIZE.getProperty(props);
     try {
-      int size;
-      if (ssize == null) {
-        size = 30;
-      } else {
-        size = Integer.parseInt(ssize);
-      }
+      // nunca será null apesar do warning
+      int size = Integer.parseInt(ssize);
       if (size <= 0) {
         throw new InvalidPropertyValue(OpenBusProperty.CACHE_SIZE.getKey(),
           ssize);
