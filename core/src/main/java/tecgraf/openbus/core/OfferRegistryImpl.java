@@ -497,6 +497,18 @@ class OfferRegistryImpl implements OfferRegistry {
     }
   }
 
+  protected RetryTaskPool pool() {
+    return pool;
+  }
+
+  protected long interval() {
+    return retryDelay;
+  }
+
+  protected TimeUnit intervalUnit() {
+    return delayUnit;
+  }
+
   protected void fireEvent(LoginEvent e, LoginInfo newLogin) {
     switch (e) {
       case LOGGED_IN:

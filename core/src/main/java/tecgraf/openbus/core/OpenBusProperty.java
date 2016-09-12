@@ -38,7 +38,7 @@ enum OpenBusProperty {
    * pela biblioteca, como as de registro ou manutenção de recursos - ofertas
    * e observadores.
    */
-  THREAD_NUM("thread.number", "10"),
+  THREAD_NUMBER("thread.number", "10"),
   /**
    * Intervalo de tempo entre tentativas de chamadas remotas para a
    * manutenção de recursos no barramento, como ofertas e observadores.
@@ -46,8 +46,8 @@ enum OpenBusProperty {
   TIME_INTERVAL("time.interval", "1000"),
   /**
    * Unidade de tempo de {@link #TIME_INTERVAL}. Utilize "ns" para nanosegundos,
-   * "ms" para milisegundos, "s" para segundos, "m" para minutos e "h" para
-   * horas.
+   * "ms" para milisegundos, "s" para segundos, "m" para minutos, "h" para
+   * horas e "d" para dias.
    */
   TIME_UNIT("time.unit", "ms");
 
@@ -93,12 +93,12 @@ enum OpenBusProperty {
         return props.getProperty(this.key, this.defaultValue);
       case BUS_CERTIFICATE:
         return props.getProperty(this.key);
-      case THREAD_NUM:
-        return props.getProperty(this.key, this.defaultValue);
+      case THREAD_NUMBER:
+        return props.getProperty(this.key);
       case TIME_INTERVAL:
-        return props.getProperty(this.key, this.defaultValue);
+        return props.getProperty(this.key);
       case TIME_UNIT:
-        return props.getProperty(this.key, this.defaultValue);
+        return props.getProperty(this.key);
       default:
         return null;
     }

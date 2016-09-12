@@ -451,6 +451,18 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     }
   }
 
+  protected RetryTaskPool pool() {
+    return pool;
+  }
+
+  protected long interval() {
+    return retryDelay;
+  }
+
+  protected TimeUnit intervalUnit() {
+    return delayUnit;
+  }
+
   private void onLogin() {
     synchronized (lock) {
       Connection prev = context.currentConnection();

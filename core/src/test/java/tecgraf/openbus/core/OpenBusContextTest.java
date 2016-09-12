@@ -46,8 +46,10 @@ import tecgraf.openbus.utils.Utils;
 import test.CallerChainInspector;
 import test.CallerChainInspectorHelper;
 
+import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -72,6 +74,11 @@ public final class OpenBusContextTest {
   private static String system;
   private static RSAPrivateKey systemKey;
   private static String systemKeyPath;
+  private static X509Certificate busCert;
+  private static String busCertPath;
+  private static int threadNumber;
+  private static long interval;
+  private static TimeUnit intervalUnit;
   private static Properties orbprops;
 
   @BeforeClass
@@ -86,7 +93,13 @@ public final class OpenBusContextTest {
     domain = configs.domain;
     system = configs.system;
     systemKeyPath = configs.syskey;
-    systemKey = crypto.readKeyFromFile(configs.syskey);
+    systemKey = crypto.readKeyFromFile(systemKeyPath);
+    busCertPath = configs.buscert;
+    busCert = crypto.readX509Certificate(busCertPath);
+    threadNumber = configs.threadNum;
+    interval = configs.interval;
+    intervalUnit = ConnectionImpl.convertUnitPropertyToTimeUnit(configs
+      .intervalUnit);
     orbprops = Utils.readPropertyFile(configs.orbprops);
     orb = ORBInitializer.initORB(null, orbprops);
     busref = orb.string_to_object(new String(Utils.readFile(configs.busref)));
@@ -223,6 +236,55 @@ public final class OpenBusContextTest {
     properties.put(OpenBusProperty.ACCESS_KEY.getKey(),
       "/invalid/path/to/access.key");
     context.connectByReference(busref, properties);
+  }
+
+  @Test
+  public void busCertificatePropTest() throws Exception {
+    Properties properties = new Properties();
+    properties.put(OpenBusProperty.BUS_CERTIFICATE.getKey(), busCertPath);
+    ConnectionImpl conn = (ConnectionImpl) context.connectByReference(busref,
+      properties);
+    assertNull(conn.login());
+    conn.loginByPassword(entity, entity.getBytes(), domain);
+    assertNotNull(conn.login());
+    assertSame(conn.getBusPublicKey(), busCert.getPublicKey());
+    conn.logout();
+    assertNull(conn.login());
+  }
+
+  @Test
+  public void threadNumberPropTest() throws Exception {
+    Properties properties = new Properties();
+    properties.put(OpenBusProperty.THREAD_NUMBER.getKey(), "" + threadNumber);
+    Connection conn = context.connectByReference(busref, properties);
+    assertNull(conn.login());
+    conn.loginByPassword(entity, entity.getBytes(), domain);
+    assertNotNull(conn.login());
+    LoginRegistryImpl loginRegistry = (LoginRegistryImpl)conn.loginRegistry();
+    OfferRegistryImpl offerRegistry = (OfferRegistryImpl)conn.offerRegistry();
+    assertEquals(threadNumber, loginRegistry.pool().poolSize);
+    assertEquals(threadNumber, offerRegistry.pool().poolSize);
+    conn.logout();
+    assertNull(conn.login());
+  }
+
+  @Test
+  public void intervalPropTest() throws Exception {
+    Properties properties = new Properties();
+    properties.put(OpenBusProperty.TIME_INTERVAL.getKey(), "" + interval);
+    properties.put(OpenBusProperty.TIME_UNIT.getKey(), "" + intervalUnit);
+    Connection conn = context.connectByReference(busref, properties);
+    assertNull(conn.login());
+    conn.loginByPassword(entity, entity.getBytes(), domain);
+    assertNotNull(conn.login());
+    LoginRegistryImpl loginRegistry = (LoginRegistryImpl)conn.loginRegistry();
+    OfferRegistryImpl offerRegistry = (OfferRegistryImpl)conn.offerRegistry();
+    assertEquals(interval, loginRegistry.interval());
+    assertEquals(interval, offerRegistry.interval());
+    assertEquals(intervalUnit, loginRegistry.intervalUnit());
+    assertEquals(intervalUnit, offerRegistry.intervalUnit());
+    conn.logout();
+    assertNull(conn.login());
   }
 
   @Test

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 /**
@@ -42,6 +43,14 @@ public class Configs {
   public String system;
   /** Chave privada */
   public String syskey;
+  /** Certificado do barramento */
+  public String buscert;
+  /** Número de threads */
+  public int threadNum;
+  /** Intervalo entre tentativas de chamadas */
+  public long interval;
+  /** Unidade de tempo do intervalo entre tentativas de chamadas */
+  public String intervalUnit;
   /** Path para arquivo sharedauth */
   public String sharedauth;
   /** Nivel de log do teste */
@@ -81,6 +90,11 @@ public class Configs {
     password = props.getProperty("user.password", user).getBytes();
     system = props.getProperty("system.entity.name", "testsyst");
     syskey = props.getProperty("system.private.key", "testsyst.key");
+    buscert = props.getProperty("bus.certificate", "bus.crt");
+    threadNum = Integer.valueOf(props.getProperty("thread.number", "10"));
+    interval = Long.valueOf(props.getProperty("openbus.interval", "1000"));
+    intervalUnit = props.getProperty("openbus.interval.unit", TimeUnit
+      .MILLISECONDS.toString());
     sharedauth = props.getProperty("system.sharedauth", "sharedauth.dat");
 
     testlog =
@@ -99,8 +113,8 @@ public class Configs {
    * Recupera o arquivo de configurações através da variável de ambiente
    * OPENBUS_TESTCFG, ou do arquivo padrão "/test.properties"
    * 
-   * @return as configurações
-   * @throws IOException
+   * @return As configurações.
+   * @throws IOException Caso ocorra algum erro ao ler o arquivo.
    */
   public static Configs readConfigsFile() throws IOException {
     String path = System.getenv("OPENBUS_TESTCFG");
@@ -117,7 +131,7 @@ public class Configs {
    * @return o nível de log
    */
   private Level parseLevelFromNumber(Integer level) {
-    Map<Integer, Level> levels = new HashMap<Integer, Level>();
+    Map<Integer, Level> levels = new HashMap<>();
     levels.put(0, Level.OFF);
     levels.put(1, Level.SEVERE);
     levels.put(2, Level.WARNING);

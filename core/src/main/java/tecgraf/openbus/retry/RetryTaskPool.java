@@ -26,6 +26,9 @@ public class RetryTaskPool {
   /** Executor de tarefas agendáveis */
   private final ListeningScheduledExecutorService pool;
 
+  /** Tamanho do pool de threads. */
+  public final int poolSize;
+
   /**
    * Construtor padrão que utiliza 4 threads.
    */
@@ -43,6 +46,7 @@ public class RetryTaskPool {
     /*
       Cria threads Daemon para serem utilizadas pelo pool
      */
+    this.poolSize = size;
     this.pool =
       MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(size,
         task -> {

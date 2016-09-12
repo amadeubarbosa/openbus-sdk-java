@@ -160,7 +160,7 @@ final class ConnectionImpl implements Connection {
     }
     this.bus = new BusInfo(reference, busCert);
 
-    String threads = OpenBusProperty.THREAD_NUM.getProperty(props);
+    String threads = OpenBusProperty.THREAD_NUMBER.getProperty(props);
     int threadNum;
     if (threads == null) {
       threadNum = 10;
@@ -168,7 +168,7 @@ final class ConnectionImpl implements Connection {
       threadNum = Integer.parseInt(threads);
     }
     if (threadNum <= 0) {
-      throw new InvalidPropertyValue(OpenBusProperty.THREAD_NUM.getKey(),
+      throw new InvalidPropertyValue(OpenBusProperty.THREAD_NUMBER.getKey(),
         threads);
     }
     RetryTaskPool pool = new RetryTaskPool(threadNum);
@@ -186,44 +186,7 @@ final class ConnectionImpl implements Connection {
     if (unit == null) {
       unit = "millis";
     }
-    switch (unit) {
-      case "ns":
-      case "nanos":
-      case "nanosecs":
-      case "nanoseconds":
-        this.unit = TimeUnit.NANOSECONDS;
-        break;
-      case "us":
-      case "micros":
-      case "microsecs":
-      case "microseconds":
-        this.unit = TimeUnit.MICROSECONDS;
-        break;
-      case "ms":
-      case "millis":
-      case "millisecs":
-      case "milliseconds":
-        this.unit = TimeUnit.MILLISECONDS;
-        break;
-      case "s":
-      case "secs":
-      case "seconds":
-        this.unit = TimeUnit.SECONDS;
-        break;
-      case "m":
-      case "mins":
-      case "minutes":
-        this.unit = TimeUnit.MINUTES;
-        break;
-      case "h":
-      case "hrs":
-      case "hours":
-        this.unit = TimeUnit.HOURS;
-        break;
-      default:
-        throw new InvalidPropertyValue(OpenBusProperty.TIME_UNIT.getKey(),
-          unit);
-    }
+    this.unit = convertUnitPropertyToTimeUnit(unit);
 
     this.loginRegistry = new LoginRegistryImpl(context, this, poa, pool,
       this.interval, this.unit);
@@ -698,6 +661,46 @@ final class ConnectionImpl implements Connection {
       return context.importChain(token, domain);
     } finally {
       context.currentConnection(prev);
+    }
+  }
+
+  public static TimeUnit convertUnitPropertyToTimeUnit(String unit) throws
+    InvalidPropertyValue {
+    unit = unit.trim().toLowerCase();
+    switch (unit) {
+      case "ns":
+      case "nanos":
+      case "nanosecs":
+      case "nanoseconds":
+        return TimeUnit.NANOSECONDS;
+      case "us":
+      case "micros":
+      case "microsecs":
+      case "microseconds":
+        return TimeUnit.MICROSECONDS;
+      case "ms":
+      case "millis":
+      case "millisecs":
+      case "milliseconds":
+        return TimeUnit.MILLISECONDS;
+      case "s":
+      case "secs":
+      case "seconds":
+        return TimeUnit.SECONDS;
+      case "m":
+      case "mins":
+      case "minutes":
+        return TimeUnit.MINUTES;
+      case "h":
+      case "hrs":
+      case "hours":
+        return TimeUnit.HOURS;
+      case "d":
+      case "days":
+        return TimeUnit.DAYS;
+      default:
+        throw new InvalidPropertyValue(OpenBusProperty.TIME_UNIT.getKey(),
+          unit);
     }
   }
 
