@@ -54,7 +54,7 @@ public interface OpenBusContext {
   /**
    * Fornece o POA associado ao OpenBusContext. Inicialmente o contexto
    * utiliza o RootPOA, mas é possível alterar o POA através do método
-   * {@link POA(POA)}.
+   * {@link #POA(POA)}.
    *
    * @return O POA a ser utilizado ao criar conexões.
    */
@@ -68,8 +68,8 @@ public interface OpenBusContext {
   void POA(POA poa);
 
   /**
-   * <i>Callback</> a ser chamada para determinar a conexão a ser utilizada para
-   * receber cada chamada.
+   * <i>Callback</i> a ser chamada para determinar a conexão a ser utilizada
+   * para receber cada chamada.
    * <p>
    * Essa callback deve fornecer a conexão a ser utilizada para para receber
    * uma chamada. Essa conexão será a única conexão através da qual novas

@@ -14,7 +14,7 @@ import com.google.common.util.concurrent.MoreExecutors;
  * contexto de execução ({@link RetryContext}).
  *
  * As <i>threads</i> serão criadas como <i>daemon</i>, ou seja, morrerão caso
- * não haja mais nenhuma <i>thread</> normal ativa.
+ * não haja mais nenhuma <i>thread</i> normal ativa.
  *
  * @author Tecgraf
  */
@@ -59,7 +59,8 @@ public class RetryTaskPool {
   /**
    * Dispara uma tarefa que pode ser retentada em caso de falhas, de acordo com
    * as regras definidas no contexto.
-   * 
+   *
+   * @param <T> Tipo de objeto a ser retornado como resultado do objeto futuro.
    * @param callable Tarefa a ser executada.
    * @param context Contexto associado a esta tarefa.
    * @return Objeto futuro com o resultado desta execução.
