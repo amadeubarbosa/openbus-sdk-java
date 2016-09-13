@@ -29,6 +29,10 @@ echo "system.entity.name = TestEntity"              >> $OPENBUS_TESTCFG
 echo "system.private.key = src/test/resources/TestEntity.key" >> $OPENBUS_TESTCFG
 echo "system.wrong.key = src/test/resources/wrongkey.key" >> $OPENBUS_TESTCFG
 echo "system.wrong.name = NoCertServer"             >> $OPENBUS_TESTCFG
+echo "bus.certificate = src/test/resources/bus.crt" >> $OPENBUS_TESTCFG
+echo "thread.number = 8"                            >> $OPENBUS_TESTCFG
+echo "openbus.interval = 1"                         >> $OPENBUS_TESTCFG
+echo "openbus.interval.unit = S"                    >> $OPENBUS_TESTCFG
 echo "openbus.log.level = 0"                        >> $OPENBUS_TESTCFG
 #echo "openbus.test.verbose=yes"                    >> $OPENBUS_TESTCFG
 
