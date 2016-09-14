@@ -133,21 +133,6 @@ class RetryTask<T> {
   }
 
   /**
-   * Dispara uma nova tentativa respeitando o tempo de intervalo entre
-   * elas.
-   */
-  private void retryWithDelay() {
-    long delay = context.getDelay();
-    TimeUnit unit = context.getDelayUnit();
-    Throwable ex = context.getLastException();
-    logger.finest(String
-      .format("Falha na tarefa. Uma nova tentativa será agendada " +
-          "para ocorrer em %d %s. Última exceção: %s", delay, unit, ex));
-    result = pool.schedule(task, delay, unit);
-    Futures.addCallback(result, callback, pool);
-  }
-
-  /**
    * Tratamento em caso de sucesso.
    * 
    * @param result o resultado da execução da tarefa.
@@ -164,7 +149,22 @@ class RetryTask<T> {
    * 
    * @return o objeto futuro.
    */
-  public ListenableFuture<T> getFuture() {
+  protected ListenableFuture<T> getFuture() {
     return future;
+  }
+
+  /**
+   * Dispara uma nova tentativa respeitando o tempo de intervalo entre
+   * elas.
+   */
+  private void retryWithDelay() {
+    long delay = context.getDelay();
+    TimeUnit unit = context.getDelayUnit();
+    Throwable ex = context.getLastException();
+    logger.finest(String
+      .format("Falha na tarefa. Uma nova tentativa será agendada " +
+        "para ocorrer em %d %s. Última exceção: %s", delay, unit, ex));
+    result = pool.schedule(task, delay, unit);
+    Futures.addCallback(result, callback, pool);
   }
 }

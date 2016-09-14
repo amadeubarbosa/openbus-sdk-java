@@ -51,6 +51,9 @@ public class Configs {
   public long interval;
   /** Unidade de tempo do intervalo entre tentativas de chamadas */
   public String intervalUnit;
+  /** Tempo em ms para aguardar por chamadas remotas assíncronas ou
+   * notificações */
+  public long sleepMsTime;
   /** Path para arquivo sharedauth */
   public String sharedauth;
   /** Nivel de log do teste */
@@ -95,6 +98,7 @@ public class Configs {
     interval = Long.valueOf(props.getProperty("openbus.interval", "1000"));
     intervalUnit = props.getProperty("openbus.interval.unit", TimeUnit
       .MILLISECONDS.toString());
+    sleepMsTime = Long.valueOf(props.getProperty("sleep.ms.time", "1000"));
     sharedauth = props.getProperty("system.sharedauth", "sharedauth.dat");
 
     testlog =

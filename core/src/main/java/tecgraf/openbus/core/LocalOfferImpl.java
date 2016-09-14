@@ -1,7 +1,5 @@
 package tecgraf.openbus.core;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import scs.core.IComponent;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.LocalOffer;
@@ -14,13 +12,15 @@ import tecgraf.openbus.core.v2_1.services.offer_registry.UnauthorizedFacets;
 import tecgraf.openbus.exception.OpenBusInternalException;
 
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Logger;
 
 class LocalOfferImpl extends BusResource implements LocalOffer {
   public final IComponent service;
   public final ServiceProperty[] props;
   private final OfferRegistryImpl registry;
   private RemoteOfferImpl remote = null;
-  private final Logger logger = LoggerFactory.getLogger(this.getClass());
+  private static final Logger logger = Logger.getLogger(LocalOfferImpl.class
+    .getName());
 
   protected LocalOfferImpl(OfferRegistryImpl registry, IComponent service,
                            ServiceProperty[] props) {
@@ -60,10 +60,10 @@ class LocalOfferImpl extends BusResource implements LocalOffer {
       // indefinidamente.
       while (remote == null && lastError == null && timeoutMillis >= 0) {
         long initial = System.currentTimeMillis();
-        if (cancelled || loggedOut) {
+        checkLoggedOut();
+        if (cancelled) {
           return null;
         }
-        checkLoggedOut();
         try {
           if (timeoutMillis > 0) {
             lock.wait(timeoutMillis);
@@ -75,7 +75,8 @@ class LocalOfferImpl extends BusResource implements LocalOffer {
         }
         timeoutMillis -= System.currentTimeMillis() - initial;
       }
-      if (cancelled || loggedOut) {
+      checkLoggedOut();
+      if (cancelled) {
         return null;
       }
       if (remote == null) {
@@ -130,7 +131,6 @@ class LocalOfferImpl extends BusResource implements LocalOffer {
     synchronized (lock) {
       this.remote = remote;
       this.lastError = null;
-      this.loggedOut = false;
       lock.notifyAll();
     }
   }

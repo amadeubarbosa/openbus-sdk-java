@@ -9,8 +9,6 @@ import org.omg.CORBA.OBJECT_NOT_EXIST;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAPackage.ServantNotActive;
 import org.omg.PortableServer.POAPackage.WrongPolicy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.LoginSubscription;
 import tecgraf.openbus.core.v2_1.OctetSeqHolder;
@@ -35,6 +33,8 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Representação local do registro de logins
@@ -62,7 +62,8 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
   private List<LoginSubscriptionImpl> subs;
   private final long retryDelay;
   private final TimeUnit delayUnit;
-  private final Logger logger = LoggerFactory.getLogger(this.getClass());
+  private static final Logger logger = Logger.getLogger(LoginRegistryImpl.class
+    .getName());
 
   protected LoginRegistryImpl(OpenBusContextImpl context, ConnectionImpl conn,
     POA poa, RetryTaskPool pool, long interval, TimeUnit unit) {
@@ -192,8 +193,8 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
                 public void onFailure(Throwable ex) {
                   // so deve entrar aqui se a aplicação escolheu fazer um
                   // logout, ou se pararam as retentativas do RetryTask.
-                  logger.error("Erro ao inserir o observador de logins no " +
-                    "barramento.", ex);
+                  logger.log(Level.SEVERE, "Erro ao inserir o observador de " +
+                    "logins no barramento.", ex);
                   lock.notifyAll();
                 }
 
@@ -207,7 +208,8 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
                     // aviso quem estiver dormindo para dar chance de obter sub
                     // novamente
                     lock.notifyAll();
-                    logger.info("Observador de logins cadastrado no barramento.");
+                    logger.info("Observador de logins cadastrado no " +
+                      "barramento.");
                   }
                 }
               },
@@ -237,9 +239,9 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
           sub1.observer().entityLogout(login);
           sub1.forgetLogin(login.id);
         } catch (Exception e) {
-          logger.error("Erro ao avisar um observador da aplicação de que o" +
-            " login " + login.id + " da entidade " + login.entity + " foi " +
-            "desfeito.", e);
+          logger.log(Level.SEVERE, "Erro ao avisar um observador da aplicação" +
+            " de que o login " + login.id + " da entidade " + login.entity +
+            " foi desfeito.", e);
         }
       }
     });
@@ -431,8 +433,8 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
                   // o tipo de retentativas é o OpenBusRetryContext, se essa
                   // chamada receber uma UserException, COMM_FAILURE ou
                   // OBJECT_NOT_EXIST, desistirá e chegará aqui.
-                  logger.error("Erro ao remover o observador de logins do " +
-                    "barramento.", ex);
+                  logger.log(Level.SEVERE, "Erro ao remover o observador de " +
+                    "logins do barramento.", ex);
                 }
 
                 @Override
@@ -502,7 +504,8 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
           poa.deactivate_object(oid);
           observer = null;
         } catch (Exception e) {
-          logger.warn("Erro ao desativar o objeto observador de logins.", e);
+          logger.log(Level.WARNING, "Erro ao desativar o objeto observador de" +
+            " logins.", e);
         }
       }
     }
@@ -600,9 +603,9 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
         public void onFailure(Throwable t) {
           // Só entra aqui se a aplicação fez logout ou um outro relogin cancelou
           // esse. Basta desistir que o SDK cuida do login atual depois.
-          logger.warn("Erro ao reinserir o observador de logins do " +
-            "barramento devido a um logout ou relogin. Esse erro provavelmente " +
-            "pode ser ignorado.", t);
+          logger.log(Level.WARNING, "Erro ao reinserir o observador de logins" +
+            " do barramento devido a um logout ou relogin. Esse erro " +
+            "provavelmente pode ser ignorado.", t);
           synchronized (lock) {
             lock.notifyAll();
           }
@@ -616,7 +619,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     synchronized (lock) {
       while (registry == null) {
         if (futureReLogin == null) {
-          logger.error("Não há login para realizar a chamada.");
+          logger.severe("Não há login para realizar a chamada.");
           throw new NO_PERMISSION(NoLoginCode.value, CompletionStatus
             .COMPLETED_NO);
         }
@@ -672,7 +675,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
     synchronized (lock) {
       while (subs == null) {
         if (futureReLogin == null) {
-          logger.error("Não há login para realizar a chamada.");
+          logger.severe("Não há login para realizar a chamada.");
           throw new NO_PERMISSION(NoLoginCode.value, CompletionStatus
             .COMPLETED_NO);
         }
@@ -689,7 +692,7 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
   }
 
   private void logInterruptError(Exception e) {
-    logger.error("Interrupção não esperada ao refazer um login. " +
+    logger.log(Level.SEVERE, "Interrupção não esperada ao refazer um login. " +
       "Verifique se sua aplicação está tentando interromper a thread " +
       "quando esta está executando código alheio, como do SDK OpenBus " +
       "ou do JacORB.", e);
@@ -759,8 +762,8 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
                 }
               }
             }
-            logger.warn("Alguns logins não puderam ser re-observados pois saíram " +
-              "do barramento.", e);
+            logger.log(Level.WARNING, "Alguns logins não puderam ser " +
+              "re-observados pois saíram do barramento.", e);
             // atualmente com o catch de OBJECT_NOT_EXIST abaixo, se um
             // administrador remover o meu observador, o mesmo não será mais
             // cadastrado e a API lançará OBJECT_NOT_EXIST para o usuário. O

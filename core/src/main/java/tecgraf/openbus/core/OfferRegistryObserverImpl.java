@@ -1,16 +1,18 @@
 package tecgraf.openbus.core;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistryObserverPOA;
 import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.OfferRegistryObserver;
 import tecgraf.openbus.RemoteOffer;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 class OfferRegistryObserverImpl extends OfferRegistryObserverPOA {
   public final OfferRegistryObserver observer;
   private final OfferRegistryImpl registry;
-  private final Logger logger = LoggerFactory.getLogger(this.getClass());
+  private static final Logger logger = Logger.getLogger(
+    OfferRegistryObserverImpl.class.getName());
 
   protected OfferRegistryObserverImpl(OfferRegistryObserver observer,
                                       OfferRegistryImpl registry) {
@@ -27,9 +29,9 @@ class OfferRegistryObserverImpl extends OfferRegistryObserverPOA {
       try {
         observer.offerRegistered(remote);
       } catch (Exception e) {
-        logger.error("Erro ao avisar um observador da aplicação de que " +
-          "uma oferta do login " + login + " da entidade " + entity + " " +
-          "foi registrada.", e);
+        logger.log(Level.SEVERE, "Erro ao avisar um observador da aplicação " +
+          "de que uma oferta do login " + login + " da entidade " + entity +
+          " foi registrada.", e);
       }
     });
     t.start();

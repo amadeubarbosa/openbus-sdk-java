@@ -1,7 +1,5 @@
 package tecgraf.openbus.core;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OfferObserver;
 import tecgraf.openbus.OfferSubscription;
@@ -12,6 +10,7 @@ import tecgraf.openbus.core.v2_1.services.offer_registry.ServiceOfferDesc;
 import tecgraf.openbus.exception.OpenBusInternalException;
 
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Logger;
 
 class OfferSubscriptionImpl extends BusResource implements OfferSubscription {
   final OfferObserverImpl observer;
@@ -20,16 +19,17 @@ class OfferSubscriptionImpl extends BusResource implements OfferSubscription {
   private OfferObserverSubscription sub = null;
   private final OfferRegistryImpl registry;
   private final RemoteOfferImpl offer;
-  private final Logger logger = LoggerFactory.getLogger(this.getClass());
+  private static final Logger logger = Logger.getLogger(
+    OfferSubscriptionImpl.class.getName());
 
   protected OfferSubscriptionImpl(OfferRegistryImpl registry, RemoteOfferImpl
     offer, OfferObserverImpl observer, tecgraf.openbus.core.v2_1.services
-    .offer_registry.OfferObserver proxy, ServiceOfferDesc offerDesc) {
+    .offer_registry.OfferObserver proxy) {
     this.registry = registry;
     this.offer = offer;
     this.observer = observer;
     this.proxy = proxy;
-    this.offerDesc = offerDesc;
+    this.offerDesc = offer.offer();
   }
 
   @Override
@@ -62,10 +62,10 @@ class OfferSubscriptionImpl extends BusResource implements OfferSubscription {
       // indefinidamente.
       while (sub == null && lastError == null && timeoutMillis >= 0) {
         long initial = System.currentTimeMillis();
-        if (cancelled || loggedOut) {
+        checkLoggedOut();
+        if (cancelled) {
           return false;
         }
-        checkLoggedOut();
         try {
           if (timeoutMillis > 0) {
             lock.wait(timeoutMillis);
@@ -77,7 +77,8 @@ class OfferSubscriptionImpl extends BusResource implements OfferSubscription {
         }
         timeoutMillis -= System.currentTimeMillis() - initial;
       }
-      if (cancelled || loggedOut) {
+      checkLoggedOut();
+      if (cancelled) {
         return false;
       }
       if (sub == null) {
@@ -142,8 +143,6 @@ class OfferSubscriptionImpl extends BusResource implements OfferSubscription {
     synchronized (lock) {
       this.sub = sub;
       this.lastError = null;
-      this.offerDesc = sub.offer().describe();
-      this.loggedOut = false;
       lock.notifyAll();
     }
   }

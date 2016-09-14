@@ -2,12 +2,14 @@ package tecgraf.openbus.core;
 
 import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.NO_PERMISSION;
-import org.slf4j.Logger;
 import tecgraf.openbus.core.v2_1.services.access_control.NoLoginCode;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 abstract class BusResource {
   protected Throwable lastError = null;
-  protected boolean loggedOut;
+  protected boolean loggedOut = false;
   protected boolean cancelled = false;
   // Não vale a pena usar ReentrantLock pois só tenho uma condição; E não
   // posso usar Monitor por causa do teste de loggedOut.
@@ -18,7 +20,6 @@ abstract class BusResource {
   protected void error(Throwable error) {
     synchronized (lock) {
       this.lastError = error;
-      this.loggedOut = false;
       lock.notifyAll();
     }
   }
@@ -46,6 +47,7 @@ abstract class BusResource {
   }
 
   protected void logInterruptError(Logger logger, Exception e) {
-    logger.error("Interrupção recebida ao aguardar por uma oferta remota.", e);
+    logger.log(Level.SEVERE, "Interrupção recebida ao aguardar por uma oferta" +
+      " remota.", e);
   }
 }

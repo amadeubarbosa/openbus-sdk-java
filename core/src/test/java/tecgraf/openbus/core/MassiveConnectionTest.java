@@ -25,9 +25,9 @@ import tecgraf.openbus.utils.Utils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -45,12 +45,15 @@ public class MassiveConnectionTest {
   private static OpenBusContext context;
   private static final int LOOP_SIZE = 20;
   private static final int THREAD_POOL_SIZE = 8;
+  private static long sleepTime;
+  private final TimeUnit sleepTimeUnit = TimeUnit.MILLISECONDS;
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
     Configs configs = Configs.readConfigsFile();
     Utils.setLibLogLevel(configs.log);
     domain = configs.domain;
+    sleepTime = configs.sleepMsTime;
     orb =
       ORBInitializer.initORB(null, Utils.readPropertyFile(configs.orbprops));
     busref = orb.string_to_object(new String(Utils.readFile(configs.busref)));
@@ -86,9 +89,6 @@ public class MassiveConnectionTest {
     private final OpenBusContext context;
     private final String entity;
     private final AtomicBoolean failed;
-    private final long remoteSleepTime = THREAD_POOL_SIZE * 10000;
-    private final long sleepTime = THREAD_POOL_SIZE * 2 / 3 * 1000;
-    private final long logoutSleepTime = 1000;
 
     public ConnectThread(OpenBusContext multiplexer, int id, AtomicBoolean
       failed) {
@@ -112,7 +112,7 @@ public class MassiveConnectionTest {
         props.put("time", "" + System.currentTimeMillis());
         LocalOffer local = conn.offerRegistry().registerService(component
           .getIComponent(), props);
-        assertNotNull(local.remoteOffer(remoteSleepTime));
+        assertNotNull(local.remoteOffer(sleepTime));
         List<RemoteOffer> services = conn.offerRegistry().findServices(props);
         if (services.size() != 1) {
           failed.set(true);
@@ -125,7 +125,7 @@ public class MassiveConnectionTest {
         }
 
         // login observer
-        Semaphore mutex = new Semaphore(0);
+        CountDownLatch latchLogin = new CountDownLatch(1);
         Connection conn2 = context.connectByReference(busref);
         conn2.loginByPassword(entity, entity.getBytes(), domain);
         LoginRegistry logins = conn.loginRegistry();
@@ -133,7 +133,7 @@ public class MassiveConnectionTest {
         IdEqualityChecker ids = new IdEqualityChecker();
         LoginObserverTest observer = new LoginObserverTest();
         observer.ids = ids;
-        observer.mutex = mutex;
+        observer.latch = latchLogin;
         ids.id2 = conn2.login().id;
         sub = logins.subscribeObserver(observer);
         observer.sub = sub;
@@ -152,7 +152,7 @@ public class MassiveConnectionTest {
         }
         assertTrue(watchedLogins.containsAll(toWatch));
         conn2.logout();
-        mutex.acquire();
+        assertTrue(latchLogin.await(sleepTime, sleepTimeUnit));
         assertTrue(ids.check());
         toWatch.remove(conn2Id);
         sub.forgetLogin(conn.login().id);
@@ -167,39 +167,40 @@ public class MassiveConnectionTest {
         // offer registry observer
         final IdEqualityChecker ids2 = new
           IdEqualityChecker();
-        final Semaphore tempMutex = mutex;
+        final CountDownLatch latchRegister = new CountDownLatch(1);
         OfferRegistryObserver regObserver = offer1 -> {
           ids2.id1 = OfferRegistryImpl.getOfferIdFromProperties((
             (RemoteOfferImpl) offer1).offer());
-          tempMutex.release();
+          latchRegister.countDown();
       };
         OfferRegistrySubscription regSub = conn.offerRegistry()
           .subscribeObserver(regObserver, props);
         // aguarda ocorrer a subscrição
-        Thread.sleep(sleepTime);
-        assertTrue(regSub.subscribed(10000));
+        assertTrue(regSub.subscribed(sleepTime));
         assertSame(regObserver, regSub.observer());
         assertTrue(regSub.properties().equals(props));
 
         local = conn.offerRegistry().registerService(component
           .getIComponent(), props);
+        RemoteOffer remote = local.remoteOffer(sleepTime);
 
-        RemoteOffer remote = local.remoteOffer(remoteSleepTime);
+        assertTrue(latchRegister.await(sleepTime, sleepTimeUnit));
         ids2.id2 = OfferRegistryImpl.getOfferIdFromProperties((
           (RemoteOfferImpl)remote).offer());
-        mutex.acquire();
         assertTrue(ids2.check());
         regSub.remove();
 
         // offer observer
         conn2.loginByPassword(entity, entity.getBytes(), domain);
-        RemoteOffer remoteConn1 = local.remoteOffer(remoteSleepTime);
+        RemoteOffer remoteConn1 = local.remoteOffer(sleepTime);
         assertNotNull(remoteConn1);
         final Connection tempConn2 = conn2;
         context.onCallDispatch((openBusContext, s, s1, bytes, s2) -> tempConn2);
         final RemoteOffer remoteConn2 = conn2.offerRegistry().findServices
           (props).get(0);
         assertNotNull(remoteConn2);
+        final CountDownLatch latchPropsChanged = new CountDownLatch(1);
+        final CountDownLatch latchOfferRemoved = new CountDownLatch(1);
         final IdEqualityChecker ids3 = new IdEqualityChecker();
         OfferObserver offerObserver = new OfferObserver() {
           @Override
@@ -223,35 +224,36 @@ public class MassiveConnectionTest {
             // seta informação de offer id para checagem posterior
             ids3.id1 = OfferRegistryImpl.getOfferIdFromProperties(offerImpl
               .offer());
-            tempMutex.release();
+            latchPropsChanged.countDown();
           }
 
           @Override
           public void removed(RemoteOffer offer) {
             ids3.id2 = OfferRegistryImpl.getOfferIdFromProperties((
               (RemoteOfferImpl)offer).offer());
-            tempMutex.release();
+            latchOfferRemoved.countDown();
           }
         };
         OfferSubscription offerSub = remoteConn2.subscribeObserver
           (offerObserver);
-        assertTrue(offerSub.subscribed(10000));
-        assertSame(offerObserver, offerSub.observer());
         //aguarda ocorrer a subscrição
-        Thread.sleep(sleepTime);
+        assertTrue(offerSub.subscribed(sleepTime));
+        assertSame(offerObserver, offerSub.observer());
 
         props.put("offer.altered", "true");
         remoteConn1.properties(props);
-        mutex.acquire();
+        assertTrue(latchPropsChanged.await(sleepTime, TimeUnit
+          .MILLISECONDS));
         ids3.id2 = OfferRegistryImpl.getOfferIdFromProperties((
           (RemoteOfferImpl)remoteConn1).offer());
         assertTrue(ids3.check());
         remoteConn1.remove();
-        mutex.acquire();
+        assertTrue(latchOfferRemoved.await(sleepTime, TimeUnit
+          .MILLISECONDS));
         assertTrue(ids3.check());
 
         offerSub.remove();
-        Thread.sleep(logoutSleepTime);
+        Thread.sleep(1000);
         conn.logout();
         conn2.logout();
       }
@@ -273,12 +275,12 @@ public class MassiveConnectionTest {
     private class LoginObserverTest implements tecgraf.openbus.LoginObserver {
       public LoginSubscription sub;
       public IdEqualityChecker ids;
-      public Semaphore mutex;
+      public CountDownLatch latch;
 
       @Override
       public void entityLogout(LoginInfo login) {
         ids.id1 = login.id;
-        mutex.release();
+        latch.countDown();
       }
 
       @Override

@@ -10,8 +10,6 @@ import org.omg.CORBA.OBJECT_NOT_EXIST;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAPackage.ServantNotActive;
 import org.omg.PortableServer.POAPackage.WrongPolicy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import scs.core.IComponent;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.LocalOffer;
@@ -47,6 +45,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 // Não basta ser um OfferRegistryObserver pois preciso ter vários
 // observadores, não apenas um como no caso do login, pois não há
@@ -63,7 +63,8 @@ class OfferRegistryImpl implements OfferRegistry {
   private final RetryTaskPool pool;
   /** Guarda as ofertas locais mantidas nas chaves. Cada valor só será diferente
    *  de null se houver um registro em andamento. */
-  private Map<LocalOfferImpl, ListenableFuture<RemoteOfferImpl>> maintainedOffers;
+  private Map<LocalOfferImpl, ListenableFuture<RemoteOfferImpl>>
+    maintainedOffers;
   private Map<OfferRegistrySubscriptionImpl,
     ListenableFuture<OfferRegistryObserverSubscription>> registrySubs;
   private Map<OfferSubscriptionImpl,
@@ -71,7 +72,8 @@ class OfferRegistryImpl implements OfferRegistry {
   private ListenableFuture<Void> futureReLogin;
   private final long retryDelay;
   private final TimeUnit delayUnit;
-  private final Logger logger = LoggerFactory.getLogger(this.getClass());
+  private static final Logger logger = Logger.getLogger(OfferRegistryImpl.class
+    .getName());
 
   protected OfferRegistryImpl(OpenBusContextImpl context, Connection conn,
                               POA poa, RetryTaskPool pool, long interval,
@@ -244,7 +246,8 @@ class OfferRegistryImpl implements OfferRegistry {
                   // o tipo de retentativas é o OpenBusRetryContext, se essa
                   // chamada receber uma UserException, COMM_FAILURE ou
                   // OBJECT_NOT_EXIST, desistirá e chegará aqui.
-                  logger.error("Erro ao remover oferta do barramento.", ex);
+                  logger.log(Level.SEVERE, "Erro ao remover oferta do " +
+                    "barramento.", ex);
                 }
 
                 @Override
@@ -330,8 +333,8 @@ class OfferRegistryImpl implements OfferRegistry {
                 // o tipo de retentativas é o OpenBusRetryContext, se essa
                 // chamada receber uma UserException, COMM_FAILURE ou
                 // OBJECT_NOT_EXIST, desistirá e chegará aqui.
-                logger.error("Erro ao remover subscrição de registro de " +
-                  "oferta do barramento.", ex);
+                logger.log(Level.SEVERE, "Erro ao remover subscrição de " +
+                  "registro de oferta do barramento.", ex);
               }
 
               @Override
@@ -348,7 +351,7 @@ class OfferRegistryImpl implements OfferRegistry {
         byte[] oid = poa.reference_to_id(localSub.proxy);
         poa.deactivate_object(oid);
       } catch (Exception e) {
-        logger.warn("Erro ao desativar um objeto observador de " +
+        logger.log(Level.WARNING, "Erro ao desativar um objeto observador de " +
           "registro de ofertas.", e);
       }
       logger.info("Subscrição de registro de oferta cancelada com sucesso.");
@@ -377,7 +380,7 @@ class OfferRegistryImpl implements OfferRegistry {
     tecgraf.openbus.core.v2_1.services.offer_registry.OfferObserver proxy =
       OfferObserverHelper.narrow(poa.servant_to_reference(internalObserver));
     OfferSubscriptionImpl localSub = new OfferSubscriptionImpl
-      (this, remoteOffer, internalObserver, proxy, offerDesc);
+      (this, remoteOffer, internalObserver, proxy);
     if (!doSubscribeToOfferTask(offerSubs, localSub)) {
       return null;
     }
@@ -452,8 +455,8 @@ class OfferRegistryImpl implements OfferRegistry {
                 // o tipo de retentativas é o OpenBusRetryContext, se essa
                 // chamada receber uma UserException, COMM_FAILURE ou
                 // OBJECT_NOT_EXIST, desistirá e chegará aqui.
-                logger.error("Erro ao remover subscrição de oferta do " +
-                  "barramento.", ex);
+                logger.log(Level.SEVERE, "Erro ao remover subscrição de " +
+                  "oferta do barramento.", ex);
               }
 
               @Override
@@ -470,7 +473,8 @@ class OfferRegistryImpl implements OfferRegistry {
         byte[] oid = poa.reference_to_id(localSub.proxy);
         poa.deactivate_object(oid);
       } catch (Exception e) {
-        logger.warn("Erro ao desativar um objeto observador de oferta.", e);
+        logger.log(Level.WARNING, "Erro ao desativar um objeto observador de " +
+          "oferta.", e);
       }
       logger.info("Subscrição de oferta cancelada com sucesso.");
     }
@@ -692,9 +696,9 @@ class OfferRegistryImpl implements OfferRegistry {
         public void onFailure(Throwable t) {
           // Só entra aqui se a aplicação fez logout ou um outro relogin cancelou
           // esse. Basta desistir que o SDK cuida do login atual depois.
-          logger.warn("Erro ao reinserir registros e observadores de oferta no " +
-            "barramento devido a um logout ou relogin. Esse erro provavelmente " +
-            "pode ser ignorado.", t);
+          logger.log(Level.WARNING, "Erro ao reinserir registros e " +
+            "observadores de oferta no barramento devido a um logout ou " +
+            "relogin. Esse erro provavelmente pode ser ignorado.", t);
           synchronized (lock) {
             lock.notifyAll();
           }
@@ -740,8 +744,8 @@ class OfferRegistryImpl implements OfferRegistry {
                 localOffer.remove();
                 maintainedOffers.remove(localOffer);
               }
-              logger.error("Erro ao registrar oferta no barramento, esse " +
-                "pedido não será mais mantido pelo SDK.", ex);
+              logger.log(Level.SEVERE, "Erro ao registrar oferta no " +
+                "barramento, esse pedido não será mais mantido pelo SDK.", ex);
             }
 
             @Override
@@ -796,8 +800,8 @@ class OfferRegistryImpl implements OfferRegistry {
               synchronized (lock) {
                 localSub.remove();
               }
-              logger.error("Erro ao inserir um observador de registro de " +
-                "oferta no barramento.", ex);
+              logger.log(Level.SEVERE, "Erro ao inserir um observador de " +
+                "registro de oferta no barramento.", ex);
             }
 
             @Override
@@ -842,8 +846,8 @@ class OfferRegistryImpl implements OfferRegistry {
               synchronized (lock) {
                 localSub.remove();
               }
-              logger.error("Erro ao inserir um observador de oferta no " +
-                "barramento", ex);
+              logger.log(Level.SEVERE, "Erro ao inserir um observador de " +
+                "oferta no barramento", ex);
             }
 
             @Override
@@ -867,7 +871,7 @@ class OfferRegistryImpl implements OfferRegistry {
     synchronized (lock) {
       while (maintainedOffers == null) {
         if (futureReLogin == null) {
-          logger.error("Não há login para realizar a chamada.");
+          logger.severe("Não há login para realizar a chamada.");
           throw new NO_PERMISSION(NoLoginCode.value, CompletionStatus
             .COMPLETED_NO);
         }
@@ -888,7 +892,7 @@ class OfferRegistryImpl implements OfferRegistry {
     synchronized (lock) {
       while (registrySubs == null) {
         if (futureReLogin == null) {
-          logger.error("Não há login para realizar a chamada.");
+          logger.severe("Não há login para realizar a chamada.");
           throw new NO_PERMISSION(NoLoginCode.value, CompletionStatus
             .COMPLETED_NO);
         }
@@ -909,7 +913,7 @@ class OfferRegistryImpl implements OfferRegistry {
     synchronized (lock) {
       while (offerSubs == null) {
         if (futureReLogin == null) {
-          logger.error("Não há login para realizar a chamada.");
+          logger.severe("Não há login para realizar a chamada.");
           throw new NO_PERMISSION(NoLoginCode.value, CompletionStatus
             .COMPLETED_NO);
         }
@@ -926,7 +930,7 @@ class OfferRegistryImpl implements OfferRegistry {
   }
 
   private void logInterruptError(Exception e) {
-    logger.error("Interrupção não esperada ao refazer um login. " +
+    logger.log(Level.SEVERE, "Interrupção não esperada ao refazer um login. " +
       "Verifique se sua aplicação está tentando interromper a thread " +
       "quando esta está executando código alheio, como do SDK OpenBus " +
       "ou do JacORB.", e);
@@ -937,7 +941,7 @@ class OfferRegistryImpl implements OfferRegistry {
     synchronized (lock) {
       while (registry == null) {
         if (futureReLogin == null) {
-          logger.error("Não há login para realizar a chamada.");
+          logger.severe("Não há login para realizar a chamada.");
           throw new NO_PERMISSION(NoLoginCode.value, CompletionStatus
             .COMPLETED_NO);
         }
@@ -1084,9 +1088,9 @@ class OfferRegistryImpl implements OfferRegistry {
     private final ServiceProperty[] properties;
 
     public OfferRegistrySubscriptionTask(tecgraf.openbus.core.v2_1.services
-                                           .offer_registry.OfferRegistry registry, tecgraf.openbus.core.v2_1.services
-                                           .offer_registry.OfferRegistryObserver observer, ServiceProperty[]
-                                           properties) {
+      .offer_registry.OfferRegistry registry, tecgraf.openbus.core.v2_1.services
+      .offer_registry.OfferRegistryObserver observer, ServiceProperty[]
+      properties) {
       this.registry = registry;
       this.observer = observer;
       this.properties = properties;

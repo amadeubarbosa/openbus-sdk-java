@@ -11,7 +11,7 @@ import java.util.Properties;
 public enum OpenBusProperty {
 
   /**
-   * Define se o suporte legado deve ser habilitado. Os valores possíveis
+   * Define se o suporte legado deve ser desabilitado. Os valores possíveis
    * são: {@code true} e {@code false}. O padrão é {@code false}.
    */
   LEGACY_DISABLE("legacy.disable", "false"),

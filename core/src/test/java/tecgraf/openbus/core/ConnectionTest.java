@@ -51,6 +51,7 @@ public final class ConnectionTest {
   private static byte[] adminpwd;
   private static ORB orb;
   private static OpenBusContextImpl context;
+  private static long sleepTime;
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
@@ -68,6 +69,7 @@ public final class ConnectionTest {
     systemWrongKey = crypto.readKeyFromFile(configs.wrongkey);
     admin = configs.admin;
     adminpwd = configs.admpsw;
+    sleepTime = configs.sleepMsTime;
     orb =
       ORBInitializer.initORB(null, Utils.readPropertyFile(configs.orbprops));
     busref = orb.string_to_object(new String(Utils.readFile(configs.busref)));
@@ -384,13 +386,13 @@ public final class ConnectionTest {
       // conn1
       LocalOffer local = conn1.offerRegistry().registerService(comp1
         .getIComponent(), props);
-      local.remoteOffer(10000);
+      local.remoteOffer(sleepTime);
       context.onCallDispatch((context1, busid, loginId, object_id, operation)
         -> conn2);
       // conn2
       LocalOffer local2 = conn2.offerRegistry().registerService(comp1
         .getIComponent(), props);
-      local2.remoteOffer(10000);
+      local2.remoteOffer(sleepTime);
 
       props.clear();
       props.put("offer.domain", "testing");

@@ -1,8 +1,6 @@
 package tecgraf.openbus.core;
 
 import com.google.common.collect.ArrayListMultimap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.OfferRegistryObserver;
 import tecgraf.openbus.OfferRegistrySubscription;
@@ -11,6 +9,7 @@ import tecgraf.openbus.core.v2_1.services.offer_registry.OfferRegistryObserverSu
 import tecgraf.openbus.exception.OpenBusInternalException;
 
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Logger;
 
 /**
  * Representação local de uma inscrição de observação de registro de oferta
@@ -25,7 +24,8 @@ class OfferRegistrySubscriptionImpl extends BusResource implements
   private final ArrayListMultimap<String, String> properties;
   private final OfferRegistryImpl registry;
   private OfferRegistryObserverSubscription sub = null;
-  private final Logger logger = LoggerFactory.getLogger(this.getClass());
+  private static final Logger logger = Logger.getLogger(
+    OfferRegistrySubscriptionImpl.class.getName());
 
   protected OfferRegistrySubscriptionImpl(OfferRegistryImpl registry,
     OfferRegistryObserverImpl observer, tecgraf.openbus.core.v2_1.services.
@@ -67,10 +67,10 @@ class OfferRegistrySubscriptionImpl extends BusResource implements
       // indefinidamente.
       while (sub == null && lastError == null && timeoutMillis >= 0) {
         long initial = System.currentTimeMillis();
-        if (cancelled || loggedOut) {
+        checkLoggedOut();
+        if (cancelled) {
           return false;
         }
-        checkLoggedOut();
         try {
           if (timeoutMillis > 0) {
             lock.wait(timeoutMillis);
@@ -82,7 +82,8 @@ class OfferRegistrySubscriptionImpl extends BusResource implements
         }
         timeoutMillis -= System.currentTimeMillis() - initial;
       }
-      if (cancelled || loggedOut) {
+      checkLoggedOut();
+      if (cancelled) {
         return false;
       }
       if (sub == null) {
@@ -147,7 +148,6 @@ class OfferRegistrySubscriptionImpl extends BusResource implements
     synchronized (lock) {
       this.sub = sub;
       this.lastError = null;
-      this.loggedOut = false;
       lock.notifyAll();
     }
   }
