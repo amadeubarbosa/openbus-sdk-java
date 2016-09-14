@@ -203,8 +203,15 @@ class OfferRegistryImpl implements OfferRegistry {
 
               @Override
               public void onSuccess(RemoteOfferImpl remote) {
-                // a tarefa não foi cancelada a tempo. Cancelar manualmente.
-                needRemove.set(true);
+                try {
+                  // a tarefa não foi cancelada a tempo. Cancelar manualmente.
+                  needRemove.set(true);
+                } catch (Throwable e) {
+                  logger.log(Level.SEVERE, "Erro ao completar uma tarefa " +
+                    "de cancelamento de registro de oferta do OfferRegistry " +
+                    "bem-sucedida.", e);
+                  throw e;
+                }
               }
             },
             pool.pool());
@@ -241,18 +248,30 @@ class OfferRegistryImpl implements OfferRegistry {
           Futures.addCallback(futureRemoval, new FutureCallback<Void>() {
                 @Override
                 public void onFailure(Throwable ex) {
-                  // so deve entrar aqui se a aplicação escolheu fazer um
-                  // logout, ou se pararam as retentativas do RetryTask. Como
-                  // o tipo de retentativas é o OpenBusRetryContext, se essa
-                  // chamada receber uma UserException, COMM_FAILURE ou
-                  // OBJECT_NOT_EXIST, desistirá e chegará aqui.
-                  logger.log(Level.SEVERE, "Erro ao remover oferta do " +
-                    "barramento.", ex);
+                  try {
+                    // so deve entrar aqui se a aplicação escolheu fazer um
+                    // logout, ou se pararam as retentativas do RetryTask. Como
+                    // o tipo de retentativas é o OpenBusRetryContext, se essa
+                    // chamada receber uma UserException, COMM_FAILURE ou
+                    // OBJECT_NOT_EXIST, desistirá e chegará aqui.
+                    logger.log(Level.SEVERE, "Erro ao remover oferta do " +
+                      "barramento.", ex);
+                  } catch (Throwable e) {
+                    logger.log(Level.SEVERE, "Erro ao completar uma tarefa " +
+                      "de remoção de oferta do OfferRegistry mal-sucedida.", e);
+                    throw e;
+                  }
                 }
 
                 @Override
                 public void onSuccess(Void nothing) {
-                  logger.info("Oferta removida do barramento.");
+                  try {
+                    logger.info("Oferta removida do barramento.");
+                  } catch (Throwable e) {
+                    logger.log(Level.SEVERE, "Erro ao completar uma tarefa " +
+                      "de remoção de oferta do OfferRegistry bem-sucedida.", e);
+                    throw e;
+                  }
                 }
               },
             pool.pool());
@@ -294,8 +313,15 @@ class OfferRegistryImpl implements OfferRegistry {
 
               @Override
               public void onSuccess(OfferRegistryObserverSubscription remote) {
-                // a tarefa não foi cancelada a tempo. Cancelar manualmente.
-                needRemove.set(true);
+                try {
+                  // a tarefa não foi cancelada a tempo. Cancelar manualmente.
+                  needRemove.set(true);
+                } catch (Throwable e) {
+                  logger.log(Level.SEVERE, "Erro ao completar uma tarefa " +
+                    "de cancelamento de observador de registro de oferta do " +
+                    "OfferRegistry bem-sucedida.", e);
+                  throw e;
+                }
               }
             },
             pool.pool());
@@ -328,19 +354,33 @@ class OfferRegistryImpl implements OfferRegistry {
           Futures.addCallback(futureRemoval, new FutureCallback<Void>() {
               @Override
               public void onFailure(Throwable ex) {
-                // so deve entrar aqui se a aplicação escolheu fazer um
-                // logout, ou se pararam as retentativas do RetryTask. Como
-                // o tipo de retentativas é o OpenBusRetryContext, se essa
-                // chamada receber uma UserException, COMM_FAILURE ou
-                // OBJECT_NOT_EXIST, desistirá e chegará aqui.
-                logger.log(Level.SEVERE, "Erro ao remover subscrição de " +
-                  "registro de oferta do barramento.", ex);
+                try {
+                  // so deve entrar aqui se a aplicação escolheu fazer um
+                  // logout, ou se pararam as retentativas do RetryTask. Como
+                  // o tipo de retentativas é o OpenBusRetryContext, se essa
+                  // chamada receber uma UserException, COMM_FAILURE ou
+                  // OBJECT_NOT_EXIST, desistirá e chegará aqui.
+                  logger.log(Level.SEVERE, "Erro ao remover subscrição de " +
+                    "registro de oferta do barramento.", ex);
+                } catch (Throwable e) {
+                  logger.log(Level.SEVERE, "Erro ao completar uma tarefa " +
+                    "de remoção de observador de registro de oferta do " +
+                    "OfferRegistry mal-sucedida.", e);
+                  throw e;
+                }
               }
 
               @Override
               public void onSuccess(Void nothing) {
-                logger.info("Subscrição de registro de oferta removida do " +
-                  "barramento.");
+                try {
+                  logger.info("Subscrição de registro de oferta removida do " +
+                    "barramento.");
+                } catch (Throwable e) {
+                  logger.log(Level.SEVERE, "Erro ao completar uma tarefa " +
+                    "de remoção de observador de registro de oferta do " +
+                    "OfferRegistry bem-sucedida.", e);
+                  throw e;
+                }
               }
             },
             pool.pool());
@@ -416,8 +456,15 @@ class OfferRegistryImpl implements OfferRegistry {
 
                 @Override
                 public void onSuccess(OfferObserverSubscription remote) {
-                  // a tarefa não foi cancelada a tempo. Cancelar manualmente.
-                  needRemove.set(true);
+                  try {
+                    // a tarefa não foi cancelada a tempo. Cancelar manualmente.
+                    needRemove.set(true);
+                  } catch (Throwable e) {
+                    logger.log(Level.SEVERE, "Erro ao completar uma tarefa " +
+                      "de cancelamento de observador de oferta do " +
+                      "OfferRegistry bem-sucedida.", e);
+                    throw e;
+                  }
                 }
               },
             pool.pool());
@@ -450,19 +497,33 @@ class OfferRegistryImpl implements OfferRegistry {
           Futures.addCallback(futureRemoval, new FutureCallback<Void>() {
               @Override
               public void onFailure(Throwable ex) {
-                // so deve entrar aqui se a aplicação escolheu fazer um
-                // logout, ou se pararam as retentativas do RetryTask. Como
-                // o tipo de retentativas é o OpenBusRetryContext, se essa
-                // chamada receber uma UserException, COMM_FAILURE ou
-                // OBJECT_NOT_EXIST, desistirá e chegará aqui.
-                logger.log(Level.SEVERE, "Erro ao remover subscrição de " +
-                  "oferta do barramento.", ex);
+                try {
+                  // so deve entrar aqui se a aplicação escolheu fazer um
+                  // logout, ou se pararam as retentativas do RetryTask. Como
+                  // o tipo de retentativas é o OpenBusRetryContext, se essa
+                  // chamada receber uma UserException, COMM_FAILURE ou
+                  // OBJECT_NOT_EXIST, desistirá e chegará aqui.
+                  logger.log(Level.SEVERE, "Erro ao remover subscrição de " +
+                    "oferta do barramento.", ex);
+                } catch (Throwable e) {
+                  logger.log(Level.SEVERE, "Erro ao completar uma tarefa " +
+                    "de remoção de observador de oferta do OfferRegistry " +
+                    "mal-sucedida.", e);
+                  throw e;
+                }
               }
 
               @Override
               public void onSuccess(Void nothing) {
-                logger.info("Subscrição de oferta removida da oferta no " +
-                  "barramento.");
+                try {
+                  logger.info("Subscrição de oferta removida da oferta no " +
+                    "barramento.");
+                } catch (Throwable e) {
+                  logger.log(Level.SEVERE, "Erro ao completar uma tarefa " +
+                    "de remoção de observador de oferta do OfferRegistry " +
+                    "bem-sucedida.", e);
+                  throw e;
+                }
               }
             },
             pool.pool());
@@ -683,24 +744,36 @@ class OfferRegistryImpl implements OfferRegistry {
       Futures.addCallback(futureReLogin, new FutureCallback<Void>() {
         @Override
         public void onSuccess(Void result) {
-          // nulificar futureReLogin e notificar quem estiver esperando.
-          synchronized (lock) {
-            if (futureReLogin != null && !futureReLogin.isCancelled()) {
-              futureReLogin = null;
+          try {
+            // nulificar futureReLogin e notificar quem estiver esperando.
+            synchronized (lock) {
+              if (futureReLogin != null && !futureReLogin.isCancelled()) {
+                futureReLogin = null;
+              }
+              lock.notifyAll();
             }
-            lock.notifyAll();
+          } catch (Throwable e) {
+            logger.log(Level.SEVERE, "Erro ao completar uma tarefa " +
+              "de relogin do OfferRegistry bem-sucedida.", e);
+            throw e;
           }
         }
 
         @Override
         public void onFailure(Throwable t) {
-          // Só entra aqui se a aplicação fez logout ou um outro relogin cancelou
-          // esse. Basta desistir que o SDK cuida do login atual depois.
-          logger.log(Level.WARNING, "Erro ao reinserir registros e " +
-            "observadores de oferta no barramento devido a um logout ou " +
-            "relogin. Esse erro provavelmente pode ser ignorado.", t);
-          synchronized (lock) {
-            lock.notifyAll();
+          try {
+            // Só entra aqui se a aplicação fez logout ou um outro relogin cancelou
+            // esse. Basta desistir que o SDK cuida do login atual depois.
+            logger.log(Level.WARNING, "Erro ao reinserir registros e " +
+              "observadores de oferta no barramento devido a um logout ou " +
+              "relogin. Esse erro provavelmente pode ser ignorado.", t);
+            synchronized (lock) {
+              lock.notifyAll();
+            }
+          } catch (Throwable e) {
+            logger.log(Level.SEVERE, "Erro ao completar uma tarefa " +
+              "de relogin do OfferRegistry mal-sucedida.", e);
+            throw e;
           }
         }
       }, pool.pool());
@@ -735,33 +808,45 @@ class OfferRegistryImpl implements OfferRegistry {
           FutureCallback<RemoteOfferImpl>() {
             @Override
             public void onFailure(Throwable ex) {
-              // so deve entrar aqui se a aplicação escolheu fazer um
-              // logout, ou se pararam as retentativas do RetryTask. Como
-              // o tipo de retentativas é o OfferRegistryRetryContext que
-              // retenta infinitamente, só vai chegar aqui se o registro for
-              // cancelado pelo usuário.
-              synchronized (lock) {
-                localOffer.remove();
-                maintainedOffers.remove(localOffer);
+              try {
+                // so deve entrar aqui se a aplicação escolheu fazer um
+                // logout, ou se pararam as retentativas do RetryTask. Como
+                // o tipo de retentativas é o OfferRegistryRetryContext que
+                // retenta infinitamente, só vai chegar aqui se o registro for
+                // cancelado pelo usuário.
+                synchronized (lock) {
+                  localOffer.remove();
+                  maintainedOffers.remove(localOffer);
+                }
+                logger.log(Level.SEVERE, "Erro ao registrar oferta no " +
+                  "barramento, esse pedido não será mais mantido pelo SDK.", ex);
+              } catch (Throwable e) {
+                logger.log(Level.SEVERE, "Erro ao completar uma tarefa " +
+                  "de registro de oferta do OfferRegistry mal-sucedida.", e);
+                throw e;
               }
-              logger.log(Level.SEVERE, "Erro ao registrar oferta no " +
-                "barramento, esse pedido não será mais mantido pelo SDK.", ex);
             }
 
             @Override
             public void onSuccess(RemoteOfferImpl remote) {
-              synchronized (lock) {
-                // devo setar apenas se não foi cancelado. Se future for
-                // null, houve cancelamento.
-                ListenableFuture<RemoteOfferImpl> future = maintainedOffers
-                  .get(localOffer);
-                if (future != null) {
-                  // não há como ter dois sucessos ao mesmo tempo, portanto
-                  // posso passar por cima do valor direto sem testar.
-                  maintainedOffers.put(localOffer, null);
-                  localOffer.remote(remote);
-                  logger.info("Registro de oferta realizado com sucesso.");
+              try {
+                synchronized (lock) {
+                  // devo setar apenas se não foi cancelado. Se future for
+                  // null, houve cancelamento.
+                  ListenableFuture<RemoteOfferImpl> future = maintainedOffers
+                    .get(localOffer);
+                  if (future != null) {
+                    // não há como ter dois sucessos ao mesmo tempo, portanto
+                    // posso passar por cima do valor direto sem testar.
+                    maintainedOffers.put(localOffer, null);
+                    localOffer.remote(remote);
+                    logger.info("Registro de oferta realizado com sucesso.");
+                  }
                 }
+              } catch (Throwable e) {
+                logger.log(Level.SEVERE, "Erro ao completar uma tarefa " +
+                  "de registro de oferta do OfferRegistry bem-sucedida.", e);
+                throw e;
               }
             }
           },
@@ -792,27 +877,41 @@ class OfferRegistryImpl implements OfferRegistry {
           FutureCallback<OfferRegistryObserverSubscription>() {
             @Override
             public void onFailure(Throwable ex) {
-              // so deve entrar aqui se a aplicação escolheu fazer um
-              // logout, ou se pararam as retentativas do RetryTask. Como
-              // o tipo de retentativas é o InfiniteRetryContext que
-              // retenta infinitamente, só vai chegar aqui se a subscrição for
-              // cancelada pelo usuário.
-              synchronized (lock) {
-                localSub.remove();
+              try {
+                // so deve entrar aqui se a aplicação escolheu fazer um
+                // logout, ou se pararam as retentativas do RetryTask. Como
+                // o tipo de retentativas é o InfiniteRetryContext que
+                // retenta infinitamente, só vai chegar aqui se a subscrição for
+                // cancelada pelo usuário.
+                synchronized (lock) {
+                  localSub.remove();
+                }
+                logger.log(Level.SEVERE, "Erro ao inserir um observador de " +
+                  "registro de oferta no barramento.", ex);
+              } catch (Throwable e) {
+                logger.log(Level.SEVERE, "Erro ao completar uma tarefa " +
+                  "de subscrição de observador de registro de oferta do " +
+                  "OfferRegistry mal-sucedida.", e);
+                throw e;
               }
-              logger.log(Level.SEVERE, "Erro ao inserir um observador de " +
-                "registro de oferta no barramento.", ex);
             }
 
             @Override
             public void onSuccess(OfferRegistryObserverSubscription sub) {
-              synchronized (lock) {
-                // não há como ter dois sucessos ao mesmo tempo, portanto
-                // posso passar por cima do valor direto sem testar.
-                localSub.sub(sub);
-                registrySubs.put(localSub, null);
-                logger.info("Observador de registro de ofertas cadastrado no" +
-                  " barramento.");
+              try {
+                synchronized (lock) {
+                  // não há como ter dois sucessos ao mesmo tempo, portanto
+                  // posso passar por cima do valor direto sem testar.
+                  localSub.sub(sub);
+                  registrySubs.put(localSub, null);
+                  logger.info("Observador de registro de ofertas cadastrado no" +
+                    " barramento.");
+                }
+              } catch (Throwable e) {
+                logger.log(Level.SEVERE, "Erro ao completar uma tarefa " +
+                  "de subscrição de observador de registro de oferta do " +
+                  "OfferRegistry bem-sucedida.", e);
+                throw e;
               }
             }
           },
@@ -838,26 +937,40 @@ class OfferRegistryImpl implements OfferRegistry {
           FutureCallback<OfferObserverSubscription>() {
             @Override
             public void onFailure(Throwable ex) {
-              // so deve entrar aqui se a aplicação escolheu fazer um
-              // logout, ou se pararam as retentativas do RetryTask. Como
-              // o tipo de retentativas é o InfiniteRetryContext que
-              // retenta infinitamente, só vai chegar aqui se a subscrição for
-              // cancelada pelo usuário.
-              synchronized (lock) {
-                localSub.remove();
+              try {
+                // so deve entrar aqui se a aplicação escolheu fazer um
+                // logout, ou se pararam as retentativas do RetryTask. Como
+                // o tipo de retentativas é o InfiniteRetryContext que
+                // retenta infinitamente, só vai chegar aqui se a subscrição for
+                // cancelada pelo usuário.
+                synchronized (lock) {
+                  localSub.remove();
+                }
+                logger.log(Level.SEVERE, "Erro ao inserir um observador de " +
+                  "oferta no barramento", ex);
+              } catch (Throwable e) {
+                logger.log(Level.SEVERE, "Erro ao completar uma tarefa " +
+                  "de subscrição de observador de oferta do OfferRegistry " +
+                  "mal-sucedida.", e);
+                throw e;
               }
-              logger.log(Level.SEVERE, "Erro ao inserir um observador de " +
-                "oferta no barramento", ex);
             }
 
             @Override
             public void onSuccess(OfferObserverSubscription sub) {
-              synchronized (lock) {
-                // não há como ter dois sucessos ao mesmo tempo, portanto
-                // posso passar por cima do valor direto sem testar.
-                localSub.sub(sub);
-                offerSubs.put(localSub, null);
-                logger.info("Observador de oferta cadastrado no barramento.");
+              try {
+                synchronized (lock) {
+                  // não há como ter dois sucessos ao mesmo tempo, portanto
+                  // posso passar por cima do valor direto sem testar.
+                  localSub.sub(sub);
+                  offerSubs.put(localSub, null);
+                  logger.info("Observador de oferta cadastrado no barramento.");
+                }
+              } catch (Throwable e) {
+                logger.log(Level.SEVERE, "Erro ao completar uma tarefa " +
+                  "de subscrição de observador de oferta do OfferRegistry " +
+                  "bem-sucedida.", e);
+                throw e;
               }
             }
           },

@@ -191,25 +191,39 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
               FutureCallback<LoginObserverSubscription>() {
                 @Override
                 public void onFailure(Throwable ex) {
-                  // so deve entrar aqui se a aplicação escolheu fazer um
-                  // logout, ou se pararam as retentativas do RetryTask.
-                  logger.log(Level.SEVERE, "Erro ao inserir o observador de " +
-                    "logins no barramento.", ex);
-                  lock.notifyAll();
+                  try {
+                    // so deve entrar aqui se a aplicação escolheu fazer um
+                    // logout, ou se pararam as retentativas do RetryTask.
+                    logger.log(Level.SEVERE, "Erro ao inserir o observador de " +
+                      "logins no barramento.", ex);
+                    lock.notifyAll();
+                  } catch (Throwable e) {
+                    logger.log(Level.SEVERE, "Erro ao completar uma tarefa " +
+                      "de subscrição de observador de login do LoginRegistry " +
+                      "mal-sucedida.", e);
+                    throw e;
+                  }
                 }
 
                 @Override
                 public void onSuccess(LoginObserverSubscription sub) {
-                  synchronized (lock) {
-                    // não há como ter dois sucessos ao mesmo tempo, portanto
-                    // posso passar por cima do valor direto sem testar.
-                    LoginRegistryImpl.this.sub = sub;
-                    futureSub = null;
-                    // aviso quem estiver dormindo para dar chance de obter sub
-                    // novamente
-                    lock.notifyAll();
-                    logger.info("Observador de logins cadastrado no " +
-                      "barramento.");
+                  try {
+                    synchronized (lock) {
+                      // não há como ter dois sucessos ao mesmo tempo, portanto
+                      // posso passar por cima do valor direto sem testar.
+                      LoginRegistryImpl.this.sub = sub;
+                      futureSub = null;
+                      // aviso quem estiver dormindo para dar chance de obter sub
+                      // novamente
+                      lock.notifyAll();
+                      logger.info("Observador de logins cadastrado no " +
+                        "barramento.");
+                    }
+                  } catch (Throwable e) {
+                    logger.log(Level.SEVERE, "Erro ao completar uma tarefa " +
+                      "de subscrição de observador de login do LoginRegistry " +
+                      "bem-sucedida.", e);
+                    throw e;
                   }
                 }
               },
@@ -407,8 +421,15 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
 
                 @Override
                 public void onSuccess(LoginObserverSubscription remote) {
-                  // a tarefa não foi cancelada a tempo. Cancelar manualmente.
-                  needRemove.set(true);
+                  try {
+                    // a tarefa não foi cancelada a tempo. Cancelar manualmente.
+                    needRemove.set(true);
+                  } catch (Throwable e) {
+                    logger.log(Level.SEVERE, "Erro ao completar uma tarefa " +
+                      "de remoção de observador de login do LoginRegistry " +
+                      "bem-sucedida.", e);
+                    throw e;
+                  }
                 }
               },
               pool.pool());
@@ -428,22 +449,36 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
               FutureCallback<Void>() {
                 @Override
                 public void onFailure(Throwable ex) {
-                  // so deve entrar aqui se a aplicação escolheu fazer um
-                  // logout, ou se pararam as retentativas do RetryTask. Como
-                  // o tipo de retentativas é o OpenBusRetryContext, se essa
-                  // chamada receber uma UserException, COMM_FAILURE ou
-                  // OBJECT_NOT_EXIST, desistirá e chegará aqui.
-                  logger.log(Level.SEVERE, "Erro ao remover o observador de " +
-                    "logins do barramento.", ex);
+                  try {
+                    // so deve entrar aqui se a aplicação escolheu fazer um
+                    // logout, ou se pararam as retentativas do RetryTask. Como
+                    // o tipo de retentativas é o OpenBusRetryContext, se essa
+                    // chamada receber uma UserException, COMM_FAILURE ou
+                    // OBJECT_NOT_EXIST, desistirá e chegará aqui.
+                    logger.log(Level.SEVERE, "Erro ao remover o observador de " +
+                      "logins do barramento.", ex);
+                  } catch (Throwable e) {
+                    logger.log(Level.SEVERE, "Erro ao completar uma tarefa " +
+                      "de remoção de observador de login do LoginRegistry " +
+                      "mal-sucedida.", e);
+                    throw e;
+                  }
                 }
 
                 @Override
                 public void onSuccess(Void nothing) {
-                  synchronized (lock) {
-                    futureSub = null;
-                    futureRemove = null;
+                  try {
+                    synchronized (lock) {
+                      futureSub = null;
+                      futureRemove = null;
+                    }
+                    logger.info("Observador de login removido do barramento.");
+                  } catch (Throwable e) {
+                    logger.log(Level.SEVERE, "Erro ao completar uma tarefa " +
+                      "de remoção de observador de login do LoginRegistry " +
+                      "bem-sucedida.", e);
+                    throw e;
                   }
-                  logger.info("Observador de login removido do barramento.");
                 }
               },
             pool.pool());
@@ -583,31 +618,44 @@ class LoginRegistryImpl extends LoginObserverPOA implements LoginRegistry {
       Futures.addCallback(futureReLogin, new FutureCallback<LoginObserverSubscription>() {
         @Override
         public void onSuccess(LoginObserverSubscription result) {
-          // redefinir sub já com logins watched, nulificar futureReLogin e
-          // notificar quem estiver esperando.
-          synchronized (lock) {
-            if (futureReLogin != null && !futureReLogin.isCancelled()) {
-              // se a sub recebida for null é porque o objeto foi removido no
-              // barramento por perda de login antes que os watch pudessem ser
-              // concluídos.
-              if (result != null) {
-                sub = result;
+          try {
+            // redefinir sub já com logins watched, nulificar futureReLogin e
+            // notificar quem estiver esperando.
+            synchronized (lock) {
+              if (futureReLogin != null && !futureReLogin.isCancelled()) {
+                // se a sub recebida for null é porque o objeto foi removido no
+                // barramento por perda de login antes que os watch pudessem ser
+                // concluídos.
+                if (result != null) {
+                  sub = result;
+                }
+                futureReLogin = null;
               }
-              futureReLogin = null;
+              lock.notifyAll();
             }
-            lock.notifyAll();
+          } catch (Throwable e) {
+            logger.log(Level.SEVERE, "Erro ao completar uma tarefa de " +
+              "relogin do LoginRegistry bem-sucedida.", e);
+            throw e;
           }
         }
 
         @Override
         public void onFailure(Throwable t) {
-          // Só entra aqui se a aplicação fez logout ou um outro relogin cancelou
-          // esse. Basta desistir que o SDK cuida do login atual depois.
-          logger.log(Level.WARNING, "Erro ao reinserir o observador de logins" +
-            " do barramento devido a um logout ou relogin. Esse erro " +
-            "provavelmente pode ser ignorado.", t);
-          synchronized (lock) {
-            lock.notifyAll();
+          try {
+            // Só entra aqui se a aplicação fez logout ou um outro relogin
+            // cancelou esse. Basta desistir que o SDK cuida do login atual
+            // depois.
+            logger.log(Level.WARNING, "Erro ao reinserir o observador de " +
+              "logins do barramento devido a um logout ou relogin. Esse erro " +
+              "provavelmente pode ser ignorado.", t);
+            synchronized (lock) {
+              lock.notifyAll();
+            }
+          } catch (Throwable e) {
+            logger.log(Level.SEVERE, "Erro ao completar uma tarefa de " +
+              "relogin do LoginRegistry mal-sucedida.", e);
+            throw e;
           }
         }
       }, pool.pool());

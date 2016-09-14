@@ -114,7 +114,7 @@ class OfferRegistrySubscriptionImpl extends BusResource implements
 
   @Override
   public void remove() {
-    setCancelled();
+    cancel();
     // o pedido de cancelamento tem que ser feito fora do bloco synchronized
     // para evitar deadlocks. Assim se a tarefa estiver a ponto de fazer um
     // set sub, ela poderá fazê-lo pois conseguirá adquirir o lock.

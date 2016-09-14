@@ -102,7 +102,7 @@ class LocalOfferImpl extends BusResource implements LocalOffer {
 
   @Override
   public void remove() {
-    setCancelled();
+    cancel();
     // o pedido de cancelamento tem que ser feito fora do bloco synchronized
     // para evitar deadlocks. Assim se a tarefa estiver a ponto de fazer um
     // set remote, ela poderá fazê-lo pois conseguirá adquirir o lock.

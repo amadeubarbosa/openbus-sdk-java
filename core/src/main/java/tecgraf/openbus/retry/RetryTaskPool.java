@@ -52,6 +52,7 @@ public class RetryTaskPool {
         task -> {
           Thread thread = new Thread(task);
           thread.setDaemon(true);
+          thread.setName("RetryTaskPoolThread-" + thread.getId());
           return thread;
         }));
   }

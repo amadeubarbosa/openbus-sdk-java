@@ -27,11 +27,11 @@ abstract class BusResource {
   protected void loggedOut() {
     synchronized (lock) {
       loggedOut = true;
-      setCancelled();
+      cancel();
     }
   }
 
-  protected void setCancelled() {
+  protected void cancel() {
     synchronized (lock) {
       cancelled = true;
     }

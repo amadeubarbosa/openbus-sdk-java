@@ -8,6 +8,7 @@ import com.google.common.util.concurrent.SettableFuture;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -65,12 +66,24 @@ class RetryTask<T> {
     this.callback = new FutureCallback<T>() {
       @Override
       public void onSuccess(T result) {
-        complete(result);
+        try {
+          complete(result);
+        } catch (Throwable e) {
+          logger.log(Level.SEVERE, "Erro ao lidar com uma RetryTask " +
+            "bem-sucedida.", e);
+          throw e;
+        }
       }
 
       @Override
       public void onFailure(Throwable t) {
-        handleException(t);
+        try {
+          handleException(t);
+        } catch (Throwable e) {
+          logger.log(Level.SEVERE, "Erro ao lidar com um throwable recebido " +
+            "por uma RetryTask.", e);
+          throw e;
+        }
       }
     };
   }
