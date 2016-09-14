@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <artifactId>openbus-sdk-demo-interceptor</artifactId>
   <packaging>jar</packaging>
-  <name>OpenBus - SDK - Demonstra��es - Interceptor</name>
+  <name>OpenBus - SDK - Demonstrações - Interceptor</name>
   
   <parent>
     <groupId>br.puc-rio.tecgraf.openbus</groupId>

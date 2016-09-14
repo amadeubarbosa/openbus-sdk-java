@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <artifactId>openbus-sdk-demo-hello</artifactId>
   <packaging>jar</packaging>
-  <name>OpenBus - SDK - Demonstra��es - Hello</name>
+  <name>OpenBus - SDK - Demonstrações - Hello</name>
 
   <parent>
     <groupId>br.puc-rio.tecgraf.openbus</groupId>

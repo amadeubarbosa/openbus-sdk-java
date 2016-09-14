@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <artifactId>openbus-sdk-demo-independentclock</artifactId>
   <packaging>jar</packaging>
-  <name>OpenBus - SDK - Demonstra��es - Independent Clock</name>
+  <name>OpenBus - SDK - Demonstrações - Independent Clock</name>
 
   <parent>
     <groupId>br.puc-rio.tecgraf.openbus</groupId>

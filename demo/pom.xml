@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <artifactId>openbus-sdk-demo</artifactId>
   <packaging>pom</packaging>
-  <name>OpenBus - SDK - Demonstra��es</name>
+  <name>OpenBus - SDK - Demonstrações</name>
 
   <parent>
     <groupId>br.puc-rio.tecgraf.openbus</groupId>

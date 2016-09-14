@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <artifactId>openbus-sdk-demo-util</artifactId>
   <packaging>jar</packaging>
-  <name>OpenBus - SDK - Demostra��es - Utilit�rios</name>
+  <name>OpenBus - SDK - Demostrações - Utilitários</name>
  
   <parent>
     <groupId>br.puc-rio.tecgraf.openbus</groupId>
