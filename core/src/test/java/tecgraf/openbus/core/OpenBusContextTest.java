@@ -49,6 +49,7 @@ import test.CallerChainInspectorHelper;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
@@ -71,6 +72,8 @@ public final class OpenBusContextTest {
   private static String entity;
   private static byte[] password;
   private static String domain;
+  private static String admin;
+  private static byte[] adminPsw;
   private static String system;
   private static RSAPrivateKey systemKey;
   private static String systemKeyPath;
@@ -80,6 +83,8 @@ public final class OpenBusContextTest {
   private static long interval;
   private static TimeUnit intervalUnit;
   private static Properties orbprops;
+  private static long sleepTime;
+  private final TimeUnit sleepTimeUnit = TimeUnit.MILLISECONDS;
 
   @BeforeClass
   public static void oneTimeSetUp() throws Exception {
@@ -91,6 +96,8 @@ public final class OpenBusContextTest {
     entity = configs.user;
     password = configs.password;
     domain = configs.domain;
+    admin = configs.admin;
+    adminPsw = configs.admpsw;
     system = configs.system;
     systemKeyPath = configs.syskey;
     systemKey = crypto.readKeyFromFile(systemKeyPath);
@@ -100,6 +107,7 @@ public final class OpenBusContextTest {
     interval = configs.interval;
     intervalUnit = ConnectionImpl.convertUnitPropertyToTimeUnit(configs
       .intervalUnit);
+    sleepTime = configs.sleepMsTime;
     orbprops = Utils.readPropertyFile(configs.orbprops);
     orb = ORBInitializer.initORB(null, orbprops);
     busref = orb.string_to_object(new String(Utils.readFile(configs.busref)));
@@ -660,6 +668,29 @@ public final class OpenBusContextTest {
     CallerChain chain = conn1.makeChainFor(invalidEntity);
     assertEquals(invalidEntity, chain.target());
     conn1.logout();
+  }
+
+  @Test
+  public void onReloginTest() throws Exception {
+    Connection conn = context.connectByReference(busref);
+    CountDownLatch latch = new CountDownLatch(1);
+    context.onReloginCallback((connection, oldLogin) -> latch.countDown());
+    conn.loginByPassword(entity, entity.getBytes(), domain);
+
+    Connection adminconn = context.connectByReference(busref);
+    adminconn.loginByPassword(admin, adminPsw, domain);
+    String id = conn.login().id;
+    adminconn.loginRegistry().invalidateLogin(id);
+    int validity = adminconn.loginRegistry().loginValidity(id);
+    assertTrue(validity <= 0);
+    adminconn.logout();
+
+    //refaz o login
+    conn.loginRegistry().entityLogins(entity);
+
+    assertTrue(latch.await(sleepTime, sleepTimeUnit));
+    context.onReloginCallback(null);
+    conn.logout();
   }
 
   @Test

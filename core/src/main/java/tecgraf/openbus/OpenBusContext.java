@@ -89,9 +89,31 @@ public interface OpenBusContext {
   /**
    * Fornece a callback configurada para receber chamadas.
    * 
-   * @return A callback ou {@code null} caso ela não exista.
+   * @return A callback ou {@code null} caso ela não tenha sido definida.
    */
   CallDispatchCallback onCallDispatch();
+
+  /**
+   * <i>Callback</i> a ser chamada após um login ser refeito.
+   * <p>
+   * Essa callback permite que a aplicação gerencie seus próprios recursos
+   * dependentes do login perdido.
+   * <p>
+   * Como o login pode ser refeito a qualquer momento, diversas
+   * <i>callbacks</i> podem executar ao mesmo tempo. Portanto, a aplicação
+   * deve tratar questões de concorrência de acordo.
+   *
+   * @param callback Objeto que implementa a interface de <i>callback</i> ou
+   * {@code null} para remover o objeto atual.
+   */
+  void onReloginCallback(OnReloginCallback callback);
+
+  /**
+   * Fornece a callback configurada para atuar após relogins.
+   *
+   * @return A callback ou {@code null} caso ela não tenha sido definida.
+   */
+  OnReloginCallback onReloginCallback();
 
   /**
    * Cria uma conexão para um barramento. O barramento é definido por um nome ou

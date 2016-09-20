@@ -14,6 +14,7 @@ import scs.core.IComponentHelper;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
 import tecgraf.openbus.LoginCallback;
+import tecgraf.openbus.OnReloginCallback;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.SharedAuthSecret;
 import tecgraf.openbus.core.Credential.Chain;
@@ -315,7 +316,7 @@ final class ConnectionImpl implements Connection {
   }
 
   private void loginByPassword(String entity, byte[] password, String
-    domain, LoginCallback cb, boolean relogin)
+    domain, LoginCallback cb, boolean relogin, LoginInfo oldLogin)
     throws AccessDenied, AlreadyLoggedIn, TooManyAttempts, UnknownDomain,
     ServiceFailure, WrongEncoding {
     checkLoggedIn();
@@ -331,7 +332,7 @@ final class ConnectionImpl implements Connection {
         this.access().loginByPassword(entity, domain,
           this.publicKey.getEncoded(), encryptedLoginAuthenticationInfo,
           validityHolder);
-      localLogin(newLogin, validityHolder.value, cb, relogin);
+      localLogin(newLogin, validityHolder.value, cb, relogin, oldLogin);
     }
     catch (InvalidPublicKey e) {
       throw new OpenBusInternalException(
@@ -398,7 +399,8 @@ final class ConnectionImpl implements Connection {
   }
 
   private void loginByPrivateKey(String entity, RSAPrivateKey privateKey,
-                                 LoginCallback cb, boolean relogin)
+                                 LoginCallback cb, boolean relogin, LoginInfo
+                                 oldLogin)
     throws AlreadyLoggedIn, MissingCertificate, AccessDenied, ServiceFailure,
     WrongEncoding {
     checkLoggedIn();
@@ -420,7 +422,7 @@ final class ConnectionImpl implements Connection {
       newLogin =
         loginProcess.login(this.publicKey.getEncoded(),
           encryptedLoginAuthenticationInfo, validityHolder);
-      localLogin(newLogin, validityHolder.value, cb, relogin);
+      localLogin(newLogin, validityHolder.value, cb, relogin, oldLogin);
     }
     catch (CryptographyException e) {
       loginProcess.cancel();
@@ -445,7 +447,7 @@ final class ConnectionImpl implements Connection {
   public void loginByCallback(LoginCallback cb) throws AlreadyLoggedIn,
     WrongBus, InvalidLoginProcess, AccessDenied, TooManyAttempts,
     UnknownDomain, MissingCertificate, ServiceFailure, WrongEncoding {
-    loginByCallback(cb, false);
+    loginByCallback(cb, false, null);
   }
 
   @Override
@@ -504,7 +506,7 @@ final class ConnectionImpl implements Connection {
    *            barramento que impediu a autenticação da conexão.
    */
   private void loginBySharedAuth(SharedAuthSecret secret, LoginCallback cb,
-                                 boolean relogin)
+                                 boolean relogin, LoginInfo oldLogin)
     throws AlreadyLoggedIn, WrongBus, ServiceFailure, AccessDenied,
     InvalidLoginProcess {
     checkLoggedIn();
@@ -528,7 +530,7 @@ final class ConnectionImpl implements Connection {
               encryptedLoginAuthenticationInfo, validity);
           newLogin = new LoginInfo(legacy.id, legacy.entity);
         }
-        localLogin(newLogin, validity.value, cb, relogin);
+        localLogin(newLogin, validity.value, cb, relogin, oldLogin);
       }
       else {
         throw new WrongBus();
@@ -567,20 +569,22 @@ final class ConnectionImpl implements Connection {
           busId(), newLogin.id, newLogin.entity));
   }
 
-  private void loginByCallback(LoginCallback cb, boolean relogin) throws
+  private void loginByCallback(LoginCallback cb, boolean relogin, LoginInfo
+    oldLogin) throws
     AlreadyLoggedIn, WrongBus, InvalidLoginProcess, AccessDenied,
     TooManyAttempts, UnknownDomain, MissingCertificate, ServiceFailure,
     WrongEncoding {
     AuthArgs args = cb.authenticationArguments();
     switch (args.mode) {
       case AuthByPassword:
-        loginByPassword(args.entity, args.password, args.domain, cb, relogin);
+        loginByPassword(args.entity, args.password, args.domain, cb, relogin,
+          oldLogin);
         break;
       case AuthByPrivateKey:
-        loginByPrivateKey(args.entity, args.privkey, cb, relogin);
+        loginByPrivateKey(args.entity, args.privkey, cb, relogin, oldLogin);
         break;
       case AuthBySharedSecret:
-        loginBySharedAuth(args.secret, cb, relogin);
+        loginBySharedAuth(args.secret, cb, relogin, oldLogin);
         break;
     }
   }
@@ -614,7 +618,7 @@ final class ConnectionImpl implements Connection {
         finally {
           this.readLock.unlock();
         }
-        loginByCallback(cb, true);
+        loginByCallback(cb, true, loginInfo);
         retry = false;
       } catch (AlreadyLoggedIn e) {
         retry = false;
@@ -749,7 +753,7 @@ final class ConnectionImpl implements Connection {
    * @throws AlreadyLoggedIn se a conexão já estiver logada.
    */
   private void localLogin(LoginInfo newLogin, int validity, LoginCallback cb,
-                          boolean relogin)
+                          boolean relogin, LoginInfo oldLogin)
     throws AlreadyLoggedIn {
     if (legacy) {
       activateLegacySupport();
@@ -769,6 +773,12 @@ final class ConnectionImpl implements Connection {
       if (relogin) {
         loginRegistry.fireEvent(LoginEvent.RELOGIN, newLogin);
         offerRegistry.fireEvent(LoginEvent.RELOGIN, newLogin);
+        OnReloginCallback callback = context.onReloginCallback();
+        new Thread(() -> {
+          if (callback != null) {
+            callback.onRelogin(this, oldLogin);
+          }
+        }).start();
       } else {
         loginRegistry.fireEvent(LoginEvent.LOGGED_IN, newLogin);
         offerRegistry.fireEvent(LoginEvent.LOGGED_IN, newLogin);
