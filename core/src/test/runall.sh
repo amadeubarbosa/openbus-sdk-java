@@ -34,6 +34,7 @@ echo "thread.number = 8"                            >> $OPENBUS_TESTCFG
 echo "openbus.interval = 1"                         >> $OPENBUS_TESTCFG
 echo "openbus.interval.unit = S"                    >> $OPENBUS_TESTCFG
 echo "openbus.log.level = 0"                        >> $OPENBUS_TESTCFG
+echo "sleep.ms.time = 180000"                       >> $OPENBUS_TESTCFG
 #echo "openbus.test.verbose=yes"                    >> $OPENBUS_TESTCFG
 
 source ${OPENBUS_CORE_TEST}/runbus.sh $mode BUS01 $bus1port
