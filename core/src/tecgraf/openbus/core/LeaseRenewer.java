@@ -116,10 +116,13 @@ final class LeaseRenewer {
     public void run() {
       long t = defaultLease * 1000;
       try {
+        this.isSleeping = true;
         Thread.sleep(t);
       }
       catch (InterruptedException e) {
         this.mustContinue = false;
+      }
+      finally {
         this.isSleeping = false;
       }
       while (this.mustContinue) {
@@ -168,12 +171,13 @@ final class LeaseRenewer {
             logger.fine("Thread de renovação indo dormir.");
             Thread.sleep(time * 1000);
             logger.fine("Thread de renovação acordando.");
-            this.isSleeping = false;
           }
           catch (InterruptedException e) {
             this.mustContinue = false;
-            this.isSleeping = false;
             break;
+          }
+          finally {
+            this.isSleeping = false;
           }
         }
       }
