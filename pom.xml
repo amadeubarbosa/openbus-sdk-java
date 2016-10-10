@@ -24,9 +24,10 @@
     <jacorb.version>3.8</jacorb.version>
     <idlj.version>1.2.1</idlj.version>
     <jar.version>2.5</jar.version>
-    <project.build.sourceEncoding>ISO-8859-1</project.build.sourceEncoding>
-    <nexus.url>http://nexus.tecgraf.puc-rio.br:8081/nexus</nexus.url>
     <javadoc.version>2.10.1</javadoc.version>
+    <project.build.sourceEncoding>ISO-8859-1</project.build.sourceEncoding>
+    <nexus.url>http://maven.tecgraf.puc-rio.br:8081/nexus/content</nexus.url>
+    <scm.baseurl>https://git.tecgraf.puc-rio.br/openbus/openbus-sdk-java</scm.baseurl>
   </properties>
 
   <reporting>
@@ -92,22 +93,6 @@
       <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
       <timezone>-3</timezone>
     </developer>
-    <developer>
-      <id>rcosme</id>
-      <name>Ricardo Cosme</name>
-      <email>rcosme@tecgraf.puc-rio.br</email>
-      <organization>Tecgraf/PUC-Rio</organization>
-      <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
-      <timezone>-3</timezone>
-    </developer>
-    <developer>
-      <id>vgpinheiro</id>
-      <name>Vinicius Gama Pinheiro</name>
-      <email>vgpinheiro@tecgraf.puc-rio.br</email>
-      <organization>Tecgraf/PUC-Rio</organization>
-      <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
-      <timezone>-3</timezone>
-    </developer>
   </developers>
 
   <contributors>
@@ -158,6 +143,18 @@
       <name>Todos os membros da lista de usuários</name>
       <email>openbus-users@tecgraf.puc-rio.br</email>
     </contributor>
+    <contributor>
+      <name>Ricardo Cosme</name>
+      <email>rcosme@tecgraf.puc-rio.br</email>
+      <organization>Tecgraf/PUC-Rio</organization>
+      <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
+    </contributor>
+    <contributor>
+      <name>Vinicius Gama Pinheiro</name>
+      <email>vgpinheiro@tecgraf.puc-rio.br</email>
+      <organization>Tecgraf/PUC-Rio</organization>
+      <organizationUrl>http://www.tecgraf.puc-rio.br</organizationUrl>
+    </contributor>
   </contributors>
 
   <mailingLists>
@@ -181,14 +178,14 @@
 
   <distributionManagement>
     <repository>
-      <id>tecgraf-releases</id>
+      <id>tecgraf-pub-releases</id>
       <name>Releases do Tecgraf</name>
-      <url>${nexus.url}/content/repositories/releases</url>
+      <url>${nexus.url}/repositories/releases</url>
     </repository>
     <snapshotRepository>
-      <id>tecgraf-snapshots</id>
+      <id>tecgraf-pub-snapshots</id>
       <name>Snapshots do Tecgraf</name>
-      <url>${nexus.url}/content/repositories/snapshots</url>
+      <url>${nexus.url}/repositories/snapshots</url>
     </snapshotRepository>
     <site>
       <id>tecgraf-site</id>
@@ -200,21 +197,19 @@
   <repositories>
     <repository>
       <id>nexus</id>
-      <url>http://nexus.tecgraf.puc-rio.br:8081/nexus/content/groups/public</url>
+      <url>${nexus.url}/groups/public</url>
     </repository>
   </repositories>
 
   <scm>
-    <developerConnection>
-        scm:svn:https://subversion.tecgraf.puc-rio.br/engdist/openbus/sdk/java/branches/02_00_02
-    </developerConnection>
-    <url>
-        scm:svn:https://subversion.tecgraf.puc-rio.br/viewvc/engdist/openbus/sdk/java/branches/02_00_02
-    </url>
+    <connection>scm:git:${scm.baseurl}.git</connection>
+    <developerConnection>scm:git:${scm.baseurl}.git</developerConnection>
+    <url>${scm.baseurl}</url>
   </scm>
 
   <modules>
     <module>core</module>
+    <module>admin</module>
     <module>interop</module>
     <module>demo</module>
     <module>legacy</module>

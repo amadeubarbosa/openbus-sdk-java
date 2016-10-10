@@ -1,0 +1,46 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>openbus-core-admin</artifactId>
+  <packaging>jar</packaging>
+  <name>OpenBus - SDK - Admin IDLs</name>
+
+  <parent>
+    <groupId>br.puc-rio.tecgraf.openbus</groupId>
+    <artifactId>openbus-sdk</artifactId>
+    <version>2.0.2-SNAPSHOT</version>
+  </parent>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>idlj-maven-plugin</artifactId>
+        <configuration>
+          <sourceDirectory>${admin.idlpath}</sourceDirectory>
+          <includeDirs>
+            <includeDir>${project.basedir}/../core/idl</includeDir>
+            <includeDir>${scs.idlpath}/src</includeDir>
+          </includeDirs>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-site-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+          <skipDeploy>true</skipDeploy>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <dependencies>
+    <dependency>
+      <groupId>br.puc-rio.tecgraf.openbus</groupId>
+      <artifactId>openbus-sdk-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+
+</project>
