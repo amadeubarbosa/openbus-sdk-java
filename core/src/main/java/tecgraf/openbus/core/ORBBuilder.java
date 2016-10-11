@@ -1,8 +1,12 @@
 package tecgraf.openbus.core;
 
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+import org.omg.CORBA.INITIALIZE;
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.ORBPackage.InvalidName;
 
 /**
  * Classe responsável por inicializar o {@link ORB}
@@ -14,6 +18,9 @@ final class ORBBuilder {
   private final String[] args;
   /** Propriedades */
   private final Properties props;
+  /** Instância de logging */
+  private static final Logger logger = Logger.getLogger(ORBBuilder.class
+    .getName());
 
   /**
    * Construtor.
@@ -75,7 +82,17 @@ final class ORBBuilder {
    * @return o ORB
    */
   public ORB build() {
-    return ORB.init(this.args, this.props);
+    ORB orb = ORB.init(this.args, this.props);
+    try {
+      OpenBusContextImpl context = (OpenBusContextImpl) orb
+        .resolve_initial_references("OpenBusContext");
+      context.ORB(orb);
+      context.POA(null);
+    } catch (InvalidName e) {
+      String message = "Falha inesperada ao registrar o POA no multiplexador";
+      logger.log(Level.SEVERE, message, e);
+      throw new INITIALIZE(message);
+    }
+    return orb;
   }
-
 }

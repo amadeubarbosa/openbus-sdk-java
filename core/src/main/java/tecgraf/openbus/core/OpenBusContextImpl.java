@@ -739,7 +739,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
    * 
    * @param orb o ORB.
    */
-  void setORB(ORB orb) {
+  void ORB(ORB orb) {
     this.orb = orb;
   }
 
