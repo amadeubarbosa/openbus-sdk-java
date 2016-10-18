@@ -18,8 +18,7 @@
         <configuration>
           <sourceDirectory>${admin.idlpath}</sourceDirectory>
           <includeDirs>
-            <includeDir>${project.basedir}/../core/idl</includeDir>
-            <includeDir>${scs.idlpath}/src</includeDir>
+            <includeDir>${openbus.idlpath}</includeDir>
           </includeDirs>
         </configuration>
       </plugin>
