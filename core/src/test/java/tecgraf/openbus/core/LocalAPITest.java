@@ -23,6 +23,7 @@ import tecgraf.openbus.OfferRegistry;
 import tecgraf.openbus.OfferRegistryObserver;
 import tecgraf.openbus.OfferRegistrySubscription;
 import tecgraf.openbus.OfferSubscription;
+import tecgraf.openbus.OnReloginCallback;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.RemoteOffer;
 import tecgraf.openbus.core.v2_1.OctetSeqHolder;
@@ -595,6 +596,11 @@ public class LocalAPITest {
     assertSame(observer2, sub2.observer());
     assertSame(conn2, sub2.connection());
 
+    // cadastra callback de relogin na conn1 para verificar se foi chamada
+    final CountDownLatch latchReloginCallback = new CountDownLatch(1);
+    OnReloginCallback onRelogin = (connection, oldLogin) ->
+      latchReloginCallback.countDown();
+    conn1.onReloginCallback(onRelogin);
     // inutiliza o login da conn1
     String id = conn1.login().id;
     Connection adminconn = loginByPassword(true);
@@ -624,6 +630,9 @@ public class LocalAPITest {
     assertNotNull(newRemote1);
     assertTrue(sub1.subscribed(sleepTime));
 
+    // callback onRelogin da aplicação tem que ter sido chamada
+    assertTrue(latchReloginCallback.await(sleepTime, TimeUnit.MILLISECONDS));
+
     // altera propriedades da conn2
     ArrayListMultimap<String, String> properties = ArrayListMultimap.create();
     properties.put("offer.domain", "testing");
@@ -639,8 +648,7 @@ public class LocalAPITest {
 
     // observador de login da conn1 tem que estar de volta e ter recebido
     // notificação de logout da conn2
-    assertTrue(latchLoginRemoved1.await(sleepTime, TimeUnit
-      .MILLISECONDS));
+    assertTrue(latchLoginRemoved1.await(sleepTime, TimeUnit.MILLISECONDS));
     conn1.logout();
   }
 

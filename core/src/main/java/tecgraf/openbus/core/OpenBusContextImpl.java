@@ -36,7 +36,6 @@ import org.omg.PortableServer.POAManagerPackage.AdapterInactive;
 import tecgraf.openbus.CallDispatchCallback;
 import tecgraf.openbus.CallerChain;
 import tecgraf.openbus.Connection;
-import tecgraf.openbus.OnReloginCallback;
 import tecgraf.openbus.OpenBusContext;
 import tecgraf.openbus.SharedAuthSecret;
 import tecgraf.openbus.core.Credential.Chain;
@@ -102,8 +101,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
   private Connection defaultConn;
   /** Callback a ser disparada para decidir a conexão de despacho */
   private volatile CallDispatchCallback dispatchCallback;
-  /** Callback a ser disparada caso o login seja refeito */
-  private volatile OnReloginCallback reloginCallback;
 
   /** Referência para o ORB ao qual pertence */
   private ORB orb;
@@ -843,16 +840,6 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
   @Override
   public CallDispatchCallback onCallDispatch() {
     return this.dispatchCallback;
-  }
-
-  @Override
-  public void onReloginCallback(OnReloginCallback callback) {
-    this.reloginCallback = callback;
-  }
-
-  @Override
-  public OnReloginCallback onReloginCallback() {
-    return this.reloginCallback;
   }
 
   /**

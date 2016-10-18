@@ -104,6 +104,8 @@ final class ConnectionImpl implements Connection {
   private RSAPrivateKey privateKey;
   /** Informação do login associado a esta conexão. */
   private InternalLogin internalLogin;
+  /** Callback a ser disparada caso o login seja refeito */
+  private volatile OnReloginCallback reloginCallback;
   /** Lock para operações sobre o login */
   private final ReentrantReadWriteLock rwlock =
     new ReentrantReadWriteLock(true);
@@ -645,6 +647,16 @@ final class ConnectionImpl implements Connection {
   }
 
   @Override
+  public void onReloginCallback(OnReloginCallback callback) {
+    this.reloginCallback = callback;
+  }
+
+  @Override
+  public OnReloginCallback onReloginCallback() {
+    return this.reloginCallback;
+  }
+
+  @Override
   public CallerChain makeChainFor(String entity) throws ServiceFailure {
     Connection prev = context.currentConnection();
     try {
@@ -773,7 +785,7 @@ final class ConnectionImpl implements Connection {
       if (relogin) {
         loginRegistry.fireEvent(LoginEvent.RELOGIN, newLogin);
         offerRegistry.fireEvent(LoginEvent.RELOGIN, newLogin);
-        OnReloginCallback callback = context.onReloginCallback();
+        OnReloginCallback callback = onReloginCallback();
         new Thread(() -> {
           if (callback != null) {
             callback.onRelogin(this, oldLogin);

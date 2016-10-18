@@ -49,7 +49,6 @@ import test.CallerChainInspectorHelper;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.Properties;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
@@ -668,29 +667,6 @@ public final class OpenBusContextTest {
     CallerChain chain = conn1.makeChainFor(invalidEntity);
     assertEquals(invalidEntity, chain.target());
     conn1.logout();
-  }
-
-  @Test
-  public void onReloginTest() throws Exception {
-    Connection conn = context.connectByReference(busref);
-    CountDownLatch latch = new CountDownLatch(1);
-    context.onReloginCallback((connection, oldLogin) -> latch.countDown());
-    conn.loginByPassword(entity, entity.getBytes(), domain);
-
-    Connection adminconn = context.connectByReference(busref);
-    adminconn.loginByPassword(admin, adminPsw, domain);
-    String id = conn.login().id;
-    adminconn.loginRegistry().invalidateLogin(id);
-    int validity = adminconn.loginRegistry().loginValidity(id);
-    assertTrue(validity <= 0);
-    adminconn.logout();
-
-    //refaz o login
-    conn.loginRegistry().entityLogins(entity);
-
-    assertTrue(latch.await(sleepTime, sleepTimeUnit));
-    context.onReloginCallback(null);
-    conn.logout();
   }
 
   @Test
