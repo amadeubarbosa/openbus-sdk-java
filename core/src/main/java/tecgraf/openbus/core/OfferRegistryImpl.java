@@ -541,7 +541,7 @@ class OfferRegistryImpl implements OfferRegistry {
     }
   }
 
-  protected void onOfferRemove(RemoteOfferImpl offer) {
+  protected void onOfferRemove(RemoteOfferImpl offer, boolean localCancelOnly) {
     synchronized (lock) {
       Map<OfferSubscriptionImpl,
         ListenableFuture<OfferObserverSubscription>> offerSubs = offerSubs();
@@ -556,7 +556,11 @@ class OfferRegistryImpl implements OfferRegistry {
         OfferSubscriptionImpl sub = entry.getKey();
         String iterId = getOfferIdFromProperties(sub.offerDesc);
         if (receivedId.equals(iterId)) {
-          clearOfferSubscription(sub);
+          if (localCancelOnly) {
+            sub.cancel();
+          } else {
+            clearOfferSubscription(sub);
+          }
         }
       }
     }

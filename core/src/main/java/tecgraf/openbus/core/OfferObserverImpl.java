@@ -31,12 +31,18 @@ class OfferObserverImpl extends OfferObserverPOA {
 
   @Override
   public void removed(final ServiceOfferDesc offer) {
+    if (remote.offer() == null) {
+      remote.offer(offer);
+    }
+    // define subscrição como cancelada antes de chamar observer.removed()
+    // (código da aplicação, pode demorar) apenas como dica, para não
+    // arriscar de a aplicação demorar a perceber que isso ocorreu através
+    // do método subscribed(). A chamada registry.onOfferRemove posterior
+    // já cuidaria de cancelar e remover a subscrição.
+    registry.onOfferRemove(remote, true);
     Thread t = new Thread(() -> {
-      if (remote.offer() == null) {
-        remote.offer(offer);
-      }
       observer.removed(remote);
-      registry.onOfferRemove(remote);
+      registry.onOfferRemove(remote, false);
       remote.removed();
     });
     t.start();

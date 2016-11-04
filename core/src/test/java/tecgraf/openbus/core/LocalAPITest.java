@@ -287,13 +287,10 @@ public class LocalAPITest {
     final CountDownLatch latchRegister = new CountDownLatch(1);
     final IdEqualityChecker ids = new
       IdEqualityChecker();
-    OfferRegistryObserver observer = new OfferRegistryObserver() {
-      @Override
-      public void offerRegistered(RemoteOffer offer) {
-        ids.id1 = OfferRegistryImpl
-          .getOfferIdFromProperties(((RemoteOfferImpl)offer).offer());
-        latchRegister.countDown();
-      }
+    OfferRegistryObserver observer = offer -> {
+      ids.id1 = OfferRegistryImpl
+        .getOfferIdFromProperties(((RemoteOfferImpl)offer).offer());
+      latchRegister.countDown();
     };
     OfferRegistrySubscription sub = offers.subscribeObserver(observer,
       properties);
@@ -422,12 +419,14 @@ public class LocalAPITest {
     Connection conn2 = loginByPassword(false);
     RemoteOffer remote = conn2.offerRegistry().findServices(properties).get(0);
     assertSame(conn2, remote.connection());
+    CountDownLatch latchOfferRemoved = new CountDownLatch(1);
     OfferObserver observer = new OfferObserver() {
       @Override
       public void propertiesChanged(RemoteOffer offer) {}
 
       @Override
       public void removed(RemoteOffer offer) {
+        latchOfferRemoved.countDown();
       }
     };
     OfferSubscription sub = remote.subscribeObserver(observer);
@@ -437,9 +436,9 @@ public class LocalAPITest {
     assertTrue(sub.subscribed(sleepTime));
     // remove através do objeto da conn1
     anOffer.remoteOffer(sleepTime).remove();
-    Thread.sleep(3000);
     // Subscrição tem que saber que foi removida e se remover localmente e do
-    // barramento
+    // barramento.
+    assertTrue(latchOfferRemoved.await(sleepTime, sleepTimeUnit));
     assertFalse(sub.subscribed(sleepTime));
     conn1.logout();
     conn2.logout();
@@ -617,7 +616,7 @@ public class LocalAPITest {
     // remoção da oferta
     assertTrue(latchOfferRemoved.await(sleepTime, sleepTimeUnit));
     assertTrue(ids2.check());
-    // alem disso, observador tem que ter sido removido
+    // alem disso, observador tem que ter sido removido.
     assertFalse(sub2.subscribed(sleepTime));
 
     // refaz login da conn1
