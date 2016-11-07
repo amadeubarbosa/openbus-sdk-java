@@ -9,7 +9,7 @@ elif [[ "$mode" != "RELEASE" && "$mode" != "DEBUG" ]]; then
 	exit 1
 fi
 
-bus1port=21220
+bus1port=20220
 leasetime=5
 passwordpenalty=1
 
