@@ -1,11 +1,10 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>br.puc-rio.tecgraf.openbus</groupId>
   <artifactId>openbus-sdk</artifactId>
   <packaging>pom</packaging>
-  <version>2.0.2-SNAPSHOT</version>
+  <version>2.0.2.1</version>
 
 
   <name>OpenBus - SDK</name>
@@ -205,6 +204,7 @@
     <connection>scm:git:${scm.baseurl}.git</connection>
     <developerConnection>scm:git:${scm.baseurl}.git</developerConnection>
     <url>${scm.baseurl}</url>
+    <tag>02_00_02_01</tag>
   </scm>
 
   <modules>
