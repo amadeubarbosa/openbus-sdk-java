@@ -23,6 +23,8 @@
     <jacorb.version>3.8</jacorb.version>
     <idlj.version>1.2.1</idlj.version>
     <jar.version>2.5</jar.version>
+    <sourceplugin.version>3.0.1</sourceplugin.version>
+    <surefire.version>2.19.1</surefire.version>
     <javadoc.version>2.10.1</javadoc.version>
     <project.build.sourceEncoding>ISO-8859-1</project.build.sourceEncoding>
     <nexus.url>http://maven.tecgraf.puc-rio.br:8081/nexus/content</nexus.url>
@@ -230,6 +232,34 @@
       </testResource>
     </testResources>
 
+  <pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>idlj-maven-plugin</artifactId>
+        <version>${idlj.version}</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>${jar.version}</version>
+      </plugin>
+      
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>${sourceplugin.version}</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${surefire.version}</version>
+      </plugin>
+    </plugins>
+  </pluginManagement>
+
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -344,18 +374,6 @@
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
         <version>${junit.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>idlj-maven-plugin</artifactId>
-        <version>${idlj.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>${jar.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
