@@ -188,11 +188,6 @@
       <name>Snapshots do Tecgraf</name>
       <url>${nexus.url}/repositories/snapshots</url>
     </snapshotRepository>
-    <site>
-      <id>tecgraf-site</id>
-      <name>Site</name>
-      <url>dav:${project.url}</url>
-    </site>
   </distributionManagement>
   
   <repositories>
