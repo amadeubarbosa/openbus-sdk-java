@@ -3,7 +3,7 @@
   <groupId>br.puc-rio.tecgraf.openbus</groupId>
   <artifactId>openbus-sdk</artifactId>
   <packaging>pom</packaging>
-  <version>2.1.1.1</version>
+  <version>2.1.1.2-SNAPSHOT</version>
   <inceptionYear>2008</inceptionYear>
   <name>OpenBus - SDK</name>
   <!-- <url>${site.url}/${ob.component}/${project.version}</url> -->
@@ -42,9 +42,10 @@
   </properties>
 
   <scm>
-    <connection>scm:git:${scm.baseurl}.git</connection>
-    <developerConnection>scm:git:${scm.baseurl}.git</developerConnection>
-    <url>${scm.baseurl}</url>
+    <connection>scm:git:https://git.tecgraf.puc-rio.br/openbus/openbus-sdk-java.git</connection>
+    <developerConnection>scm:git:https://git.tecgraf.puc-rio.br/openbus/openbus-sdk-java.git</developerConnection>
+    <url>https://git.tecgraf.puc-rio.br/openbus/openbus-sdk-java</url>
+    <tag>HEAD</tag>
   </scm>
 
   <distributionManagement>
