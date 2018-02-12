@@ -271,23 +271,21 @@ final class ConnectionImpl implements Connection {
     return getBus().getId();
   }
 
-  /**
-   * Recupera a chave pública do barramento.
-   * 
-   * @return a chave pública.
-   */
-  RSAPublicKey getBusPublicKey() {
+  @Override
+  public RSAPublicKey busPublicKey() {
     return getBus().getPublicKey();
   }
 
-  /**
-   * Recupera a chave privada da conexão.
-   * 
-   * @return a chave privada.
-   */
-  RSAPrivateKey getPrivateKey() {
+  @Override
+  public RSAPrivateKey privateKey() {
     return this.privateKey;
   }
+
+  @Override
+  public RSAPublicKey publicKey() {
+    return this.publicKey;
+  }
+
 
   /**
    * Verifica se a conexão já está loggada, e lança a exceção
@@ -332,7 +330,7 @@ final class ConnectionImpl implements Connection {
       IntHolder validityHolder = new IntHolder();
       newLogin =
         this.access().loginByPassword(entity, domain,
-          this.publicKey.getEncoded(), encryptedLoginAuthenticationInfo,
+          this.publicKey().getEncoded(), encryptedLoginAuthenticationInfo,
           validityHolder);
       localLogin(newLogin, validityHolder.value, cb, relogin, oldLogin);
     }
@@ -361,7 +359,7 @@ final class ConnectionImpl implements Connection {
    */
   private byte[] generateEncryptedLoginAuthenticationInfo(byte[] data) {
     try {
-      byte[] publicKeyHash = crypto.generateHash(this.publicKey.getEncoded());
+      byte[] publicKeyHash = crypto.generateHash(this.publicKey().getEncoded());
 
       LoginAuthenticationInfo authenticationInfo =
         new LoginAuthenticationInfo(publicKeyHash, data);
@@ -422,7 +420,7 @@ final class ConnectionImpl implements Connection {
 
       IntHolder validityHolder = new IntHolder();
       newLogin =
-        loginProcess.login(this.publicKey.getEncoded(),
+        loginProcess.login(this.publicKey().getEncoded(),
           encryptedLoginAuthenticationInfo, validityHolder);
       localLogin(newLogin, validityHolder.value, cb, relogin, oldLogin);
     }
@@ -463,7 +461,7 @@ final class ConnectionImpl implements Connection {
     try {
       context.currentConnection(this);
       process = this.access().startLoginBySharedAuth(challenge);
-      secret = crypto.decrypt(challenge.value, this.privateKey);
+      secret = crypto.decrypt(challenge.value, this.privateKey());
       if (legacy() && legacySupport().converter() != null) {
         try {
           legacyProcess =
@@ -523,12 +521,12 @@ final class ConnectionImpl implements Connection {
         IntHolder validity = new IntHolder();
         if (sharedAuth.attempt() != null) {
           newLogin =
-            sharedAuth.attempt().login(this.publicKey.getEncoded(),
+            sharedAuth.attempt().login(this.publicKey().getEncoded(),
               encryptedLoginAuthenticationInfo, validity);
         }
         else {
           tecgraf.openbus.core.v2_0.services.access_control.LoginInfo legacy =
-            sharedAuth.legacy().login(this.publicKey.getEncoded(),
+            sharedAuth.legacy().login(this.publicKey().getEncoded(),
               encryptedLoginAuthenticationInfo, validity);
           newLogin = new LoginInfo(legacy.id, legacy.entity);
         }

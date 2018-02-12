@@ -1,6 +1,7 @@
 package tecgraf.openbus;
 
 import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
 
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
@@ -78,6 +79,27 @@ public interface Connection {
    * @return o identificador do barramento.
    */
   String busId();
+
+  /**
+   * Fornece a chave pública do barramento a que essa conexão se refere.
+   *
+   * @return a chave pública.
+   */
+  RSAPublicKey busPublicKey();
+
+  /**
+   * Fornece a chave pública usada na criação desta conexão.
+   *
+   * @return a chave pública.
+   */
+  RSAPublicKey publicKey();
+
+  /**
+   * Fornece a chave privada usada na criação desta conexão.
+   *
+   * @return a chave privada.
+   */
+  RSAPrivateKey privateKey();
 
   /**
    * Fornece as Informações do login dessa conexão ou {@code null} se a

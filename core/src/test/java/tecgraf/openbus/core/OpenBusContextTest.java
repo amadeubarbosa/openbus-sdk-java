@@ -254,7 +254,7 @@ public final class OpenBusContextTest {
     assertNull(conn.login());
     conn.loginByPassword(entity, entity.getBytes(), domain);
     assertNotNull(conn.login());
-    assertSame(conn.getBusPublicKey(), busCert.getPublicKey());
+    assertSame(conn.busPublicKey(), busCert.getPublicKey());
     conn.logout();
     assertNull(conn.login());
   }

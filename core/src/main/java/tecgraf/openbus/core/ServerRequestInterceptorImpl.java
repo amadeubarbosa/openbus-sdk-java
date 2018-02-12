@@ -444,7 +444,7 @@ final class ServerRequestInterceptorImpl extends InterceptorImpl implements
     ConnectionImpl conn) {
     Cryptography crypto = Cryptography.getInstance();
     if (pubKey == null) {
-      pubKey = conn.getBusPublicKey();
+      pubKey = conn.busPublicKey();
     }
     if (credential.chain != null) {
       try {

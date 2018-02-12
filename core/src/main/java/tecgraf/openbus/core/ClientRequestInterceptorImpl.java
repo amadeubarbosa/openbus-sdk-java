@@ -448,7 +448,7 @@ final class ClientRequestInterceptorImpl extends InterceptorImpl implements
           Cryptography crypto = Cryptography.getInstance();
           byte[] secret;
           try {
-            secret = crypto.decrypt(reset.challenge, conn.getPrivateKey());
+            secret = crypto.decrypt(reset.challenge, conn.privateKey());
           }
           catch (CryptographyException e) {
             String message = "Falha inesperada ao descriptografar segredo.";

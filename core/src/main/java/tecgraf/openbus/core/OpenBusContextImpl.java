@@ -439,7 +439,7 @@ final class OpenBusContextImpl extends LocalObject implements OpenBusContext {
     ORBMediator mediator = ORBUtils.getMediator(orb);
     Codec codec = mediator.getCodec();
     ConnectionImpl conn = (ConnectionImpl) currentConnection();
-    RSAPublicKey buskey = conn.getBusPublicKey();
+    RSAPublicKey buskey = conn.busPublicKey();
     if (buskey == null) {
       throw new NO_PERMISSION(NoLoginCode.value, CompletionStatus.COMPLETED_NO);
     }
