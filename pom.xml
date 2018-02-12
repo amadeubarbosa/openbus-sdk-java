@@ -19,7 +19,7 @@
     <java.version>1.8</java.version>
     <scs.version>1.2.1.3</scs.version>
     <junit.version>4.12</junit.version>
-    <jacorb.version>3.8</jacorb.version>
+    <jacorb.version>3.9</jacorb.version>
     <!-- Guava precisa ser especificamente a 19.0 pois usamos uma
     funcionalidade beta (método setFuture da classe SettableFuture). Caso
     isso se torne um problema podemos lançar um bugfix onde obfusquemos o
@@ -27,7 +27,7 @@
     opção -repackageclasses (http://proguard.sourceforge.net/manual/usage
     .html#obfuscationoptions).-->
     <guava.version>[19.0]</guava.version>
-    <idlj.version>1.2.1</idlj.version>
+    <idlj.version>1.2.2</idlj.version>
     <jar.version>2.5</jar.version>
     <javadoc.version>2.10.1</javadoc.version>
     <source.version>2.4</source.version>
@@ -152,7 +152,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-site-plugin</artifactId>
-        <version>3.4</version>
+        <version>3.7</version>
         <configuration>
           <locales>pt_BR</locales>
         </configuration>
@@ -173,7 +173,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-project-info-reports-plugin</artifactId>
-        <version>2.7</version>
+        <version>2.9</version>
         <reportSets>
           <reportSet>
             <reports>
@@ -309,7 +309,7 @@
   <licenses>
     <license>
       <name>OpenBus License, compatible with GPL</name>
-      <url>http://webserver2.tecgraf.puc-rio.br/ftp_pub/openbus/license/LICENSE</url>
+      <url>http://www.tecgraf.puc-rio.br/ftp_pub/openbus/license/LICENSE</url>
       <distribution>repo</distribution>
     </license>
   </licenses>
