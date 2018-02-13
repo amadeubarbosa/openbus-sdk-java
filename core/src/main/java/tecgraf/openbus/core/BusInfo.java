@@ -70,9 +70,13 @@ final class BusInfo {
       ic = IComponentHelper.narrow(this.rawObject);
       if (ic == null) {
         throw new OBJECT_NOT_EXIST("Referência obtida não corresponde a um " +
-          "IComponent.");
+          IComponentHelper.id());
       }
       org.omg.CORBA.Object obj = ic.getFacet(AccessControlHelper.id());
+      if (obj == null) {
+        throw new OBJECT_NOT_EXIST("Referência obtida não atende ao serviço " +
+          AccessControlHelper.id());
+      }
       AccessControl ac = AccessControlHelper.narrow(obj);
       String id = ac.busid();
       X509Certificate certificate = this.busCert;
@@ -87,8 +91,16 @@ final class BusInfo {
         }
       }
       obj = ic.getFacet(LoginRegistryHelper.id());
+      if (obj == null) {
+        throw new OBJECT_NOT_EXIST("Referência obtida não atende ao serviço " +
+          LoginRegistryHelper.id());
+      }
       LoginRegistry login = LoginRegistryHelper.narrow(obj);
       obj = ic.getFacet(OfferRegistryHelper.id());
+      if (obj == null) {
+        throw new OBJECT_NOT_EXIST("Referência obtida não atende ao serviço " +
+          OfferRegistryHelper.id());
+      }
       OfferRegistry registry = OfferRegistryHelper.narrow(obj);
 
       synchronized (lock) {
